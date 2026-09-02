@@ -143,7 +143,14 @@ def built(tmp_path_factory):
         "--cited-from", str(csv_dir / "cited_taxa.csv"),
     )
 
-    blueprint = json.loads(BLUEPRINT.read_text())
+    # The BugSigDB slice of the blueprint, not the shipped whole: this fixture
+    # preps one source, and a blueprint declaring another source's node types
+    # would load them as empty — which makes every ontology rule over them a
+    # gate that cannot fail (`test_audit_denominators_are_not_zero`).
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_blueprint import compose
+
+    blueprint = compose(ROOT / "blueprints", ["bugsigdb"])
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):
@@ -154,9 +161,11 @@ def built(tmp_path_factory):
     # drift guard).
     ontology_ref = blueprint.get("ontology")
     if isinstance(ontology_ref, str):
-        from microbiomekg.ontology import write_json
+        from microbiomekg.ontology import ontology_for, write_json
 
-        write_json(csv_dir / Path(ontology_ref).name)
+        # BugSigDB's slice again: a rule over a relationship this build did not
+        # load would report 0 / 0, which is a gate that cannot fail.
+        write_json(csv_dir / Path(ontology_ref).name, ontology_for(["bugsigdb"]))
     local = csv_dir / "blueprint.test.json"
     local.write_text(json.dumps(blueprint))
 

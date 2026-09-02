@@ -1,0 +1,118 @@
+{
+  "_doc": "gutMDisorder (human.xlsx + mouse.xlsx, 2020 v1): the Intervention node and the ABUNDANCE_CHANGED_BY edge \u2014 'a taxon changed BY something', which is the relation D4's intervention leg needs and which no other surveyed source curates. Its taxon-disease associations are rows in core.json's taxon_disease.csv, not a second relationship, so D2/D3/D17 span both sources; the properties it adds to that shared junction edge are declared here and merged additively.",
+  "nodes": {
+    "Intervention": {
+      "csv": "intervention.csv",
+      "pk": "intervention_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "intervention_type": "string",
+        "drugbank_id": "string",
+        "source": "string"
+      }
+    },
+    "Taxon": {
+      "connections": {
+        "junction_edges": {
+          "ASSOCIATED_WITH": {
+            "csv": "taxon_disease.csv",
+            "source_fk": "tax_id",
+            "target": "Disease",
+            "target_fk": "condition_id",
+            "properties": [
+              "p_value",
+              "research_type",
+              "study_sample_size",
+              "study_arm_sizes",
+              "sample_size_scope",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "reported_tax_id",
+              "resolution_status",
+              "duplicate_rows"
+            ],
+            "property_types": {
+              "p_value": "float",
+              "research_type": "string",
+              "study_sample_size": "int",
+              "study_arm_sizes": "string",
+              "sample_size_scope": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "reported_tax_id": "int",
+              "resolution_status": "string",
+              "duplicate_rows": "int"
+            }
+          },
+          "ABUNDANCE_CHANGED_BY": {
+            "csv": "taxon_intervention.csv",
+            "source_fk": "tax_id",
+            "target": "Intervention",
+            "target_fk": "intervention_id",
+            "properties": [
+              "direction",
+              "study_design",
+              "evidence_level",
+              "sequencing_type",
+              "statistical_test",
+              "group_0_size",
+              "group_1_size",
+              "pmid",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "study_id",
+              "host_species",
+              "p_value",
+              "research_type",
+              "study_sample_size",
+              "study_arm_sizes",
+              "sample_size_scope",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "reported_tax_id",
+              "resolution_status",
+              "duplicate_rows"
+            ],
+            "property_types": {
+              "group_0_size": "int",
+              "group_1_size": "int",
+              "pmid": "int",
+              "direction": "string",
+              "study_design": "string",
+              "evidence_level": "string",
+              "sequencing_type": "string",
+              "statistical_test": "string",
+              "study_id": "string",
+              "host_species": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "p_value": "float",
+              "research_type": "string",
+              "study_sample_size": "int",
+              "study_arm_sizes": "string",
+              "sample_size_scope": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "reported_tax_id": "int",
+              "resolution_status": "string",
+              "duplicate_rows": "int"
+            }
+          }
+        }
+      }
+    }
+  }
+}

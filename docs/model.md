@@ -5,8 +5,11 @@ papers) with one thing added that it does not have: **an association edge
 cannot exist without saying how it was demonstrated**, and the ontology
 reports what fraction of them fail that.
 
-Everything below marked *(increment 1)* is built and measured. Increment 1 is
-NCBI taxonomy + BugSigDB; the rest of the sources extend the same shapes.
+Everything below is built and measured. Increment 1 is NCBI taxonomy +
+BugSigDB; increment 2 adds gutMDisorder; the rest of the sources extend the
+same shapes. A source is added as files — `scripts/prep_<source>.py`,
+`blueprints/<source>.json`, `microbiomekg/ontology/<source>.py` — never by
+editing a shared one (§8).
 
 ---
 
@@ -23,6 +26,7 @@ NCBI taxonomy + BugSigDB; the rest of the sources extend the same shapes.
 | `Study` | `bsdb:<n>` | `title` | BugSigDB BSDB ID prefix | 1 |
 | `Signature` | `bsdb:<study>/<exp>/<sig>` | `description` | BugSigDB BSDB ID | 1 |
 | `Paper` | `pmid` (int) | `title` | PubMed | 1 |
+| `Intervention` | `INTERVENTION:<slug>` | `label` | gutMDisorder `Intervention` (+ `drugbank_id`) | 2 |
 | `Metabolite` | HMDB id | `name` | HMDB; ChEBI/KEGG/PubChem as properties | 2 |
 | `Pathway` | `R-HSA-…` / `mapNNNNN` | `name` | Reactome / KEGG, `source` property | 2 |
 | `Drug` | ChEMBL id | `pref_name` | ChEMBL `max_phase = 4` | 3 |
@@ -192,6 +196,7 @@ per taxon (BugSigDB does not).
 | `IN_PHENOTYPE` | `Signature` → `Phenotype` | — |
 | `IN_EXPOSURE` | `Signature` → `Exposure` | — |
 | `AT_BODY_SITE` | `Signature` → `BodySite` | — |
+| `ABUNDANCE_CHANGED_BY` | `Taxon` → `Intervention` | **the same contract** |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
 
 **Three association relationships are one relation, split by the engine.** The
@@ -237,12 +242,29 @@ context rather than evidence: `signature_id` (the join key onto the
 `Signature` node), `study_id`, `host_species`, `body_site`,
 `significance_threshold`, `mht_correction`.
 
-**Measured headline: 13.7% of association edges (15,127 of 110,547) are
-missing at least one contract field** — **14,349 of the 103,461 disease edges,
-13.87%**, which is the number the project quotes, plus 293 of 4,717 phenotype
-edges (6.21%) and 485 of 2,369 exposure edges (20.46%). Those three numbers are
-what `ontology_audit()` returns and what the build prints, and they are the
-numbers the project exists to make visible.
+**Measured headline over both sources: 15.20% of taxon–disease edges (15,985
+of 105,097) are missing at least one contract field**, plus 293 of 4,717
+phenotype edges (6.21%), 485 of 2,369 exposure edges (20.46%) and **1,380 of
+1,380 intervention edges (100%)**. Those are what `ontology_audit()` returns and
+what the build prints, and they are the numbers the project exists to make
+visible.
+
+**The number moved when the second source landed, and that is the audit
+working.** BugSigDB alone measured 14,349 of 103,461 = 13.87%. Every one of
+gutMDisorder's 1,636 taxon–disease edges is missing three fields, so all 1,636
+are violations: the source records **no study design** at all (`Research Type`
+is a curation category — "gut microbiota associated with disorder" — not a
+design, and writing it into the design column would improve this number by
+misdescribing the data), and its association rows carry **no link to a sample
+arm**, so there are no per-association `group_0_size`/`group_1_size` either;
+the study's arm sizes are carried instead as `study_sample_size` /
+`study_arm_sizes` with `sample_size_scope = "study-level (not
+per-association)"`, and one mouse study has three arms, which no pair of group
+sizes could have described. `ABUNDANCE_CHANGED_BY` is 100% for the same reason:
+its whole population is that source. What gutMDisorder *does* carry on every
+edge is a citation, a direction, a p-value, a named test and its assay — the
+per-field census (§7 Q5, D15) is where that is legible, and a single percentage
+over sources with different column sets is not.
 
 **Why the Biolink pair, and why these two values.** `evidence_level` below is
 project-controlled by necessity — ECO has no term that separates 16S from
@@ -589,7 +611,7 @@ layer attached:
 | Scope | Taxa | Nodes | Edges | Build | Peak RSS | `.kgl` |
 |---|---|---|---|---|---|---|
 | `cited` | 10,515 | 30,827 | 289,735 | 0.6 s | — | 4 MB |
-| `microbial` | 863,880 | 884,075 | 1,135,459 | **2.4 s** | **1.23 GB** | 25 MB |
+| `microbial` | 863,924 | 885,328 | 1,139,034 | **2.2 s** | **1.23 GB** | 41 MB |
 | `all` | 2,993,226 | ~3.0 M | ~3.3 M | (not built) | ~4 GB est. | — |
 
 An evidence-filtered `ASSOCIATED_WITH` scan runs in **7 ms** at microbial
@@ -634,12 +656,12 @@ values, an exact match is better), any numeric or CURIE field.
 `Taxon.synonyms` is a `" | "`-joined **string**, capped at 20 names per taxon
 (68 taxa hit the cap at microbial scope). It is not a list property — see §8.
 
-Index sizes at microbial scope: `Taxon.scientific_name` 863,880 documents /
-442,904 terms; `Taxon.synonyms` 103,112 / 98,548 (760,768 taxa have no synonym
-at all, so BM25 skips them — an absent property is not an empty document);
-`Signature.description` 14,425 / 6,383 (421 signatures have no description);
-`Disease.label` 770 / 919; `Paper.title` 2,110 / 3,915. All five build in well
-under a second, and `scripts/build.py` builds exactly this list. `Phenotype.label` (62) and
+Index sizes at microbial scope with both sources: `Taxon.scientific_name`
+863,924 documents / 442,940 terms; `Taxon.synonyms` 103,125 / 98,571 (760,799
+taxa have no synonym at all, so BM25 skips them — an absent property is not an
+empty document); `Signature.description` 14,425 / 6,383 (421 signatures have no
+description); `Disease.label` 808 / 952; `Paper.title` 2,486 / 4,372. All five
+build in well under a second, and `scripts/build.py` builds exactly this list. `Phenotype.label` (62) and
 `Exposure.label` (43) are not indexed — at that size an exact match beats BM25.
 
 ---

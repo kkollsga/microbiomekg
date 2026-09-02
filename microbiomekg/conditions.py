@@ -26,6 +26,8 @@ from pathlib import Path
 
 __all__ = [
     "CONDITION_TYPES",
+    "CURIE_SHAPES",
+    "malformed_curie",
     "ConditionPairing",
     "MondoIndex",
     "condition_node_type",
@@ -68,6 +70,23 @@ CONDITION_TYPES: dict[str, str] = {
     "GSSO": "Exposure",
 }
 
+#: Vocabulary → the shape its local id has, for the vocabularies whose shape
+#: is documented. A CURIE whose prefix is here and whose id does not match is
+#: **malformed at the source** — it is not "not found", and the difference
+#: matters: gutMDisorder writes ``DOID:00400085``, which is 8 digits with a
+#: leading double zero where DOID ids are 1–7, so no lookup will ever find it
+#: and reporting it as an ordinary miss would file a typo as a coverage gap.
+#:
+#: A prefix that is *not* here is never called malformed. Guessing a shape for
+#: a vocabulary nobody has checked would reject real ids, which is the silent
+#: drop this module exists to prevent.
+CURIE_SHAPES: dict[str, str] = {
+    "DOID": r"\d{1,7}",
+    "MONDO": r"\d{7}",
+    "EFO": r"\d{7}",
+    "HP": r"\d{7}",
+}
+
 _PREFIX = re.compile(r"^\s*([A-Za-z][A-Za-z0-9.]*)[:_]")
 _XREF = re.compile(r"^xref:\s+(\S+)(?:\s+\{(.*)\})?\s*$")
 _SOURCE = re.compile(r'source="([^"]+)"')
@@ -82,6 +101,22 @@ def curie_vocabulary(curie: str) -> str:
     """``MONDO:0005265`` → ``MONDO``. ``ncbitaxon_568703`` → ``NCBITAXON``."""
     m = _PREFIX.match(curie or "")
     return m.group(1).upper() if m else ""
+
+
+def malformed_curie(curie: str) -> bool:
+    """Is this CURIE's local id the wrong shape for its own vocabulary?
+
+    ``True`` only for a vocabulary in :data:`CURIE_SHAPES` whose id does not
+    match. Everything else — an unknown prefix, a bare string, a vocabulary
+    with no declared shape — is ``False``, because this answers "did the source
+    make a typo?", not "can I resolve this?".
+    """
+    vocab = curie_vocabulary(curie)
+    shape = CURIE_SHAPES.get(vocab)
+    if shape is None:
+        return False
+    local = (curie or "").strip()[len(vocab) + 1 :]
+    return re.fullmatch(shape, local) is None
 
 
 def condition_node_type(curie: str) -> str | None:

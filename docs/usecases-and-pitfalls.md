@@ -103,9 +103,11 @@ Where Part A and the research disagree, the research wins and the disagreement
 is named. Two such places exist and are marked **[A-override]** below.
 
 **The source state this section is written against.** Loaded now: NCBI Taxonomy
-(`new_taxdump` 2026-09-02) and BugSigDB (`full_dump` 2026-09-02). Fetched and
-profiled, not yet loaded: gutMDisorder, HMDB 5.0, CARD, Reactome, KEGG,
-ChEMBL 37, MONDO (`docs/research/source-formats.md`). Being fetched to close the
+(`new_taxdump` 2026-09-02), BugSigDB (`full_dump` 2026-09-02), **MONDO
+(2026-09-01, as the disease-id hub)** and **gutMDisorder v1 (2020, recovered
+from Wayback — loaded 2026-09-03)**. Fetched and profiled, not yet loaded:
+HMDB 5.0, CARD, Reactome, KEGG, ChEMBL 37
+(`docs/research/source-formats.md`). Being fetched to close the
 three named gaps: **MiMeDB** (per-taxon metabolite production), **NJC19**
 (consumption / cross-feeding), **MASI** (drug↔taxon). Every "no" below names
 which of those fills it.
@@ -190,8 +192,10 @@ gutMDisorder v2.0, NAR 51:D717 (2023); CARD, Alcock et al., NAR 48:D517 (2020).
 depletion with an evidence tier is answerable now (D10's first leg). The AMR leg
 is `pending: CARD`; the metabolite leg is `pending: MiMeDB` (HMDB alone yields
 224 microbial-origin metabolites keyed on free-text organism names, §"HMDB" in
-`source-formats.md`); the interventional-evidence leg is `pending:
-gutMDisorder`. Note the graph can already *distinguish* the rungs —
+`source-formats.md`); the interventional-evidence leg **is loaded** —
+gutMDisorder contributes 1,380
+`(Taxon)-[:ABUNDANCE_CHANGED_BY]->(Intervention)` edges over 220 interventions,
+558 of them human-interventional and 822 animal (D4). Note the graph can already *distinguish* the rungs —
 `evidence_level` separates `in-vivo-model` from `interventional-rct` — it just
 has only BugSigDB's slice of them.
 
@@ -1208,7 +1212,11 @@ document has no table yet (MiMeDB, NJC19, MASI) the names are proposed here and
 are the loader's contract.
 
 Measurements quoted as "measured" were taken from `data/csv/` on 2026-09-03,
-against the full BugSigDB dump of 2026-09-02.
+against the full BugSigDB dump of 2026-09-02 **and gutMDisorder v1**. Where the
+second source moved a number, the one-source value is kept beside it: a golden
+that moves when a source lands is the expected outcome, and the pair is what
+says by how much. `tests/test_acceptance.py` runs every `answerable-now` query
+below and asserts these numbers.
 
 ---
 
@@ -1265,7 +1273,9 @@ ORDER BY level, study
 ```
 
 *Shape:* one row per signature — never one aggregated row per pair. *Golden
-check (measured):* **taxon 851 (*Fusobacterium nucleatum*) × `MONDO:0005575`
+check (measured, and **unchanged by gutMDisorder**, which curates no
+*F. nucleatum* result for colorectal cancer at all):* **taxon 851
+(*Fusobacterium nucleatum*) × `MONDO:0005575`
 (colorectal cancer) returns 40 rows across 21 distinct `study_id`s — 39
 `increased` from 20 of them, and one `decreased` from `bsdb:41270896`.** The
 increased-direction requirement of "more than one study" is met twenty times
@@ -1291,10 +1301,13 @@ RETURN t.title AS taxon, t.rank AS rank, n_conditions, n_studies,
 ORDER BY n_conditions DESC LIMIT 25
 ```
 
-*Golden check (measured):* **3,799 of 7,718 taxa carrying an
-`ASSOCIATED_WITH` edge appear in more than one condition — 49.2%**, within two
-points of Duvallet et al.'s published 51% of genus-level associations being
-associated with more than one disease. A build that returns a materially lower
+*Golden check (measured):* **3,821 of 7,753 taxa carrying an
+`ASSOCIATED_WITH` edge appear in more than one condition — 49.3%** (BugSigDB
+alone: 3,799 of 7,718, 49.2%), within two points of Duvallet et al.'s published
+51% of genus-level associations being associated with more than one disease.
+The fraction barely moved because gutMDisorder's 622 cited taxa are mostly ones
+BugSigDB already names — **556 of them, 89%** — which is the join working, not
+a coincidence. A build that returns a materially lower
 fraction is under-loaded. *Caveat that is part of the answer, not a defect:*
 Crohn's and ulcerative colitis separate at 95.1% specificity on an eight-genus
 signature, so the query must never roll conditions up silently — `Disease.mondo_id`
@@ -1304,9 +1317,9 @@ and the MONDO `IS_A` forest (`pending: MONDO`) are how a caller asks for
 
 ### D4 — "Which associations are supported by more than observational abundance — animal model, intervention, or human RCT?"
 
-*Status:* **`partial`**. The tiers are derivable now; *interventions as a
-relation type* need gutMDisorder, the only surveyed source that curates them.
-*Fields:* `evidence_level` · `host_species` · `study_design`.
+*Status:* **`answerable-now`** (was `partial`; the intervention leg landed with
+gutMDisorder on 2026-09-03). *Fields:* `evidence_level` · `host_species` ·
+`study_design`, and for the second leg the `ABUNDANCE_CHANGED_BY` edge.
 
 ```cypher
 MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
@@ -1323,16 +1336,33 @@ ORDER BY CASE level WHEN 'interventional-rct' THEN 0
 LIMIT 30
 ```
 
-*Golden check (measured):* the four tiers are non-empty on the current build —
-`in-vivo-model` 17,641 edges, `meta-analysis` 4,297, `interventional-rct` 4,098,
-`in-vitro` 1,613 of 103,461. **G6 is enforced by the `ORDER BY`:**
-`in-vivo-model` sorts last, below every human tier, because 95% of published
-HMA-rodent studies report phenotype transfer and that rate is not evidence.
-*What is missing:* gutMDisorder's `Interventions change the composition of gut
-microbiota` relation, which would add
-`(Taxon)-[:ABUNDANCE_CHANGED_BY]->(Drug|Intervention)` — `pending:
-gutMDisorder`. Note its whole mouse workbook lands as `in-vivo-model` regardless
-of design, and only 220 of its 930 mouse association rows have a DOID at all.
+*Golden check (measured):* the four tiers are non-empty — `in-vivo-model`
+17,858 edges, `observational-shotgun` 16,463, `meta-analysis` 4,297,
+`interventional-rct` 4,247, `in-vitro` 1,613 of 105,097. **G6 is enforced by the
+`ORDER BY`:** `in-vivo-model` sorts last, below every human tier, because 95% of
+published HMA-rodent studies report phenotype transfer and that rate is not
+evidence.
+
+*The second leg, which is what needed the second source:*
+
+```cypher
+MATCH (t:Taxon)-[r:ABUNDANCE_CHANGED_BY]->(i:Intervention)
+RETURN i.title AS intervention, i.drugbank_id AS drugbank, t.title AS taxon,
+       r.direction AS direction, r.evidence_level AS level,
+       r.host_species AS host, r.p_value AS p, r.pmid AS pmid
+ORDER BY level, intervention
+```
+
+*Golden check (measured):* **1,380 edges over 220 interventions and 395 taxa**,
+all from gutMDisorder, split `in-vivo-model` 822 / `interventional-rct` 558 —
+because its whole mouse workbook lands as `in-vivo-model` regardless of design
+(G6), and 168 of its 190 mouse studies are interventions. It is deliberately
+**not** an `ASSOCIATED_WITH`: "this drug changed this taxon" and "this taxon is
+associated with this disease" are different claims with different directions,
+and collapsing them is MDAD's documented weakness. Only 220 of gutMDisorder's
+930 mouse association rows have a DOID at all, so most mouse edges are this
+relation rather than a disease association — 389 of its 3,193 rows reach
+neither and sit in `unresolved_associations.csv` with that reason.
 
 ### D5 — "Which metabolites does taxon X produce, and is that measured or predicted?" (and the reverse: which taxa produce metabolite M?)
 
@@ -1498,8 +1528,9 @@ RETURN d.title AS disease, s.variable_region AS region,
 ORDER BY signatures DESC
 ```
 
-*Golden check (measured):* on the current build `observational-16S` is 57,391 of
-103,461 association edges — **55.5%**, matching the model's measured signature
+*Golden check (measured):* `observational-16S` is 58,595 of 105,097 association
+edges — **55.8%** (BugSigDB alone: 57,391 of 103,461, 55.5%; gutMDisorder is
+1,204 of its 1,636, an even more 16S-heavy corpus), matching the model's measured signature
 distribution and BugSigDB's own 92.5%-of-*studies* 16S figure once weighted by
 signature size. *Why this query ranks so high:* it is the direct
 operationalisation of Part A's complaint, and it is the query G5 depends on —
@@ -1715,7 +1746,15 @@ ORDER BY edges DESC
 *Golden check (measured, and this is the project's headline number):*
 `ontology_audit()` must return an `ASSOCIATED_WITH.required_properties` row at
 `severity = warn` with a **non-zero denominator** and a violation fraction of
-**14,349 of 103,461 edges = 13.87%** on the 2026-09-03 full build. A zero
+**15,985 of 105,097 edges = 15.20%** on the 2026-09-03 two-source build
+(BugSigDB alone: 14,349 of 103,461 = 13.87%). **The rise is the audit working,
+not a regression:** all 1,636 gutMDisorder edges are violations, because that
+source records no `study_design` and its association rows carry no link to a
+sample arm, so no per-association group sizes exist either. For the same reason
+`ABUNDANCE_CHANGED_BY.required_properties` reads **1,380 of 1,380 = 100%** — a
+rule whose whole population is one source with three missing columns. A single
+percentage over sources with different column sets is not the interesting
+number; the per-source census below is, which is why that query is here. A zero
 denominator means the rule is auditing property names nothing writes (C20); a
 0.00% fraction means BugSigDB's literal `"NA"` reached the graph as a value
 (C17) and the gate is vacuous. *And the number is a floor, not the whole gap:*
@@ -1765,9 +1804,9 @@ RETURN t.title AS taxon, d.title AS disease, directions, n_studies, n_edges,
 ORDER BY n_edges DESC LIMIT 50
 ```
 
-*Golden check (measured):* **8,114 of 55,445 (taxon, condition) pairs carry both
-`increased` and `decreased`, and 46,809 of 55,445 — 84.4% — rest on a single
-study.** So `single_cohort` is the default exclusion for every ranked D-query,
+*Golden check (measured):* **8,238 of 56,124 (taxon, condition) pairs carry both
+`increased` and `decreased`, and 47,232 of 56,124 — 84.2% — rest on a single
+study** (BugSigDB alone: 8,114 and 46,809 of 55,445, 84.4%). So `single_cohort` is the default exclusion for every ranked D-query,
 not a rare flag. The named fixture is D2's: *Fusobacterium nucleatum* ×
 colorectal cancer returns `directions = ['increased','decreased']`, `n_edges =
 40`, `n_studies = 21`. **The query reports the disagreement; it never resolves
@@ -1840,17 +1879,17 @@ interactions "naturally unable to predict all organism-specific traits".
 
 | Status | Count | Queries |
 |---|---:|---|
-| `answerable-now` | **8** | D1, D2, D3, D9, D11, D15, D16, D17 |
-| `partial` | **4** | D4, D10, D12, D14 |
+| `answerable-now` | **9** | D1, D2, D3, D4, D9, D11, D15, D16, D17 |
+| `partial` | **3** | D10, D12, D14 |
 | `pending-source` | **6** | D5, D6, D7, D8, D13, D18 |
 | `descoped` | **2** | D19, D20 |
 | **total** | **20** | |
 
 Which source closes which pending query: **MiMeDB** → D5 (and D10's, D13's
 metabolite legs); **NJC19** → D6; **CARD** → D7 (and D10's AMR leg); **MASI** →
-D8, D18; **gutMDisorder** → D4's intervention leg; **KEGG/Reactome** → D13's
-pathway leg. Of the original five `partial` queries, **two needed no new source at all** —
-D11 is closed (three column names declared, one more extracted), and D14's
-non-specificity half already works. The
-remaining three (D4, D10, D12) each split cleanly into an answerable leg and a
-named pending one.
+D8, D18; **KEGG/Reactome** → D13's pathway leg. **gutMDisorder has landed**
+and closed D4's intervention leg. Of the original five `partial` queries, **two
+needed no new source at all** — D11 is closed (three column names declared, one
+more extracted), and D14's non-specificity half already works. The remaining
+two (D10, D12) each split cleanly into an answerable leg and a named pending
+one.

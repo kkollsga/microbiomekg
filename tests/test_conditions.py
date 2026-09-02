@@ -15,6 +15,7 @@ from __future__ import annotations
 import pytest
 
 from microbiomekg.conditions import (
+    malformed_curie,
     CONDITION_TYPES,
     MondoIndex,
     condition_node_type,
@@ -254,3 +255,54 @@ def test_curie_vocabulary_reads_the_prefix():
     assert curie_vocabulary("MONDO:0005575") == "MONDO"
     assert curie_vocabulary("ncbitaxon_568703") == "NCBITAXON"
     assert curie_vocabulary("not a curie") == ""
+
+
+# --------------------------------------------------------------------------
+# CURIE shape — a malformed id is reported, never resolved
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "curie",
+    [
+        "DOID:585",        # 3 digits
+        "DOID:0060180",    # 7 digits with leading zeros — the normal padded form
+        "DOID:9",          # 1 digit
+        "MONDO:0005148",
+        "EFO:0000246",
+        "HP:0002745",
+    ],
+)
+def test_a_wellformed_curie_is_not_malformed(curie):
+    assert malformed_curie(curie) is False
+
+
+@pytest.mark.parametrize(
+    "curie, why",
+    [
+        ("DOID:00400085", "8 digits with a leading double zero — gutMDisorder's own typo"),
+        ("DOID:", "no local id at all"),
+        ("DOID:9970a", "a trailing character"),
+        ("MONDO:12", "MONDO ids are 7 digits"),
+    ],
+)
+def test_a_malformed_curie_is_reported(curie, why):
+    assert malformed_curie(curie) is True, why
+
+
+def test_a_vocabulary_with_no_declared_shape_is_never_called_malformed():
+    """The check exists to catch a typo in a vocabulary we know the shape of.
+    Guessing a shape for one we do not would reject real ids — which is the
+    silent drop this project forbids — so an unknown prefix is well-formed by
+    definition and is routed by :func:`condition_node_type` as usual."""
+    assert malformed_curie("BTO:0000759") is False
+    assert malformed_curie("IDOMAL:0000633") is False
+
+
+def test_a_malformed_doid_has_no_mondo_equivalence(mondo):
+    """The one in the real data: `DOID:00400085`. It must not accidentally
+    match anything, and the caller must be able to tell "malformed" from
+    "simply not in MONDO" — the first is a source defect, the second is not."""
+    assert mondo.mondo_id("DOID:00400085") is None
+    assert malformed_curie("DOID:00400085") is True
+    assert malformed_curie("DOID:9552") is False and mondo.mondo_id("DOID:9552") is None

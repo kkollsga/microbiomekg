@@ -63,11 +63,18 @@ TEXT_INDEXES: tuple[tuple[str, str], ...] = (
 )
 
 
-def run(script: Path, *args: str) -> None:
+#: Exit code a prep script uses for "my raw input is not on this machine".
+#: Distinct from a real failure so the build can go on without that source
+#: rather than either dying or silently loading nothing.
+MISSING_INPUT = 3
+
+
+def run(script: Path, *args: str) -> int:
     print(f"\n=== {script.name} {' '.join(args)}", flush=True)
     proc = subprocess.run([sys.executable, str(script), *args], cwd=ROOT)
-    if proc.returncode != 0:
+    if proc.returncode not in (0, MISSING_INPUT):
         raise SystemExit(f"{script.name} failed with exit code {proc.returncode}")
+    return proc.returncode
 
 
 def source_preps(scripts: Path) -> list[Path]:
@@ -148,13 +155,18 @@ def main(argv: list[str] | None = None) -> int:
 
     scripts = ROOT / "scripts"
     preps = source_preps(scripts)
+    sources = [p.stem.removeprefix("prep_") for p in preps]
+    skipped: set[str] = set()
 
     if not args.skip_prep:
         args.csv.mkdir(parents=True, exist_ok=True)
         removed = clear_csv(args.csv)
         print(f"cleared {removed} CSV(s) from {args.csv}")
         for prep in preps:
-            run(prep, "--raw", str(args.raw), "--out", str(args.csv))
+            source = prep.stem.removeprefix("prep_")
+            if run(prep, "--raw", str(args.raw), "--out", str(args.csv)) == MISSING_INPUT:
+                print(f"    ... {source}: raw input absent, skipping this source")
+                skipped.add(source)
         run(
             scripts / "prep_taxonomy.py",
             "--raw", str(args.raw),
@@ -163,13 +175,20 @@ def main(argv: list[str] | None = None) -> int:
             "--cited-from", str(args.csv / "cited_taxa.csv"),
         )
 
-    run(scripts / "build_blueprint.py")
+    # A skipped source is left out of both declarations. A blueprint naming a
+    # CSV that is not there loads that node type as empty, and an ontology rule
+    # over an empty type reports 0 / 0 — a gate that cannot fail, which this
+    # project treats as worse than no gate.
+    loaded = [s for s in sources if s not in skipped]
+    partial = ["--sources", *loaded] if skipped else []
+    run(scripts / "build_blueprint.py", *partial)
 
     # Written where the blueprint's `ontology` key points, so the declarations
     # are a build-time gate rather than a document.
-    from microbiomekg.ontology import write_json
+    from microbiomekg.ontology import ontology_for, write_json
 
-    print(f"\n=== ontology -> {write_json(ROOT / 'ontology.json')}")
+    document = ontology_for(loaded) if skipped else None
+    print(f"\n=== ontology -> {write_json(ROOT / 'ontology.json', document)}")
 
     os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
     import kglite
@@ -187,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
             f"{stats.get('terms', 0):>8,} terms, {stats.get('skipped', 0):>5,} skipped"
         )
 
-    report(graph, [p.stem.removeprefix("prep_") for p in preps])
+    report(graph, loaded)
 
     if not args.no_save:
         args.out.parent.mkdir(parents=True, exist_ok=True)

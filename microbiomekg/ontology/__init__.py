@@ -67,6 +67,7 @@ __all__ = [
     "SOURCE_LICENCE",
     "SOURCE_MODULES",
     "agent_type",
+    "ontology_for",
     "evidence_level",
     "knowledge_level",
     "split_study_designs",
@@ -107,18 +108,46 @@ ASSOCIATION_RELATIONSHIPS: tuple[str, ...] = tuple(
     )
 )
 
-ONTOLOGY: dict = {
-    "classes": merge_fragments(
-        (name, getattr(module, "CLASSES", {})) for name, module in SOURCE_MODULES
-    ),
-    "relationships": merge_fragments(
-        (name, getattr(module, "RELATIONSHIPS", {})) for name, module in SOURCE_MODULES
-    ),
-}
+
+def ontology_for(sources: list[str] | None = None) -> dict:
+    """The declaration document for a build that loaded ``sources``.
+
+    ``None`` means every source — :data:`ONTOLOGY`. A *partial* build needs a
+    partial document for the same reason a partial build needs a partial
+    blueprint: a rule over a relationship the build did not load reports
+    ``0 / 0``, and a gate that cannot fail is worse than no gate. The spine is
+    always included.
+    """
+    wanted = None if sources is None else {"core", *sources}
+    chosen = [
+        (name, module)
+        for name, module in SOURCE_MODULES
+        if wanted is None or name.rsplit(".", 1)[-1] in wanted
+    ]
+    if wanted is not None:
+        missing = wanted - {name.rsplit(".", 1)[-1] for name, _ in chosen}
+        if missing:
+            raise ValueError(f"no ontology module for {', '.join(sorted(missing))}")
+    return {
+        "classes": merge_fragments(
+            (name, getattr(module, "CLASSES", {})) for name, module in chosen
+        ),
+        "relationships": merge_fragments(
+            (name, getattr(module, "RELATIONSHIPS", {})) for name, module in chosen
+        ),
+    }
 
 
-def write_json(path: str | Path = "ontology.json") -> Path:
-    """Write :data:`ONTOLOGY` where the blueprint's ``ontology`` key points."""
+ONTOLOGY: dict = ontology_for()
+
+
+def write_json(path: str | Path = "ontology.json", document: dict | None = None) -> Path:
+    """Write a declaration document where the blueprint's ``ontology`` points.
+
+    Defaults to :data:`ONTOLOGY`; pass :func:`ontology_for`'s result for a
+    build that loaded only some sources.
+    """
     p = Path(path)
-    p.write_text(json.dumps(ONTOLOGY, indent=2) + "\n", encoding="utf-8")
+    p.write_text(json.dumps(ONTOLOGY if document is None else document, indent=2) + "\n",
+                 encoding="utf-8")
     return p

@@ -20,10 +20,18 @@ source writes rows into) and is always composed first, so a source fragment is
 read as an addition to it. Fragments may carry ``_``-prefixed keys as comments;
 they are stripped from the output.
 
+``--sources`` composes a *partial* blueprint — the spine plus the named
+sources. That is not a convenience: a blueprint declaring a node type whose CSV
+is not there loads it as empty, and an ontology rule over an empty type is a
+gate that cannot fail. So a build that prepped only some sources declares only
+those (``scripts/build.py`` does this automatically for a source whose raw
+input is absent), and a per-source test builds its own source's blueprint.
+
 Usage::
 
-    python scripts/build_blueprint.py            # rewrite blueprint.json
-    python scripts/build_blueprint.py --check    # fail if it would change
+    python scripts/build_blueprint.py                      # rewrite blueprint.json
+    python scripts/build_blueprint.py --check              # fail if it would change
+    python scripts/build_blueprint.py --sources bugsigdb   # the spine + one source
 """
 
 from __future__ import annotations
@@ -58,8 +66,15 @@ def strip_comments(value: Any) -> Any:
     return value
 
 
-def compose(directory: Path) -> dict:
+def compose(directory: Path, sources: list[str] | None = None) -> dict:
+    """The composed blueprint. ``sources`` keeps only those (plus the spine)."""
     paths = fragment_paths(directory)
+    if sources is not None:
+        wanted = {SPINE, *sources}
+        unknown = wanted - {p.stem for p in paths}
+        if unknown:
+            raise SystemExit(f"no fragment for {', '.join(sorted(unknown))} in {directory}")
+        paths = [p for p in paths if p.stem in wanted]
     if not paths:
         raise SystemExit(f"no blueprint fragments under {directory}")
     # Stripped per fragment, before merging: two fragments' notes are two
@@ -75,6 +90,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fragments", type=Path, default=Path("blueprints"))
     ap.add_argument("--out", type=Path, default=Path("blueprint.json"))
     ap.add_argument(
+        "--sources",
+        nargs="*",
+        default=None,
+        help="Compose the spine plus only these sources. Default: every fragment.",
+    )
+    ap.add_argument(
         "--check",
         action="store_true",
         help="Do not write; exit 1 if the composed blueprint differs from --out. "
@@ -83,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = ap.parse_args(argv)
 
-    merged = compose(args.fragments)
+    merged = compose(args.fragments, args.sources)
     text = json.dumps(merged, indent=2) + "\n"
 
     if args.check:
@@ -100,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out.write_text(text, encoding="utf-8")
     print(
-        f"{args.out} <- {', '.join(p.name for p in fragment_paths(args.fragments))} "
+        f"{args.out} <- {', '.join(p.name for p in fragment_paths(args.fragments) if args.sources is None or p.stem in {SPINE, *args.sources})} "
         f"({len(merged.get('nodes', {}))} node types)"
     )
     return 0

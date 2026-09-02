@@ -173,7 +173,12 @@ def main(argv: list[str] | None = None) -> int:
         dump = args.dump or find_bugsigdb_dump(args.raw)
         taxdump = args.taxdump or find_taxdump(args.raw)
     except FileNotFoundError as e:
-        ap.error(str(e))
+        # Exit 3, not 2: "the raw files are not on this machine" is a different
+        # fact from "this script was called wrong", and scripts/build.py acts
+        # on the difference by leaving this source out of the blueprint rather
+        # than declaring node types with no CSV behind them.
+        print(str(e), file=sys.stderr)
+        return 3
     print(f"reading {dump}", flush=True)
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)

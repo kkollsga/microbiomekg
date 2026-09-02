@@ -20,6 +20,7 @@ outcome, not a regression. Each block says which build it was measured on.
 
 from __future__ import annotations
 
+import csv
 import json
 import os
 import tempfile
@@ -36,29 +37,45 @@ BLUEPRINT = ROOT / "blueprint.json"
 #: Files without which there is nothing to assert against.
 REQUIRED_CSVS = ("signature.csv", "taxon.csv", "taxon_disease.csv", "disease.csv")
 
+#: The sources these goldens were measured over. A build missing one of them is
+#: not a failure of this module — it is a different build — so the fixture
+#: skips rather than reporting a wrong number as a regression.
+REQUIRED_SOURCES = frozenset({"bugsigdb", "gutmdisorder"})
+
 #: Measured 2026-09-03 on the full build: NCBI ``new_taxdump`` 2026-09-02 +
-#: BugSigDB ``full_dump`` 2026-09-02, ``--scope microbial``. Each is quoted in
-#: Part D as that query's golden check.
+#: BugSigDB ``full_dump`` 2026-09-02 + gutMDisorder v1 (2020, Wayback),
+#: ``--scope microbial``. Each is quoted in Part D as that query's golden check.
+#: The numbers that moved when gutMDisorder landed are marked; the ones that did
+#: not are marked too, because "unchanged" is also a measurement.
 GOLDEN = {
-    # D2 — Fusobacterium nucleatum (851) x colorectal cancer (MONDO:0005575)
+    # D2 — Fusobacterium nucleatum (851) x colorectal cancer (MONDO:0005575).
+    # Unchanged by the second source: gutMDisorder curates no F. nucleatum
+    # result for colorectal cancer at all.
     "d2_edges": 40,
     "d2_studies": 21,
     "d2_increased": 39,
     "d2_dissenting_record": "bsdb:41270896/1/2",
-    # D3 — taxa reported in more than one condition
-    "d3_multi_condition_taxa": 3799,
-    "d3_taxa_with_associations": 7718,
-    # D9 — the 16S share of the evidence
-    "d9_association_edges": 103461,
-    "d9_observational_16S": 57391,
-    # D15 — the headline audit number
+    # D3 — taxa reported in more than one condition (was 3,799 of 7,718)
+    "d3_multi_condition_taxa": 3821,
+    "d3_taxa_with_associations": 7753,
+    # D9 — the 16S share of the evidence (was 57,391 of 103,461)
+    "d9_association_edges": 105097,
+    "d9_observational_16S": 58595,
+    # D15 — the headline audit number (was 14,349 of 103,461 = 13.87%). It rose
+    # because every gutMDisorder edge is missing three contract fields: the
+    # source records no study design, and its association rows have no link to
+    # a sample arm, so there are no per-association group sizes either.
     "d15_rule": "ASSOCIATED_WITH.required_properties",
-    "d15_violations": 14349,
-    "d15_total": 103461,
-    # D17 — disagreement and single-cohort support
-    "d17_pairs": 55445,
-    "d17_direction_conflict": 8114,
-    "d17_single_cohort": 46809,
+    "d15_violations": 15985,
+    "d15_total": 105097,
+    # D17 — disagreement and single-cohort support (was 8,114 and 46,809 of
+    # 55,445)
+    "d17_pairs": 56124,
+    "d17_direction_conflict": 8238,
+    "d17_single_cohort": 47232,
+    # D4 — the intervention leg, which needed gutMDisorder and now exists
+    "d4_intervention_edges": 1380,
+    "d4_interventions": 220,
     # D11 — the confounder columns, and G7
     "d11_signatures": 14846,
     "d11_matched_on": 2304,
@@ -99,6 +116,14 @@ def graph():
         )
     if not BLUEPRINT.is_file():
         pytest.skip("blueprint.json does not exist yet")
+    with (CSV_DIR / "taxon_disease.csv").open(encoding="utf-8", newline="") as fh:
+        loaded = {row["primary_source"] for row in csv.DictReader(fh)}
+    if not REQUIRED_SOURCES <= loaded:
+        pytest.skip(
+            f"the built CSVs carry {sorted(loaded)}; these goldens were measured "
+            f"over {sorted(REQUIRED_SOURCES)} — a build that skipped a source "
+            f"whose raw files are absent is a different build, not a regression"
+        )
 
     from microbiomekg.ontology import write_json
 
@@ -250,6 +275,9 @@ def test_d3_half_of_all_reported_taxa_are_reported_in_several_conditions(graph):
     )
     assert result["taxa"] == GOLDEN["d3_taxa_with_associations"]
     assert result["multi"] == GOLDEN["d3_multi_condition_taxa"]
+    # Duvallet et al. put 51% of genus-level associations in more than one
+    # disease; two sources give 49.3%, within two points, as one source did.
+    assert 0.45 < result["multi"] / result["taxa"] < 0.55
 
 
 def test_d3_the_ranked_form_excludes_placeholders_by_the_flag(graph):
@@ -548,3 +576,118 @@ def test_d11_the_breakdown_for_one_disease_is_one_query(graph):
         "not one type 2 diabetes signature records an antibiotics exclusion "
         "window — the column was not extracted"
     )
+
+
+# --------------------------------------------------------------------------
+# D4 — "Which associations are supported by more than observational abundance?"
+# --------------------------------------------------------------------------
+#
+# Part D filed this `partial`: the tiers were derivable from BugSigDB, but
+# *interventions as a relation type* needed gutMDisorder, "the only surveyed
+# source that curates them". That leg exists now.
+
+
+def test_d4_the_four_stronger_tiers_are_all_populated(graph):
+    result = {
+        r["level"]: r["edges"]
+        for r in rows(
+            graph,
+            """
+            MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+            WHERE r.evidence_level IN ['interventional-rct', 'meta-analysis',
+                                       'in-vitro', 'in-vivo-model']
+            RETURN r.evidence_level AS level, count(r) AS edges
+            """,
+        )
+    }
+    assert set(result) == {"interventional-rct", "meta-analysis", "in-vitro",
+                           "in-vivo-model"}
+    assert all(n > 0 for n in result.values())
+
+
+def test_d4_g6_sorts_animal_evidence_below_every_human_tier(graph):
+    """95% of published HMA-rodent studies report phenotype transfer, and that
+    rate is not evidence. The ordering is the guard."""
+    result = rows(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+        WHERE r.evidence_level IN ['interventional-rct', 'meta-analysis',
+                                   'in-vitro', 'in-vivo-model']
+        WITH d, t, r.evidence_level AS level, r.direction AS direction,
+             r.host_species AS host, count(DISTINCT r.study_id) AS studies
+        RETURN d.title AS disease, t.title AS taxon, level, direction, host, studies
+        ORDER BY CASE level WHEN 'interventional-rct' THEN 0
+                            WHEN 'meta-analysis'      THEN 1
+                            WHEN 'in-vitro'           THEN 2
+                            ELSE 3 END,
+                 studies DESC
+        LIMIT 30
+        """,
+    )
+    assert len(result) == 30
+    assert result[0]["level"] == "interventional-rct"
+    assert all(row["level"] != "in-vivo-model" for row in result[:5])
+
+
+def test_d4_the_intervention_leg_exists_and_is_its_own_relation(graph):
+    """`(Taxon)-[:ABUNDANCE_CHANGED_BY]->(Intervention)` — what Part D named as
+    D4's missing piece. It is deliberately not an ASSOCIATED_WITH: "this drug
+    changed this taxon" and "this taxon is associated with this disease" are
+    different claims, and collapsing them is MDAD's documented weakness."""
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ABUNDANCE_CHANGED_BY]->(i:Intervention)
+        RETURN count(r) AS edges, count(DISTINCT i.id) AS interventions,
+               collect(DISTINCT r.primary_source) AS sources
+        """,
+    )
+    assert result["edges"] == GOLDEN["d4_intervention_edges"]
+    assert result["interventions"] == GOLDEN["d4_interventions"]
+    assert result["sources"] == ["gutmdisorder"]
+
+
+def test_d4_a_mouse_intervention_is_still_animal_evidence(graph):
+    """G6 again, at the source level: gutMDisorder's whole mouse workbook is
+    `in-vivo-model` whatever its design, so the intervention edges split into
+    an animal tier and a human one rather than all counting as interventional."""
+    result = {
+        r["level"]: r["edges"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:ABUNDANCE_CHANGED_BY]->() "
+            "RETURN r.evidence_level AS level, count(r) AS edges",
+        )
+    }
+    assert set(result) == {"in-vivo-model", "interventional-rct"}
+    assert result["in-vivo-model"] > result["interventional-rct"]
+
+
+def test_d15_a_second_source_moved_the_headline_number_and_says_why(graph):
+    """The audit rose from 13.87% to 15.20% when gutMDisorder landed, and the
+    census says exactly which fields did it: every one of its edges is missing
+    `study_design` (the source records none) and both group sizes (its
+    association rows have no link to a sample arm). That is the audit working
+    — a source whose gaps did not show would mean the gate had stopped
+    measuring."""
+    census = {
+        r["source"]: r
+        for r in rows(
+            graph,
+            """
+            MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
+            RETURN r.primary_source AS source, count(r) AS edges,
+                   sum(CASE WHEN r.study_design IS NULL THEN 1 ELSE 0 END) AS no_design,
+                   sum(CASE WHEN r.group_0_size IS NULL THEN 1 ELSE 0 END) AS no_group0,
+                   sum(CASE WHEN r.pmid IS NULL THEN 1 ELSE 0 END) AS no_pmid
+            """,
+        )
+    }
+    assert set(census) == {"bugsigdb", "gutmdisorder"}
+    gut = census["gutmdisorder"]
+    assert gut["no_design"] == gut["edges"]
+    assert gut["no_group0"] == gut["edges"]
+    # And what it *does* carry: every gutMDisorder edge has its citation.
+    assert gut["no_pmid"] == 0
+    assert census["bugsigdb"]["no_design"] < census["bugsigdb"]["edges"]
