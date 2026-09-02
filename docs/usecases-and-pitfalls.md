@@ -92,8 +92,388 @@ or the use case is descoped explicitly.
 
 ## Part B — How researchers use this kind of data
 
-(Filled from `docs/research/` by the coordinator after the research agents
-report.)
+Synthesised from `docs/research/researcher-workflows.md` (§2 workflows, §3
+evidence grading, §4 criticisms), `docs/research/existing-graphs-and-schemas.md`
+§5 (recommendations) and `docs/research/source-formats.md` (what the next
+loaders actually consume). Part A said what the *user* asked for; this part says
+what the *literature* shows researchers actually do with this data, and — for
+each of those seven workflows — whether this graph answers it today.
+
+Where Part A and the research disagree, the research wins and the disagreement
+is named. Two such places exist and are marked **[A-override]** below.
+
+**The source state this section is written against.** Loaded now: NCBI Taxonomy
+(`new_taxdump` 2026-09-02) and BugSigDB (`full_dump` 2026-09-02). Fetched and
+profiled, not yet loaded: gutMDisorder, HMDB 5.0, CARD, Reactome, KEGG,
+ChEMBL 37, MONDO (`docs/research/source-formats.md`). Being fetched to close the
+three named gaps: **MiMeDB** (per-taxon metabolite production), **NJC19**
+(consumption / cross-feeding), **MASI** (drug↔taxon). Every "no" below names
+which of those fills it.
+
+### W1. Enrichment of a differential-abundance result against curated signatures
+
+**Input.** A thresholded differential-abundance result from the researcher's own
+cohort — typically genus-level from 16S, species-level from MetaPhlAn — with a
+direction and a q-value per taxon. **Question:** *"My 34 genera that go up in
+cases — has anyone seen this before, and in what condition?"*, i.e. which
+published signatures are enriched in my hit list, and is my result specific to
+my disease or generic dysbiosis? **Needed fields:** signature membership as NCBI
+tax_ids at a stated rank; direction per signature; condition; body site; host
+species; `Sequencing type` and `16S variable region` (a genus-level 16S
+signature and a species-level shotgun signature cannot be intersected without
+cutting to a common rank); group sizes, to down-weight tiny studies; PMID.
+**Source:** BugSigDB is the only source shaped as *signatures* (sets) rather
+than pairwise edges; `bugsigdbr::writeGMT()` exports them in the GMT shape
+gene-set tools expect and `BugSigDBEnrich` runs the enrichment. Geistlinger et
+al., Nat Biotechnol 42:790 (2024), PMC11098749; CBEA, Nguyen Q et al.,
+PMC9154102.
+
+**Can this graph answer it? YES — and this is the one the model was reshaped
+for.** `Signature` is a first-class node with one `REPORTED_BY` edge per taxon,
+so the *set* survives; a purely flattened `(Taxon)-[:ASSOCIATED_WITH]->(Disease)`
+model would have destroyed it and made enrichment impossible. The research
+document names this as the single structural note in its whole survey that is
+about the shape of the graph rather than the choice of sources
+(§5, "One structural note that is not a gap"). `Signature` carries
+`sequencing_type`, `variable_region`, `host_species`, `group_0_size`,
+`group_1_size` and `pmid`; `IN_CONDITION` and `AT_BODY_SITE` carry the condition
+and site. The enrichment statistic itself runs outside the graph — the graph's
+job is to serve the sets and their metadata, which it does (D1).
+
+### W2. Biomarker discovery validated across cohorts
+
+**Input.** Several public case-control cohorts for one disease — in practice
+**curatedMetagenomicData** (>22,000 uniformly processed samples, 94 studies) —
+plus the researcher's own. **Question:** *"Which taxa separate cases from
+controls in a way that survives training on cohort A and testing on cohort B,
+and is the separation specific to this disease?"* **Needed fields:** the
+abundance matrices themselves (not in any KG). *From an association graph*: for
+each candidate biomarker, which other diseases it is reported in, at what
+direction, in how many independent studies, at what sample sizes — the
+disease-specificity check; plus the confounder fields (`Antibiotics exclusion`,
+`Matched on`, `Confounders controlled for`). **Source:** curatedMetagenomicData
+for matrices; SIAMCAT (Wirbel et al., Genome Biol 22:93, 2021, PMC8008609) for
+the ML and confounder checks; xMarkerFinder (PMID 38745111) as the protocol;
+BugSigDB/GMrepo for cross-disease specificity. SIAMCAT's headline is itself a
+design requirement: over 10,803 fecal metagenomes, naively transferred models
+"lost accuracy and disease specificity".
+
+**Can this graph answer it? PARTIAL.** The cross-disease specificity leg is
+answerable now (D3): `count(DISTINCT r.study_id)` per (taxon, condition), across
+conditions, with sizes and direction. Two things are missing. (a) **The
+confounder fields are extracted but not loaded.** `prep_bugsigdb.py` writes
+`matched_on` and `confounders` into `signature.csv`, but `blueprint.json`'s
+`Signature.properties` declares neither, and `Antibiotics exclusion` is not
+extracted at all — so the fields the research calls "the strongest argument for
+BugSigDB as the spine" do not reach the graph. That is a loader gap, not a data
+gap (see D11). (b) Healthy-baseline prevalence is absent; GMrepo or `bugphyzz`
+fills it (D14).
+
+### W3. Probiotic / live-biotherapeutic candidate selection
+
+**Input.** A disease and the taxa reported depleted in it. **Question:** *"Which
+depleted taxon is a credible intervention candidate — is the depletion
+replicated, is there animal or human interventional evidence, is the organism
+safe (no transferable AMR), and is there a plausible mechanism?"* **Needed
+fields:** direction + replication count + evidence tier on the taxon–disease
+edge; **intervention records** as a relation type (gutMDisorder is the only
+surveyed source that curates *"interventions change the composition of gut
+microbiota"* as a relation); per-genome AMR calls with model type and hit
+category (CARD/RGI); taxon–metabolite production with an evidence tier.
+**Source and the canonical worked chain:** *Akkermansia muciniphila* —
+observational negative correlation with obesity/T2D → mouse work → a
+randomised, double-blind, placebo-controlled pilot in 32 overweight
+insulin-resistant humans (Depommier et al., Nat Med 25:1096, 2019, PMID
+31263284). No single database records more than one rung of that chain.
+gutMDisorder v2.0, NAR 51:D717 (2023); CARD, Alcock et al., NAR 48:D517 (2020).
+
+**Can this graph answer it? PARTIAL — the depletion leg only.** Replicated
+depletion with an evidence tier is answerable now (D10's first leg). The AMR leg
+is `pending: CARD`; the metabolite leg is `pending: MiMeDB` (HMDB alone yields
+224 microbial-origin metabolites keyed on free-text organism names, §"HMDB" in
+`source-formats.md`); the interventional-evidence leg is `pending:
+gutMDisorder`. Note the graph can already *distinguish* the rungs —
+`evidence_level` separates `in-vivo-model` from `interventional-rct` — it just
+has only BugSigDB's slice of them.
+
+### W4. Mechanism hypothesis via metabolite production (SCFA, bile acids, TMAO)
+
+**Input.** A taxon whose abundance changed, optionally with a metabolomics
+readout. **Question:** *"Which of my changed taxa can make butyrate / secondary
+bile acids / TMA, and does that match the metabolite I measured?"* **Needed
+fields:** taxon → metabolite with (a) relation direction (produces / consumes /
+degrades), (b) evidence tier, (c) the pathway or gene carrying it, (d) the rank
+at which the claim holds — strain-specific in most real cases, (e) a citation.
+**Source:** the three exemplars in the research doc show the tiers are not
+interchangeable — Vital et al.'s 3,055-entry butyrate gene catalogue over 3,184
+genomes, whose own caveat is that pathway detection "does not automatically
+imply functionality", with Peptococcaceae carrying the pathway but *oxidising*
+butyrate; Rath et al.'s *cutC* in 100% of 50 fecal samples with no expression or
+production measured (Microbiome 5:54, 2017, PMC5433236); and the *bai* operon,
+characterised to purified enzymes yet with carriers differing in whether they
+actually convert cholate to deoxycholate (Reed et al., PMC7221253). The
+load-bearing number: gutSMASH, on 1,135 individuals with matched plasma and
+faecal metabolomics, found metabolite levels "almost completely uncorrelated"
+with the metagenomic abundance of the corresponding genes (r ≈ −0.04 to 0.24).
+
+**Can this graph answer it? NO.** There is no taxon–metabolite edge today.
+**`pending: HMDB` gives 224 edges** — 0.10% of the file, keyed on uncontrolled,
+misspelled, mixed-rank organism strings with no taxid, of which 158 are
+`quantified`/`detected`. **`pending: MiMeDB`** is what makes the question
+answerable at scale (Microbial Sources + Metabolic Reactions carrying Precursor,
+Product, Enzyme, Enzyme's source organism, Reaction type, References; v2.0:
+29,295 metabolites, 3,725 microbes, 25,276 curated reactions). Its 23.1M
+BLAST-propagated pathways are a different evidence class and land as
+`computational-predicted`, never merged with the curated reactions. The gutSMASH
+result is *why* genome-inferred production is a distinct and low tier rather
+than a synonym for production.
+
+### W5. Cross-feeding network inference
+
+**Input.** A community composition from metagenomics. **Question:** *"Who feeds
+whom? Which metabolite exchanges are present in a healthy community and lost in
+disease?"* **Needed fields — the critical one is a `CONSUMES` edge.** Marcelino
+et al. define the **Metabolite Exchange Score MES = 2·P·C / (P+C)** — the
+harmonic mean of potential Producers and Consumers — and **MES = 0 when a
+metabolite is only produced or only consumed**. Without consumption edges the
+score is identically zero and the use case is dead. **Source:** the published
+workflow does *not* use a curated association database — it reconstructs
+genome-scale models (CarveMe, AGORA2) and reads production/consumption off
+exchange reactions, simulated with MICOM (whose `interactions` output is a
+directed `focal / partner / metabolite / flux / class ∈ {provided, received,
+co-consumed}` table) or SMETANA. Marcelino et al., Nat Commun 14:6546 (2023),
+PMC10589287: 955 species across 1,661 gut metagenomes, exchanges significantly
+affected in 10 of 11 diseases. The curated alternative is **NJC19** (Lim et al.,
+Sci Data 7:204, 2020, PMC7320173): 8,224 directed import/export/degrade events
+plus 912 negative associations across 838 species, curated from 769 sources,
+CC0.
+
+**Can this graph answer it? NO — and this is Part A's use case 5.**
+**`pending: NJC19`** for the curated class. **[A-override]** Part A5 says HMDB
+"alone does not carry consumption" and asks Part B to name a source "or the use
+case is descoped explicitly". The answer is NJC19, so it is *not* descoped — but
+Part A understates the problem: **no source in the entire seven-source profiled
+set carries consumption**, not just HMDB, and MiMeDB's origin assignment keys on
+compounds appearing as a *product*, so it does not fill the gap either. NJC19's
+literature-curated qualitative edges and MICOM/SMETANA's computed quantitative
+edges are two evidence classes and must be separate edge types, never merged
+(D6).
+
+### W6. AMR gene surveillance in metagenomes
+
+**Input.** Metagenomic reads, contigs or MAGs. **Question:** *"What resistance
+genes are in this sample, to which drug classes, by which mechanism — and how
+confident is each call?"* **Needed fields:** ARO id and its relations; the
+**detection model type** (a variant model means the *mutation* confers
+resistance, not the gene's presence); the **RGI hit category** (Perfect /
+Strict / Strict-nudged / Loose); `confers_resistance_to_drug_class` vs
+`confers_resistance_to_antibiotic`; and the curated-vs-prevalence provenance
+flag. **Source:** CARD, whose inclusion bar is worth copying verbatim — an AMR
+determinant must be "described in a peer-reviewed scientific publication, with
+its DNA sequence available in GenBank, including clear experimental evidence of
+elevated minimum inhibitory concentration (MIC) over controls" — while CARD
+Prevalence is in silico only and "not included in CARD's primary curation".
+Alcock et al., NAR 48:D517 (2020); CARD 2023, NAR 51:D690, PMC9825576.
+
+**Can this graph answer it? NO — `pending: CARD`.** Four conditions apply when
+it lands, all from `source-formats.md`: key models on `Model ID` (6,463 unique;
+`ARO Accession` is duplicated on 5 rows of `aro_index.tsv`), prefer the CC BY 4.0
+`aro.obo` half over the non-redistributable `card-data/` half and carry the
+licence per edge, never use `card-ontology/ncbi_taxonomy.obo` as a source of
+taxon labels (it renames `NCBITaxon:2` to CARD's editorial string), and say
+plainly what the taxon edge means — the taxid on a model is the *reference
+sequence's* organism, not the organism the gene is claimed for (132 models are
+keyed on taxid 2, "Bacteria"). A "276k AMR links" figure sourced from Prevalence
+is predicted, not curated (D7).
+
+### W7. Drug–microbiome interaction lookup
+
+**Input.** A drug (or a patient's medication list), or a taxon. **Question, two
+directions:** (a) *drug → bug* — "does this non-antibiotic drug inhibit gut
+commensals, and is the shift I see a drug effect rather than a disease effect?";
+(b) *bug → drug* — "which gut bacteria metabolise this drug, by which gene?"
+**Needed fields:** drug identifier (ChEMBL/ATC/DrugBank); taxon at **strain**
+resolution — both landmark screens are strain-level; the assay and its readout;
+the direction (**inhibits / metabolises / no effect** — the negatives matter);
+and the gene where identified. **Source:** Maier et al. screened >1,000 marketed
+drugs against 40 gut strains and found "24% of the drugs with human targets …
+inhibited the growth of at least one strain in vitro" (Nature 555:623, 2018,
+PMID 29555994); Zimmermann et al. measured 76 gut bacteria against 271 oral
+drugs, of which 176 (65%) were metabolised by at least one strain (Nature
+570:462, 2019, PMID 31158845). Curated aggregator: **MASI** (Zeng et al., NAR
+49:D776, 2021, PMC7779062), the only drug resource with a directed, typed edge —
+bacteria→substance 4,001 pairs, substance→bacteria 7,770 pairs, genus-level.
+
+**Can this graph answer it? NO — `pending: MASI`.** ChEMBL, which *is* fetched,
+supplies the `Drug` and `ProteinTarget` nodes and its targets' taxids, but no
+drug↔gut-taxon edge exists in it at all. This gap is load-bearing twice over:
+it blocks W7 directly, and it is the *defence* against W2's confounding trap —
+without a drug→taxon layer the graph cannot offer "metformin" as a competing
+explanation for a T2D edge, which is exactly the error Forslund et al.
+documented (D18).
+
+### Evidence grading adopted
+
+Two proposals had to be reconciled: the research document's **nine-value**
+`evidence_level` (§3.3, itself marked `[inference]` — a synthesis, not a
+published vocabulary) and the schema survey's **seven-value** ladder (§5(b),
+project-controlled, chosen for exportability). They disagree on more than
+length: the nine values mix *what was measured* with *how many times it was
+measured*, while the seven describe only the measurement.
+
+**The reconciliation rule: `evidence_level` describes one observation, never a
+body of evidence.** An edge is one signature's report of one taxon. It cannot
+know how many other studies agree with it, and a stored answer would be frozen
+at build time and wrong after the next source refresh. So the four values in the
+nine-value list that are properties of a *set* — `curated_single_study`,
+`curated_replicated`, `temporal_or_genetic`, `established` — are **not adopted
+as values**. Replication is `count(DISTINCT r.study_id)` at query time (D3, D5,
+D17), which is strictly more informative and which D15 can audit; the temporal
+axis survives verbatim in `study_design` (`prospective cohort`, `time series /
+longitudinal observational`) where a query can filter on it; and `established`,
+which ClinGen defines as requiring replication *over time*, is a verdict about a
+taxon–disease pair and is therefore a query result, not an edge property.
+
+**The final `evidence_level` vocabulary — twelve values.** Ten are emitted
+today by `microbiomekg.ontology.evidence_level()`; two are reserved for sources
+being loaded next. Spelling is hyphenated with `16S` capitalised, because that
+is what the built edges already carry; `source-formats.md`'s underscore
+spellings (`observational_16s`, `in_vivo_model`, `in_vitro`,
+`computational_predicted`, `interventional_clinical`) are the same values in a
+different spelling and each pending loader maps to the hyphenated form on write.
+A near-miss spelling is a silent filter miss, so D15 counts distinct values.
+
+| Value | One-line definition | Source field(s) that justify assigning it |
+|---|---|---|
+| `computational-predicted` | No measurement of *this* edge: a genome/MAG pathway call, sequence similarity, homology propagation or a KG inference. | HMDB `status ∈ {predicted, expected}` (88.8% of HMDB); CARD's 36 meta-models with no reference sequence; MiMeDB's BLAST-propagated pathway layer; Reactome `IEA`. |
+| `text-mined` | Asserted by an NLP or co-occurrence pipeline; no curator read the paper. | No current source emits it. Reserved so that a SemMedDB-class source can never land as anything else — SemRep's strict precision is 0.55. |
+| `unknown` | The source records no design, host or assay from which a level can be derived. Never defaulted to observational. | BugSigDB rows whose `Study design` is absent (17 edges today); KEGG links; Reactome `TAS`; HMDB disease associations, which are metabolomic and take `unknown` rather than a plausible-looking `observational-*`. |
+| `observational-unspecified` | A human observational differential-abundance result whose assay is not recorded. | `Study design` ∈ the observational set **and** `Sequencing type` absent or outside the known set. |
+| `observational-targeted` | Observational, measured by a targeted assay rather than a community survey. | `Sequencing type = PCR`; gutMDisorder `Sequencing Technology` ∈ {qPCR, PCR, RT-qPCR, DGGE}. |
+| `observational-amplicon` | Observational, non-16S amplicon. | `Sequencing type ∈ {ITS / ITS2, 18S}`. |
+| `observational-16S` | Observational, 16S amplicon — the graph's modal value and, per Edgar, genus-resolution at best. | `Sequencing type = 16S`. |
+| `observational-shotgun` | Observational, whole-metagenome shotgun; the only observational rung that supports a species-level claim. | `Sequencing type = WMS`; gutMDisorder "quantitative metagenomics by shotgun sequencing". |
+| `meta-analysis` | A synthesis over several cohorts, curated as one record. | `Study design = meta-analysis`. |
+| `in-vitro` | Measured in culture: monoculture or defined co-culture growth, a metabolite assay, an MIC over controls, or a gene→product step shown by knockout or heterologous expression. | `Study design = laboratory experiment` with no live host named; CARD's curated resistance models; ChEMBL mechanism rows whose only references are PubMed; HMDB microbial-origin edges whose metabolite is `detected`/`quantified`; NJC19 and MASI experimentally-verified events. |
+| `in-vivo-model` | Demonstrated in a non-human host — any design run in an animal, gnotobiotic colonisation, or HMA-rodent transfer. A discounted tier, never causal support. | `Host species` ∉ {human, absent}, **whatever the design** — a mouse RCT is not human interventional evidence; the whole gutMDisorder mouse workbook. |
+| `interventional-rct` | A randomised controlled trial in humans, or an approved clinical use. | `Study design = randomized controlled trial` with a human host; gutMDisorder human rows whose `Research Type` names an intervention; ChEMBL `max_phase = 4` **and** a DailyMed/FDA/EMA reference. |
+
+**Two companions, kept separate and never folded into the level** (§5(b), and
+STRING's architectural lesson — the combined score is an aggregate but the
+channels are never destroyed):
+
+- **`knowledge_level`** — Biolink's seven values verbatim:
+  `knowledge_assertion`, `logical_entailment`, `prediction`,
+  `statistical_association`, `text_co_occurrence`, `observation`,
+  `not_provided`. Written from a per-source table, never defaulted; BugSigDB is
+  `statistical_association` (the assertion is "these two groups differed", not a
+  causal claim). `not_provided` is a real, countable value.
+- **`agent_type`** — Biolink's eight verbatim: `manual_agent`,
+  `automated_agent`, `data_analysis_pipeline`, `computational_model`,
+  `text_mining_agent`, `image_processing_agent`,
+  `manual_validation_of_automated_agent`, `not_provided`. BugSigDB is
+  `manual_agent`: a named curator read a published figure, with a curation date
+  and a review state on the row.
+
+**Two things deliberately not stored.** `contradiction` (ClinGen's
+`disputed`/`refuted`, DisGeNET's EI) is *not* an edge property: with one source
+there is no adjudicating authority, and a stored verdict would be a majority
+vote over parallel edges, which guard G4 forbids. Disagreement is a query result
+(D17). And nothing is stored as a **score** — §5(b) is explicit that a derived
+confidence may be computed in a query from these components but must not be
+stored as the evidence field.
+
+### Guards adopted from the criticism
+
+The ten consolidated guards of §4.26, each reduced to a statement a test can
+fail on. The empirical warrant for the whole set, quoted once: Tierney et al.
+(PLoS Biology 20(3):e3001556, 2022, PMC8890741) fitted **6,035,110 models**
+across 6 phenotypes and 15 cohorts and found that of 581 previously-reported
+microbe–disease associations, **"1 out of 3 taxa demonstrated substantial
+inconsistency in association sign"**, with **">90% of published findings for
+type 1 diabetes (T1D) and type 2 diabetes (T2D)"** nonrobust. The sign flips
+about one time in three; every guard below follows from that.
+
+- **G1 — Identity includes direction, body site and host.** An association is
+  keyed on `(signature_id, tax_id, condition_id)`; parallel edges are the
+  evidence, not a defect. Testable: the three `bsdb:23459324` signatures with
+  identical PMID, condition, taxon and direction remain **three**
+  `ASSOCIATED_WITH` edges; a `(taxon, condition)` pair carrying both
+  `increased` and `decreased` remains two edges. *(C12, C13.)*
+- **G2 — No bare names, no surrogate ids, nothing dropped.** Every taxon is an
+  NCBI tax_id chased transitively through `merged.dmp`; a deleted id becomes an
+  `UnresolvedTaxon` tombstone with `status="deleted"` and **no** `tax_id`.
+  Testable: input rows = edges + `unresolved_taxa.csv` records + explicitly
+  reported filter counts, and taxid 3120442 exists as a tombstone still wired
+  to its 16 signatures. *(C6, C18.)*
+- **G3 — Per-edge provenance and per-edge licence.** Every association edge
+  carries `primary_source`, `source_record_id`, `source_licence` and
+  `source_relation`, and every source's version string and retrieval date is
+  recorded in `docs/sources.md`. Testable: `ontology_audit()` reports zero
+  violations for those four fields; a mixed-licence graph can be redistributed
+  in parts because the licence is on the edge, not on the graph.
+- **G4 — Single-cohort is flagged; disagreement is exposed, never resolved.** A
+  taxon–disease pair supported by exactly one distinct `study_id` is reported as
+  `single_cohort` and excluded by default from ranked outputs; a pair carrying
+  both directions is returned as two rows with their study ids and evidence
+  levels, never reduced to a sign and never resolved by majority. Testable: D17
+  on *Fusobacterium nucleatum* × colorectal cancer returns the 39 `increased`
+  edges **and** the one `decreased` edge, not a verdict; T1D and T2D edges are a
+  standing fixture. *(Tierney, above.)*
+- **G5 — Rank ceiling enforced by assay.** A species-level claim is served as
+  species-level only when the evidence is shotgun, full-length 16S or an isolate
+  genome; `reported_rank` stays the source's claim and NCBI's own rank is kept
+  separately in `original_rank`. Warrant: identical V4 sequences belong to
+  different species with **63% probability**, and best-method species accuracy
+  at V4 is 19.8% (Edgar, PeerJ 6:e4652, 2018). Testable: no D-query ranks
+  species identity off `observational-16S` edges without saying so in its
+  result.
+- **G6 — Causal claims default false; animal evidence is a discounted tier.** No
+  query returns "X causes Y" from `observational-*` or `in-vivo-model` evidence,
+  and `in-vivo-model` sorts below `interventional-rct` in every ranked output.
+  Warrant: 95% of published HMA-rodent studies (36/38) reported phenotype
+  transfer, a rate Walter et al. call implausible (Cell 180:221, 2020). Testable:
+  D4's ordering, and the absence of any `causes` predicate in the ontology.
+- **G7 — Confounder control is schema, not metadata.** `matched_on`,
+  `confounders` and `antibiotics_exclusion` are queryable per signature, so
+  "which studies for disease Y controlled for medication" is one query.
+  Testable: D11 returns a non-empty breakdown. **This guard currently fails** —
+  `matched_on` and `confounders` reach `signature.csv` but are not declared in
+  `blueprint.json`, and `Antibiotics exclusion` is not extracted (D11). Warrant:
+  26 differentially abundant ASVs in T2D → **0** after matching on host
+  variables (Vujkovic-Cvijin et al., Nature 587:448, 2020).
+- **G8 — Curated and machine-extracted are segregated at the schema level.**
+  `knowledge_level` × `agent_type` is written from a per-source table and never
+  defaulted; a source whose evidence model nobody has read gets `not_provided`,
+  which one `WHERE` clause counts. Testable: every value is drawn from Biolink's
+  pinned enums, and no `text-mined` edge shares an `evidence_level` with a
+  curated one.
+- **G9 — Placeholder and implausible taxa are flagged, not dropped and not
+  string-matched.** `Taxon.placeholder` is true for `uncultured bacterium`
+  (77133), `Bacteroides sp.` (29523) and `Candidatus` names; ranked D-queries
+  exclude them by that boolean, never by a name substring. Testable: C9's four
+  fixtures resolve verbatim and carry the flag. **Half-open:** the
+  habitat-plausibility check §4.16 asks for — the check that would have caught
+  hot-spring organisms curated faithfully out of a contaminated placenta paper —
+  is not implemented, and is recorded as absent rather than assumed.
+- **G10 — Expansion factor published; no scoring without hygiene.** The build
+  reports edges per source record, predicted edges stay behind
+  `knowledge_level = 'prediction'` so excluding them is one `WHERE` clause, and
+  nothing here is scored for link prediction without a source-disjoint split and
+  a degree-matched baseline. Testable: D15 reports the per-source
+  edge-to-record ratio. Warrant: GMMAD ships 220,690 *predicted* associations
+  alongside 3,836 curated ones — 57× — and a KG's link predictions correlate
+  with node degree at R² = 0.77.
+
+**[A-override] on A1's evidence vocabulary.** Part A1 asks for a level that
+distinguishes "observational abundance difference (16S), observational
+(shotgun), interventional/clinical, in-vivo model, in-vitro/experimental, and
+computational/predicted" — six classes. The adopted vocabulary is twelve,
+because BugSigDB's own design column forces `meta-analysis` and three further
+observational assay classes to be distinguishable, and because `unknown` and
+`text-mined` must be *values* rather than nulls for A1's third bullet
+(countability) to hold. A1's six are a subset of the twelve; nothing it asked
+for was dropped.
 
 ## Part C — Pitfalls
 
@@ -802,3 +1182,664 @@ closed**; the resolution is noted under each, and item 6 stands.
    edge, naming only the first missing property — see C17. Anything that
    needs a per-field gap census must use Cypher instead, and a reader who
    assumes otherwise will report a confidently wrong breakdown.
+
+## Part D — Acceptance queries
+
+The final list. Ordering is the research document's §5 (Q1–Q15), which is
+ordered by how commonly the question appears as the stated purpose of a source
+database or the entry point of a published workflow; **D1–D15 correspond
+one-to-one with Q1–Q15**. D16–D18 are the Part A5 query types and the guard
+queries that §5 implies but does not number; D19–D20 are the two things this
+graph deliberately does not do. Nothing announced in A5 is lost: A5.1 = D2,
+A5.2 = D5, A5.3 = D16, A5.4 = D1 + D10, A5.5 = D6.
+
+**How to read the Cypher.** Node keys are addressed as `{id: …}` (the
+blueprint `pk` value) and node titles as `.title`. Queries against loaded data
+use `docs/model.md`'s names as they stand in `blueprint.json` today — including
+the three post-model.md changes the loader has since made: `Disease` is keyed on
+its MONDO CURIE where MONDO declares an equivalence, non-disease conditions have
+moved to `Phenotype` / `Exposure` with their own `ASSOCIATED_WITH_PHENOTYPE` /
+`ASSOCIATED_WITH_EXPOSURE` edges, and the evidence contract's `source` /
+`signature_id` are now `primary_source` / `source_record_id` alongside
+`knowledge_level`, `agent_type`, `source_licence` and `source_relation`.
+Queries marked `pending: <source>` are written against the node and edge names
+proposed in `docs/research/source-formats.md`'s extraction tables; where that
+document has no table yet (MiMeDB, NJC19, MASI) the names are proposed here and
+are the loader's contract.
+
+Measurements quoted as "measured" were taken from `data/csv/` on 2026-09-03,
+against the full BugSigDB dump of 2026-09-02.
+
+---
+
+### D1 — "Which published signatures does my hit list overlap, for which condition, at which body site, and in which direction?"
+
+*Status:* **`answerable-now`**. *Fields:* signature membership as NCBI tax_ids ·
+`Signature.direction` · `IN_CONDITION` · `AT_BODY_SITE` · `Signature.host_species`
+· `sequencing_type` · `variable_region` · `group_0_size` / `group_1_size` · `pmid`.
+
+```cypher
+UNWIND [821, 851, 1263, 40520, 239935, 33038] AS tid
+MATCH (t:Taxon {id: tid})-[:REPORTED_BY]->(s:Signature)
+WHERE s.direction = 'increased'
+MATCH (s)-[:IN_CONDITION]->(d:Disease)
+OPTIONAL MATCH (s)-[:AT_BODY_SITE]->(b:BodySite)
+WITH s, d, b, count(DISTINCT t) AS overlap
+WHERE overlap >= 2
+RETURN d.title AS condition, b.title AS body_site, s.id AS signature,
+       overlap, s.n_taxa AS signature_size,
+       s.sequencing_type AS assay, s.variable_region AS region,
+       s.host_species AS host, s.group_0_size AS n0, s.group_1_size AS n1,
+       s.pmid AS pmid, s.evidence_level AS level
+ORDER BY overlap DESC, signature_size ASC LIMIT 25
+```
+
+*Shape:* one row per overlapping signature, with the overlap count, the
+signature's own size (the enrichment denominator) and enough metadata to
+down-weight it. **This is the query the model was reshaped for: it is answerable
+precisely because `Signature` is a node.** A flattened
+`(Taxon)-[:ASSOCIATED_WITH]->(Disease)` model destroys the set and makes
+enrichment impossible — the research document's only structural finding about
+the shape of the graph rather than the choice of sources. The enrichment
+*statistic* (ORA / PADOG / CBEA) runs outside the graph; the graph serves the
+sets. *Golden check:* every returned signature's `signature_size` equals its
+`REPORTED_BY` degree, and `overlap <= signature_size`.
+
+### D2 — "What is reported for taxon X in disease Y, and how strong is each report?"
+
+*Status:* **`answerable-now`**. This is A5.1 and Part A's A1 acceptance
+sentence. *Fields:* the full ten-field evidence contract plus its four
+provenance companions.
+
+```cypher
+MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005575'})
+RETURN r.direction AS direction, r.evidence_level AS level,
+       r.study_design AS design, r.sequencing_type AS assay,
+       r.group_0_size AS n_control, r.group_1_size AS n_case,
+       r.statistical_test AS test, r.significance_threshold AS alpha,
+       r.mht_correction AS mht, r.pmid AS pmid,
+       r.study_id AS study, r.source_record_id AS signature,
+       r.knowledge_level AS knowledge_level, r.agent_type AS agent_type,
+       r.primary_source AS source, r.source_licence AS licence
+ORDER BY level, study
+```
+
+*Shape:* one row per signature — never one aggregated row per pair. *Golden
+check (measured):* **taxon 851 (*Fusobacterium nucleatum*) × `MONDO:0005575`
+(colorectal cancer) returns 40 rows across 21 distinct `study_id`s — 39
+`increased` from 20 of them, and one `decreased` from `bsdb:41270896`.** The
+increased-direction requirement of "more than one study" is met twenty times
+over; the single dissenting edge is not removed, and D17 is where it is
+reported. If this returns one row, C13's parallel-edge collapse has recurred and
+`KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE` was not set above the row count.
+
+### D3 — "Which taxa are reported in more than one disease, and in which direction?"
+
+*Status:* **`answerable-now`** for the single-source form. *Fields:* D2's,
+aggregated per taxon across conditions, over a normalised disease key.
+
+```cypher
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+WHERE t.placeholder = false
+WITH t, count(DISTINCT d.id) AS n_conditions,
+     count(DISTINCT r.study_id) AS n_studies,
+     collect(DISTINCT d.title) AS conditions,
+     collect(DISTINCT r.direction) AS directions
+WHERE n_conditions > 1
+RETURN t.title AS taxon, t.rank AS rank, n_conditions, n_studies,
+       conditions AS reported_in, directions
+ORDER BY n_conditions DESC LIMIT 25
+```
+
+*Golden check (measured):* **3,799 of 7,718 taxa carrying an
+`ASSOCIATED_WITH` edge appear in more than one condition — 49.2%**, within two
+points of Duvallet et al.'s published 51% of genus-level associations being
+associated with more than one disease. A build that returns a materially lower
+fraction is under-loaded. *Caveat that is part of the answer, not a defect:*
+Crohn's and ulcerative colitis separate at 95.1% specificity on an eight-genus
+signature, so the query must never roll conditions up silently — `Disease.mondo_id`
+and the MONDO `IS_A` forest (`pending: MONDO`) are how a caller asks for
+"colorectal disease" deliberately, which is also the only way D2's
+`MONDO:0005575` and `MONDO:0024331` are found together (C14).
+
+### D4 — "Which associations are supported by more than observational abundance — animal model, intervention, or human RCT?"
+
+*Status:* **`partial`**. The tiers are derivable now; *interventions as a
+relation type* need gutMDisorder, the only surveyed source that curates them.
+*Fields:* `evidence_level` · `host_species` · `study_design`.
+
+```cypher
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+WHERE r.evidence_level IN ['interventional-rct', 'meta-analysis',
+                           'in-vitro', 'in-vivo-model']
+WITH d, t, r.evidence_level AS level, r.direction AS direction,
+     r.host_species AS host, count(DISTINCT r.study_id) AS studies
+RETURN d.title AS disease, t.title AS taxon, level, direction, host, studies
+ORDER BY CASE level WHEN 'interventional-rct' THEN 0
+                    WHEN 'meta-analysis'      THEN 1
+                    WHEN 'in-vitro'           THEN 2
+                    ELSE 3 END,
+         studies DESC
+LIMIT 30
+```
+
+*Golden check (measured):* the four tiers are non-empty on the current build —
+`in-vivo-model` 17,641 edges, `meta-analysis` 4,297, `interventional-rct` 4,098,
+`in-vitro` 1,613 of 103,461. **G6 is enforced by the `ORDER BY`:**
+`in-vivo-model` sorts last, below every human tier, because 95% of published
+HMA-rodent studies report phenotype transfer and that rate is not evidence.
+*What is missing:* gutMDisorder's `Interventions change the composition of gut
+microbiota` relation, which would add
+`(Taxon)-[:ABUNDANCE_CHANGED_BY]->(Drug|Intervention)` — `pending:
+gutMDisorder`. Note its whole mouse workbook lands as `in-vivo-model` regardless
+of design, and only 220 of its 930 mouse association rows have a DOID at all.
+
+### D5 — "Which metabolites does taxon X produce, and is that measured or predicted?" (and the reverse: which taxa produce metabolite M?)
+
+*Status:* **`pending-source`** — HMDB gives 224 edges, MiMeDB gives the rest.
+This is A5.2. *Fields:* production direction · evidence tier · pathway/gene ·
+rank at which the claim holds · citation · replication count.
+
+```cypher
+-- pending: HMDB (224 microbial-origin edges), MiMeDB (per-taxon, with enzyme)
+MATCH (t:Taxon {id: 239935})-[p:PRODUCES]->(m:Metabolite)
+RETURN m.title AS metabolite, m.chebi_id AS chebi, m.hmdb_status AS hmdb_status,
+       p.evidence_level AS level, p.knowledge_level AS knowledge_level,
+       p.reported_name AS organism_as_named, p.enzyme AS enzyme,
+       p.publications AS refs, p.primary_source AS source
+ORDER BY level, metabolite
+
+-- the reverse (A5.2's second half): who makes butyrate?
+MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite {id: 'CHEBI:17968'})
+WHERE t.placeholder = false
+RETURN t.title AS producer, t.rank AS rank, p.evidence_level AS level,
+       count(DISTINCT p.source_record_id) AS n_records
+ORDER BY level, n_records DESC
+```
+
+*Shape:* one row per (taxon, metabolite, source record). *Expected size, stated
+so nobody plans on a bigger number:* HMDB's microbial branch is **224
+metabolites, 0.10% of the file**, keyed on free-text, misspelled, mixed-rank
+organism names with **no taxid** — 169 "genus"-level terms that include phyla, a
+class, six families, two Gram stains and a U+FB01 ligature typo; the misspellings
+(`Citrobacter frundii`, `Akkermansia muciniphilia`) are expected to land in
+`UnresolvedTaxon`, which is the correct outcome, not a loss. MiMeDB v2.0 (29,295
+metabolites, 3,725 microbes, 25,276 curated reactions) is what makes this
+answerable at scale; its 23.1M BLAST-propagated pathways are
+`computational-predicted` and must stay in a separate layer. *Required
+qualifier:* the answer carries a replication count and the expected value is
+**1** — even robustly predicted metabolites are predicted by markedly different
+sets of taxa across datasets. *Why the tier is not optional:* gutSMASH measured
+metabolite levels to be "almost completely uncorrelated" with the abundance of
+the corresponding genes across 1,135 individuals.
+
+### D6 — "Which taxa consume metabolite M?" — the cross-feeding query
+
+*Status:* **`pending-source`: NJC19**. This is Part A's use case 5, and it is
+**not** descoped — but Part A understates the gap: no source in the profiled
+seven carries consumption, not just HMDB, and MiMeDB keys origin on compounds
+appearing as a *product*, so it does not fill it either. *Fields:* a `CONSUMES`
+edge with an evidence tier and a rank.
+
+```cypher
+-- pending: NJC19 (8,224 directed import/export/degrade events, 838 species, CC0)
+MATCH (m:Metabolite)
+OPTIONAL MATCH (p:Taxon)-[:PRODUCES]->(m) WHERE p.placeholder = false
+OPTIONAL MATCH (c:Taxon)-[:CONSUMES]->(m) WHERE c.placeholder = false
+WITH m, count(DISTINCT p) AS producers, count(DISTINCT c) AS consumers
+RETURN m.title AS metabolite, producers, consumers,
+       CASE WHEN producers + consumers = 0 THEN 0.0
+            ELSE 2.0 * producers * consumers / (producers + consumers)
+       END AS mes
+ORDER BY mes DESC LIMIT 20
+```
+
+**Metabolite Exchange Score: MES = 2·P·C / (P + C)** — the harmonic mean of the
+number of potential producers P and consumers C, and **MES = 0 when a metabolite
+is only produced or only consumed** (Marcelino et al., Nat Commun 14:6546,
+2023). That identity is the whole argument: without a `CONSUMES` edge every row
+of this query returns 0.0 and the use case is dead. *Proposed loader contract
+for NJC19:* `(Taxon)-[:PRODUCES|CONSUMES]->(Metabolite)` with
+`source_relation ∈ {export, import, degrade}`, `primary_source = "njc19"`,
+`source_licence = "CC0-1.0"`, `knowledge_level = "knowledge_assertion"`,
+`agent_type = "manual_agent"`, `evidence_level = "in-vitro"` (NJC19's curation
+basis is experimentally verified transport or degradation), and the **912
+negative associations as their own edge type**
+`(Taxon)-[:NO_EXCHANGE_WITH]->(Metabolite)` — explicit negatives are rare enough
+in this field to be worth their own shape. *Golden check when it lands:*
+acetate, the most frequently exported product (44.3% of NJC19's species), must
+have both a non-zero producer and a non-zero consumer count.
+
+### D7 — "Which AMR genes does taxon X carry, to which drug class, by which mechanism, and at what call confidence?"
+
+*Status:* **`pending-source`: CARD**. *Fields:* ARO id · detection model type ·
+RGI hit category · drug class · resistance mechanism · curated-vs-prevalence
+provenance flag.
+
+```cypher
+-- pending: CARD
+MATCH (t:Taxon {id: 562})-[c:CARRIES_DETERMINANT]->(a:AROTerm)
+OPTIONAL MATCH (a)-[:CONFERS_RESISTANCE_TO]->(dc:DrugClass)
+RETURN a.title AS determinant, a.id AS aro,
+       a.resistance_mechanism AS mechanism, dc.title AS drug_class,
+       c.model_type AS model_type, c.hit_category AS rgi_hit,
+       c.sequence_derived AS from_reference_sequence,
+       c.evidence_level AS level, c.primary_source AS source,
+       c.source_licence AS licence
+ORDER BY drug_class, determinant
+```
+
+*Four conditions the loader must satisfy, all from the source profile:* key
+models on `Model ID` (6,463 unique — `ARO Accession` is duplicated on 5 rows of
+`aro_index.tsv`, and keying on it silently drops half of each pair); take
+`card.json` as the model authority, not `aro_index.tsv` (they disagree on 84
+models); carry the licence per edge (`CC-BY-4.0` for `aro.obo`,
+`card-data-noncommercial` for `card-data/`); and never use
+`card-ontology/ncbi_taxonomy.obo` as a source of taxon labels — it renames
+`NCBITaxon:2` to CARD's own editorial string. *The claim the edge makes, stated
+on the edge:* `sequence_derived = true` means the taxid is the **reference
+sequence's** organism, which is "this sequence was cloned from this organism",
+not "this organism is resistant" — 132 models are keyed on taxid 2 (Bacteria).
+And gene presence is not phenotype: even a Perfect RGI hit "does not indicate if
+the AMR gene is expressed or if it results in elevated MIC", while AMRFinderPlus
+and ResFinder score 54–58% balanced accuracy against measured resistance. A
+"276k AMR links" figure sourced from CARD Prevalence is `computational-predicted`
+and must be excludable with one `WHERE`.
+
+### D8 — "Does drug D inhibit gut bacteria, or get metabolised by them, and which strains?"
+
+*Status:* **`pending-source`: MASI**. ChEMBL, which *is* fetched, supplies the
+`Drug` and `ProteinTarget` nodes and 125 target taxids, but **no drug↔gut-taxon
+edge exists in it at all**. *Fields:* drug id · taxon at strain resolution ·
+assay and readout · direction (inhibits / metabolises / no effect — the
+negatives matter) · gene.
+
+```cypher
+-- pending: MASI (bacteria->substance 4,001 pairs; substance->bacteria 7,770)
+MATCH (t:Taxon)-[a:ALTERS_SUBSTANCE|ALTERS_TAXON]-(d:Drug {id: 'CHEMBL:CHEMBL1431'})
+RETURN t.title AS taxon, t.rank AS rank,
+       type(a) AS edge_direction,
+       a.alteration_effect AS effect, a.exposure_dose AS dose,
+       a.exposure_duration AS duration, a.pmid AS pmid,
+       a.evidence_level AS level, a.primary_source AS source
+ORDER BY edge_direction, taxon
+```
+
+*Shape:* two edge types, never one — `ALTERS_TAXON` (the drug changes the
+bacterium: Maier's 24% of human-targeted drugs inhibiting at least one of 40
+strains) and `ALTERS_SUBSTANCE` (the bacterium changes the drug: Zimmermann's
+176 of 271 oral drugs metabolised by at least one of 76 strains). Collapsing
+them into one `ASSOCIATED_WITH` conflates antimicrobial killing with drug
+metabolism, which is MDAD's documented weakness. *Rank caveat:* MASI resolves
+"down to genus level" while both landmark screens are strain-level, so the
+strain half is only available from the Maier/Zimmermann supplementary matrices
+directly. *Liveness caveat recorded in the research:* MASI's site has an expired
+TLS certificate and declares no separate database licence.
+
+### D9 — "Show me every association for taxon X where the evidence is 16S-only, so I can down-weight it."
+
+*Status:* **`answerable-now`**. *Fields:* `evidence_level` · `sequencing_type` ·
+`Signature.variable_region` · `Signature.sequencing_platform` · the rank the
+taxon was reported at.
+
+```cypher
+MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease)
+WITH d, r, CASE WHEN r.evidence_level = 'observational-16S' THEN 1 ELSE 0 END AS is16s
+RETURN d.title AS disease, count(r) AS edges, sum(is16s) AS edges_16S,
+       collect(DISTINCT r.evidence_level) AS levels,
+       collect(DISTINCT r.sequencing_type) AS assays
+ORDER BY edges DESC LIMIT 20
+
+-- the variable region and platform live on the Signature, not the edge:
+MATCH (t:Taxon {id: 851})-[:REPORTED_BY]->(s:Signature)-[:IN_CONDITION]->(d:Disease)
+WHERE s.sequencing_type = '16S'
+RETURN d.title AS disease, s.variable_region AS region,
+       s.sequencing_platform AS platform, count(s) AS signatures
+ORDER BY signatures DESC
+```
+
+*Golden check (measured):* on the current build `observational-16S` is 57,391 of
+103,461 association edges — **55.5%**, matching the model's measured signature
+distribution and BugSigDB's own 92.5%-of-*studies* 16S figure once weighted by
+signature size. *Why this query ranks so high:* it is the direct
+operationalisation of Part A's complaint, and it is the query G5 depends on —
+identical V4 sequences belong to different species with 63% probability, so a
+species-level claim resting only on `observational-16S` edges must say so.
+
+### D10 — "For disease Y, which depleted taxa are plausible probiotic candidates?"
+
+*Status:* **`partial`** — the depletion leg works, the AMR and metabolite legs
+do not. This is A5.4's second half. *Fields:* D2 ∪ D5 ∪ D7, joined on taxon.
+
+```cypher
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005265'})
+WHERE r.direction = 'decreased' AND t.placeholder = false
+WITH t, count(DISTINCT r.study_id) AS n_studies,
+     collect(DISTINCT r.evidence_level) AS levels
+WHERE n_studies >= 2
+OPTIONAL MATCH (t)-[:CARRIES_DETERMINANT]->(a:AROTerm)   -- pending: CARD
+OPTIONAL MATCH (t)-[p:PRODUCES]->(m:Metabolite)          -- pending: MiMeDB
+RETURN t.title AS candidate, t.rank AS rank, n_studies, levels,
+       count(DISTINCT a) AS amr_determinants,
+       collect(DISTINCT m.title) AS metabolites
+ORDER BY n_studies DESC LIMIT 20
+```
+
+*Shape:* one row per candidate with its replication count, the strongest tier
+reached, its AMR burden and its claimed metabolites. Today the last two columns
+return `0` and `[]` for every row — that is the honest answer, not a bug, and
+D15 reports it. *The `n_studies >= 2` clause is G4, not a nicety:* 84.4% of
+(taxon, condition) pairs in the current build rest on a single study, and the
+sign of a single-study association flips about one time in three. *The chain
+this query is a proxy for* — observational correlation → mouse → a randomised,
+double-blind, placebo-controlled human pilot, as in the *Akkermansia muciniphila*
+case — is not recorded end-to-end by any single database, so the query returns
+candidates, never conclusions.
+
+### D11 — "Which studies for disease Y controlled for medication or antibiotics?"
+
+*Status:* **`partial` — and this is the one place the graph fails a guard it
+declared.** The research calls this "the strongest argument for BugSigDB as the
+spine": no other source in the survey records confounder control. *Fields:*
+`Antibiotics exclusion` · `Confounders controlled for` · `Matched on`.
+
+```cypher
+MATCH (s:Signature)-[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005148'})
+RETURN s.id AS signature, s.pmid AS pmid, s.study_design AS design,
+       s.matched_on AS matched_on,
+       s.confounders AS confounders_controlled,
+       s.antibiotics_exclusion AS antibiotics_exclusion,
+       s.group_0_size AS n0, s.group_1_size AS n1
+ORDER BY pmid
+```
+
+*What is missing, precisely:* `prep_bugsigdb.py` writes `matched_on` and
+`confounders` into `data/csv/signature.csv`, but `blueprint.json`'s
+`Signature.properties` declares neither, so both come back null; and
+`Antibiotics exclusion` (BugSigDB column 24) is not extracted at all. The fix is
+three column names, not a new source. Until it lands, **G7 is unenforceable and
+D18's competing-explanation check has no BugSigDB-side counterpart.** *Why it
+matters more than its rank suggests:* 26 differentially abundant ASVs in T2D
+became **0** after matching on host variables, and significance vanished
+entirely for depression, autism, lung disease, thyroid disease, migraine and
+SIBO. An unfiltered graph serves every one of those edges.
+
+### D12 — "This paper says *Lactobacillus reuteri*. What is the current name and tax_id, and does a query for *Limosilactobacillus reuteri* find it?"
+
+*Status:* **`partial`** — the NCBI half is answerable now, the nomenclatural
+half has no source. This is Part A's A4 as a query, and it is harder than A4
+assumes. *Fields:* `merged.dmp` ids · `names.dmp` synonym classes · rank · and
+LPSN's correct-name/synonym status, which NCBI does not carry.
+
+```cypher
+-- the easy half: an obsolete binomial through the synonym index
+MATCH (t:Taxon)
+WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+RETURN t.id AS tax_id, t.title AS current_name, t.rank AS rank,
+       t.synonyms AS synonyms,
+       text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
+ORDER BY score DESC LIMIT 3
+
+-- and the audit trail: how did each spelling actually resolve?
+MATCH (t:Taxon {id: 47715})-[r:REPORTED_BY]->(s:Signature)
+RETURN r.reported_name AS as_printed, r.reported_tax_id AS as_given,
+       r.resolution_status AS status,
+       r.resolution_normalized AS needed_authority_stripping,
+       r.resolution_note AS note, count(s) AS signatures
+ORDER BY as_printed
+```
+
+*Golden check:* `Lactobacillus reuteri` → **1598** with
+`status = "synonym"` and `needed_authority_stripping = true`, because NCBI keeps
+that binomial **only** in authority-decorated form (C4) — a resolver that indexes
+name classes literally returns `unresolved` for it and for *Clostridium
+difficile*, and the failure looks like a data gap.
+
+> **The Lacticaseibacillus rhamnosus note — why this query is `partial`.** NCBI
+> taxid **47715** has scientific name ***Lacticaseibacillus rhamnosus***, and
+> "Lactobacillus rhamnosus" resolves to the same taxid as a bare `synonym`, so
+> the query above answers cleanly. But LPSN records the *Lacticaseibacillus*
+> name as **taxonomically suspended** — "(and therefore not recommended for
+> medical use for now) until no later than 2025 in favour of *Lactobacillus
+> rhamnosus*" — and the stated end-date has passed while the page still reads
+> suspended. *L. casei* and *L. paracasei* moved to *Lacticaseibacillus* and
+> stayed; **only *rhamnosus* was suspended**, and it is arguably the single most
+> commercially important probiotic species (LGG). The same shape recurs with
+> *Prevotella copri* / *Segatella copri*. A single "current name" field cannot
+> express that two authorities disagree about the same taxid, and this graph has
+> one. Closing it needs **LPSN** (CC BY-SA 4.0, with an API) as a source, which
+> is not in the fetch list; until then the graph reports NCBI's name and the
+> disagreement is invisible. Recorded here rather than worked around: an
+> unbracketing or un-renaming normaliser would be exactly the string-matching
+> C9 forbids.
+
+### D13 — "Which pathway or gene carries the production claim for taxon X → metabolite M?"
+
+*Status:* **`pending-source`: KEGG / Reactome — and misleading if unqualified.**
+*Fields:* pathway id · gene · organism rank · whether the assignment is
+genome-inferred.
+
+```cypher
+-- pending: HMDB/MiMeDB for PRODUCES, KEGG + Reactome for PARTICIPATES_IN
+MATCH (t:Taxon {id: 239935})-[p:PRODUCES]->(m:Metabolite)-[:PARTICIPATES_IN]->(pw:Pathway)
+RETURN m.title AS metabolite, pw.id AS pathway, pw.title AS pathway_name,
+       pw.source AS pathway_source, pw.species AS pathway_species,
+       p.evidence_level AS production_level,
+       p.knowledge_level AS production_knowledge,
+       'capability, not production' AS reading
+ORDER BY pathway_source, pathway
+```
+
+*The qualifier is part of the answer.* Reactome's 23,603 pathways span **16
+model organisms and not one gut commensal**, so a Reactome hit says the
+*metabolite* participates in a human pathway, never that the taxon runs it.
+KEGG carries microbial maps but **no taxid at all** (its organism route was
+retired upstream) and ships under a restrictive licence that keeps the whole
+slice behind a build flag. So the taxon→pathway assignment is genome-inferred in
+every case available here, and gutSMASH *measured* gene abundance to be "almost
+completely uncorrelated" with metabolite level in 1,135 individuals; PICRUSt2's
+overlap with true metagenome results collapses from 654 to 66 KO terms. The row
+is labelled `capability, not production` for that reason, and gutSMASH's MGC
+types (which encode substrate and product in the type name) are the source that
+would make the claim direct — not fetched.
+
+### D14 — "Which of my changed taxa are just generic dysbiosis markers rather than disease-specific?"
+
+*Status:* **`partial`** — the signature-breadth half works, the healthy-prevalence
+half needs a source not in the fetch list. *Fields:* prevalence in healthy
+samples · fraction of signatures reporting increase vs decrease per taxon.
+
+```cypher
+MATCH (t:Taxon)-[:REPORTED_BY]->(s:Signature)
+WHERE t.placeholder = false
+WITH t, count(s) AS n_signatures,
+     sum(CASE WHEN s.direction = 'increased' THEN 1 ELSE 0 END) AS n_increased
+MATCH (t)-[r:ASSOCIATED_WITH]->(d:Disease)
+WITH t, n_signatures, n_increased, count(DISTINCT d.id) AS n_conditions
+RETURN t.title AS taxon, t.rank AS rank, n_signatures, n_conditions,
+       1.0 * n_increased / n_signatures AS frac_increased,
+       n_signatures > 100 AS non_specific
+ORDER BY n_signatures DESC LIMIT 20
+```
+
+*Golden check (measured):* the top rows must contain the four genera BugSigDB
+itself names as "each reported as differentially abundant in more than 100
+signatures" — and they do: **Bacteroides 1,150 · Streptococcus 1,123 ·
+Prevotella 1,063 · Lactobacillus 938** taxon-report edges, with
+*Lachnospiraceae* (1,024) and *Oscillospiraceae* (875) interleaved at family
+rank. A build that does not reproduce those four is under-loaded. *What is
+missing:* the healthy-prevalence half — BugSigDB's own r = −0.84 between a
+genus's healthy prevalence and the fraction of signatures reporting it increased
+in disease — needs **GMrepo** (9,623 healthy controls) or `bugphyzz`. *Standing
+negative fixture:* the Firmicutes:Bacteroidetes ratio must never surface as an
+obesity signal; ten studies found no significant phylum-level association,
+including F:B. Any pipeline that returns it has a bug.
+
+### D15 — "How many association edges have no evidence level, which sources do they come from, and which are single-cohort?"
+
+*Status:* **`answerable-now`**. This is Part A's A1 third bullet and the query
+that keeps the other nineteen honest.
+
+```cypher
+CALL ontology_audit() YIELD rule, severity, violations, exempted, total, pct
+RETURN rule, severity, violations, total, pct ORDER BY pct DESC
+```
+
+```cypher
+-- the per-field census the audit's single percentage rolls up (C17: the
+-- edge_property_violation procedure names only the FIRST missing property,
+-- so a breakdown built from it under-counts every field but one)
+MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
+RETURN r.primary_source AS source, count(r) AS edges,
+       sum(CASE WHEN r.direction        IS NULL THEN 1 ELSE 0 END) AS no_direction,
+       sum(CASE WHEN r.pmid             IS NULL THEN 1 ELSE 0 END) AS no_pmid,
+       sum(CASE WHEN r.group_0_size     IS NULL THEN 1 ELSE 0 END) AS no_group0,
+       sum(CASE WHEN r.group_1_size     IS NULL THEN 1 ELSE 0 END) AS no_group1,
+       sum(CASE WHEN r.statistical_test IS NULL THEN 1 ELSE 0 END) AS no_test,
+       sum(CASE WHEN r.evidence_level  = 'unknown'      THEN 1 ELSE 0 END) AS level_unknown,
+       sum(CASE WHEN r.knowledge_level = 'not_provided' THEN 1 ELSE 0 END) AS kl_not_provided
+ORDER BY edges DESC
+```
+
+*Golden check (measured, and this is the project's headline number):*
+`ontology_audit()` must return an `ASSOCIATED_WITH.required_properties` row at
+`severity = warn` with a **non-zero denominator** and a violation fraction of
+**14,349 of 103,461 edges = 13.87%** on the 2026-09-03 full build. A zero
+denominator means the rule is auditing property names nothing writes (C20); a
+0.00% fraction means BugSigDB's literal `"NA"` reached the graph as a value
+(C17) and the gate is vacuous. *And the number is a floor, not the whole gap:*
+`evidence_level` is never absent — the derivation returns the string
+`"unknown"` — so 17 further edges carry a level that means nothing and no
+required-property check can see them. That is deliberate (never silently
+"observational") and it is why `level_unknown` is a column here.
+*G10's expansion factor* belongs in this report too: edges per source record,
+per source, published rather than assumed.
+
+### D16 — "Shortest path between any two entities" (A5.3)
+
+*Status:* **`answerable-now`**, with a caveat that is part of the answer.
+
+```cypher
+MATCH p = shortestPath((t:Taxon {id: 853})-[*..4]-(d:Disease {id: 'MONDO:0005011'}))
+RETURN length(p) AS hops,
+       [n IN nodes(p) | labels(n)[0]] AS types,
+       [n IN nodes(p) | n.title]      AS names
+
+-- the evidence path, asked for explicitly rather than inferred from the shortcut
+MATCH p = (t:Taxon {id: 853})-[:REPORTED_BY]->(s:Signature)-[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005011'})
+RETURN s.id AS signature, s.evidence_level AS level, s.study_design AS design,
+       s.group_0_size AS n0, s.group_1_size AS n1, s.pmid AS pmid LIMIT 5
+```
+
+*Golden check:* returns **1 hop** where a direct `ASSOCIATED_WITH` exists — the
+flattened edge doing its job — and the three-hop
+`Taxon → Signature → Disease` walk returns the evidence that shortcut stands
+for. *Caveat, from G10:* over a graph of ~1.14M edges a shortest path routes
+through hubs — `Bacillota` alone carries 855 taxon-report edges — and a KG's
+link scores correlate with node degree at R² = 0.77. A shortest path here is a
+navigation aid, never evidence, and no D-query treats path existence as support.
+
+### D17 — "Where do studies disagree, and which pairs rest on a single cohort?"
+
+*Status:* **`answerable-now`**. This is guard G4 as a query — the one the
+Tierney result makes mandatory.
+
+```cypher
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+WITH t, d, collect(DISTINCT r.direction) AS directions,
+     count(DISTINCT r.study_id) AS n_studies, count(r) AS n_edges
+RETURN t.title AS taxon, d.title AS disease, directions, n_studies, n_edges,
+       size(directions) > 1 AS direction_conflict,
+       n_studies = 1        AS single_cohort
+ORDER BY n_edges DESC LIMIT 50
+```
+
+*Golden check (measured):* **8,114 of 55,445 (taxon, condition) pairs carry both
+`increased` and `decreased`, and 46,809 of 55,445 — 84.4% — rest on a single
+study.** So `single_cohort` is the default exclusion for every ranked D-query,
+not a rare flag. The named fixture is D2's: *Fusobacterium nucleatum* ×
+colorectal cancer returns `directions = ['increased','decreased']`, `n_edges =
+40`, `n_studies = 21`. **The query reports the disagreement; it never resolves
+it, and no majority rule is applied anywhere in the graph.** T1D and T2D pairs
+are a standing fixture because they are the measured worst case: >90% of
+published findings for both were nonrobust to model specification.
+
+### D18 — "Is this T2D association a drug effect?" — the metformin confounding check
+
+*Status:* **`pending-source`: MASI**. *Fields:* D2's, joined to a drug→taxon
+layer, plus D11's confounder columns once they are loaded.
+
+```cypher
+-- pending: MASI (drug->taxon); metformin is CHEMBL:CHEMBL1431
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005148'})
+MATCH (drug:Drug {id: 'CHEMBL:CHEMBL1431'})-[a:ALTERS_TAXON]->(t)
+WITH t, r.direction AS direction_in_t2d, r.evidence_level AS t2d_level,
+     a.alteration_effect AS metformin_effect, a.pmid AS metformin_pmid,
+     count(DISTINCT r.study_id) AS t2d_studies
+RETURN t.title AS taxon, direction_in_t2d, t2d_studies, t2d_level,
+       metformin_effect, metformin_pmid,
+       'competing explanation' AS reading
+ORDER BY t2d_studies DESC
+```
+
+*Fixtures, from Forslund et al. (Nature 528:262, 2015, PMID 26633628; 784
+metagenomes across three countries):* an ***Escherichia*** increase and an
+***Intestinibacter*** decrease are **metformin effects, not T2D signals** — the
+latter consistent across all three cohorts; a ***Lactobacillus*** increase
+attributed to unstratified T2D was "eliminated or reversed" when controlling for
+metformin; and increased butyrate/propionate production potential — a "beneficial
+SCFA producer" signal — was the drug, not the disease, which bears directly on
+D5 and D10. Verbatim: "metformin treatment status could be reliably recovered
+from microbial composition using SVMs, **metformin-untreated T2D status itself
+could not**". *Why the status is `pending` and not `descoped`:* without the
+drug→taxon layer the graph physically cannot offer metformin as a competing
+explanation, which is the second independent argument for closing Gap 3.
+Generalised: of 41 drug categories, 19 associated singly with the microbiome and
+only **6** survived multi-drug correction; taxonomic associations fell 154 → 47.
+
+### D19 — "Train a cross-cohort classifier on these taxa" — `descoped`
+
+*Status:* **`descoped`.** *Reason:* the graph holds no sample-level abundance
+matrices and will not. W2's modelling leg belongs to curatedMetagenomicData
+(>22,000 samples, 94 studies) plus SIAMCAT or xMarkerFinder; this graph's role
+is the *disease-specificity and replication metadata* those tools need (D3, D10,
+D17), not the matrices. Recorded explicitly so nobody plans a query for it. The
+number that says why it matters anyway: naively transferred models showed a
+"more than twofold increase in false positives on average" and elevated
+cross-disease false positives "by a factor of 2.8", with one ankylosing
+spondylitis model calling >90% of other-disease cases positive.
+
+### D20 — "Compute per-sample cross-feeding fluxes" — `descoped`
+
+*Status:* **`descoped`.** *Reason:* MICOM's and SMETANA's directed exchange
+tables are produced by genome-scale metabolic model simulation per sample
+(CarveMe/AGORA2 reconstruction, then pFBA at community scale) — computation over
+an input community, not a database to load. D6's NJC19 layer is the curated,
+qualitative, literature-backed class and is in scope; the computed, quantitative,
+sample-contextual class is a different evidence class and **the two must never
+be merged into one edge type**. If a computed layer is ever ingested it lands as
+`knowledge_level = 'prediction'`, `agent_type = 'computational_model'`,
+`evidence_level = 'computational-predicted'`, in its own relationship type — the
+authors of the method are themselves explicit that these are *potential*
+interactions "naturally unable to predict all organism-specific traits".
+
+---
+
+### Coverage
+
+| Status | Count | Queries |
+|---|---:|---|
+| `answerable-now` | **7** | D1, D2, D3, D9, D15, D16, D17 |
+| `partial` | **5** | D4, D10, D11, D12, D14 |
+| `pending-source` | **6** | D5, D6, D7, D8, D13, D18 |
+| `descoped` | **2** | D19, D20 |
+| **total** | **20** | |
+
+Which source closes which pending query: **MiMeDB** → D5 (and D10's, D13's
+metabolite legs); **NJC19** → D6; **CARD** → D7 (and D10's AMR leg); **MASI** →
+D8, D18; **gutMDisorder** → D4's intervention leg; **KEGG/Reactome** → D13's
+pathway leg. Of the five `partial` queries, **two need no new source at all** —
+D11 needs three column names declared in `blueprint.json` and one more extracted
+in `prep_bugsigdb.py`, and D14's non-specificity half already works. The
+remaining three (D4, D10, D12) each split cleanly into an answerable leg and a
+named pending one.
