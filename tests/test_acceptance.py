@@ -1,0 +1,469 @@
+"""Every ``answerable-now`` D-query, run against the real built graph.
+
+``docs/usecases-and-pitfalls.md`` Part D is the user contract: twenty queries,
+each with a status and, for the ones the graph claims to answer, a *golden
+check* — a measured number the build must reproduce. This module runs those
+queries verbatim and asserts those numbers. A query that returns rows is not
+evidence: D2 returned one row instead of forty when the junction loader
+deduplicated parallel edges, and every number below exists because a plausible
+non-empty answer was wrong.
+
+Unlike ``tests/test_build.py``, which builds a 43-row fixture, this module
+needs the **real** ``data/csv/`` — the goldens are measurements of the full
+BugSigDB dump. It skips, naming the command that produces them, when those
+CSVs are not on this machine.
+
+The goldens are re-measured whenever a source lands: they are properties of the
+loaded data, not of the code, and a new source moving them is the expected
+outcome, not a regression. Each block says which build it was measured on.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+
+import pytest
+
+kglite = pytest.importorskip("kglite")
+
+ROOT = Path(__file__).resolve().parents[1]
+CSV_DIR = ROOT / "data" / "csv"
+BLUEPRINT = ROOT / "blueprint.json"
+
+#: Files without which there is nothing to assert against.
+REQUIRED_CSVS = ("signature.csv", "taxon.csv", "taxon_disease.csv", "disease.csv")
+
+#: Measured 2026-09-03 on the full build: NCBI ``new_taxdump`` 2026-09-02 +
+#: BugSigDB ``full_dump`` 2026-09-02, ``--scope microbial``. Each is quoted in
+#: Part D as that query's golden check.
+GOLDEN = {
+    # D2 — Fusobacterium nucleatum (851) x colorectal cancer (MONDO:0005575)
+    "d2_edges": 40,
+    "d2_studies": 21,
+    "d2_increased": 39,
+    "d2_dissenting_record": "bsdb:41270896/1/2",
+    # D3 — taxa reported in more than one condition
+    "d3_multi_condition_taxa": 3799,
+    "d3_taxa_with_associations": 7718,
+    # D9 — the 16S share of the evidence
+    "d9_association_edges": 103461,
+    "d9_observational_16S": 57391,
+    # D15 — the headline audit number
+    "d15_rule": "ASSOCIATED_WITH.required_properties",
+    "d15_violations": 14349,
+    "d15_total": 103461,
+    # D17 — disagreement and single-cohort support
+    "d17_pairs": 55445,
+    "d17_direction_conflict": 8114,
+    "d17_single_cohort": 46809,
+}
+
+#: D14's standing fixture: the four genera BugSigDB itself names as reported in
+#: more than 100 signatures, with the two families that interleave with them.
+D14_TOP_TAXA = {
+    "Bacteroides": 1150,
+    "Streptococcus": 1123,
+    "Prevotella": 1063,
+    "Lachnospiraceae": 1024,
+    "Lactobacillus": 938,
+    "Oscillospiraceae": 875,
+}
+
+
+@pytest.fixture(scope="session")
+def graph():
+    """The real graph, built once from ``data/csv/``.
+
+    ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` is not optional: the junction
+    loader deduplicates parallel edges from the second 100,000-row chunk
+    onwards, and this graph's parallel edges *are* its independent
+    observations. Without it D2 returns 1 row instead of 40 and D17's whole
+    premise disappears — silently, with no warning and no error.
+    """
+    missing = [name for name in REQUIRED_CSVS if not (CSV_DIR / name).is_file()]
+    if missing:
+        pytest.skip(
+            f"no built CSVs at {CSV_DIR} (missing {', '.join(missing)}) — "
+            f"run `.venv/bin/python scripts/build.py --scope microbial` first"
+        )
+    if not BLUEPRINT.is_file():
+        pytest.skip("blueprint.json does not exist yet")
+
+    from microbiomekg.ontology import write_json
+
+    work = Path(tempfile.mkdtemp(prefix="acceptance-"))
+    blueprint = json.loads(BLUEPRINT.read_text())
+    settings = blueprint.setdefault("settings", {})
+    settings["root"] = str(CSV_DIR)
+    for key in ("output", "output_path", "output_file"):
+        settings.pop(key, None)
+    write_json(work / "ontology.json")
+    blueprint["ontology"] = str(work / "ontology.json")
+    (work / "blueprint.json").write_text(json.dumps(blueprint))
+
+    os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = "1000000"
+    return kglite.from_blueprint(work / "blueprint.json", verbose=False, save=False)
+
+
+def rows(graph, query: str) -> list[dict]:
+    return list(graph.cypher(query))
+
+
+def one(graph, query: str) -> dict:
+    result = rows(graph, query)
+    assert result, f"query returned no rows:\n{query}"
+    return result[0]
+
+
+# --------------------------------------------------------------------------
+# D1 — "Which published signatures does my hit list overlap?"
+# --------------------------------------------------------------------------
+
+
+def test_d1_hit_list_overlaps_signatures_with_their_metadata(graph):
+    """The query the model was reshaped for: `Signature` is a node, so the
+    taxon *set* survives and an overlap is countable. A flattened
+    (Taxon)-[:ASSOCIATED_WITH]->(Disease) model destroys the set."""
+    result = rows(
+        graph,
+        """
+        UNWIND [821, 851, 1263, 40520, 239935, 33038] AS tid
+        MATCH (t:Taxon {id: tid})-[:REPORTED_BY]->(s:Signature)
+        WHERE s.direction = 'increased'
+        MATCH (s)-[:IN_CONDITION]->(d:Disease)
+        OPTIONAL MATCH (s)-[:AT_BODY_SITE]->(b:BodySite)
+        WITH s, d, b, count(DISTINCT t) AS overlap
+        WHERE overlap >= 2
+        RETURN d.title AS condition, b.title AS body_site, s.id AS signature,
+               overlap, s.n_taxa AS signature_size,
+               s.sequencing_type AS assay, s.variable_region AS region,
+               s.host_species AS host, s.group_0_size AS n0, s.group_1_size AS n1,
+               s.pmid AS pmid, s.evidence_level AS level
+        ORDER BY overlap DESC, signature_size ASC LIMIT 25
+        """,
+    )
+    assert result, "no signature overlaps the hit list at all"
+    for row in result:
+        # The golden check Part D states: an overlap can never exceed the set
+        # it is an overlap *with*. A larger one means the query counted the
+        # same taxon twice, which is what a missing DISTINCT looks like.
+        assert row["overlap"] <= row["signature_size"], row
+        assert row["condition"], "a signature reached IN_CONDITION with no title"
+
+
+def test_d1_signature_size_is_the_membership_the_query_reports(graph):
+    """`n_taxa` is the row's taxon-mention count, and REPORTED_BY is its
+    membership. They differ only where a signature named a strain *and* its
+    species and both resolved to the same tax_id — a duplicate fact, not a
+    second member — so the degree is never larger than the mention count."""
+    result = one(
+        graph,
+        """
+        MATCH (x)-[:REPORTED_BY]->(s:Signature)
+        WITH s, count(x) AS degree
+        RETURN count(*) AS signatures,
+               sum(CASE WHEN degree > s.n_taxa THEN 1 ELSE 0 END) AS degree_exceeds
+        """,
+    )
+    assert result["degree_exceeds"] == 0, result
+
+
+# --------------------------------------------------------------------------
+# D2 — "What is reported for taxon X in disease Y, and how strong is each?"
+# --------------------------------------------------------------------------
+
+
+def test_d2_one_row_per_signature_never_one_aggregated_row(graph):
+    result = rows(
+        graph,
+        """
+        MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005575'})
+        RETURN r.direction AS direction, r.evidence_level AS level,
+               r.study_design AS design, r.sequencing_type AS assay,
+               r.group_0_size AS n_control, r.group_1_size AS n_case,
+               r.statistical_test AS test, r.significance_threshold AS alpha,
+               r.mht_correction AS mht, r.pmid AS pmid,
+               r.study_id AS study, r.source_record_id AS signature,
+               r.knowledge_level AS knowledge_level, r.agent_type AS agent_type,
+               r.primary_source AS source, r.source_licence AS licence
+        ORDER BY level, study
+        """,
+    )
+    assert len(result) == GOLDEN["d2_edges"], (
+        f"expected {GOLDEN['d2_edges']} parallel edges, got {len(result)}. One row "
+        f"means C13's parallel-edge collapse recurred and "
+        f"KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE was not set above the row count."
+    )
+    assert len({r["study"] for r in result}) == GOLDEN["d2_studies"]
+    increased = [r for r in result if r["direction"] == "increased"]
+    decreased = [r for r in result if r["direction"] == "decreased"]
+    assert len(increased) == GOLDEN["d2_increased"]
+    # G4: the dissenting edge is reported, never removed and never out-voted.
+    assert [r["signature"] for r in decreased] == [GOLDEN["d2_dissenting_record"]]
+
+
+def test_d2_every_returned_row_carries_its_provenance(graph):
+    for row in rows(
+        graph,
+        """
+        MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005575'})
+        RETURN r.primary_source AS source, r.source_licence AS licence,
+               r.knowledge_level AS knowledge_level, r.agent_type AS agent_type,
+               r.source_record_id AS record
+        """,
+    ):
+        assert row["source"], row
+        # G3: the licence rides on the edge, not on the graph, which is what
+        # lets a mixed-licence graph be redistributed in parts.
+        assert row["licence"], row
+        assert row["knowledge_level"] and row["agent_type"], row
+        assert row["record"], row
+
+
+# --------------------------------------------------------------------------
+# D3 — "Which taxa are reported in more than one disease?"
+# --------------------------------------------------------------------------
+
+
+def test_d3_half_of_all_reported_taxa_are_reported_in_several_conditions(graph):
+    """Duvallet et al. put 51% of genus-level associations in more than one
+    disease. A build that returns a materially lower fraction is under-loaded."""
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+        WITH t, count(DISTINCT d.id) AS n_conditions
+        RETURN count(t) AS taxa,
+               sum(CASE WHEN n_conditions > 1 THEN 1 ELSE 0 END) AS multi
+        """,
+    )
+    assert result["taxa"] == GOLDEN["d3_taxa_with_associations"]
+    assert result["multi"] == GOLDEN["d3_multi_condition_taxa"]
+
+
+def test_d3_the_ranked_form_excludes_placeholders_by_the_flag(graph):
+    """G9: `uncultured bacterium` is excluded by a boolean, never by matching
+    its name — the string-matching this project argues against everywhere."""
+    result = rows(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+        WHERE t.placeholder = false
+        WITH t, count(DISTINCT d.id) AS n_conditions,
+             count(DISTINCT r.study_id) AS n_studies,
+             collect(DISTINCT d.title) AS conditions,
+             collect(DISTINCT r.direction) AS directions
+        WHERE n_conditions > 1
+        RETURN t.title AS taxon, t.rank AS rank, n_conditions, n_studies,
+               conditions AS reported_in, directions
+        ORDER BY n_conditions DESC LIMIT 25
+        """,
+    )
+    assert len(result) == 25
+    for row in result:
+        assert "uncultured" not in (row["taxon"] or "").lower()
+        assert row["n_conditions"] > 1
+
+
+# --------------------------------------------------------------------------
+# D9 — "Show me every association where the evidence is 16S-only"
+# --------------------------------------------------------------------------
+
+
+def test_d9_the_16S_share_is_the_measured_majority(graph):
+    """G5 depends on this query: identical V4 sequences belong to different
+    species with 63% probability, so a species-level claim resting only on
+    `observational-16S` edges has to say so."""
+    result = one(
+        graph,
+        """
+        MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
+        RETURN count(r) AS edges,
+               sum(CASE WHEN r.evidence_level = 'observational-16S' THEN 1 ELSE 0 END)
+                 AS edges_16S
+        """,
+    )
+    assert result["edges"] == GOLDEN["d9_association_edges"]
+    assert result["edges_16S"] == GOLDEN["d9_observational_16S"]
+
+
+def test_d9_the_variable_region_lives_on_the_signature_not_the_edge(graph):
+    result = rows(
+        graph,
+        """
+        MATCH (t:Taxon {id: 851})-[:REPORTED_BY]->(s:Signature)-[:IN_CONDITION]->(d:Disease)
+        WHERE s.sequencing_type = '16S'
+        RETURN d.title AS disease, s.variable_region AS region,
+               s.sequencing_platform AS platform, count(s) AS signatures
+        ORDER BY signatures DESC
+        """,
+    )
+    assert result, "no 16S signature names taxon 851"
+    assert any(row["region"] for row in result), (
+        "not one 16S signature carries a variable region: the column did not "
+        "reach the Signature node"
+    )
+
+
+# --------------------------------------------------------------------------
+# D14 — "Which of my taxa are just generic dysbiosis markers?"
+# --------------------------------------------------------------------------
+
+
+def test_d14_the_named_non_specific_genera_are_reproduced(graph):
+    """BugSigDB itself names four genera as reported in more than 100
+    signatures. A build that does not reproduce them is under-loaded."""
+    got = {
+        row["taxon"]: row["n_signatures"]
+        for row in rows(
+            graph,
+            """
+            MATCH (t:Taxon)-[:REPORTED_BY]->(s:Signature)
+            WHERE t.placeholder = false
+            WITH t, count(s) AS n_signatures
+            RETURN t.title AS taxon, n_signatures
+            ORDER BY n_signatures DESC LIMIT 6
+            """,
+        )
+    }
+    assert got == D14_TOP_TAXA
+
+
+# --------------------------------------------------------------------------
+# D15 — "How many association edges have no evidence level?"
+# --------------------------------------------------------------------------
+
+
+def test_d15_the_audit_reports_the_headline_completeness_number(graph):
+    audit = {
+        row["rule"]: row
+        for row in rows(
+            graph,
+            "CALL ontology_audit() YIELD rule, severity, violations, exempted, "
+            "total, pct RETURN rule, severity, violations, exempted, total, pct",
+        )
+    }
+    rule = audit.get(GOLDEN["d15_rule"])
+    assert rule is not None, f"the audit has no {GOLDEN['d15_rule']} rule"
+    assert rule["severity"] == "warn"
+    # A zero denominator means the rule is auditing property names nothing
+    # writes (C20); a 0.00% fraction means BugSigDB's literal "NA" reached the
+    # graph as a value (C17) and the gate is vacuous.
+    assert rule["total"] == GOLDEN["d15_total"]
+    assert rule["violations"] == GOLDEN["d15_violations"]
+    assert 0 < rule["pct"] < 100
+
+
+def test_d15_the_per_field_census_the_audit_rolls_up(graph):
+    """C17: `edge_property_violation` names only the FIRST missing property,
+    so a breakdown built from it under-counts every field but one."""
+    result = rows(
+        graph,
+        """
+        MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
+        RETURN r.primary_source AS source, count(r) AS edges,
+               sum(CASE WHEN r.direction        IS NULL THEN 1 ELSE 0 END) AS no_direction,
+               sum(CASE WHEN r.pmid             IS NULL THEN 1 ELSE 0 END) AS no_pmid,
+               sum(CASE WHEN r.group_0_size     IS NULL THEN 1 ELSE 0 END) AS no_group0,
+               sum(CASE WHEN r.group_1_size     IS NULL THEN 1 ELSE 0 END) AS no_group1,
+               sum(CASE WHEN r.statistical_test IS NULL THEN 1 ELSE 0 END) AS no_test,
+               sum(CASE WHEN r.evidence_level  = 'unknown'      THEN 1 ELSE 0 END)
+                 AS level_unknown,
+               sum(CASE WHEN r.knowledge_level = 'not_provided' THEN 1 ELSE 0 END)
+                 AS kl_not_provided
+        ORDER BY edges DESC
+        """,
+    )
+    assert result, "no association edge carries a primary_source"
+    assert sum(row["edges"] for row in result) == GOLDEN["d9_association_edges"]
+    for row in result:
+        assert row["source"], "an edge reached the graph with no primary_source (G3)"
+        # G8: knowledge_level is written from a per-source table, never
+        # defaulted. `not_provided` is legal but must be a deliberate reading
+        # of a source, so it may not be the whole of any source's edges.
+        assert row["kl_not_provided"] < row["edges"], row
+        # `evidence_level` is never absent — the derivation returns the string
+        # "unknown" — so these edges carry a level that means nothing and no
+        # required-property check can see them. That is deliberate.
+        assert row["level_unknown"] < row["edges"], row
+
+
+# --------------------------------------------------------------------------
+# D16 — shortest path (A5.3)
+# --------------------------------------------------------------------------
+
+
+def test_d16_shortest_path_is_one_hop_where_a_direct_edge_exists(graph):
+    result = one(
+        graph,
+        """
+        MATCH p = shortestPath((t:Taxon {id: 853})-[*..4]-(d:Disease {id: 'MONDO:0005011'}))
+        RETURN length(p) AS hops,
+               [n IN nodes(p) | labels(n)[0]] AS types,
+               [n IN nodes(p) | n.title] AS names
+        """,
+    )
+    assert result["hops"] == 1, "the flattened edge is not doing its job"
+    assert result["types"] == ["Taxon", "Disease"]
+
+
+def test_d16_the_evidence_path_is_asked_for_explicitly(graph):
+    """A shortest path is a navigation aid, never evidence (G10). The walk
+    that *is* evidence is three hops and has to be asked for."""
+    result = rows(
+        graph,
+        """
+        MATCH p = (t:Taxon {id: 853})-[:REPORTED_BY]->(s:Signature)
+                  -[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005011'})
+        RETURN s.id AS signature, s.evidence_level AS level,
+               s.study_design AS design, s.group_0_size AS n0,
+               s.group_1_size AS n1, s.pmid AS pmid LIMIT 5
+        """,
+    )
+    assert result, "the shortcut exists but the evidence it stands for does not"
+    for row in result:
+        assert row["level"], row
+
+
+# --------------------------------------------------------------------------
+# D17 — "Where do studies disagree, and which pairs rest on one cohort?"
+# --------------------------------------------------------------------------
+
+
+def test_d17_disagreement_is_reported_never_resolved(graph):
+    """G4, and the query the Tierney result makes mandatory: 1 in 3 taxa show
+    substantial inconsistency in association sign."""
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+        WITH t, d, collect(DISTINCT r.direction) AS directions,
+             count(DISTINCT r.study_id) AS n_studies, count(r) AS n_edges
+        RETURN count(*) AS pairs,
+               sum(CASE WHEN size(directions) > 1 THEN 1 ELSE 0 END) AS direction_conflict,
+               sum(CASE WHEN n_studies = 1 THEN 1 ELSE 0 END) AS single_cohort
+        """,
+    )
+    assert result["pairs"] == GOLDEN["d17_pairs"]
+    assert result["direction_conflict"] == GOLDEN["d17_direction_conflict"]
+    assert result["single_cohort"] == GOLDEN["d17_single_cohort"]
+
+
+def test_d17_the_named_fixture_returns_both_directions(graph):
+    """D2's pair is D17's standing fixture: 40 edges, 21 studies, both signs,
+    and no majority rule applied anywhere."""
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005575'})
+        WITH collect(DISTINCT r.direction) AS directions,
+             count(DISTINCT r.study_id) AS n_studies, count(r) AS n_edges
+        RETURN directions, n_studies, n_edges
+        """,
+    )
+    assert sorted(result["directions"]) == ["decreased", "increased"]
+    assert result["n_edges"] == GOLDEN["d2_edges"]
+    assert result["n_studies"] == GOLDEN["d2_studies"]

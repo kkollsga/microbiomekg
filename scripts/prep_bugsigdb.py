@@ -28,14 +28,13 @@ Two gotchas in the export, both silent if you get them wrong:
   pairing, and anything it cannot answer lands in ``unresolved_conditions.csv``
   rather than in a node type it does not belong to.
 
-And one in the loader, which the build command has to work around: kglite's
-blueprint junction loader streams in 100,000-row chunks and *deduplicates
-parallel edges from the second chunk onwards*. ``taxon_disease.csv`` is
-~118k rows of deliberately parallel edges, so a default build silently loses
-~7.7% of them. Build with::
-
-    KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000 python -c \\
-        "import kglite; kglite.from_blueprint('blueprint.json', verbose=True)"
+This script writes several tables it *shares* with the other sources —
+``paper.csv``, ``study.csv``, ``disease.csv``, ``taxon_disease.csv``,
+``cited_taxa.csv`` and the two ledgers — through
+:class:`microbiomekg.tables.Writer` with ``merge=True``, so running it before
+or after another source's prep gives the same file. ``scripts/build.py`` runs
+the whole pipeline in order (and works around the junction-chunk defect that
+would otherwise drop most of this script's parallel edges).
 """
 
 from __future__ import annotations
@@ -59,6 +58,7 @@ from microbiomekg.conditions import (  # noqa: E402
 )
 from microbiomekg.rawdata import find_bugsigdb_dump, find_taxdump  # noqa: E402
 from microbiomekg.reconcile import Resolution, TaxonomyIndex  # noqa: E402
+from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = "bugsigdb"
 
@@ -139,50 +139,6 @@ def strip_prefix(name_terminal: str) -> str:
     return name_terminal[3:] if name_terminal[:3] in RANK_PREFIX else name_terminal
 
 
-class Writer:
-    """Deduplicating CSV writer: first row per key wins, header fixed up front.
-
-    ``key`` dedupes node tables on their primary key. ``dedupe_full`` dedupes
-    edge tables on the *whole* row: a signature that names both a strain and
-    its species resolves both to one tax_id, and the second is a duplicate
-    fact, not a second observation. Genuinely parallel edges — the same taxon
-    and disease from two different signatures — differ in ``signature_id`` and
-    survive.
-    """
-
-    def __init__(
-        self, path: Path, fields: list[str], key: str | None = None, dedupe_full: bool = False
-    ):
-        self.path = path
-        self.fields = fields
-        self.key = key
-        self.dedupe_full = dedupe_full
-        self.seen: set = set()
-        self.rows: list[dict[str, str]] = []
-
-    def add(self, row: dict[str, str]) -> bool:
-        if self.key is not None:
-            k = row[self.key]
-            if not k or k in self.seen:
-                return False
-            self.seen.add(k)
-        elif self.dedupe_full:
-            k = tuple(row.get(f, "") for f in self.fields)
-            if k in self.seen:
-                return False
-            self.seen.add(k)
-        self.rows.append(row)
-        return True
-
-    def flush(self) -> int:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", newline="", encoding="utf-8") as fh:
-            w = csv.DictWriter(fh, fieldnames=self.fields, extrasaction="ignore")
-            w.writeheader()
-            w.writerows(self.rows)
-        return len(self.rows)
-
-
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     # One `--raw` root for both prep scripts; `--dump`/`--taxdump` override it.
@@ -240,8 +196,12 @@ def main(argv: list[str] | None = None) -> int:
         ["study_id", "study_number", "title", "journal", "year", "doi", "url",
          "authors", "keywords", "pmid", "pmid_raw"],
         key="study_id",
+        merge=True,
     )
-    papers = Writer(out / "paper.csv", ["pmid", "title", "journal", "year", "doi"], key="pmid")
+    papers = Writer(
+        out / "paper.csv", ["pmid", "title", "journal", "year", "doi"],
+        key="pmid", merge=True,
+    )
     # One table per condition node type (C14). The key is the MONDO CURIE when
     # MONDO declares an equivalence and the source CURIE otherwise; the source
     # id and its vocabulary stay as properties either way, so
@@ -249,9 +209,11 @@ def main(argv: list[str] | None = None) -> int:
     condition_fields = ["condition_id", "label", "mondo_id", "mondo_label",
                         "source_id", "source_vocabulary", "source_condition"]
     conditions = {
-        "Disease": Writer(out / "disease.csv", condition_fields, key="condition_id"),
-        "Phenotype": Writer(out / "phenotype.csv", condition_fields, key="condition_id"),
-        "Exposure": Writer(out / "exposure.csv", condition_fields, key="condition_id"),
+        "Disease": Writer(out / "disease.csv", condition_fields, key="condition_id", merge=True),
+        "Phenotype": Writer(
+            out / "phenotype.csv", condition_fields, key="condition_id", merge=True),
+        "Exposure": Writer(
+            out / "exposure.csv", condition_fields, key="condition_id", merge=True),
     }
     # Nothing is dropped and nothing is guessed: a vocabulary with no node type
     # and a condition string no id could be attached to both land here, with
@@ -261,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
         ["signature_id", "source_id", "source_vocabulary", "raw_condition",
          "pairing_method", "reason", "source"],
         dedupe_full=True,
+        merge=True,
     )
     bodysites = Writer(
         out / "bodysite.csv", ["bodysite_id", "label", "source_id", "ontology"], key="bodysite_id"
@@ -312,6 +275,7 @@ def main(argv: list[str] | None = None) -> int:
         ["unresolved_id", "raw_name", "reported_rank", "original_rank",
          "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
         key="unresolved_id",
+        merge=True,
     )
     assoc_fields = ["tax_id", "condition_id", "direction", "study_design",
                     "evidence_level", "sequencing_type", "statistical_test",
@@ -321,9 +285,12 @@ def main(argv: list[str] | None = None) -> int:
                     "signature_id", "study_id", "host_species", "body_site",
                     "significance_threshold", "mht_correction"]
     assoc = {
-        "Disease": Writer(out / "taxon_disease.csv", assoc_fields, dedupe_full=True),
-        "Phenotype": Writer(out / "taxon_phenotype.csv", assoc_fields, dedupe_full=True),
-        "Exposure": Writer(out / "taxon_exposure.csv", assoc_fields, dedupe_full=True),
+        "Disease": Writer(
+            out / "taxon_disease.csv", assoc_fields, dedupe_full=True, merge=True),
+        "Phenotype": Writer(
+            out / "taxon_phenotype.csv", assoc_fields, dedupe_full=True, merge=True),
+        "Exposure": Writer(
+            out / "taxon_exposure.csv", assoc_fields, dedupe_full=True, merge=True),
     }
 
     cited: "OrderedDict[int, int]" = OrderedDict()
@@ -622,7 +589,10 @@ def main(argv: list[str] | None = None) -> int:
     for r in unresolved_nodes.rows:
         r["n_signatures"] = str(unresolved_hits.get(r["unresolved_id"], 0))
 
-    cited_writer = Writer(out / "cited_taxa.csv", ["tax_id", "n_signatures"])
+    cited_writer = Writer(
+        out / "cited_taxa.csv", ["tax_id", "n_signatures"],
+        key="tax_id", merge=True, sum_fields=("n_signatures",),
+    )
     for tid, n in sorted(cited.items()):
         cited_writer.add({"tax_id": str(tid), "n_signatures": str(n)})
 

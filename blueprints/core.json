@@ -1,4 +1,5 @@
 {
+  "_doc": "The shared spine every source writes rows into: the taxon side of the graph (Taxon + HAS_PARENT + the UnresolvedTaxon tombstone), the three condition types the CURIE prefix routes to, Study/Paper, and the three ASSOCIATED_WITH* junction edges that are one relation split by the engine's one-target-per-junction rule (docs/model.md section 8). A source fragment adds to this; it only edits this file when it needs a genuinely new shared column.",
   "settings": {
     "root": "./data/csv",
     "output": "graph/microbiomekg.kgl"
@@ -184,34 +185,6 @@
               "source_licence": "string",
               "source_relation": "string"
             }
-          },
-          "REPORTED_BY": {
-            "csv": "taxon_signature.csv",
-            "source_fk": "tax_id",
-            "target": "Signature",
-            "target_fk": "signature_id",
-            "properties": [
-              "reported_name",
-              "reported_rank",
-              "original_rank",
-              "reported_tax_id",
-              "resolution_status",
-              "resolution_normalized",
-              "resolution_note",
-              "direction",
-              "source"
-            ],
-            "property_types": {
-              "reported_tax_id": "int",
-              "reported_name": "string",
-              "reported_rank": "string",
-              "resolution_status": "string",
-              "resolution_note": "string",
-              "direction": "string",
-              "source": "string",
-              "original_rank": "string",
-              "resolution_normalized": "bool"
-            }
           }
         }
       }
@@ -230,38 +203,6 @@
         "candidates": "string",
         "note": "string",
         "n_signatures": "int"
-      },
-      "connections": {
-        "junction_edges": {
-          "REPORTED_BY": {
-            "csv": "unresolved_taxon_signature.csv",
-            "source_fk": "unresolved_id",
-            "target": "Signature",
-            "target_fk": "signature_id",
-            "properties": [
-              "reported_name",
-              "reported_rank",
-              "original_rank",
-              "reported_tax_id",
-              "resolution_status",
-              "resolution_normalized",
-              "resolution_note",
-              "direction",
-              "source"
-            ],
-            "property_types": {
-              "reported_tax_id": "int",
-              "reported_name": "string",
-              "reported_rank": "string",
-              "resolution_status": "string",
-              "resolution_note": "string",
-              "direction": "string",
-              "source": "string",
-              "original_rank": "string",
-              "resolution_normalized": "bool"
-            }
-          }
-        }
       }
     },
     "Study": {
@@ -337,83 +278,6 @@
         "source_id": "string",
         "source_vocabulary": "string",
         "source_condition": "string"
-      }
-    },
-    "Signature": {
-      "csv": "signature.csv",
-      "pk": "signature_id",
-      "title": "description",
-      "properties": {
-        "description": "string",
-        "direction": "string",
-        "study_design": "string",
-        "evidence_level": "string",
-        "host_species": "string",
-        "location": "string",
-        "group_0_size": "int",
-        "group_1_size": "int",
-        "sequencing_type": "string",
-        "variable_region": "string",
-        "sequencing_platform": "string",
-        "data_transformation": "string",
-        "statistical_test": "string",
-        "significance_threshold": "float",
-        "mht_correction": "string",
-        "shannon": "float",
-        "chao1": "float",
-        "richness": "float",
-        "pmid": "int",
-        "n_taxa": "int",
-        "n_unresolved": "int",
-        "curated_date": "string",
-        "source": "string"
-      },
-      "skipped": [
-        "study_id"
-      ],
-      "connections": {
-        "fk_edges": {
-          "PART_OF_STUDY": {
-            "target": "Study",
-            "fk": "study_id"
-          }
-        },
-        "junction_edges": {
-          "IN_CONDITION": {
-            "csv": "signature_condition.csv",
-            "source_fk": "signature_id",
-            "target": "Disease",
-            "target_fk": "condition_id"
-          },
-          "IN_PHENOTYPE": {
-            "csv": "signature_phenotype.csv",
-            "source_fk": "signature_id",
-            "target": "Phenotype",
-            "target_fk": "condition_id"
-          },
-          "IN_EXPOSURE": {
-            "csv": "signature_exposure.csv",
-            "source_fk": "signature_id",
-            "target": "Exposure",
-            "target_fk": "condition_id"
-          },
-          "AT_BODY_SITE": {
-            "csv": "signature_bodysite.csv",
-            "source_fk": "signature_id",
-            "target": "BodySite",
-            "target_fk": "bodysite_id"
-          }
-        }
-      }
-    },
-    "BodySite": {
-      "csv": "bodysite.csv",
-      "pk": "bodysite_id",
-      "title": "label",
-      "properties": {
-        "label": "string",
-        "source_id": "string",
-        "ontology": "string"
       }
     }
   }

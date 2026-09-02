@@ -1,0 +1,150 @@
+{
+  "_doc": "BugSigDB: the Signature node (the taxon SET, which a flattened model would destroy and D1's enrichment needs), the body sites, and the REPORTED_BY provenance edge from both Taxon and its UnresolvedTaxon tombstone. The association rows this source writes go into core.json's taxon_disease.csv / taxon_phenotype.csv / taxon_exposure.csv.",
+  "nodes": {
+    "Signature": {
+      "csv": "signature.csv",
+      "pk": "signature_id",
+      "title": "description",
+      "properties": {
+        "description": "string",
+        "direction": "string",
+        "study_design": "string",
+        "evidence_level": "string",
+        "host_species": "string",
+        "location": "string",
+        "group_0_size": "int",
+        "group_1_size": "int",
+        "sequencing_type": "string",
+        "variable_region": "string",
+        "sequencing_platform": "string",
+        "data_transformation": "string",
+        "statistical_test": "string",
+        "significance_threshold": "float",
+        "mht_correction": "string",
+        "shannon": "float",
+        "chao1": "float",
+        "richness": "float",
+        "pmid": "int",
+        "n_taxa": "int",
+        "n_unresolved": "int",
+        "curated_date": "string",
+        "source": "string"
+      },
+      "skipped": [
+        "study_id"
+      ],
+      "connections": {
+        "fk_edges": {
+          "PART_OF_STUDY": {
+            "target": "Study",
+            "fk": "study_id"
+          }
+        },
+        "junction_edges": {
+          "IN_CONDITION": {
+            "csv": "signature_condition.csv",
+            "source_fk": "signature_id",
+            "target": "Disease",
+            "target_fk": "condition_id"
+          },
+          "IN_PHENOTYPE": {
+            "csv": "signature_phenotype.csv",
+            "source_fk": "signature_id",
+            "target": "Phenotype",
+            "target_fk": "condition_id"
+          },
+          "IN_EXPOSURE": {
+            "csv": "signature_exposure.csv",
+            "source_fk": "signature_id",
+            "target": "Exposure",
+            "target_fk": "condition_id"
+          },
+          "AT_BODY_SITE": {
+            "csv": "signature_bodysite.csv",
+            "source_fk": "signature_id",
+            "target": "BodySite",
+            "target_fk": "bodysite_id"
+          }
+        }
+      }
+    },
+    "BodySite": {
+      "csv": "bodysite.csv",
+      "pk": "bodysite_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "source_id": "string",
+        "ontology": "string"
+      }
+    },
+    "Taxon": {
+      "connections": {
+        "junction_edges": {
+          "REPORTED_BY": {
+            "csv": "taxon_signature.csv",
+            "source_fk": "tax_id",
+            "target": "Signature",
+            "target_fk": "signature_id",
+            "properties": [
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "reported_tax_id",
+              "resolution_status",
+              "resolution_normalized",
+              "resolution_note",
+              "direction",
+              "source"
+            ],
+            "property_types": {
+              "reported_tax_id": "int",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "resolution_status": "string",
+              "resolution_note": "string",
+              "direction": "string",
+              "source": "string",
+              "original_rank": "string",
+              "resolution_normalized": "bool"
+            }
+          }
+        }
+      }
+    },
+    "UnresolvedTaxon": {
+      "connections": {
+        "junction_edges": {
+          "REPORTED_BY": {
+            "csv": "unresolved_taxon_signature.csv",
+            "source_fk": "unresolved_id",
+            "target": "Signature",
+            "target_fk": "signature_id",
+            "properties": [
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "reported_tax_id",
+              "resolution_status",
+              "resolution_normalized",
+              "resolution_note",
+              "direction",
+              "source"
+            ],
+            "property_types": {
+              "reported_tax_id": "int",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "resolution_status": "string",
+              "resolution_note": "string",
+              "direction": "string",
+              "source": "string",
+              "original_rank": "string",
+              "resolution_normalized": "bool"
+            }
+          }
+        }
+      }
+    }
+  }
+}
