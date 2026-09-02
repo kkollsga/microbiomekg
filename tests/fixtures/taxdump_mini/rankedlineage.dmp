@@ -1,0 +1,219 @@
+1	|	root	|		|		|		|		|		|		|		|		|
+2	|	Bacteria	|		|		|		|		|		|		|		|		|
+194	|	Campylobacter	|		|		|	Campylobacteraceae	|	Campylobacterales	|	Epsilonproteobacteria	|	Campylobacterota	|	Pseudomonadati	|	Bacteria	|
+481	|	Neisseriaceae	|		|		|		|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+538	|	Eikenella	|		|		|	Neisseriaceae	|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+539	|	Eikenella corrodens	|		|	Eikenella	|	Neisseriaceae	|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+543	|	Enterobacteriaceae	|		|		|		|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+561	|	Escherichia	|		|		|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+562	|	Escherichia coli	|		|	Escherichia	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+581	|	Morganella	|		|		|	Morganellaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+583	|	Proteus	|		|		|	Morganellaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+590	|	Salmonella	|		|		|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+599	|	Salmonella sp.	|		|	Salmonella	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+613	|	Serratia	|		|		|	Yersiniaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+712	|	Pasteurellaceae	|		|		|		|	Pasteurellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+724	|	Haemophilus	|		|		|	Pasteurellaceae	|	Pasteurellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+815	|	Bacteroidaceae	|		|		|		|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+816	|	Bacteroides	|		|		|	Bacteroidaceae	|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+818	|	Bacteroides thetaiotaomicron	|		|	Bacteroides	|	Bacteroidaceae	|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+827	|	Campylobacter ureolyticus	|		|	Campylobacter	|	Campylobacteraceae	|	Campylobacterales	|	Epsilonproteobacteria	|	Campylobacterota	|	Pseudomonadati	|	Bacteria	|
+838	|	Prevotella	|		|		|	Prevotellaceae	|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+841	|	Roseburia	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+853	|	Faecalibacterium prausnitzii	|		|	Faecalibacterium	|	Oscillospiraceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+976	|	Bacteroidota	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+1224	|	Pseudomonadota	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+1236	|	Gammaproteobacteria	|		|		|		|		|		|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+1239	|	Bacillota	|		|		|		|		|		|		|	Bacillati	|	Bacteria	|
+1279	|	Staphylococcus	|		|		|	Staphylococcaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1282	|	Staphylococcus epidermidis	|		|	Staphylococcus	|	Staphylococcaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1300	|	Streptococcaceae	|		|		|		|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1357	|	Lactococcus	|		|		|	Streptococcaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1385	|	Caryophanales	|		|		|		|		|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1386	|	Bacillus	|		|		|	Bacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1393	|	Brevibacillus brevis	|		|	Brevibacillus	|	Paenibacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1485	|	Clostridium	|		|		|	Clostridiaceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1496	|	Clostridioides difficile	|		|	Clostridioides	|	Peptostreptococcaceae	|	Peptostreptococcales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1502	|	Clostridium perfringens	|		|	Clostridium	|	Clostridiaceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1512	|	[Clostridium] symbiosum	|		|	Otoolea	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1578	|	Lactobacillus	|		|		|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1590	|	Lactiplantibacillus plantarum	|		|	Lactiplantibacillus	|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1598	|	Limosilactobacillus reuteri	|		|	Limosilactobacillus	|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1678	|	Bifidobacterium	|		|		|	Bifidobacteriaceae	|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1682	|	Bifidobacterium longum subsp. infantis	|	Bifidobacterium longum	|	Bifidobacterium	|	Bifidobacteriaceae	|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1685	|	Bifidobacterium breve	|		|	Bifidobacterium	|	Bifidobacteriaceae	|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1730	|	Eubacterium	|		|		|	Eubacteriaceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1747	|	Cutibacterium acnes	|		|	Cutibacterium	|	Propionibacteriaceae	|	Propionibacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1760	|	Actinomycetes	|		|		|		|		|		|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2701	|	Gardnerella	|		|		|	Bifidobacteriaceae	|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2702	|	Gardnerella vaginalis	|		|	Gardnerella	|	Bifidobacteriaceae	|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2759	|	Eukaryota	|		|		|		|		|		|		|		|		|
+4751	|	Fungi	|		|		|		|		|		|		|		|	Eukaryota	|
+4890	|	Ascomycota	|		|		|		|		|		|		|	Fungi	|	Eukaryota	|
+4891	|	Saccharomycetes	|		|		|		|		|		|	Ascomycota	|	Fungi	|	Eukaryota	|
+4892	|	Saccharomycetales	|		|		|		|		|	Saccharomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+4893	|	Saccharomycetaceae	|		|		|		|	Saccharomycetales	|	Saccharomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+4930	|	Saccharomyces	|		|		|	Saccharomycetaceae	|	Saccharomycetales	|	Saccharomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+4932	|	Saccharomyces cerevisiae	|		|	Saccharomyces	|	Saccharomycetaceae	|	Saccharomycetales	|	Saccharomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+5204	|	Basidiomycota	|		|		|		|		|		|		|	Fungi	|	Eukaryota	|
+5302	|	Agaricomycotina	|		|		|		|		|		|	Basidiomycota	|	Fungi	|	Eukaryota	|
+5338	|	Agaricales	|		|		|		|		|	Agaricomycetes	|	Basidiomycota	|	Fungi	|	Eukaryota	|
+5426	|	Lycoperdaceae	|		|		|		|	Agaricales	|	Agaricomycetes	|	Basidiomycota	|	Fungi	|	Eukaryota	|
+5475	|	Candida	|		|		|	Debaryomycetaceae	|	Serinales	|	Pichiomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+5476	|	Candida albicans	|		|	Candida	|	Debaryomycetaceae	|	Serinales	|	Pichiomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+6072	|	Eumetazoa	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+6656	|	Arthropoda	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+6960	|	Hexapoda	|		|		|		|		|		|	Arthropoda	|	Metazoa	|	Eukaryota	|
+7020	|	Phasmatodea	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+7496	|	Pterygota	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+7524	|	Hemiptera	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+7711	|	Chordata	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+7742	|	Vertebrata	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+7776	|	Gnathostomata	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+8287	|	Sarcopterygii	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+8292	|	Amphibia	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+8293	|	Caudata	|		|		|		|		|	Amphibia	|	Chordata	|	Metazoa	|	Eukaryota	|
+28050	|	Lachnospira	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+28052	|	Lachnospira pectinoschiza	|		|	Lachnospira	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+28216	|	Betaproteobacteria	|		|		|		|		|		|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+29465	|	Veillonella	|		|		|	Veillonellaceae	|	Veillonellales	|	Negativicutes	|	Bacillota	|	Bacillati	|	Bacteria	|
+29523	|	Bacteroides sp.	|		|	Bacteroides	|	Bacteroidaceae	|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+29547	|	Campylobacterota	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+30080	|	Diaspididae	|		|		|		|	Hemiptera	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+30367	|	Salamandroidea	|		|		|		|	Caudata	|	Amphibia	|	Chordata	|	Metazoa	|	Eukaryota	|
+31953	|	Bifidobacteriaceae	|		|		|		|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+31957	|	Propionibacteriaceae	|		|		|		|	Propionibacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+31977	|	Veillonellaceae	|		|		|		|	Veillonellales	|	Negativicutes	|	Bacillota	|	Bacillati	|	Bacteria	|
+31979	|	Clostridiaceae	|		|		|		|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+32523	|	Tetrapoda	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+33038	|	Mediterraneibacter gnavus	|		|	Mediterraneibacter	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+33042	|	Coprococcus	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+33154	|	Opisthokonta	|		|		|		|		|		|		|		|	Eukaryota	|
+33208	|	Metazoa	|		|		|		|		|		|		|		|	Eukaryota	|
+33213	|	Bilateria	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+33317	|	Protostomia	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+33340	|	Neoptera	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+33341	|	Polyneoptera	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+33342	|	Paraneoptera	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+33373	|	Sternorrhyncha	|		|		|		|	Hemiptera	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+33381	|	Coccoidea	|		|		|		|	Hemiptera	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+33511	|	Deuterostomia	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+33958	|	Lactobacillaceae	|		|		|		|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+39486	|	Dorea formicigenerans	|		|	Dorea	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+39488	|	Anaerobutyricum hallii	|		|	Anaerobutyricum	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+39491	|	Agathobacter rectalis	|		|	Agathobacter	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+41666	|	Batrachia	|		|		|		|		|	Amphibia	|	Chordata	|	Metazoa	|	Eukaryota	|
+47715	|	Lacticaseibacillus rhamnosus	|		|	Lacticaseibacillus	|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+48461	|	Verrucomicrobiales	|		|		|		|		|	Verrucomicrobiia	|	Verrucomicrobiota	|	Pseudomonadati	|	Bacteria	|
+48479	|	environmental samples	|		|		|		|		|		|		|		|	Bacteria	|
+50557	|	Insecta	|		|		|		|		|		|	Arthropoda	|	Metazoa	|	Eukaryota	|
+55080	|	Brevibacillus	|		|		|	Paenibacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+55086	|	Bacillidae	|		|		|		|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+55087	|	Bacillus	|		|		|	Bacillidae	|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+68336	|	Bacteroidota/Chlorobiota group	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+72294	|	Campylobacteraceae	|		|		|		|	Campylobacterales	|	Epsilonproteobacteria	|	Campylobacterota	|	Pseudomonadati	|	Bacteria	|
+74201	|	Verrucomicrobiota	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+74426	|	Collinsella aerofaciens	|		|	Collinsella	|	Coriobacteriaceae	|	Coriobacteriales	|	Coriobacteriia	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+77133	|	uncultured bacterium	|		|		|		|		|		|		|		|	Bacteria	|
+83333	|	Escherichia coli K-12	|	Escherichia coli	|	Escherichia	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+84107	|	Coriobacteriaceae	|		|		|		|	Coriobacteriales	|	Coriobacteriia	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+84998	|	Coriobacteriia	|		|		|		|		|		|	Actinomycetota	|	Bacillati	|	Bacteria	|
+84999	|	Coriobacteriales	|		|		|		|		|	Coriobacteriia	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+85004	|	Bifidobacteriales	|		|		|		|		|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+85009	|	Propionibacteriales	|		|		|		|		|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+85512	|	Dicondylia	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+88431	|	Dorea longicatena	|		|	Dorea	|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+88770	|	Panarthropoda	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+89593	|	Craniata	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+90690	|	Morganella	|		|		|	Lycoperdaceae	|	Agaricales	|	Agaricomycetes	|	Basidiomycota	|	Fungi	|	Eukaryota	|
+90964	|	Staphylococcaceae	|		|		|		|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+91061	|	Bacilli	|		|		|		|		|		|	Bacillota	|	Bacillati	|	Bacteria	|
+91347	|	Enterobacterales	|		|		|		|		|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+100175	|	Papillibacter	|		|		|	Oscillospiraceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+100176	|	Papillibacter cinnamivorans	|		|	Papillibacter	|	Oscillospiraceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+102106	|	Collinsella	|		|		|	Coriobacteriaceae	|	Coriobacteriales	|	Coriobacteriia	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+108061	|	Morganella	|		|		|	Diaspididae	|	Hemiptera	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+117570	|	Teleostomi	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+117571	|	Euteleostomi	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+119852	|	Oscillospira	|		|		|	Oscillospiraceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+131567	|	cellular organisms	|		|		|		|		|		|		|		|		|
+135625	|	Pasteurellales	|		|		|		|		|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+147537	|	Saccharomycotina	|		|		|		|		|		|	Ascomycota	|	Fungi	|	Eukaryota	|
+147802	|	Lactobacillus iners	|		|	Lactobacillus	|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+155619	|	Agaricomycetes	|		|		|		|		|		|	Basidiomycota	|	Fungi	|	Eukaryota	|
+166053	|	Proteidae	|		|		|		|	Caudata	|	Amphibia	|	Chordata	|	Metazoa	|	Eukaryota	|
+171549	|	Bacteroidales	|		|		|		|		|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+171550	|	Rikenellaceae	|		|		|		|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+171552	|	Prevotellaceae	|		|		|		|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+186801	|	Clostridia	|		|		|		|		|		|	Bacillota	|	Bacillati	|	Bacteria	|
+186802	|	Eubacteriales	|		|		|		|		|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+186803	|	Lachnospiraceae	|		|		|		|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+186804	|	Peptostreptococcaceae	|		|		|		|	Peptostreptococcales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+186806	|	Eubacteriaceae	|		|		|		|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+186817	|	Bacillaceae	|		|		|		|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+186822	|	Paenibacillaceae	|		|		|		|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+186826	|	Lactobacillales	|		|		|		|		|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+189330	|	Dorea	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+197562	|	Pancrustacea	|		|		|		|		|		|	Arthropoda	|	Metazoa	|	Eukaryota	|
+197563	|	Mandibulata	|		|		|		|		|		|	Arthropoda	|	Metazoa	|	Eukaryota	|
+200643	|	Bacteroidia	|		|		|		|		|		|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+201174	|	Actinomycetota	|		|		|		|		|		|		|	Bacillati	|	Bacteria	|
+203494	|	Verrucomicrobiia	|		|		|		|		|		|	Verrucomicrobiota	|	Pseudomonadati	|	Bacteria	|
+206351	|	Neisseriales	|		|		|		|		|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+210425	|	Proteus	|		|		|	Proteidae	|	Caudata	|	Amphibia	|	Chordata	|	Metazoa	|	Eukaryota	|
+213547	|	Verophasmatodea	|		|		|		|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+213849	|	Campylobacterales	|		|		|		|		|	Epsilonproteobacteria	|	Campylobacterota	|	Pseudomonadati	|	Bacteria	|
+216572	|	Oscillospiraceae	|		|		|		|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+216816	|	Bifidobacterium longum	|		|	Bifidobacterium	|	Bifidobacteriaceae	|	Bifidobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+216851	|	Faecalibacterium	|		|		|	Oscillospiraceae	|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+239759	|	Alistipes	|		|		|	Rikenellaceae	|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+239934	|	Akkermansia	|		|		|	Akkermansiaceae	|	Verrucomicrobiales	|	Verrucomicrobiia	|	Verrucomicrobiota	|	Pseudomonadati	|	Bacteria	|
+239935	|	Akkermansia muciniphila	|		|	Akkermansia	|	Akkermansiaceae	|	Verrucomicrobiales	|	Verrucomicrobiia	|	Verrucomicrobiota	|	Pseudomonadati	|	Bacteria	|
+262150	|	Bacillini	|		|		|	Bacillidae	|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+348841	|	unclassified Clostridia	|		|		|		|		|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+451864	|	Dikarya	|		|		|		|		|		|		|	Fungi	|	Eukaryota	|
+452333	|	Agaricomycetidae	|		|		|		|		|	Agaricomycetes	|	Basidiomycota	|	Fungi	|	Eukaryota	|
+523721	|	Areolatae	|		|		|		|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+523864	|	Bacilloidea	|		|		|		|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+524420	|	Bacillinae	|		|		|	Bacillidae	|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+524422	|	Phalcini	|		|		|	Bacillidae	|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+525301	|	Phalces	|		|		|	Bacillidae	|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+538999	|	Eubacteriales incertae sedis	|		|		|		|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+572511	|	Blautia	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+716545	|	saccharomyceta	|		|		|		|		|		|	Ascomycota	|	Fungi	|	Eukaryota	|
+766764	|	Debaryomycetaceae	|		|		|		|	Serinales	|	Pichiomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+909932	|	Negativicutes	|		|		|		|		|		|	Bacillota	|	Bacillati	|	Bacteria	|
+1206794	|	Ecdysozoa	|		|		|		|		|		|		|	Metazoa	|	Eukaryota	|
+1338369	|	Dipnotetrapodomorpha	|		|		|		|		|		|	Chordata	|	Metazoa	|	Eukaryota	|
+1647988	|	Akkermansiaceae	|		|		|		|	Verrucomicrobiales	|	Verrucomicrobiia	|	Verrucomicrobiota	|	Pseudomonadati	|	Bacteria	|
+1766253	|	Agathobacter	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1783257	|	PVC group	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+1783270	|	FCB group	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+1783272	|	Bacillati	|		|		|		|		|		|		|		|	Bacteria	|
+1843489	|	Veillonellales	|		|		|		|		|	Negativicutes	|	Bacillota	|	Bacillati	|	Bacteria	|
+1870884	|	Clostridioides	|		|		|	Peptostreptococcaceae	|	Peptostreptococcales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+1903411	|	Yersiniaceae	|		|		|		|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+1903414	|	Morganellaceae	|		|		|		|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+1912216	|	Cutibacterium	|		|		|	Propionibacteriaceae	|	Propionibacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2044939	|	Clostridia bacterium	|		|		|		|		|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+2316020	|	Mediterraneibacter	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+2500537	|	Candidatus Cibiobacter qucibialis	|		|	Candidatus Cibiobacter	|		|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+2527773	|	Candidatus Cibiobacter	|		|		|		|	Eubacteriales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+2569097	|	Anaerobutyricum	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+2614656	|	unclassified Salmonella	|		|	Salmonella	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+2646097	|	unclassified Bacteroides	|		|	Bacteroides	|	Bacteroidaceae	|	Bacteroidales	|	Bacteroidia	|	Bacteroidota	|	Pseudomonadati	|	Bacteria	|
+2742598	|	Limosilactobacillus	|		|		|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+2759736	|	Lacticaseibacillus	|		|		|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+2767842	|	Lactiplantibacillus	|		|		|	Lactobacillaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+2815668	|	Phalces brevis	|		|	Phalces	|	Bacillidae	|	Phasmatodea	|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|
+2916678	|	Serinales	|		|		|		|		|	Pichiomycetes	|	Ascomycota	|	Fungi	|	Eukaryota	|
+2941495	|	Otoolea	|		|		|	Lachnospiraceae	|	Lachnospirales	|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+2982305	|	Agaricineae	|		|		|		|	Agaricales	|	Agaricomycetes	|	Basidiomycota	|	Fungi	|	Eukaryota	|
+3031852	|	Epsilonproteobacteria	|		|		|		|		|		|	Campylobacterota	|	Pseudomonadati	|	Bacteria	|
+3082720	|	Peptostreptococcales	|		|		|		|		|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+3085636	|	Lachnospirales	|		|		|		|		|	Clostridia	|	Bacillota	|	Bacillati	|	Bacteria	|
+3239874	|	Pichiomycetes	|		|		|		|		|		|	Ascomycota	|	Fungi	|	Eukaryota	|
+3379134	|	Pseudomonadati	|		|		|		|		|		|		|		|	Bacteria	|
+3701028	|	Altocrustacea	|		|		|		|		|		|	Arthropoda	|	Metazoa	|	Eukaryota	|
+3701030	|	Allotriocarida	|		|		|		|		|		|	Arthropoda	|	Metazoa	|	Eukaryota	|
+3701061	|	Eumetabola	|		|		|		|		|	Insecta	|	Arthropoda	|	Metazoa	|	Eukaryota	|

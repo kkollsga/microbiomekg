@@ -1,0 +1,219 @@
+1	|	1	|	no rank	|		|	8	|	0	|	1	|	0	|	0	|	0	|	0	|	0	|		|		|		|	0	|	0	|	0	|
+2	|	131567	|	domain	|		|	0	|	0	|	11	|	0	|	0	|	0	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+194	|	72294	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+481	|	206351	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+538	|	481	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+539	|	538	|	species	|	EC	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+543	|	91347	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+561	|	543	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+562	|	561	|	species	|	EC	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+581	|	1903414	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+583	|	1903414	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+590	|	543	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+599	|	2614656	|	species	|	SS	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+613	|	1903411	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+712	|	135625	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+724	|	712	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+815	|	171549	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+816	|	815	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+818	|	816	|	species	|	BT	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+827	|	194	|	species	|	CU	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+838	|	171552	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+841	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+853	|	216851	|	species	|	FP	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+976	|	68336	|	phylum	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+1224	|	3379134	|	phylum	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+1236	|	1224	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1239	|	1783272	|	phylum	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+1279	|	90964	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1282	|	1279	|	species	|	SE	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1300	|	186826	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1357	|	1300	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1385	|	91061	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1386	|	186817	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1393	|	55080	|	species	|	BB	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1485	|	31979	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1496	|	1870884	|	species	|	CD	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1502	|	1485	|	species	|	CP	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1512	|	2941495	|	species	|	CS	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1578	|	33958	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1590	|	2767842	|	species	|	LP	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1598	|	2742598	|	species	|	LR	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1678	|	31953	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1682	|	216816	|	subspecies	|	BL	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1685	|	1678	|	species	|	BB	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1730	|	186806	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1747	|	1912216	|	species	|	CA	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+1760	|	201174	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+2701	|	31953	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2702	|	2701	|	species	|	GV	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+2759	|	131567	|	domain	|		|	1	|	0	|	1	|	0	|	1	|	0	|	0	|	0	|		|	11	|	0	|	0	|	0	|	1	|
+4751	|	33154	|	kingdom	|		|	4	|	0	|	1	|	1	|	4	|	0	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+4890	|	451864	|	phylum	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+4891	|	147537	|	class	|		|	4	|	0	|	1	|	1	|	3	|	0	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+4892	|	4891	|	order	|		|	4	|	1	|	1	|	1	|	3	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+4893	|	4892	|	family	|		|	4	|	1	|	1	|	1	|	3	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+4930	|	4893	|	genus	|		|	4	|	1	|	1	|	1	|	3	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+4932	|	4930	|	species	|	SC	|	4	|	1	|	1	|	1	|	3	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+5204	|	451864	|	phylum	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+5302	|	5204	|	subphylum	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+5338	|	452333	|	order	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+5426	|	2982305	|	family	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+5475	|	766764	|	genus	|		|	4	|	1	|	12	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+5476	|	5475	|	species	|	CA	|	4	|	1	|	12	|	0	|	4	|	0	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+6072	|	33208	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	0	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+6656	|	88770	|	phylum	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+6960	|	3701030	|	subphylum	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+7020	|	33341	|	order	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+7496	|	85512	|	subclass	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+7524	|	33342	|	order	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+7711	|	33511	|	phylum	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+7742	|	89593	|	clade	|		|	10	|	0	|	1	|	1	|	2	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+7776	|	7742	|	clade	|		|	10	|	1	|	1	|	1	|	2	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+8287	|	117571	|	superclass	|		|	10	|	1	|	1	|	1	|	2	|	1	|	1	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+8292	|	32523	|	class	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+8293	|	41666	|	order	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+28050	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+28052	|	28050	|	species	|	LP	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+28216	|	1224	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+29465	|	31977	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+29523	|	2646097	|	species	|	BS	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+29547	|	3379134	|	phylum	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+30080	|	33381	|	family	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+30367	|	8293	|	superfamily	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+31953	|	85004	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+31957	|	85009	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+31977	|	1843489	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+31979	|	186802	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+32523	|	1338369	|	clade	|		|	10	|	1	|	1	|	1	|	2	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+33038	|	2316020	|	species	|	MG	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+33042	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33154	|	2759	|	clade	|		|	4	|	0	|	1	|	1	|	1	|	1	|	1	|	0	|		|		|	0	|	0	|	0	|	1	|
+33208	|	33154	|	kingdom	|		|	1	|	0	|	1	|	1	|	1	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33213	|	6072	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+33317	|	33213	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+33340	|	7496	|	infraclass	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33341	|	33340	|	cohort	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33342	|	3701061	|	cohort	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33373	|	7524	|	suborder	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33381	|	33373	|	superfamily	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+33511	|	33213	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+33958	|	186826	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+39486	|	189330	|	species	|	DF	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+39488	|	2569097	|	species	|	AH	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+39491	|	1766253	|	species	|	AR	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+41666	|	8292	|	superorder	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+47715	|	2759736	|	species	|	LR	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+48461	|	203494	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+48479	|	2	|	no rank	|		|	11	|	0	|	11	|	1	|	0	|	1	|	0	|	0	|	uncultured	|		|		|	0	|	0	|	1	|
+50557	|	6960	|	class	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+55080	|	186822	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+55086	|	523864	|	family	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+55087	|	262150	|	genus	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+68336	|	1783270	|	clade	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+72294	|	213849	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+74201	|	1783257	|	phylum	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+74426	|	102106	|	species	|	CA	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+77133	|	48479	|	species	|	UB	|	11	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	uncultured	|		|		|	0	|	0	|	1	|
+83333	|	562	|	strain	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+84107	|	84999	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+84998	|	201174	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+84999	|	84998	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+85004	|	1760	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+85009	|	1760	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+85512	|	50557	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+88431	|	189330	|	species	|	DL	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+88770	|	1206794	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+89593	|	7711	|	subphylum	|		|	10	|	0	|	1	|	1	|	2	|	0	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+90690	|	5426	|	genus	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+90964	|	1385	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+91061	|	1239	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+91347	|	1236	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+100175	|	216572	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+100176	|	100175	|	species	|	PC	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+102106	|	84107	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+108061	|	30080	|	genus	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+117570	|	7776	|	clade	|		|	10	|	1	|	1	|	1	|	2	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+117571	|	117570	|	clade	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+119852	|	216572	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+131567	|	1	|	cellular root	|	CO	|	8	|	1	|	1	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+135625	|	1236	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+147537	|	716545	|	subphylum	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+147802	|	1578	|	species	|	LI	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+155619	|	5302	|	class	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+166053	|	30367	|	family	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+171549	|	200643	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+171550	|	171549	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+171552	|	171549	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186801	|	1239	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186802	|	186801	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186803	|	3085636	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186804	|	3082720	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186806	|	186802	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186817	|	1385	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186822	|	1385	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+186826	|	91061	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+189330	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+197562	|	197563	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+197563	|	6656	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+200643	|	976	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+201174	|	1783272	|	phylum	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+203494	|	74201	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+206351	|	28216	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+210425	|	166053	|	genus	|		|	10	|	1	|	1	|	1	|	2	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+213547	|	7020	|	suborder	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+213849	|	3031852	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+216572	|	186802	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+216816	|	1678	|	species	|	BL	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+216851	|	216572	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+239759	|	171550	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+239934	|	1647988	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+239935	|	239934	|	species	|	AM	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+262150	|	524420	|	tribe	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+348841	|	186801	|	no rank	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+451864	|	4751	|	subkingdom	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+452333	|	155619	|	subclass	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+523721	|	213547	|	infraorder	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+523864	|	523721	|	superfamily	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+524420	|	55086	|	subfamily	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+524422	|	524420	|	tribe	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+525301	|	524422	|	genus	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+538999	|	186802	|	no rank	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+572511	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+716545	|	4890	|	clade	|		|	4	|	1	|	1	|	1	|	4	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+766764	|	2916678	|	family	|		|	4	|	1	|	12	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+909932	|	1239	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+1206794	|	33317	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+1338369	|	8287	|	clade	|		|	10	|	1	|	1	|	1	|	2	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+1647988	|	48461	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1766253	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1783257	|	3379134	|	clade	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+1783270	|	3379134	|	clade	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+1783272	|	2	|	kingdom	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+1843489	|	909932	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1870884	|	186804	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1903411	|	91347	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1903414	|	91347	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+1912216	|	31957	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2044939	|	348841	|	species	|	CB	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+2316020	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2500537	|	2527773	|	species	|	CC	|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	specified	|		|		|	1	|	0	|	1	|
+2527773	|	538999	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	candidatus current name;	|		|		|	0	|	0	|	1	|
+2569097	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2614656	|	590	|	no rank	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+2646097	|	816	|	no rank	|		|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|		|		|		|	0	|	0	|	1	|
+2742598	|	33958	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2759736	|	33958	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2767842	|	33958	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2815668	|	525301	|	species	|	PB	|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
+2916678	|	3239874	|	order	|		|	4	|	1	|	12	|	0	|	4	|	1	|	1	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2941495	|	186803	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+2982305	|	5338	|	suborder	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+3031852	|	29547	|	class	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+3082720	|	186801	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+3085636	|	186801	|	order	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+3239874	|	147537	|	class	|		|	4	|	1	|	1	|	1	|	4	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+3379134	|	2	|	kingdom	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+3701028	|	197562	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+3701030	|	3701028	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|
+3701061	|	33340	|	clade	|		|	1	|	1	|	1	|	1	|	5	|	1	|	0	|	0	|		|		|		|	0	|	0	|	1	|

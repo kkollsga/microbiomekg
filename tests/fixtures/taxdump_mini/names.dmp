@@ -1,0 +1,532 @@
+1	|	root	|		|	scientific name	|
+2	|	Bacteria	|	Bacteria <bacteria>	|	scientific name	|
+194	|	Campylobacter	|		|	scientific name	|
+481	|	Neisseriaceae	|		|	scientific name	|
+538	|	Eikenella	|		|	scientific name	|
+539	|	Bacteroides corrodens	|	Bacteroides corrodens <b-proteobacteria>	|	synonym	|
+539	|	"Bacteroides corrodens" Eiken 1958 (in part)	|		|	authority	|
+539	|	Eikenella corrodens (Eiken 1958) Jackson and Goodman 1972	|		|	authority	|
+539	|	Eikenella corrodens	|		|	scientific name	|
+539	|	"Ristella corrodens" (Eiken 1958) Prevot 1966	|		|	authority	|
+539	|	Ristella corrodens	|		|	synonym	|
+543	|	Enterobacteriaceae	|		|	scientific name	|
+561	|	Escherichia	|		|	scientific name	|
+562	|	Achromobacter sp. ATCC 35328	|		|	includes	|
+562	|	"Bacillus coli" Migula 1895	|		|	authority	|
+562	|	Bacillus coli	|		|	synonym	|
+562	|	bacterium 10a	|		|	includes	|
+562	|	"Bacterium coli commune" Escherich 1885	|		|	authority	|
+562	|	Bacterium coli commune	|		|	synonym	|
+562	|	"Bacterium coli" (Migula 1895) Lehmann and Neumann 1896	|		|	authority	|
+562	|	Bacterium coli	|		|	synonym	|
+562	|	bacterium E3	|		|	includes	|
+562	|	E. coli	|		|	common name	|
+562	|	Enterococcus coli	|		|	synonym	|
+562	|	Escherichia coli (Migula 1895) Castellani and Chalmers 1919 (Approved Lists 1980)	|		|	authority	|
+562	|	Escherichia coli	|		|	scientific name	|
+562	|	Escherichia/Shigella coli	|		|	equivalent name	|
+562	|	Escherichia sp. 3_2_53FAA	|		|	includes	|
+562	|	Escherichia sp. MAR	|		|	includes	|
+581	|	Morganella Fulton 1943 (Approved Lists 1980)	|		|	authority	|
+581	|	Morganella	|	Morganella <enterobacteria>	|	scientific name	|
+583	|	"Liquidobacterium" Orla-Jensen 1908	|		|	authority	|
+583	|	Liquidobacterium	|		|	synonym	|
+583	|	Proteus Hauser 1885 (Approved Lists 1980)	|		|	authority	|
+583	|	Proteus Hauser 1885 (Approved Lists 1980) emend. Hyun et al. 2016	|		|	authority	|
+583	|	Proteus	|	Proteus <enterobacteria>	|	scientific name	|
+590	|	Salmonella	|		|	scientific name	|
+599	|	Salmonella sp.	|		|	scientific name	|
+613	|	Serratia Bizio 1823 (Approved Lists 1980)	|		|	authority	|
+613	|	Serratia	|	Serratia <enterobacteria>	|	scientific name	|
+712	|	Pasteurellaceae	|		|	scientific name	|
+724	|	Haemophilus	|		|	scientific name	|
+724	|	Haemophilus Winslow et al. 1917 (Approved Lists 1980)	|		|	authority	|
+724	|	Haemophilus Winslow et al. 1917 (Approved Lists 1980) emend. Segui et al. 2026	|		|	authority	|
+815	|	Bacteroidaceae	|		|	scientific name	|
+816	|	Bacteroides Castellani and Chalmers 1919 (Approved Lists 1980) emend. Shah and Collins 1989	|		|	authority	|
+816	|	Bacteroides	|		|	scientific name	|
+816	|	Capsularis Prevot 1938 (Approved Lists 1980)	|		|	authority	|
+816	|	Capsularis	|		|	synonym	|
+816	|	"Ristella" Prevot 1938	|		|	authority	|
+816	|	Ristella	|	Ristella <CFB group bacteria>	|	synonym	|
+818	|	"Bacillus thetaiotaomicron" Distaso 1912	|		|	authority	|
+818	|	Bacillus thetaiotaomicron	|		|	synonym	|
+818	|	bacterium NLAE-zl-C523	|		|	includes	|
+818	|	bacterium NLAE-zl-C579	|		|	includes	|
+818	|	bacterium NLAE-zl-G288	|		|	includes	|
+818	|	bacterium NLAE-zl-H207	|		|	includes	|
+818	|	bacterium NLAE-zl-H463	|		|	includes	|
+818	|	bacterium NLAE-zl-H492	|		|	includes	|
+818	|	bacterium NLAE-zl-P32	|		|	includes	|
+818	|	bacterium NLAE-zl-P699	|		|	includes	|
+818	|	"Bacteroides fragilis subsp. thetaiotaomicron" (Distaso 1912) Holdeman and Moore 1970	|		|	authority	|
+818	|	Bacteroides fragilis subsp. thetaiotaomicron	|		|	synonym	|
+818	|	Bacteroides sp. 1_1_6	|		|	includes	|
+818	|	Bacteroides thetaiotaomicron (Distaso 1912) Castellani and Chalmers 1919 (Approved Lists 1980) emend. Hahnke et al. 2016	|		|	authority	|
+818	|	Bacteroides thetaiotaomicron	|		|	scientific name	|
+818	|	"Pseudobacterium thetaiotaomicron" (Distaso 1912) Krasil'nikov 1949	|		|	authority	|
+818	|	Pseudobacterium thetaiotaomicron	|		|	synonym	|
+818	|	"Sphaerocillus thetaiotaomicron" (Distaso 1912) Prevot 1938	|		|	authority	|
+818	|	Sphaerocillus thetaiotaomicron	|		|	synonym	|
+827	|	Bacteroides corrodens	|	Bacteroides corrodens <e-proteobacteria>	|	synonym	|
+827	|	Bacteroides ureolyticus Jackson and Goodman 1978 (Approved Lists 1980)	|		|	authority	|
+827	|	Bacteroides ureolyticus	|		|	synonym	|
+827	|	Campylobacter ureolyticus (Jackson and Goodman 1978) Vandamme et al. 2010	|		|	authority	|
+827	|	Campylobacter ureolyticus	|		|	scientific name	|
+838	|	Prevotella	|		|	scientific name	|
+838	|	Prevotella Shah and Collins 1990 emend. Sakamoto and Ohkuma 2012	|		|	authority	|
+838	|	Prevotella Shah and Collins 1990 emend. Willems and Collins 1995	|		|	authority	|
+841	|	Roseburia	|		|	scientific name	|
+841	|	Roseburia Stanton and Savage 1983	|		|	authority	|
+841	|	Roseburya	|		|	equivalent name	|
+841	|	Roseburyella	|		|	equivalent name	|
+853	|	"Bacillus mucosus anaerobius" Prausnitz 1922	|		|	authority	|
+853	|	Bacillus mucosus anaerobius	|		|	synonym	|
+853	|	butyrate-producing bacterium A2-165	|		|	includes	|
+853	|	Faecalibacterium prausnitzii (Hauduroy et al. 1937) Duncan et al. 2002	|		|	authority	|
+853	|	Faecalibacterium prausnitzii	|		|	scientific name	|
+853	|	Fusobacterium prausnitzii (Hauduroy et al. 1937) Moore and Holdeman 1970 (Approved Lists 1980)	|		|	synonym	|
+976	|	Bacteroides-Cytophaga-Flexibacter group	|		|	common name	|
+976	|	Bacteroidetes	|	Bacteroidetes <Bacteroidota>	|	synonym	|
+976	|	"Bacteroidetes" Krieg et al. 2012	|		|	authority	|
+976	|	Bacteroidota corrig. Krieg et al. 2021	|		|	authority	|
+976	|	Bacteroidota	|		|	scientific name	|
+976	|	"Bacteroidota" Whitman et al. 2018	|		|	synonym	|
+976	|	BCF group	|		|	equivalent name	|
+976	|	"Candidatus Kapaibacteriota" Kantor et al. 2015	|		|	authority	|
+976	|	Candidatus Kapaibacteriota	|		|	synonym	|
+976	|	CFB group bacteria	|	CFB group bacteria <blast name>	|	blast name	|
+976	|	CFB group bacteria	|	CFB group bacteria <genbank common name>	|	genbank common name	|
+976	|	CFB group	|		|	equivalent name	|
+976	|	Cytophaga-Flexibacter-Bacteroides phylum	|		|	common name	|
+976	|	Kapaibacteriota	|		|	equivalent name	|
+976	|	OPB56 group	|		|	common name	|
+976	|	"Sphingobacteria" Cavalier-Smith, 2002	|		|	authority	|
+976	|	Sphingobacteria	|		|	synonym	|
+1224	|	Pseudomonadota	|		|	scientific name	|
+1236	|	Gammaproteobacteria	|		|	scientific name	|
+1239	|	Bacillota	|		|	scientific name	|
+1279	|	Staphylococcus	|		|	scientific name	|
+1282	|	Albococcus epidermidis	|		|	synonym	|
+1282	|	"Albococcus epidermidis" Winslow and Winslow 1908	|		|	authority	|
+1282	|	Micrococcus epidermidis	|		|	synonym	|
+1282	|	"Micrococcus epidermidis" (Winslow and Winslow 1908) Hucker 1924	|		|	authority	|
+1282	|	Staphylococcus epidermidis albus	|		|	synonym	|
+1282	|	"Staphylococcus epidermidis albus" Welch 1891	|		|	authority	|
+1282	|	Staphylococcus epidermidis	|		|	scientific name	|
+1300	|	Streptococcaceae	|		|	scientific name	|
+1357	|	lactic streptococci	|		|	genbank common name	|
+1357	|	Lactococcus Schleifer et al. 1986	|		|	authority	|
+1357	|	Lactococcus	|		|	scientific name	|
+1385	|	Caryophanales	|		|	scientific name	|
+1386	|	Bacillus	|	Bacillus <firmicutes>	|	scientific name	|
+1386	|	Bacillus Cohn 1872 (Approved lists 1980)	|		|	authority	|
+1386	|	Bacillus Cohn 1872 (Approved lists 1980) emend. Gupta et al. 2020	|		|	authority	|
+1386	|	Bacillus rRNA group 1	|		|	common name	|
+1393	|	Bacillus brevis	|	Bacillus brevis <firmicutes>	|	synonym	|
+1393	|	Bacillus brevis Migula 1900 (Approved Lists 1980)	|		|	authority	|
+1393	|	Bacillus sp. NCIM 2531	|		|	includes	|
+1393	|	Bacillus sp. NCIM 2534	|		|	includes	|
+1393	|	Brevibacillus brevis (Migula 1900) Shida et al. 1996	|		|	authority	|
+1393	|	Brevibacillus brevis	|		|	scientific name	|
+1393	|	Brevibacillus sp. 1404	|		|	includes	|
+1393	|	Brevibacillus sp. JKR7	|		|	includes	|
+1393	|	Lysinibacillus sp. SDF0063	|		|	includes	|
+1485	|	Anaerobacter Duda et al. 1996	|		|	synonym	|
+1485	|	Anaerobacter	|		|	synonym	|
+1485	|	Clostridium Prazmowski 1880 (Approved Lists 1980) emend. Lawson and Rainey 2016	|		|	authority	|
+1485	|	Clostridium	|		|	scientific name	|
+1496	|	Clostridioides difficile (Hall and O'Toole 1935) Lawson et al. 2016	|		|	authority	|
+1496	|	Clostridioides difficile	|		|	scientific name	|
+1496	|	Clostridium difficile (Hall and O'Toole 1935) Prevot 1938 (Approved Lists 1980)	|		|	synonym	|
+1496	|	Clostridium sp. HMSC19D05	|		|	includes	|
+1496	|	Peptoclostridium difficile	|		|	synonym	|
+1496	|	"Peptoclostridium difficile" Yutin and Galperin 2013	|		|	authority	|
+1502	|	"Bacterium welchii" Migula 1900	|		|	authority	|
+1502	|	Bacterium welchii	|		|	synonym	|
+1502	|	Clostridium perfringens	|		|	scientific name	|
+1502	|	Clostridium perfringens (Veillon and Zuber 1898) Hauduroy et al. 1937 (Approved Lists 1980)	|		|	synonym	|
+1502	|	"Clostridium plagarum" (Prevot 1938) Smith and Hobbs 1974	|		|	authority	|
+1502	|	Clostridium plagarum	|		|	synonym	|
+1502	|	Clostridium sp. NCIM 2677	|		|	includes	|
+1502	|	s__Sarcina perfringens	|		|	equivalent name	|
+1512	|	"Bacteroides symbiosus" Stevens 1956	|		|	authority	|
+1512	|	Bacteroides symbiosus	|		|	synonym	|
+1512	|	[Clostridium] symbiosum	|		|	scientific name	|
+1512	|	Clostridium symbiosum (Stevens 1956) Kaneuchi et al. 1976 (Approved Lists 1980)	|		|	authority	|
+1512	|	Clostridium symbiosum	|		|	synonym	|
+1578	|	Lactobacillus Beijerinck 1901 (Approved Lists 1980)	|		|	authority	|
+1578	|	Lactobacillus Beijerinck 1901 (Approved Lists 1980) emend. Cai et al. 2012	|		|	authority	|
+1578	|	Lactobacillus Beijerinck 1901 (Approved Lists 1980) emend. Haakensen et al. 2009	|		|	authority	|
+1578	|	Lactobacillus	|		|	scientific name	|
+1578	|	Paralactobacillus Leisner et al. 2000	|		|	authority	|
+1578	|	Paralactobacillus	|		|	synonym	|
+1590	|	Lactiplantibacillus plantarum (Orla-Jensen 1919) Zheng et al. 2020	|		|	authority	|
+1590	|	Lactiplantibacillus plantarum	|		|	scientific name	|
+1590	|	"Lactobacillus arabinosus" Fred et al.	|		|	authority	|
+1590	|	Lactobacillus arabinosus	|		|	synonym	|
+1590	|	Lactobacillus arizonensis Swezey et al. 2000	|		|	authority	|
+1590	|	Lactobacillus arizonensis	|		|	synonym	|
+1590	|	"Lactobacillus plantari" (sic) (Orla-Jensen 1919) Bergey et al. 1923 (Approved Lists 1980)	|		|	authority	|
+1590	|	Lactobacillus plantarum (Orla-Jensen 1919) Bergey et al. 1923 (Approved Lists 1980)	|		|	synonym	|
+1590	|	Lactobacillus sp. DMR09	|		|	includes	|
+1590	|	Lactobacillus sp. HC-2	|		|	includes	|
+1590	|	Lactobacillus sp. Lact08	|		|	includes	|
+1590	|	Lactobacillus sp. Lact09	|		|	includes	|
+1590	|	Lactobacillus sp. Lact14	|		|	includes	|
+1590	|	Lactobacillus sp. M6DWS	|		|	includes	|
+1590	|	Lactobacillus sp. S2	|		|	includes	|
+1590	|	Lactobacillus sp. S8	|		|	includes	|
+1590	|	Lactobacillus sp. XJ25	|		|	includes	|
+1590	|	Lactobacillus sp. Z12	|		|	includes	|
+1590	|	"Lactobacterium plantarum" (Orla-Jensen 1919) Krasil'nikov 1949	|		|	authority	|
+1590	|	Lactobacterium plantarum	|		|	synonym	|
+1590	|	"Streptobacterium plantarum" Orla-Jensen 1919	|		|	authority	|
+1590	|	Streptobacterium plantarum	|		|	synonym	|
+1590	|	Weissella sp. Lact07	|		|	includes	|
+1598	|	Lactobacillus fermentum biotype II	|		|	synonym	|
+1598	|	Lactobacillus fermentum subsp. reuteri	|		|	synonym	|
+1598	|	Lactobacillus reuteri Kandler et al. 1982	|		|	synonym	|
+1598	|	Lactobacillus reuteri (plasmid pGT232)	|		|	includes	|
+1598	|	Lactobacillus sp. 1B	|		|	includes	|
+1598	|	Lactobacillus sp. I49	|		|	includes	|
+1598	|	Limosilactobacillus reuteri (Kandler et al. 1982) Zheng et al. 2020	|		|	authority	|
+1598	|	Limosilactobacillus reuteri	|		|	scientific name	|
+1678	|	"Bifidibacterium" Prevot 1938	|		|	authority	|
+1678	|	Bifidibacterium	|		|	synonym	|
+1678	|	Bifidobacterium Orla-Jensen 1924	|		|	authority	|
+1678	|	Bifidobacterium	|		|	scientific name	|
+1678	|	"Tissieria" Pribram 1929	|		|	authority	|
+1678	|	Tissieria	|		|	synonym	|
+1682	|	"Bifidobacterium lactentis" Reuter 1963	|		|	authority	|
+1682	|	Bifidobacterium lactentis	|		|	synonym	|
+1682	|	"Bifidobacterium liberorum" Reuter 1963	|		|	authority	|
+1682	|	Bifidobacterium liberorum	|		|	synonym	|
+1682	|	Bifidobacterium longum bv. Infantis	|		|	synonym	|
+1682	|	Bifidobacterium longum infantis	|		|	synonym	|
+1682	|	Bifidobacterium longum subsp. infantis (Reuter 1963) Mattarelli et al. 2008	|		|	authority	|
+1682	|	Bifidobacterium longum subsp. infantis	|		|	scientific name	|
+1685	|	Bifidobacterium breve Reuter 1963	|		|	authority	|
+1685	|	Bifidobacterium breve Reuter 1963 emend. Nouioui et al. 2018	|		|	authority	|
+1685	|	Bifidobacterium breve	|		|	scientific name	|
+1685	|	"Bifidobacterium parvulorum" Reuter 1963	|		|	authority	|
+1685	|	Bifidobacterium parvulorum	|		|	synonym	|
+1730	|	Eubacterium Prevot 1938 (Approved Lists 1980) emend. Cato et al. 1983	|		|	authority	|
+1730	|	Eubacterium	|		|	scientific name	|
+1747	|	"Bacillus acnes" Gilchrist 1900	|		|	authority	|
+1747	|	Bacillus acnes	|		|	synonym	|
+1747	|	"Corynebacterium acnes" (Gilchrist 1900) Eberson 1918	|		|	authority	|
+1747	|	Corynebacterium acnes	|		|	synonym	|
+1747	|	Cutibacterium acnes (Gilchrist 1900) Scholz and Kilian 2016	|		|	synonym	|
+1747	|	Cutibacterium acnes	|		|	scientific name	|
+1747	|	Propionibacterium acnes (Gilchrist 1900) Douglas and Gunter 1946 (Approved Lists 1980)	|		|	authority	|
+1747	|	Propionibacterium acnes	|		|	synonym	|
+1760	|	Actinomycetes	|		|	scientific name	|
+2701	|	Gardnerella	|		|	scientific name	|
+2702	|	Corynebacterium vaginale	|		|	synonym	|
+2702	|	"Corynebacterium vaginale" Zinnemann and Turner 1963	|		|	authority	|
+2702	|	Gardnerella genomic species 1	|		|	equivalent name	|
+2702	|	Gardnerella vaginalis (Gardner and Dukes 1955) Greenwood and Pickett 1980 emend. Nouioui et al. 2018	|		|	authority	|
+2702	|	Gardnerella vaginalis (Gardner and Dukes 1955) Greenwood and Pickett 1980 emend. Vaneechoutte et al. 2019	|		|	authority	|
+2702	|	Gardnerella vaginalis (Gardner and Dukes 1955) Greenwood and Pickett 1980	|		|	synonym	|
+2702	|	Gardnerella vaginalis	|		|	scientific name	|
+2702	|	"Haemophilus hemolyticus vaginalis" Lutz et al. 1956	|		|	authority	|
+2702	|	Haemophilus hemolyticus vaginalis	|		|	synonym	|
+2702	|	Haemophilus vaginalis Gardner and Dukes 1955 (Approved Lists 1980)	|		|	authority	|
+2702	|	Haemophilus vaginalis	|		|	synonym	|
+2702	|	s__Bifidobacterium vaginale	|		|	equivalent name	|
+2759	|	Eukaryota	|		|	scientific name	|
+4751	|	Fungi	|		|	scientific name	|
+4890	|	Ascomycota	|		|	scientific name	|
+4891	|	Saccharomycetes	|		|	scientific name	|
+4892	|	Saccharomycetales	|		|	scientific name	|
+4893	|	Saccharomycetaceae	|		|	scientific name	|
+4930	|	Saccharomyces	|		|	scientific name	|
+4932	|	baker's yeast	|		|	common name	|
+4932	|	brewer's yeast	|		|	genbank common name	|
+4932	|	Candida robusta	|		|	synonym	|
+4932	|	Mycoderma cerevisiae Desm., 1827	|		|	authority	|
+4932	|	Mycoderma cerevisiae	|		|	synonym	|
+4932	|	Saccharomyces boulardii	|		|	equivalent name	|
+4932	|	Saccharomyces boulardii (nom. inval.)	|		|	synonym	|
+4932	|	Saccharomyces boulardii Seguela, Bastide & Massot, 1984	|		|	authority	|
+4932	|	Saccharomyces capensis	|		|	synonym	|
+4932	|	Saccharomyces cerevisiae (Desm.) Meyen ex E.C. Hansen, 1883	|		|	synonym	|
+4932	|	Saccharomyces cerevisiae	|		|	scientific name	|
+4932	|	Saccharomyces cerevisiae 'var. diastaticus'	|		|	equivalent name	|
+4932	|	Saccharomyces diastaticus J. Andrews & R.B. Gilliland ex Van der Walt, 1965	|		|	authority	|
+4932	|	Saccharomyces diastaticus	|		|	synonym	|
+4932	|	Saccharomyces italicus	|		|	synonym	|
+4932	|	Saccharomyces oviformis	|		|	synonym	|
+4932	|	Saccharomyces sp. Af145-1-1	|		|	includes	|
+4932	|	Saccharomyces uvarum var. melibiosus	|		|	synonym	|
+5204	|	Basidiomycota	|		|	scientific name	|
+5302	|	Agaricomycotina	|		|	scientific name	|
+5338	|	Agaricales	|		|	scientific name	|
+5426	|	Lycoperdaceae	|		|	scientific name	|
+5475	|	Candida	|		|	scientific name	|
+5476	|	Candida albicans (C.P. Robin) Berkhout, 1923	|		|	authority	|
+5476	|	Candida albicans	|		|	scientific name	|
+5476	|	Candida albicans var. stellatoidea (C.P. Jones & D.S. Martin) Diddens & Lodder, 1942	|		|	authority	|
+5476	|	Candida albicans var. stellatoidea	|		|	synonym	|
+5476	|	Candida stellatoidea (C.P. Jones & D.S. Martin) Langeron & Guerra, 1939	|		|	authority	|
+5476	|	Candida stellatoidea	|		|	synonym	|
+5476	|	Candida stellatoidea type I	|		|	includes	|
+5476	|	Dematium albicans (C.P. Robin) E. Laurent, 1889	|		|	authority	|
+5476	|	Dematium albicans	|		|	synonym	|
+5476	|	Endomyces albicans Johan-Olsen, 1897	|		|	authority	|
+5476	|	Endomyces albicans	|		|	synonym	|
+5476	|	Monilia albicans (C.P. Robin) Zopf, 1890	|		|	authority	|
+5476	|	Monilia albicans	|		|	synonym	|
+5476	|	Monilia stellatoidea C.P. Jones & D.S. Martin, 1938	|		|	authority	|
+5476	|	Monilia stellatoidea	|		|	synonym	|
+5476	|	Myceloblastanon albicans (C.P. Robin) M. Ota, 1927	|		|	authority	|
+5476	|	Myceloblastanon albicans	|		|	synonym	|
+5476	|	Mycotorula albicans (C.P. Robin) Langeron & Talice, 1932	|		|	authority	|
+5476	|	Mycotorula albicans	|		|	synonym	|
+5476	|	Oidium albicans C.P. Robin, 1853	|		|	authority	|
+5476	|	Oidium albicans	|		|	synonym	|
+5476	|	Parasaccharomyces albicans (C.P. Robin) Mello & L.G. Fern., 1918	|		|	authority	|
+5476	|	Parasaccharomyces albicans	|		|	synonym	|
+5476	|	Procandida albicans (C.P. Robin) E.K. Novak & Zsolt, 1961	|		|	authority	|
+5476	|	Procandida albicans	|		|	synonym	|
+5476	|	Procandida stellatoidea (C.P. Jones & D.S. Martin) E.K. Novak & Zsolt, 1961	|		|	authority	|
+5476	|	Procandida stellatoidea	|		|	synonym	|
+5476	|	Saccharomyces albicans (C.P. Robin) Reess, 1877	|		|	authority	|
+5476	|	Saccharomyces albicans	|		|	synonym	|
+5476	|	Syringospora albicans (C.P. Robin) C.W. Dodge, 1935	|		|	authority	|
+5476	|	Syringospora albicans	|		|	synonym	|
+6072	|	Eumetazoa	|		|	scientific name	|
+6656	|	Arthropoda	|		|	scientific name	|
+6960	|	Hexapoda	|		|	scientific name	|
+7020	|	Phasmatodea	|		|	scientific name	|
+7496	|	Pterygota	|	Pterygota <insects>	|	scientific name	|
+7524	|	Hemiptera	|		|	scientific name	|
+7711	|	Chordata	|		|	scientific name	|
+7742	|	Vertebrata	|	Vertebrata <vertebrates>	|	scientific name	|
+7776	|	Gnathostomata	|	Gnathostomata <vertebrates>	|	scientific name	|
+8287	|	Sarcopterygii	|		|	scientific name	|
+8292	|	Amphibia	|		|	scientific name	|
+8293	|	Caudata	|		|	scientific name	|
+28050	|	Lachnospira	|		|	scientific name	|
+28052	|	Lachnospira pectinoschiza Cornick et al. 1994	|		|	authority	|
+28052	|	Lachnospira pectinoschiza	|		|	scientific name	|
+28216	|	Betaproteobacteria	|		|	scientific name	|
+29465	|	Veillonella Prevot 1933 (Approved Lists 1980)	|		|	authority	|
+29465	|	Veillonella Prevot 1933 (Approved Lists 1980) emend. Aujoulat et al. 2014	|		|	authority	|
+29465	|	Veillonella Prevot 1933 (Approved Lists 1980) emend. Mays et al. 1982	|		|	authority	|
+29465	|	Veillonella	|		|	scientific name	|
+29523	|	Bacteroides sp.	|		|	scientific name	|
+29547	|	Campylobacterota	|		|	scientific name	|
+30080	|	Diaspididae	|		|	scientific name	|
+30367	|	Salamandroidea	|		|	scientific name	|
+31953	|	Bifidobacteriaceae	|		|	scientific name	|
+31957	|	Propionibacteriaceae	|		|	scientific name	|
+31977	|	Veillonellaceae	|		|	scientific name	|
+31979	|	Clostridiaceae	|		|	scientific name	|
+32523	|	Tetrapoda	|		|	scientific name	|
+33038	|	"Hominicoccus gnavus" (Moore et al. 1976) Krause et al. 2024	|		|	authority	|
+33038	|	Hominicoccus gnavus	|		|	synonym	|
+33038	|	Mediterraneibacter gnavus (Moore et al. 1976) Togo et al. 2023	|		|	synonym	|
+33038	|	Mediterraneibacter gnavus	|		|	scientific name	|
+33038	|	Ruminococcus gnavus Moore et al. 1976 (Approved Lists 1980)	|		|	authority	|
+33038	|	Ruminococcus gnavus	|		|	synonym	|
+33042	|	Coprococcus Holdeman and Moore 1974 (Approved Lists 1980)	|		|	authority	|
+33042	|	Coprococcus	|		|	scientific name	|
+33154	|	Opisthokonta	|		|	scientific name	|
+33208	|	Metazoa	|		|	scientific name	|
+33213	|	Bilateria	|		|	scientific name	|
+33317	|	Protostomia	|		|	scientific name	|
+33340	|	Neoptera	|		|	scientific name	|
+33341	|	Polyneoptera	|		|	scientific name	|
+33342	|	Paraneoptera	|		|	scientific name	|
+33373	|	Sternorrhyncha	|		|	scientific name	|
+33381	|	Coccoidea	|		|	scientific name	|
+33511	|	Deuterostomia	|		|	scientific name	|
+33958	|	Lactobacillaceae	|		|	scientific name	|
+39486	|	Dorea formicigenerans (Holdeman and Moore 1974) Taras et al. 2002	|		|	authority	|
+39486	|	Dorea formicigenerans	|		|	scientific name	|
+39486	|	Eubacterium formicigenerans Holdeman and Moore 1974 (Approved Lists 1980)	|		|	authority	|
+39486	|	Eubacterium formicigenerans	|		|	synonym	|
+39488	|	Anaerobutyricum hallii (Holdeman and Moore 1974) Shetty et al. 2018	|		|	authority	|
+39488	|	Anaerobutyricum hallii	|		|	scientific name	|
+39488	|	Eubacterium hallii Holdeman and Moore 1974 (Approved Lists 1980)	|		|	authority	|
+39488	|	Eubacterium hallii	|		|	synonym	|
+39491	|	Agathobacter rectalis (Hauduroy et al. 1937) Rosero et al. 2016	|		|	authority	|
+39491	|	Agathobacter rectalis	|		|	scientific name	|
+39491	|	Eubacterium rectale (Hauduroy et al. 1937) Prevot 1938 (Approved Lists 1980)	|		|	synonym	|
+39491	|	"Pseudobacterium rectale" (Hauduroy et al. 1937) Krasil'nikov 1949	|		|	authority	|
+39491	|	Pseudobacterium rectale	|		|	synonym	|
+39491	|	Roseburia rectale	|		|	synonym	|
+41666	|	Batrachia	|		|	scientific name	|
+47715	|	Lacticaseibacillus rhamnosus (Hansen 1968) Zheng et al. 2020	|		|	authority	|
+47715	|	Lacticaseibacillus rhamnosus	|		|	scientific name	|
+47715	|	Lactobacillus casei rhamnosus	|		|	synonym	|
+47715	|	Lactobacillus casei subsp. rhamnosus Hansen 1968 (Approved Lists 1980)	|		|	authority	|
+47715	|	Lactobacillus casei subsp. rhamnosus	|		|	synonym	|
+47715	|	Lactobacillus rhamnosus (Hansen 1968) Collins et al. 1989	|		|	authority	|
+47715	|	Lactobacillus rhamnosus	|		|	synonym	|
+47715	|	Lactobacillus sp. BCRC16000	|		|	includes	|
+47715	|	Lactobacillus sp. NCIM 2587	|		|	includes	|
+47715	|	Lactobacillus sp. W6	|		|	includes	|
+47715	|	Lactobacillus sp. X9	|		|	includes	|
+48461	|	Verrucomicrobiales	|		|	scientific name	|
+48479	|	environmental samples	|	environmental samples <bacteria,domain Bacteria>	|	scientific name	|
+50557	|	Insecta	|		|	scientific name	|
+55080	|	Brevibacillus	|		|	scientific name	|
+55086	|	Bacillidae	|		|	scientific name	|
+55087	|	Bacillus	|	Bacillus <walking sticks>	|	scientific name	|
+55087	|	Bacillus Berthold, 1827	|		|	authority	|
+68336	|	Bacteroidota/Chlorobiota group	|		|	scientific name	|
+72294	|	Campylobacteraceae	|		|	scientific name	|
+74201	|	Verrucomicrobiota	|		|	scientific name	|
+74426	|	"Bacteroides aerofaciens" Eggerth 1935	|		|	authority	|
+74426	|	Bacteroides aerofaciens	|		|	synonym	|
+74426	|	Collinsella aerofaciens (Eggerth 1935) Kageyama et al. 1999	|		|	synonym	|
+74426	|	Collinsella aerofaciens	|		|	scientific name	|
+74426	|	Eubacterium aerofaciens (Eggerth 1935) Prevot 1938 (Approved Lists 1980)	|		|	authority	|
+74426	|	Eubacterium aerofaciens	|		|	synonym	|
+74426	|	"Pseudobacterium aerofaciens" (Eggerth 1935) Krasil'nikov 1949	|		|	authority	|
+74426	|	Pseudobacterium aerofaciens	|		|	synonym	|
+77133	|	uncultivated bacterium	|		|	synonym	|
+77133	|	uncultured Bacteria bacterium	|		|	synonym	|
+77133	|	uncultured bacterium	|		|	scientific name	|
+77133	|	uncultured eubacterium	|		|	synonym	|
+83333	|	Escherichia coli K12	|		|	equivalent name	|
+83333	|	Escherichia coli K-12	|		|	scientific name	|
+84107	|	Coriobacteriaceae	|		|	scientific name	|
+84998	|	Coriobacteriia	|		|	scientific name	|
+84999	|	Coriobacteriales	|		|	scientific name	|
+85004	|	Bifidobacteriales	|		|	scientific name	|
+85009	|	Propionibacteriales	|		|	scientific name	|
+85512	|	Dicondylia	|		|	scientific name	|
+88431	|	Dorea longicatena	|		|	scientific name	|
+88431	|	Dorea longicatena Taras et al. 2002	|		|	authority	|
+88431	|	Eubacterium sp. III-35	|		|	includes	|
+88770	|	Panarthropoda	|		|	scientific name	|
+89593	|	Craniata	|	Craniata <chordates>	|	scientific name	|
+90690	|	Morganella	|	Morganella <basidiomycete fungi>	|	scientific name	|
+90690	|	Morganella Zeller, 1948	|		|	authority	|
+90964	|	Staphylococcaceae	|		|	scientific name	|
+91061	|	Bacilli	|		|	scientific name	|
+91347	|	Enterobacterales	|		|	scientific name	|
+100175	|	Papillibacter	|		|	scientific name	|
+100176	|	Papillibacter cinnamivorans Defnoun et al. 2000	|		|	authority	|
+100176	|	Papillibacter cinnamivorans	|		|	scientific name	|
+102106	|	Collinsella	|		|	scientific name	|
+108061	|	Morganella Cockerell, 1897	|		|	authority	|
+108061	|	Morganella	|	Morganella <scale insects>	|	scientific name	|
+117570	|	Teleostomi	|		|	scientific name	|
+117571	|	Euteleostomi	|		|	scientific name	|
+119852	|	Oscillospira Chatton and Perard 1913	|		|	authority	|
+119852	|	Oscillospira	|		|	scientific name	|
+131567	|	cellular organisms	|		|	scientific name	|
+135625	|	Pasteurellales	|		|	scientific name	|
+147537	|	Saccharomycotina	|		|	scientific name	|
+147802	|	Lactobacillus iners Falsen et al. 1999	|		|	authority	|
+147802	|	Lactobacillus iners	|		|	scientific name	|
+147802	|	Lactobacillus sp. 7_1_47FAA	|		|	includes	|
+147802	|	Lactobacillus sp. EF (Enevold Falsen) group 47	|		|	synonym	|
+155619	|	Agaricomycetes	|		|	scientific name	|
+166053	|	Proteidae	|		|	scientific name	|
+171549	|	Bacteroidales	|		|	scientific name	|
+171550	|	Rikenellaceae	|		|	scientific name	|
+171552	|	Prevotellaceae	|		|	scientific name	|
+186801	|	"Clostridia" Rainey 2009	|		|	authority	|
+186801	|	Clostridia Rainey 2010	|		|	authority	|
+186801	|	Clostridia	|		|	scientific name	|
+186802	|	Eubacteriales	|		|	scientific name	|
+186803	|	Lachnospiraceae Rainey 2010	|		|	authority	|
+186803	|	Lachnospiraceae	|		|	scientific name	|
+186804	|	Peptostreptococcaceae	|		|	scientific name	|
+186806	|	Eubacteriaceae	|		|	scientific name	|
+186817	|	Bacillaceae	|		|	scientific name	|
+186822	|	Paenibacillaceae	|		|	scientific name	|
+186826	|	Lactobacillales	|		|	scientific name	|
+189330	|	Dorea	|		|	scientific name	|
+197562	|	Pancrustacea	|		|	scientific name	|
+197563	|	Mandibulata	|		|	scientific name	|
+200643	|	Bacteroidia	|		|	scientific name	|
+201174	|	Actinomycetota	|		|	scientific name	|
+203494	|	Verrucomicrobiia	|		|	scientific name	|
+206351	|	Neisseriales	|		|	scientific name	|
+210425	|	Proteus	|	Proteus <salamanders>	|	scientific name	|
+213547	|	Verophasmatodea	|		|	scientific name	|
+213849	|	Campylobacterales	|		|	scientific name	|
+216572	|	Hungateiclostridiaceae	|		|	synonym	|
+216572	|	Hungateiclostridiaceae Zhang et al. 2018	|		|	authority	|
+216572	|	Oscillospiraceae Peshkoff 1940 (Approved Lists 1980)	|		|	authority	|
+216572	|	Oscillospiraceae Peshkoff 1940 (Approved Lists 1980) emend. Tindall 2019	|		|	authority	|
+216572	|	Oscillospiraceae	|		|	scientific name	|
+216572	|	Ruminococcaceae Rainey 2010	|		|	authority	|
+216572	|	Ruminococcaceae	|		|	synonym	|
+216816	|	Bifidobacterium longum Reuter 1963	|		|	authority	|
+216816	|	Bifidobacterium longum	|		|	scientific name	|
+216816	|	Bifidobacterium longum subsp. suis (Matteuzzi et al. 1971) Mattarelli et al. 2008 emend. Nouioui et al. 2018	|		|	authority	|
+216816	|	Bifidobacterium sp. 12_1_47BFAA	|		|	includes	|
+216851	|	Faecalibacterium Duncan et al. 2002	|		|	authority	|
+216851	|	Faecalibacterium	|		|	scientific name	|
+239759	|	Alistipes Rautio et al. 2003	|		|	authority	|
+239759	|	Alistipes Rautio et al. 2003 emend. Sakamoto et al. 2020	|		|	authority	|
+239759	|	Alistipes	|		|	scientific name	|
+239934	|	Akkermansia	|		|	scientific name	|
+239935	|	Akkermansia muciniphila Derrien et al. 2004	|		|	authority	|
+239935	|	Akkermansia muciniphila Derrien et al. 2004 emend. Hahnke et al. 2016	|		|	authority	|
+239935	|	Akkermansia muciniphila	|		|	scientific name	|
+239935	|	Akkermansia sp. YL44	|		|	includes	|
+239935	|	s__VGWG01 sp945870025	|		|	equivalent name	|
+262150	|	Bacillini	|		|	scientific name	|
+348841	|	unclassified Clostridia	|		|	scientific name	|
+451864	|	Dikarya	|		|	scientific name	|
+452333	|	Agaricomycetidae	|		|	scientific name	|
+523721	|	Areolatae	|		|	scientific name	|
+523864	|	Bacilloidea	|		|	scientific name	|
+524420	|	Bacillinae	|		|	scientific name	|
+524422	|	Phalcini	|		|	scientific name	|
+525301	|	Phalces	|		|	scientific name	|
+538999	|	Eubacteriales incertae sedis	|		|	scientific name	|
+572511	|	Blautia Liu et al. 2008	|		|	authority	|
+572511	|	Blautia Liu et al. 2008 emend. Durand et al. 2017	|		|	authority	|
+572511	|	Blautia	|		|	scientific name	|
+716545	|	saccharomyceta	|		|	scientific name	|
+766764	|	Debaryomycetaceae	|		|	scientific name	|
+909932	|	Negativicutes	|		|	scientific name	|
+1206794	|	Ecdysozoa	|		|	scientific name	|
+1338369	|	Dipnotetrapodomorpha	|		|	scientific name	|
+1647988	|	Akkermansiaceae	|		|	scientific name	|
+1766253	|	Agathobacter	|		|	scientific name	|
+1783257	|	PVC group	|		|	scientific name	|
+1783270	|	FCB group	|		|	scientific name	|
+1783272	|	Bacillati	|		|	scientific name	|
+1843489	|	Veillonellales	|		|	scientific name	|
+1870884	|	Clostridioides	|		|	scientific name	|
+1903411	|	Yersiniaceae	|		|	scientific name	|
+1903414	|	Morganellaceae	|		|	scientific name	|
+1912216	|	Cutibacterium	|		|	scientific name	|
+2044939	|	Clostridia bacterium	|		|	scientific name	|
+2316020	|	Mediterraneibacter	|		|	scientific name	|
+2500537	|	"Candidatus Cibiobacter qucibialis" Pasolli et al. 2019	|		|	authority	|
+2500537	|	Candidatus Cibiobacter qucibialis	|		|	scientific name	|
+2500537	|	Ruminococcaceae bacterium SGB15286	|		|	includes	|
+2527773	|	Candidatus Cibiobacter	|		|	scientific name	|
+2569097	|	Anaerobutyricum	|		|	scientific name	|
+2614656	|	unclassified Salmonella	|		|	scientific name	|
+2646097	|	unclassified Bacteroides	|		|	scientific name	|
+2742598	|	Limosilactobacillus	|		|	scientific name	|
+2759736	|	Lacticaseibacillus	|		|	scientific name	|
+2767842	|	Lactiplantibacillus	|		|	scientific name	|
+2815668	|	Bacillus brevis	|	Bacillus brevis <walking sticks>	|	synonym	|
+2815668	|	Bacillus brevis Burmeister, 1838	|		|	authority	|
+2815668	|	Phalces brevis (Burmeister, 1838)	|		|	authority	|
+2815668	|	Phalces brevis	|		|	scientific name	|
+2916678	|	Serinales	|		|	scientific name	|
+2941495	|	Otoolea	|		|	scientific name	|
+2982305	|	Agaricineae	|		|	scientific name	|
+3031852	|	Epsilonproteobacteria	|		|	scientific name	|
+3082720	|	Peptostreptococcales	|		|	scientific name	|
+3085636	|	Lachnospirales	|		|	scientific name	|
+3239874	|	Pichiomycetes	|		|	scientific name	|
+3379134	|	Pseudomonadati	|		|	scientific name	|
+3701028	|	Altocrustacea	|		|	scientific name	|
+3701030	|	Allotriocarida	|		|	scientific name	|
+3701061	|	Eumetabola	|		|	scientific name	|
