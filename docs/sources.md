@@ -29,7 +29,10 @@ did not answer; the exact error is recorded.
 | 10 | PubMed / PubChem | not fetched (by design) | — | — |
 | 11 | MONDO | fetched | 53 MB | `data/raw/mondo/` |
 
-Total on disk: **1.3 GB** across 61 files. 8 of 10 sources usable; 2 blocked.
+Total on disk: **7.4 GB** across 65 files. **10 of 11 sources usable; only
+Disbiome is blocked** — its origin is down and, unlike gutMDisorder, no archived
+copy of its JSON API has ever existed (Wayback has never captured one, confirmed
+by a domain-wide CDX query; see `data/raw/disbiome/PROVENANCE.md`).
 
 ## Redistribution: what blocks shipping a built graph
 
@@ -177,10 +180,12 @@ JavaScript execution and a cookie round-trip; **no header set can satisfy it**,
 so this is not a fixable request-shaping problem. It blocks the whole domain,
 which is also why the licence text could not be re-read programmatically.
 
-**Operator action:** download `hmdb_metabolites.zip` by hand from
-<https://hmdb.ca/downloads> in a normal browser and drop it into
-`data/raw/hmdb/`. `fetch.py` will then leave it alone and record it.
-`hmdb_proteins.zip` is **not** needed.
+**Operator action (done 2026-09-02).** The file was downloaded by hand from
+<https://hmdb.ca/downloads> in a normal browser and unpacked into
+`data/raw/hmdb/`. `fetch.py` detects either `hmdb_metabolites.zip` or the
+unpacked `hmdb_metabolites.xml`, records it with status `manual-present`, and
+does not re-attempt the blocked download. Repeat this by hand on any machine
+starting from an empty `data/raw/`. `hmdb_proteins.zip` is **not** needed.
 
 ## 5. CARD
 
@@ -297,9 +302,13 @@ supplies the drug→target edges at 44 MB instead of 5.76 GB.
 
 ## 9. gutMDisorder
 
-- **URL** — `http://bio-annotation.cn/gutMDisorder/`
-- **Licence** — could not be established; the host is down.
-- **Status** — **unreachable**.
+- **URL** — origin `http://bio-annotation.cn/gutMDisorder/` (down); bytes came
+  from Wayback Machine snapshots of the site's own bulk exports — see the
+  update below for the exact snapshot URLs.
+- **Licence** — unstated by the site; the NAR 2020 paper says only "freely
+  available". Treat as unknown until the authors are asked.
+- **Format** — XLSX, one workbook each for human and mouse.
+- **Status** — **fetched** (2020 v1 snapshot). The *origin* remains unreachable:
 
 DNS resolves (`47.76.215.223`) but the host **refuses the connection** on both
 ports, immediately — this is a refusal, not a timeout:
@@ -312,8 +321,9 @@ Max retries exceeded with url: /gutMDisorder/ (Caused by NewConnectionError(
 
 Tried `http://` and `https://` with the full browser header set, and
 `http://www.bio-annotation.cn/` separately. All refused in under half a second.
-As with Disbiome, the failure precedes HTTP, so no request shaping helps.
-**The graph is built without gutMDisorder.** Retry the download page later.
+As with Disbiome, the failure precedes HTTP, so no request shaping helps — but
+unlike Disbiome, an archived copy of the bulk export exists, so the data is
+usable anyway.
 
 **Update 2026-09-02 (coordinator):** the origin stays down, but the site's own
 bulk exports were captured by the Wayback Machine and downloaded from the
@@ -369,6 +379,15 @@ bulk. Both resources are public domain, so nothing here is a licence decision.
   (sha256 `af84bfca…`) to the full download.
 - **Failures are recorded, not fatal.** A dead source is written to the manifest
   with its exact error and the run continues.
+- **Hand-placed files are adopted, not overwritten.** Where a host blocks
+  automated download (HMDB), an operator-supplied file is detected, hashed and
+  recorded as `manual-present` instead of re-attempting the 403.
+- **gutMDisorder is fetched from Wayback**, since its origin refuses
+  connections; playback is rate-limited, so the two requests are spaced 8 s
+  apart and the origin is only probed if a file is missing.
+- **Large files are not re-hashed needlessly.** A SHA-256 is recomputed only
+  when size or mtime has moved, so the 6.5 GB HMDB drop costs one hash, not one
+  per run.
 
 ### Flags
 

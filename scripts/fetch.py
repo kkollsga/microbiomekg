@@ -121,12 +121,22 @@ def record(key: str, **fields) -> None:
 
 def record_file(source: str, path: Path, url: str, status: str, **extra) -> None:
     key = f"{source}/{path.relative_to(RAW / source).as_posix()}"
+    st = path.stat()
+    # Re-hashing is skipped only when size AND mtime both match what the manifest
+    # already recorded, so an unchanged 6.5 GB HMDB drop does not cost a full
+    # SHA-256 pass on every run. Any edit moves mtime and forces a rehash.
+    prev = MANIFEST_DATA.get(key, {})
+    if prev.get("bytes") == st.st_size and prev.get("mtime") == int(st.st_mtime):
+        digest = prev["sha256"]
+    else:
+        digest = sha256_of(path)
     record(
         key,
         url=url,
         path=str(path.relative_to(ROOT)),
-        bytes=path.stat().st_size,
-        sha256=sha256_of(path),
+        bytes=st.st_size,
+        mtime=int(st.st_mtime),
+        sha256=digest,
         status=status,
         **extra,
     )
@@ -372,6 +382,18 @@ def fetch_disbiome(args) -> None:
 def fetch_hmdb(args) -> None:
     log("HMDB")
     url = "https://hmdb.ca/system/downloads/current/hmdb_metabolites.zip"
+
+    # hmdb.ca is behind an interactive Cloudflare challenge, so the operator
+    # downloads this by hand. Honour whatever they dropped in — either the zip
+    # or the XML unpacked from it — rather than pointlessly re-hitting the 403.
+    for name in ("hmdb_metabolites.zip", "hmdb_metabolites.xml"):
+        placed = RAW / "hmdb" / name
+        if placed.exists() and placed.stat().st_size:
+            log(f"  operator-supplied hmdb/{name} ({placed.stat().st_size:,} B)")
+            record_file("hmdb", placed, url, "manual-present",
+                        note="placed by hand; hmdb.ca blocks automated download")
+            return
+
     try:
         r = request("GET", url, timeout=120, stream=True, allow_redirects=True)
     except requests.RequestException as exc:
@@ -574,8 +596,42 @@ def fetch_chembl(args) -> None:
                        "skipped", "5.76 GB; not fetched by default — pass --chembl-sqlite")
 
 
+# bio-annotation.cn refuses connections, but the site's own bulk-export files
+# were captured by the Wayback Machine. These are the last good snapshots of the
+# two files the Resource page offered; the "if_" infix asks for the original
+# bytes rather than archive.org's rewritten wrapper.
+GUTMDISORDER_WAYBACK = [
+    ("human.xlsx", "http://web.archive.org/web/20200812224039if_/"
+                   "http://bio-annotation.cn:80/gutMDisorder/public/res/human.xlsx"),
+    ("mouse.xlsx", "http://web.archive.org/web/20200812224042if_/"
+                   "http://bio-annotation.cn:80/gutMDisorder/public/res/mouse.xlsx"),
+]
+
+
 def fetch_gutmdisorder(args) -> None:
     log("gutMDisorder")
+
+    # Origin first only if something is missing; otherwise record and move on.
+    have = [n for n, _ in GUTMDISORDER_WAYBACK
+            if (RAW / "gutmdisorder" / n).exists()
+            and (RAW / "gutmdisorder" / n).stat().st_size]
+    if len(have) == len(GUTMDISORDER_WAYBACK) and not args.force:
+        for name, wb in GUTMDISORDER_WAYBACK:
+            path = RAW / "gutmdisorder" / name
+            log(f"  cached gutmdisorder/{name} ({path.stat().st_size:,} B)")
+            record_file("gutmdisorder", path, wb, "cached",
+                        note="origin host is down; bytes come from a Wayback snapshot")
+        return
+
+    ok = True
+    for name, wb in GUTMDISORDER_WAYBACK:
+        # archive.org rate-limits snapshot playback hard (HTTP 429); space these out.
+        if download("gutmdisorder", wb, name, timeout=180, force=args.force) is None:
+            ok = False
+        time.sleep(8)
+    if ok:
+        return
+
     for url in ("http://bio-annotation.cn/gutMDisorder/",
                 "https://bio-annotation.cn/gutMDisorder/"):
         try:
