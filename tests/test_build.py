@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import BUGSIGDB_MINI, TAXDUMP_MINI, read_bugsigdb
+from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI, read_bugsigdb
 
 kglite = pytest.importorskip("kglite")
 pytest.importorskip(
@@ -49,13 +49,19 @@ for _needed in (BLUEPRINT, PREP_BUGSIGDB, PREP_TAXONOMY):
 # Golden values. See the module docstring for how they were derived.
 # --------------------------------------------------------------------------
 
-INPUT_ROWS = 42                 # 34 real BugSigDB rows + 8 adversarial
+INPUT_ROWS = 43                 # 34 real BugSigDB rows + 9 adversarial
 
 NODE_COUNTS = {
-    "Signature": 42,            # one per input row; BSDB IDs are unique
-    "Study": 38,                # distinct BugSigDB Study ids
+    "Signature": 43,            # one per input row; BSDB IDs are unique
+    "Study": 39,                # distinct BugSigDB Study ids
     "Paper": 33,                # distinct PMIDs; 5 rows have none
-    "Disease": 20,              # distinct ontology terms in the `EFO ID` column
+    # The 20 distinct terms of the `EFO ID` column, routed by vocabulary:
+    # 6 MONDO + 9 EFO are diseases, HP:0002745 is a phenotype, 2 CHEBI + EXO +
+    # GSSO are exposures, and NCBITAXON:568703 is an organism and gets no node
+    # at all — it is in `unresolved_conditions.csv` instead (C14).
+    "Disease": 15,
+    "Phenotype": 1,
+    "Exposure": 4,
     "BodySite": 9,              # distinct UBERON ids
     "Taxon": 143,               # 53 cited + their lineage closure to root
     "UnresolvedTaxon": 3,       # 1009 deleted, 999999999 unknown, an ambiguous name
@@ -64,22 +70,42 @@ NODE_COUNTS = {
 EDGE_COUNTS = {
     "HAS_PARENT": 142,          # every Taxon but root, which is its own parent
     "REPORTED_BY": 74,          # every taxon mention, resolved or not
-    "ASSOCIATED_WITH": 73,      # (resolved taxon x condition term) per signature
-    "IN_CONDITION": 43,
-    "AT_BODY_SITE": 44,
-    "PART_OF_STUDY": 42,
-    "PUBLISHED_AS": 33,
+    # (resolved taxon x condition term) per signature, split by the condition's
+    # node type. 72, not 73: the one association to NCBITAXON:568703 has no
+    # condition node to point at and is in the ledger.
+    "ASSOCIATED_WITH": 55,
+    "ASSOCIATED_WITH_PHENOTYPE": 3,
+    "ASSOCIATED_WITH_EXPOSURE": 14,
+    "IN_CONDITION": 34,
+    "IN_PHENOTYPE": 3,
+    "IN_EXPOSURE": 6,
+    "AT_BODY_SITE": 45,
+    "PART_OF_STUDY": 43,
+    "PUBLISHED_AS": 34,
 }
+
+#: Every association edge, whatever its condition type. The three relationship
+#: names are an engine constraint, not a modelling choice (docs/model.md §8).
+ANY_ASSOCIATION = "ASSOCIATED_WITH|ASSOCIATED_WITH_PHENOTYPE|ASSOCIATED_WITH_EXPOSURE"
+ASSOCIATION_EDGES = 72
 
 CITED_TAXA = 53                 # taxa some signature actually named
 TAXON_MENTIONS = 74             # 71 resolvable + 3 not
 UNRESOLVED_RECORDS = 3
+
+#: Condition terms with no node type of their own — NCBITAXON:568703.
+UNRESOLVED_CONDITIONS = 1
+#: Disease-hub misses: 14 of the 20 typed terms have no MONDO equivalence in
+#: the 2026-09-01 release (all 9 EFO ids, the 4 exposures, the phenotype), so
+#: they keep their own CURIE as key. The 6 MONDO ids are their own hub key.
+CONDITIONS_WITHOUT_MONDO = 14
 
 # ASSOCIATED_WITH edges missing at least one evidence property. `ontology_audit`
 # counts edges, not property-instances, so this is the union.
 EDGES_MISSING_EVIDENCE = 16
 
 UNRESOLVED_REPORT = "unresolved_taxa.csv"
+CONDITION_LEDGER = "unresolved_conditions.csv"
 
 
 @pytest.fixture(scope="module")
@@ -103,6 +129,7 @@ def built(tmp_path_factory):
         PREP_BUGSIGDB,
         "--raw", str(BUGSIGDB_MINI),
         "--taxdump", str(TAXDUMP_MINI),
+        "--mondo", str(MONDO_MINI),
         "--out", str(csv_dir),
     )
     run(
@@ -141,6 +168,14 @@ def graph(built):
 @pytest.fixture(scope="module")
 def csv_dir(built):
     return built[1]
+
+
+@pytest.fixture(scope="module")
+def condition_ledger(csv_dir):
+    path = csv_dir / CONDITION_LEDGER
+    assert path.is_file(), f"the build wrote no {CONDITION_LEDGER}"
+    with path.open(encoding="utf-8", newline="") as fh:
+        return list(csv.DictReader(fh))
 
 
 @pytest.fixture(scope="module")
@@ -298,7 +333,7 @@ def test_direction_is_stored_per_association(graph):
     hit = rows(
         graph,
         "MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease) "
-        "WHERE t.tax_id = 853 AND d.disease_id = 'MONDO:0011122' "
+        "WHERE t.tax_id = 853 AND d.condition_id = 'MONDO:0011122' "
         "RETURN r.direction AS direction, r.signature_id AS sig",
     )
     got = {h["sig"]: h["direction"] for h in hit}
@@ -316,7 +351,7 @@ def test_same_pair_from_three_signatures_is_three_edges(graph):
         for h in rows(
             graph,
             "MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease) "
-            "WHERE t.tax_id = 1598 AND d.disease_id = 'MONDO:0011122' "
+            "WHERE t.tax_id = 1598 AND d.condition_id = 'MONDO:0011122' "
             "RETURN r.signature_id AS sig",
         )
     )
@@ -333,8 +368,8 @@ def test_conflicting_directions_survive_as_separate_edges(graph):
         h["sig"]: h["direction"]
         for h in rows(
             graph,
-            "MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease) "
-            "WHERE t.tax_id = 1386 AND d.disease_id = 'HP:0002745' "
+            "MATCH (t:Taxon)-[r:ASSOCIATED_WITH_PHENOTYPE]->(d:Phenotype) "
+            "WHERE t.tax_id = 1386 AND d.condition_id = 'HP:0002745' "
             "RETURN r.signature_id AS sig, r.direction AS direction",
         )
     }
@@ -349,46 +384,68 @@ def test_conflicting_directions_survive_as_separate_edges(graph):
 # --------------------------------------------------------------------------
 
 
-def test_condition_terms_keep_their_source_ontology(graph):
-    """C14: the `EFO ID` column carries EFO, MONDO, CHEBI, EXO, GSSO, HP, NCBITAXON."""
-    got = {
-        r["p"]: r["n"]
+def test_condition_terms_keep_their_source_vocabulary(graph):
+    """C14: the `EFO ID` column carries EFO, MONDO, CHEBI, EXO, GSSO, HP, NCBITAXON.
+
+    Keying on MONDO does not throw the source id away — `source_vocabulary` is
+    what makes `WHERE d.source_vocabulary = 'EFO'` expressible after the hub
+    has renamed the key.
+    """
+    got = {}
+    for label in ("Disease", "Phenotype", "Exposure"):
         for r in rows(
             graph,
-            "MATCH (d:Disease) RETURN split(d.disease_id, ':')[0] AS p, count(d) AS n",
-        )
-    }
+            f"MATCH (d:{label}) RETURN d.source_vocabulary AS v, count(d) AS n",
+        ):
+            got[(label, r["v"])] = r["n"]
     assert got == {
-        "EFO": 9,
-        "MONDO": 5,
-        "CHEBI": 2,
-        "EXO": 1,
-        "GSSO": 1,
-        "HP": 1,
-        "NCBITAXON": 1,
+        ("Disease", "EFO"): 9,
+        ("Disease", "MONDO"): 6,
+        ("Phenotype", "HP"): 1,
+        ("Exposure", "CHEBI"): 2,
+        ("Exposure", "EXO"): 1,
+        ("Exposure", "GSSO"): 1,
     }
 
 
-def test_non_disease_terms_are_distinguishable(graph):
-    """C14: `NCBITAXON:568703` is *Lacticaseibacillus rhamnosus* GG, an exposure.
+def test_non_disease_terms_are_not_disease_nodes(graph, condition_ledger):
+    """C14: `NCBITAXON:568703` is *Lacticaseibacillus rhamnosus* GG — an organism
+    used as the exposure, not a disease and not a term this model types at all.
 
-    A query for "diseases" must be able to exclude it without string-matching
-    the label, so the term's source ontology has to be a property.
+    It is not dropped: it is in `unresolved_conditions.csv` with its raw
+    strings and the reason.
     """
-    hit = rows(
-        graph,
-        "MATCH (d:Disease) WHERE d.disease_id = 'NCBITAXON:568703' "
-        "RETURN d.ontology AS ontology, d.label AS label",
-    )
-    assert hit, "the NCBITAXON condition is missing entirely"
-    assert hit[0]["ontology"] == "NCBITAXON"
+    for label in ("Disease", "Phenotype", "Exposure"):
+        assert (
+            count(
+                graph,
+                f"MATCH (d:{label}) WHERE d.condition_id = 'NCBITAXON:568703' "
+                f"RETURN count(d) AS n",
+            )
+            == 0
+        ), f"an NCBI organism became a :{label}"
+    ledgered = [r for r in condition_ledger if r["source_id"] == "NCBITAXON:568703"]
+    assert ledgered, "the NCBITAXON condition vanished instead of reaching the ledger"
+    assert ledgered[0]["source_vocabulary"] == "NCBITAXON"
+    assert ledgered[0]["reason"]
+    assert len(condition_ledger) == UNRESOLVED_CONDITIONS
+
+
+def test_the_phenotype_and_exposure_terms_are_their_own_types(graph):
+    """C14: `HP:0002745` (Oral leukoplakia) is a phenotype and `CHEBI:33281`
+    (Antimicrobial agent) is a chemical exposure. Neither is a disease."""
     assert (
-        count(
-            graph,
-            "MATCH (d:Disease) WHERE d.ontology IN ['MONDO','EFO'] RETURN count(d) AS n",
-        )
-        == 14
-    ), "the disease-ish terms are 9 EFO + 5 MONDO"
+        count(graph, "MATCH (d:Phenotype) WHERE d.condition_id = 'HP:0002745' "
+                     "RETURN count(d) AS n") == 1
+    )
+    assert (
+        count(graph, "MATCH (d:Exposure) WHERE d.condition_id = 'CHEBI:33281' "
+                     "RETURN count(d) AS n") == 1
+    )
+    assert (
+        count(graph, "MATCH (d:Disease) WHERE d.condition_id IN "
+                     "['HP:0002745','CHEBI:33281'] RETURN count(d) AS n") == 0
+    )
 
 
 def test_two_colorectal_terms_stay_distinct(graph):
@@ -397,24 +454,33 @@ def test_two_colorectal_terms_stay_distinct(graph):
         r["d"]
         for r in rows(
             graph,
-            "MATCH (d:Disease) WHERE d.disease_id IN "
-            "['MONDO:0005575','MONDO:0024331'] RETURN d.disease_id AS d",
+            "MATCH (d:Disease) WHERE d.condition_id IN "
+            "['MONDO:0005575','MONDO:0024331'] RETURN d.condition_id AS d",
         )
     }
     assert got == {"MONDO:0005575", "MONDO:0024331"}
 
 
 def test_multi_condition_row_links_to_both_terms(graph):
-    """C14: `bsdb:23349750/1/2` is `EFO:0001799,EXO:0000114` — a set, not a zip."""
+    """C14: `bsdb:23349750/1/2` is `EFO:0001799,EXO:0000114` — a set, not a zip.
+
+    Equal comma counts, so the pairing is positional: `Ethnic group` to the EFO
+    id and `Socioeconomic status` to the EXO one. The two terms land in
+    different node types, and both links survive.
+    """
     got = {
-        r["d"]
+        (r["t"], r["d"], r["c"])
         for r in rows(
             graph,
-            "MATCH (s:Signature)-[:IN_CONDITION]->(d:Disease) "
-            "WHERE s.signature_id = 'bsdb:23349750/1/2' RETURN d.disease_id AS d",
+            "MATCH (s:Signature)-[:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->(d) "
+            "WHERE s.signature_id = 'bsdb:23349750/1/2' "
+            "RETURN labels(d)[0] AS t, d.condition_id AS d, d.source_condition AS c",
         )
     }
-    assert got == {"EFO:0001799", "EXO:0000114"}
+    assert got == {
+        ("Disease", "EFO:0001799", "Ethnic group"),
+        ("Exposure", "EXO:0000114", "Socioeconomic status"),
+    }
 
 
 # --------------------------------------------------------------------------
@@ -714,7 +780,7 @@ def test_shortest_path_taxon_to_disease(graph):
     hit = rows(
         graph,
         "MATCH p = shortestPath((t:Taxon)-[*..6]-(d:Disease)) "
-        "WHERE t.tax_id = 853 AND d.disease_id = 'MONDO:0011122' "
+        "WHERE t.tax_id = 853 AND d.condition_id = 'MONDO:0011122' "
         "RETURN length(p) AS len",
     )
     assert hit, "no path between Faecalibacterium prausnitzii and Obesity"
@@ -798,3 +864,99 @@ def test_authority_stripped_matches_are_countable_on_the_edge(graph):
         )
         == 1
     ), "exactly one fixture mention needed authority stripping"
+
+
+# --------------------------------------------------------------------------
+# C14 / schema survey §5(a) — the MONDO disease hub and the condition ledger
+# --------------------------------------------------------------------------
+
+
+def test_a_live_mondo_id_keys_its_own_disease_node(graph):
+    hit = rows(
+        graph,
+        "MATCH (d:Disease) WHERE d.condition_id = 'MONDO:0011122' "
+        "RETURN d.mondo_id AS mondo, d.mondo_label AS mondo_label, "
+        "d.source_id AS source, d.source_vocabulary AS vocab, "
+        "d.source_condition AS verbatim, d.label AS label",
+    )
+    assert hit, "MONDO:0011122 is not in the graph"
+    assert hit[0]["mondo"] == "MONDO:0011122"
+    # MONDO's own name, not BugSigDB's spelling — the source string is kept
+    # beside it rather than overwriting it.
+    assert hit[0]["mondo_label"] == "obesity disorder"
+    assert hit[0]["label"] == "obesity disorder"
+    assert hit[0]["verbatim"] == "Obesity"
+    assert hit[0]["source"] == "MONDO:0011122"
+    assert hit[0]["vocab"] == "MONDO"
+
+
+def test_terms_with_no_mondo_equivalence_keep_their_own_curie(graph):
+    """None of BugSigDB's 394 EFO ids appears as a `MONDO:equivalentTo` xref in
+    the 2026-09-01 release — measured, not assumed. They keep their own key and
+    say so with a null `mondo_id`, rather than being merged by label."""
+    hit = rows(
+        graph,
+        "MATCH (d:Disease) WHERE d.condition_id = 'EFO:0000246' "
+        "RETURN d.mondo_id AS mondo, d.source_vocabulary AS vocab, "
+        "d.source_condition AS verbatim",
+    )
+    assert hit and hit[0]["mondo"] is None
+    assert hit[0]["vocab"] == "EFO"
+    assert hit[0]["verbatim"] == "Age"
+    without = 0
+    for label in ("Disease", "Phenotype", "Exposure"):
+        without += count(
+            graph,
+            f"MATCH (d:{label}) WHERE d.mondo_id IS NULL RETURN count(d) AS n",
+        )
+    assert without == CONDITIONS_WITHOUT_MONDO
+
+
+def test_a_comma_inside_a_condition_label_does_not_mispair(graph):
+    """C14: `bsdb:adv-condcomma/1/1` is `MONDO:0025082` with condition
+    `Helminthiasis, animal` — one id, two comma-separated fragments.
+
+    A positional zip pairs the id with `Helminthiasis` and drops `animal`. All
+    42 mismatched-count rows of the real dump are this shape.
+    """
+    hit = rows(
+        graph,
+        "MATCH (s:Signature)-[:IN_CONDITION]->(d:Disease) "
+        "WHERE s.signature_id = 'bsdb:adv-condcomma/1/1' "
+        "RETURN d.condition_id AS id, d.source_condition AS verbatim, "
+        "d.mondo_label AS mondo_label",
+    )
+    assert len(hit) == 1, f"the comma-in-label row produced {len(hit)} conditions"
+    assert hit[0]["id"] == "MONDO:0025082"
+    assert hit[0]["verbatim"] == "Helminthiasis, animal"
+    assert hit[0]["mondo_label"] == "helminthiasis, animal"
+
+
+def test_every_condition_mention_is_accounted_for(graph, condition_ledger):
+    """C18, for the condition column: typed node links + ledger rows == the
+    condition mentions the 43 rows carry."""
+    linked = count(
+        graph,
+        "MATCH (:Signature)-[r:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->() "
+        "RETURN count(r) AS n",
+    )
+    mentions = 0
+    for row in read_bugsigdb():
+        cell = row["EFO ID"]
+        if cell and cell != "NA":
+            mentions += len([c for c in cell.replace(";", ",").split(",") if c.strip()])
+    assert linked + len(condition_ledger) == mentions
+
+
+def test_association_edges_never_point_at_an_untyped_condition(graph):
+    """Every association edge's target is one of the three condition types."""
+    got = {
+        r["t"]: r["n"]
+        for r in rows(
+            graph,
+            f"MATCH (:Taxon)-[r:{ANY_ASSOCIATION}]->(c) "
+            f"RETURN labels(c)[0] AS t, count(r) AS n",
+        )
+    }
+    assert got == {"Disease": 55, "Phenotype": 3, "Exposure": 14}
+    assert sum(got.values()) == ASSOCIATION_EDGES

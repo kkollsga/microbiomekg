@@ -39,7 +39,87 @@
             "csv": "taxon_disease.csv",
             "source_fk": "tax_id",
             "target": "Disease",
-            "target_fk": "disease_id",
+            "target_fk": "condition_id",
+            "properties": [
+              "direction",
+              "study_design",
+              "evidence_level",
+              "sequencing_type",
+              "statistical_test",
+              "group_0_size",
+              "group_1_size",
+              "pmid",
+              "source",
+              "signature_id",
+              "study_id",
+              "host_species",
+              "body_site",
+              "significance_threshold",
+              "mht_correction"
+            ],
+            "property_types": {
+              "group_0_size": "int",
+              "group_1_size": "int",
+              "pmid": "int",
+              "significance_threshold": "float",
+              "direction": "string",
+              "study_design": "string",
+              "evidence_level": "string",
+              "sequencing_type": "string",
+              "statistical_test": "string",
+              "source": "string",
+              "signature_id": "string",
+              "study_id": "string",
+              "host_species": "string",
+              "body_site": "string",
+              "mht_correction": "string"
+            }
+          },
+          "ASSOCIATED_WITH_PHENOTYPE": {
+            "csv": "taxon_phenotype.csv",
+            "source_fk": "tax_id",
+            "target": "Phenotype",
+            "target_fk": "condition_id",
+            "properties": [
+              "direction",
+              "study_design",
+              "evidence_level",
+              "sequencing_type",
+              "statistical_test",
+              "group_0_size",
+              "group_1_size",
+              "pmid",
+              "source",
+              "signature_id",
+              "study_id",
+              "host_species",
+              "body_site",
+              "significance_threshold",
+              "mht_correction"
+            ],
+            "property_types": {
+              "group_0_size": "int",
+              "group_1_size": "int",
+              "pmid": "int",
+              "significance_threshold": "float",
+              "direction": "string",
+              "study_design": "string",
+              "evidence_level": "string",
+              "sequencing_type": "string",
+              "statistical_test": "string",
+              "source": "string",
+              "signature_id": "string",
+              "study_id": "string",
+              "host_species": "string",
+              "body_site": "string",
+              "mht_correction": "string"
+            }
+          },
+          "ASSOCIATED_WITH_EXPOSURE": {
+            "csv": "taxon_exposure.csv",
+            "source_fk": "tax_id",
+            "target": "Exposure",
+            "target_fk": "condition_id",
             "properties": [
               "direction",
               "study_design",
@@ -198,7 +278,19 @@
             "csv": "signature_condition.csv",
             "source_fk": "signature_id",
             "target": "Disease",
-            "target_fk": "disease_id"
+            "target_fk": "condition_id"
+          },
+          "IN_PHENOTYPE": {
+            "csv": "signature_phenotype.csv",
+            "source_fk": "signature_id",
+            "target": "Phenotype",
+            "target_fk": "condition_id"
+          },
+          "IN_EXPOSURE": {
+            "csv": "signature_exposure.csv",
+            "source_fk": "signature_id",
+            "target": "Exposure",
+            "target_fk": "condition_id"
           },
           "AT_BODY_SITE": {
             "csv": "signature_bodysite.csv",
@@ -247,12 +339,41 @@
     },
     "Disease": {
       "csv": "disease.csv",
-      "pk": "disease_id",
+      "pk": "condition_id",
       "title": "label",
       "properties": {
         "label": "string",
+        "mondo_id": "string",
+        "mondo_label": "string",
         "source_id": "string",
-        "ontology": "string"
+        "source_vocabulary": "string",
+        "source_condition": "string"
+      }
+    },
+    "Phenotype": {
+      "csv": "phenotype.csv",
+      "pk": "condition_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "mondo_id": "string",
+        "mondo_label": "string",
+        "source_id": "string",
+        "source_vocabulary": "string",
+        "source_condition": "string"
+      }
+    },
+    "Exposure": {
+      "csv": "exposure.csv",
+      "pk": "condition_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "mondo_id": "string",
+        "mondo_label": "string",
+        "source_id": "string",
+        "source_vocabulary": "string",
+        "source_condition": "string"
       }
     },
     "BodySite": {

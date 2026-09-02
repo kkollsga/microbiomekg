@@ -21,6 +21,12 @@ Two gotchas in the export, both silent if you get them wrong:
   CSV cell, because kglite treats an empty cell as an absent property, and an
   absent property is what the ontology's ``required_properties`` audit counts.
   Passing ``"NA"`` through would make every evidence gap look filled.
+* the column named ``EFO ID`` is neither EFO nor, in 40% of its mentions, a
+  disease, and the ``Condition`` column beside it is comma-joined with commas
+  *inside* some of its values. Both are :mod:`microbiomekg.conditions`'
+  problem, not this script's: it decides the node type, the key and the
+  pairing, and anything it cannot answer lands in ``unresolved_conditions.csv``
+  rather than in a node type it does not belong to.
 
 And one in the loader, which the build command has to work around: kglite's
 blueprint junction loader streams in 100,000-row chunks and *deduplicates
@@ -38,12 +44,19 @@ import argparse
 import csv
 import re
 import sys
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from microbiomekg import ontology as ont  # noqa: E402
+from microbiomekg.conditions import (  # noqa: E402
+    MondoIndex,
+    condition_node_type,
+    curie_vocabulary,
+    pair_conditions,
+    split_curies,
+)
 from microbiomekg.rawdata import find_bugsigdb_dump, find_taxdump  # noqa: E402
 from microbiomekg.reconcile import Resolution, TaxonomyIndex  # noqa: E402
 
@@ -92,19 +105,6 @@ def normalise_doi(value: str | None) -> str:
     v = re.sub(r"^(?:https?://)?(?:dx\.)?doi\.org/", "", v, flags=re.I)
     v = re.sub(r"^doi:\s*", "", v, flags=re.I)
     return v.strip().lower()
-
-
-def curie_ontology(curie: str) -> str:
-    """``MONDO:0005265`` -> ``MONDO``. The column is named "EFO ID" but carries
-    twelve different vocabularies (MONDO 48%, EFO 36%, HP, GO, CHEBI, ...), so
-    the prefix is kept as data instead of being assumed."""
-    m = re.match(r"([A-Za-z]+)[:_]", curie)
-    return m.group(1).upper() if m else ""
-
-
-def split_curies(cell: str) -> list[str]:
-    """Split a multi-valued ontology cell. 329 signatures name two conditions."""
-    return [c.strip() for c in re.split(r"[,;]", cell) if c.strip()]
 
 
 def split_taxa(names_cell: str, ids_cell: str) -> list[tuple[str, str]]:
@@ -189,6 +189,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
     ap.add_argument("--dump", type=Path, default=None)
     ap.add_argument("--taxdump", type=Path, default=None)
+    ap.add_argument(
+        "--mondo",
+        type=Path,
+        default=None,
+        help="mondo.obo, the disease-id hub (default: <raw>/mondo/mondo.obo). "
+        "Absent, every condition keeps its own CURIE as key and mondo_id is "
+        "null everywhere — the build still runs, and says so.",
+    )
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
     ap.add_argument(
         "--rank-ceiling",
@@ -215,6 +223,17 @@ def main(argv: list[str] | None = None) -> int:
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
+    mondo_path = args.mondo or (args.raw / "mondo" / "mondo.obo")
+    if mondo_path.is_file():
+        print(f"loading MONDO from {mondo_path} ...", flush=True)
+        mondo = MondoIndex.from_obo(mondo_path)
+        print(f"  {len(mondo.label):,} live terms, {len(mondo.equivalent):,} "
+              f"equivalences, {len(mondo.obsolete):,} obsolete", flush=True)
+    else:
+        mondo = MondoIndex()
+        print(f"no mondo.obo at {mondo_path}; every condition keeps its own CURIE "
+              f"as key and mondo_id will be null", flush=True)
+
     out = args.out
     studies = Writer(
         out / "study.csv",
@@ -223,8 +242,25 @@ def main(argv: list[str] | None = None) -> int:
         key="study_id",
     )
     papers = Writer(out / "paper.csv", ["pmid", "title", "journal", "year", "doi"], key="pmid")
-    diseases = Writer(
-        out / "disease.csv", ["disease_id", "label", "source_id", "ontology"], key="disease_id"
+    # One table per condition node type (C14). The key is the MONDO CURIE when
+    # MONDO declares an equivalence and the source CURIE otherwise; the source
+    # id and its vocabulary stay as properties either way, so
+    # `WHERE d.source_vocabulary = 'EFO'` is still expressible.
+    condition_fields = ["condition_id", "label", "mondo_id", "mondo_label",
+                        "source_id", "source_vocabulary", "source_condition"]
+    conditions = {
+        "Disease": Writer(out / "disease.csv", condition_fields, key="condition_id"),
+        "Phenotype": Writer(out / "phenotype.csv", condition_fields, key="condition_id"),
+        "Exposure": Writer(out / "exposure.csv", condition_fields, key="condition_id"),
+    }
+    # Nothing is dropped and nothing is guessed: a vocabulary with no node type
+    # and a condition string no id could be attached to both land here, with
+    # the raw strings and the reason.
+    unresolved_conditions = Writer(
+        out / "unresolved_conditions.csv",
+        ["signature_id", "source_id", "source_vocabulary", "raw_condition",
+         "pairing_method", "reason", "source"],
+        dedupe_full=True,
     )
     bodysites = Writer(
         out / "bodysite.csv", ["bodysite_id", "label", "source_id", "ontology"], key="bodysite_id"
@@ -241,9 +277,19 @@ def main(argv: list[str] | None = None) -> int:
          "state", "pmid", "n_taxa", "n_unresolved", "source"],
         key="signature_id",
     )
-    sig_condition = Writer(
-        out / "signature_condition.csv", ["signature_id", "disease_id"], dedupe_full=True
-    )
+    # One junction CSV per condition node type, because a blueprint junction
+    # edge names exactly one target node type (see docs/model.md section 8).
+    sig_condition = {
+        "Disease": Writer(
+            out / "signature_condition.csv", ["signature_id", "condition_id"],
+            dedupe_full=True),
+        "Phenotype": Writer(
+            out / "signature_phenotype.csv", ["signature_id", "condition_id"],
+            dedupe_full=True),
+        "Exposure": Writer(
+            out / "signature_exposure.csv", ["signature_id", "condition_id"],
+            dedupe_full=True),
+    }
     sig_bodysite = Writer(
         out / "signature_bodysite.csv", ["signature_id", "bodysite_id"], dedupe_full=True
     )
@@ -267,18 +313,22 @@ def main(argv: list[str] | None = None) -> int:
          "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
         key="unresolved_id",
     )
-    assoc = Writer(
-        out / "taxon_disease.csv",
-        ["tax_id", "disease_id", "direction", "study_design", "evidence_level",
-         "sequencing_type", "statistical_test", "group_0_size", "group_1_size",
-         "pmid", "source", "signature_id", "study_id", "host_species", "body_site",
-         "significance_threshold", "mht_correction"],
-        dedupe_full=True,
-    )
+    assoc_fields = ["tax_id", "condition_id", "direction", "study_design",
+                    "evidence_level", "sequencing_type", "statistical_test",
+                    "group_0_size", "group_1_size", "pmid", "source", "signature_id",
+                    "study_id", "host_species", "body_site",
+                    "significance_threshold", "mht_correction"]
+    assoc = {
+        "Disease": Writer(out / "taxon_disease.csv", assoc_fields, dedupe_full=True),
+        "Phenotype": Writer(out / "taxon_phenotype.csv", assoc_fields, dedupe_full=True),
+        "Exposure": Writer(out / "taxon_exposure.csv", assoc_fields, dedupe_full=True),
+    }
 
     cited: "OrderedDict[int, int]" = OrderedDict()
     unresolved_hits: dict[str, int] = {}
-    n_rows = n_pairs = n_resolved = 0
+    pairing_methods: Counter[str] = Counter()
+    no_mondo_terms: set[str] = set()
+    n_rows = n_pairs = n_resolved = n_unroutable = 0
 
     with dump.open("r", newline="", encoding="utf-8") as fh:
         first = fh.readline()
@@ -338,25 +388,59 @@ def main(argv: list[str] | None = None) -> int:
             stat = na(row.get("Statistical test"))
 
             condition_label = na(row.get("Condition"))
-            disease_ids: list[str] = []
-            for curie in split_curies(na(row.get("EFO ID"))):
-                disease_ids.append(curie)
-                diseases.add(
+            paired = pair_conditions(
+                split_curies(na(row.get("EFO ID"))), condition_label, mondo
+            )
+            pairing_methods[paired.method] += 1
+            # condition node type -> the keys this row links to
+            row_conditions: dict[str, list[str]] = {k: [] for k in conditions}
+            for curie, verbatim in paired.pairs:
+                node_type = condition_node_type(curie)
+                vocab = curie_vocabulary(curie)
+                if node_type is None:
+                    n_unroutable += 1
+                    unresolved_conditions.add(
+                        {"signature_id": bsdb, "source_id": curie,
+                         "source_vocabulary": vocab, "raw_condition": verbatim,
+                         "pairing_method": paired.method,
+                         "reason": "no node type for this vocabulary", "source": SOURCE}
+                    )
+                    continue
+                hub = mondo.mondo_id(curie)
+                if hub is None:
+                    no_mondo_terms.add(curie)
+                key = hub or curie
+                row_conditions[node_type].append(key)
+                conditions[node_type].add(
                     {
-                        "disease_id": curie,
-                        "label": condition_label or curie,
+                        "condition_id": key,
+                        # MONDO's name where there is one; the source's own
+                        # string is one observed spelling among several
+                        # (MONDO:0002009 arrives as both `Major depressive
+                        # disorder` and `Unipolar depression`).
+                        "label": mondo.label_for(curie) or verbatim or curie,
+                        "mondo_id": hub or "",
+                        "mondo_label": mondo.label_for(curie) or "",
                         "source_id": curie,
-                        "ontology": curie_ontology(curie),
+                        "source_vocabulary": vocab,
+                        "source_condition": verbatim,
                     }
                 )
-            if not disease_ids and condition_label:
-                sid = slug(condition_label, "cond")
-                if sid:
-                    disease_ids.append(sid)
-                    diseases.add(
-                        {"disease_id": sid, "label": condition_label,
-                         "source_id": "", "ontology": ""}
-                    )
+            for curie in paired.unpaired_ids:
+                unresolved_conditions.add(
+                    {"signature_id": bsdb, "source_id": curie,
+                     "source_vocabulary": curie_vocabulary(curie), "raw_condition": "",
+                     "pairing_method": paired.method,
+                     "reason": "no condition string could be paired to this id",
+                     "source": SOURCE}
+                )
+            for text in paired.unpaired_labels:
+                unresolved_conditions.add(
+                    {"signature_id": bsdb, "source_id": "", "source_vocabulary": "",
+                     "raw_condition": text, "pairing_method": paired.method,
+                     "reason": "no id could be paired to this condition string",
+                     "source": SOURCE}
+                )
 
             site_label = na(row.get("Body site"))
             site_ids: list[str] = []
@@ -364,7 +448,7 @@ def main(argv: list[str] | None = None) -> int:
                 site_ids.append(curie)
                 bodysites.add(
                     {"bodysite_id": curie, "label": site_label or curie,
-                     "source_id": curie, "ontology": curie_ontology(curie)}
+                     "source_id": curie, "ontology": curie_vocabulary(curie)}
                 )
             if not site_ids and site_label:
                 sid = slug(site_label, "site")
@@ -374,8 +458,11 @@ def main(argv: list[str] | None = None) -> int:
                         {"bodysite_id": sid, "label": site_label, "source_id": "", "ontology": ""}
                     )
 
-            for did in disease_ids:
-                sig_condition.add({"signature_id": bsdb, "disease_id": did})
+            for node_type, keys in row_conditions.items():
+                for key in keys:
+                    sig_condition[node_type].add(
+                        {"signature_id": bsdb, "condition_id": key}
+                    )
             for sid in site_ids:
                 sig_bodysite.add({"signature_id": bsdb, "bodysite_id": sid})
 
@@ -440,30 +527,31 @@ def main(argv: list[str] | None = None) -> int:
                 cited[res.tax_id] = cited.get(res.tax_id, 0) + 1
                 reported.add({"tax_id": str(res.tax_id), **base})
 
-                for did in disease_ids:
-                    assoc.add(
-                        {
-                            "tax_id": str(res.tax_id),
-                            "disease_id": did,
-                            "direction": direction,
-                            "study_design": design,
-                            "evidence_level": level,
-                            "sequencing_type": seq_type,
-                            "statistical_test": stat,
-                            "group_0_size": g0,
-                            "group_1_size": g1,
-                            "pmid": pmid,
-                            "source": SOURCE,
-                            # The source's own record id for this assertion —
-                            # part of the evidence contract, not just context.
-                            "signature_id": bsdb,
-                            "study_id": study_id,
-                            "host_species": host,
-                            "body_site": site_ids[0] if site_ids else "",
-                            "significance_threshold": na(row.get("Significance threshold")),
-                            "mht_correction": na(row.get("MHT correction")),
-                        }
-                    )
+                for node_type, keys in row_conditions.items():
+                    for key in keys:
+                        assoc[node_type].add(
+                            {
+                                "tax_id": str(res.tax_id),
+                                "condition_id": key,
+                                "direction": direction,
+                                "study_design": design,
+                                "evidence_level": level,
+                                "sequencing_type": seq_type,
+                                "statistical_test": stat,
+                                "group_0_size": g0,
+                                "group_1_size": g1,
+                                "pmid": pmid,
+                                "source": SOURCE,
+                                # The source's own record id for this assertion —
+                                # part of the evidence contract, not just context.
+                                "signature_id": bsdb,
+                                "study_id": study_id,
+                                "host_species": host,
+                                "body_site": site_ids[0] if site_ids else "",
+                                "significance_threshold": na(row.get("Significance threshold")),
+                                "mht_correction": na(row.get("MHT correction")),
+                            }
+                        )
 
             signatures.add(
                 {
@@ -514,13 +602,20 @@ def main(argv: list[str] | None = None) -> int:
         cited_writer.add({"tax_id": str(tid), "n_signatures": str(n)})
 
     counts = {w.path.name: w.flush() for w in (
-        studies, papers, diseases, bodysites, signatures, sig_condition, sig_bodysite,
-        reported, reported_unres, unresolved_nodes, assoc, cited_writer)}
+        studies, papers, *conditions.values(), bodysites, signatures,
+        *sig_condition.values(), sig_bodysite, reported, reported_unres,
+        unresolved_nodes, *assoc.values(), unresolved_conditions, cited_writer)}
 
     ont_path = ont.write_json(args.ontology_json)
 
+    n_terms = sum(len(w.seen) for w in conditions.values())
     print(f"\nread {n_rows:,} signature rows, {n_pairs:,} taxon mentions "
           f"({n_resolved:,} resolved, {n_pairs - n_resolved:,} unresolved)")
+    print(f"conditions: {n_terms:,} terms typed, {len(no_mondo_terms):,} of them "
+          f"with no MONDO equivalence (own CURIE as key, mondo_id null); "
+          f"{n_unroutable:,} mentions in vocabularies with no node type")
+    print("  condition pairing: " + ", ".join(
+        f"{m} {n:,}" for m, n in sorted(pairing_methods.items())))
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     print(f"  {ont_path.name:34s}  (ontology document)")

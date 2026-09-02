@@ -15,6 +15,7 @@ import pytest
 FIXTURES = Path(__file__).parent / "fixtures"
 TAXDUMP_MINI = FIXTURES / "taxdump_mini"
 BUGSIGDB_MINI = FIXTURES / "bugsigdb_mini.csv"
+MONDO_MINI = FIXTURES / "mondo_mini.obo"
 
 # BugSigDB's export puts a licence banner on line 1, before the header.
 BUGSIGDB_BANNER_LINES = 1

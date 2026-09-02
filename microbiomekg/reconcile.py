@@ -187,6 +187,28 @@ def below_ceiling(rank: str | None, ceiling: str = "species") -> bool | None:
     return own > ceil
 
 
+def _at_or_below_ceiling(rank: str | None, ceiling: str) -> bool | None:
+    """Like :func:`below_ceiling`, but the ceiling rank itself counts.
+
+    This is the question an *ambiguous* node's ancestor answers. 83334
+    ``Escherichia coli O157:H7`` is rank ``no rank`` with parent 562, a
+    species: the ancestor that places it sits **at** the ceiling, not below it,
+    and reading that as "not below" would leave every serovar and pathovar
+    standing as its own species-level node (190,787 of them).
+    """
+    text = (rank or "").strip().lower()
+    if _BELOW_CEILING.get(ceiling.strip().lower()) is not None:
+        if text in AMBIGUOUS_RANKS:
+            return None
+        return text == ceiling.strip().lower() or below_ceiling(text, ceiling) is True
+
+    ceil = rank_depth(ceiling)
+    own = rank_depth(text)
+    if ceil is None or own is None:
+        return None
+    return own >= ceil
+
+
 #: Substrings and prefixes that mark an NCBI scientific name as a *placeholder*
 #: rather than an organism anyone can act on. Each is a real marker with a real
 #: taxon behind it, and none of them is ever stripped or rewritten — the name is
@@ -460,9 +482,11 @@ class TaxonomyIndex:
 
         When that answer is ``None`` — an :data:`AMBIGUOUS_RANKS` node, which
         NCBI files both above and below species — the *nearest unambiguous
-        ancestor* decides. Otherwise ``Enterobacteriaceae incertae sedis``
-        (rank ``no rank``, parent a family) would be "promoted" to its family
-        and a real intermediate node would vanish.
+        ancestor* decides, and it decides by :func:`_at_or_below_ceiling`:
+        83334 ``Escherichia coli O157:H7`` hangs off 562, a node *at* the
+        ceiling, and is below it. Otherwise ``Enterobacteriaceae incertae
+        sedis`` (rank ``no rank``, parent a family) would be "promoted" to its
+        family and a real intermediate node would vanish.
         """
         if ceiling.strip().lower() not in _BELOW_CEILING and rank_depth(ceiling) is None:
             return tax_id, False, f"unknown rank_ceiling {ceiling!r}; no promotion"
@@ -476,7 +500,7 @@ class TaxonomyIndex:
                 (
                     b
                     for a in self.lineage(tax_id)[1:]
-                    if (b := below_ceiling(self.rank.get(a), ceiling)) is not None
+                    if (b := _at_or_below_ceiling(self.rank.get(a), ceiling)) is not None
                 ),
                 None,
             )

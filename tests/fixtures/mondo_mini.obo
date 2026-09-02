@@ -1,0 +1,361 @@
+format-version: 1.2
+data-version: releases/2026-09-01
+subsetdef: clingen "Disease classes available in the ClinGen resource"
+
+[Term]
+id: MONDO:0000001
+name: disease
+def: "A disease is a disposition to undergo pathological processes that exists in an organism because of one or more disorders in that organism." [OGMS:0000031]
+subset: ordo_disorder {source="Orphanet:377788"}
+synonym: "condition" EXACT [NCIT:C2991]
+synonym: "disease" EXACT [DOID:4, NCIT:C2991, Orphanet:377788]
+synonym: "disease or disorder" EXACT [NCIT:C2991]
+synonym: "disease or disorder, non-neoplastic" EXACT [NCIT:C2991]
+synonym: "diseases" EXACT [NCIT:C2991]
+synonym: "diseases and disorders" EXACT [NCIT:C2991]
+synonym: "disorder" EXACT [NCIT:C2991]
+synonym: "disorders" EXACT [NCIT:C2991]
+synonym: "medical condition" EXACT []
+synonym: "other disease" EXACT [NCIT:C2991]
+xref: DOID:4 {source="MONDO:equivalentTo", source="EFO:0000408"}
+xref: ICD9:799.9 {source="MONDO:relatedTo", source="MONDO:i2s"}
+xref: MEDGEN:4347 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: MESH:D004194 {source="MONDO:equivalentTo", source="DOID:4", source="EFO:0000408"}
+xref: NCIT:C2991 {source="MONDO:equivalentTo", source="DOID:4"}
+xref: OGMS:0000031 {source="MONDO:equivalentTo"}
+xref: Orphanet:377788 {source="MONDO:equivalentTo"}
+xref: SCTID:64572001 {source="MONDO:equivalentTo", source="DOID:4", source="EFO:0000408"}
+xref: UMLS:C0012634 {source="MEDGEN:4347", source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+is_a: BFO:0000016 ! disposition
+property_value: skos:exactMatch DOID:4
+property_value: skos:exactMatch MEDGEN:4347
+property_value: skos:exactMatch MESH:D004194
+property_value: skos:exactMatch NCIT:C2991
+property_value: skos:exactMatch Orphanet:377788
+property_value: skos:exactMatch SCTID:64572001
+property_value: skos:exactMatch UMLS:C0012634
+
+[Term]
+id: MONDO:0000004
+name: adrenocortical insufficiency
+def: "An endocrine or hormonal disorder that occurs when the adrenal cortex does not produce enough of the hormone cortisol and in some cases, the hormone aldosterone. It may be due to a disorder of the adrenal cortex (Addison's disease or primary adrenal insufficiency) or to inadequate secretion of ACTH by the pituitary gland (secondary adrenal insufficiency)." [NCIT:C26691]
+subset: otar {source="MONDO:OTAR"}
+synonym: "adrenal cortical hypofunction" EXACT [DOID:10493, NCIT:C26691]
+synonym: "adrenal cortical insufficiency" EXACT [DOID:10493, NCIT:C26691]
+synonym: "adrenal gland insufficiency" EXACT [icd11.foundation:733056203, NCIT:C26691]
+synonym: "adrenal insufficiency" EXACT [icd11.foundation:733056203, NCIT:C26691]
+synonym: "adrenocortical insufficiency" EXACT [icd11.foundation:733056203, NCIT:C26691]
+synonym: "hypoadrenalism" RELATED [GARD:0006722]
+synonym: "hypocortisolemia" EXACT [NCIT:C26691]
+synonym: "hypocortisolism" EXACT [NCIT:C26691]
+xref: DOID:10493 {source="MONDO:equivalentTo"}
+xref: EFO:0009491 {source="MONDO:equivalentTo", source="MONDO:EFO"}
+xref: icd11.foundation:733056203 {source="MONDO:equivalentTo"}
+xref: ICD9:255.4 {source="MONDO:equivalentTo", source="MONDO:i2s", source="DOID:10493"}
+xref: ICD9:255.41 {source="MONDO:relatedTo", source="MONDO:i2s"}
+xref: MEDGEN:589758 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: MESH:D000309 {source="MONDO:equivalentTo"}
+xref: NCIT:C26691 {source="MONDO:equivalentTo", source="DOID:10493"}
+xref: SCTID:386584007 {source="MONDO:equivalentTo", source="DOID:10493"}
+xref: UMLS:C0405580 {source="MONDO:equivalentTo", source="MONDO:MEDGEN", source="MEDGEN:589758"}
+is_a: MONDO:0002816 {source="DOID:10493", source="MONDO:Inferred"} ! adrenal cortex disorder
+relationship: disease_disrupts GO:0034651 ! cortisol biosynthetic process
+property_value: curated_content_resource "https://www.malacards.org/card/adrenal_cortical_hypofunction" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: skos:exactMatch DOID:10493
+property_value: skos:exactMatch EFO:0009491
+property_value: skos:exactMatch icd11.foundation:733056203
+property_value: skos:exactMatch MEDGEN:589758
+property_value: skos:exactMatch MESH:D000309
+property_value: skos:exactMatch NCIT:C26691
+property_value: skos:exactMatch SCTID:386584007
+property_value: skos:exactMatch UMLS:C0405580
+
+[Term]
+id: MONDO:0001505
+name: alcoholic hepatitis
+def: "Acute hepatitis resulting from ingestion of alcohol." [NCIT:P378]
+subset: otar {source="MONDO:OTAR"}
+synonym: "acute alcoholic hepatitis" EXACT [DOID:12351, ICD9CM:571.1]
+synonym: "alcoholic Hepatitis" EXACT [DOID:12351, ICD10CM:K70.1, icd11.foundation:229221394, NCIT:C34684]
+synonym: "alcoholic hepatitis" EXACT [DOID:12351, ICD10CM:K70.1, icd11.foundation:229221394, NCIT:C34684]
+xref: CSP:1754-6978 {source="DOID:12351"}
+xref: DOID:12351 {source="MONDO:equivalentTo"}
+xref: EFO:1001345 {source="MONDO:equivalentTo", source="MONDO:EFO"}
+xref: ICD10CM:K70.1 {source="MONDO:equivalentTo"}
+xref: icd11.foundation:229221394 {source="MONDO:equivalentTo"}
+xref: ICD9:571.1 {source="DOID:12351"}
+xref: MEDGEN:42422 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: MESH:D006519 {source="MONDO:equivalentTo"}
+xref: NCIT:C34684 {source="MONDO:equivalentTo"}
+xref: SCTID:235875008 {source="MONDO:equivalentTo"}
+xref: UMLS:C0019187 {source="MONDO:equivalentTo", source="MONDO:MEDGEN", source="MEDGEN:42422"}
+is_a: MONDO:0002251 {source="DOID:12351", source="MESH:D006519", source="MONDO:Redundant", source="NCIT:C34684"} ! hepatitis
+is_a: MONDO:0043693 {source="MESH:D006519", source="MONDO:Redundant", source="NCIT:C34684"} ! alcoholic liver disease
+intersection_of: MONDO:0002251 ! hepatitis
+intersection_of: realized_in_response_to ECTO:0001082 ! exposure to alcohol consumption
+property_value: curated_content_resource "https://www.malacards.org/card/alcoholic_hepatitis" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: skos:exactMatch DOID:12351
+property_value: skos:exactMatch EFO:1001345
+property_value: skos:exactMatch icd10cm:K70.1
+property_value: skos:exactMatch icd11.foundation:229221394
+property_value: skos:exactMatch MEDGEN:42422
+property_value: skos:exactMatch MESH:D006519
+property_value: skos:exactMatch NCIT:C34684
+property_value: skos:exactMatch SCTID:235875008
+property_value: skos:exactMatch UMLS:C0019187
+
+[Term]
+id: MONDO:0005052
+name: irritable bowel syndrome
+def: "Irritable bowel syndrome (IBS) is a chronic functional condition of the lower gastrointestinal (GI) tract characterized by abdominal pain or discomfort and disordered bowel habit (diarrhea, constipation, or fluctuation between the two)." [https://orcid.org/0000-0002-0736-9199, PMID:2174034, PMID:28657875]
+subset: otar {source="MONDO:OTAR"}
+synonym: "IBS" EXACT ABBREVIATION [NCIT:C82343]
+synonym: "irritable bowel syndrome" EXACT [DOID:9778, ICD10CM:K58, ICD10WHO:K58, icd11.foundation:1158238623, NCIT:C82343]
+synonym: "irritable colon" EXACT [DOID:9778, ICD10CM:K58, icd11.foundation:1158238623]
+synonym: "mucus colitis" EXACT []
+synonym: "spastic colon" EXACT [ICD10CM:K58]
+xref: DOID:9778 {source="MONDO:equivalentTo", source="EFO:0000555"}
+xref: EFO:0000555 {source="MONDO:equivalentTo", source="MONDO:EFO"}
+xref: ICD10CM:K58 {source="DOID:9778", source="MONDO:equivalentTo"}
+xref: ICD10WHO:K58 {source="https://orcid.org/0000-0002-7941-5545", source="MONDO:equivalentTo", source="https://orcid.org/0000-0001-9439-5346"}
+xref: icd11.foundation:1158238623 {source="MONDO:equivalentTo"}
+xref: ICD9:564.1 {source="DOID:9778", source="MONDO:equivalentTo", source="MONDO:i2s", source="EFO:0000555"}
+xref: MEDGEN:5897 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: MESH:D043183 {source="DOID:9778", source="MONDO:equivalentTo", source="EFO:0000555"}
+xref: NCIT:C82343 {source="DOID:9778", source="MONDO:equivalentTo", source="EFO:0000555"}
+xref: SCTID:10743008 {source="DOID:9778", source="MONDO:equivalentTo", source="EFO:0000555"}
+xref: UMLS:C0022104 {source="MONDO:equivalentTo", source="MEDGEN:5897", source="MONDO:MEDGEN"}
+is_a: MONDO:0002254 {source="DOID:9778", source="NCIT:C82343"} ! syndromic disease
+is_a: MONDO:0005020 {source="DOID:9778", source="EFO:0000555", source="MESH:D043183/inferred", source="NCIT:C82343/inferred"} ! intestinal disorder
+property_value: curated_content_resource "https://www.malacards.org/card/irritable_bowel_syndrome" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: skos:exactMatch DOID:9778
+property_value: skos:exactMatch EFO:0000555
+property_value: skos:exactMatch icd10cm:K58
+property_value: skos:exactMatch ICD10WHO:K58
+property_value: skos:exactMatch icd11.foundation:1158238623
+property_value: skos:exactMatch MEDGEN:5897
+property_value: skos:exactMatch MESH:D043183
+property_value: skos:exactMatch NCIT:C82343
+property_value: skos:exactMatch SCTID:10743008
+property_value: skos:exactMatch UMLS:C0022104
+
+[Term]
+id: MONDO:0005416
+name: osteoarthritis, knee
+def: "Noninflammatory degenerative disease of the knee joint consisting of three large categories: conditions that block normal synchronous movement, conditions that produce abnormal pathways of motion, and conditions that cause stress concentration resulting in changes to articular cartilage. (Crenshaw, Campbell's Operative Orthopaedics, 8th ed, p2019)" [MESH:D020370]
+subset: otar {source="MONDO:OTAR"}
+xref: EFO:0004616 {source="MONDO:equivalentTo", source="MONDO:EFO"}
+xref: MEDGEN:98371 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: MESH:D020370 {source="MONDO:equivalentTo", source="EFO:0004616"}
+xref: UMLS:C0409959 {source="MEDGEN:98371", source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+is_a: MONDO:0005178 {source="EFO:0004616", source="MESH:D020370"} ! osteoarthritis
+property_value: skos:exactMatch EFO:0004616
+property_value: skos:exactMatch MEDGEN:98371
+property_value: skos:exactMatch MESH:D020370
+property_value: skos:exactMatch UMLS:C0409959
+
+[Term]
+id: MONDO:0005575
+name: colorectal cancer
+def: "A primary or metastatic malignant neoplasm that affects the colon or rectum. Representative examples include carcinoma, lymphoma, and sarcoma." [NCIT:C4978]
+comment: Editor note: some sources make distinct classes for colorectal vs large intestine. We follow NCIT and make these equivalent
+subset: omim_susceptibility {source="OMIM:114500"}
+subset: otar {source="MONDO:OTAR"}
+synonym: "cancer of colorectum" EXACT [MONDO:patterns/cancer]
+synonym: "cancer of large bowel" EXACT []
+synonym: "cancer of large intestine" EXACT []
+synonym: "cancer of the large bowel" EXACT []
+synonym: "colon cancer, advanced, somatic" EXACT []
+synonym: "colon cancer, somatic" EXACT []
+synonym: "colorectal cancer" EXACT [DOID:9256, OMIM:114500]
+synonym: "colorectal cancer with chromosomal instability, somatic" EXACT []
+synonym: "colorectal cancer, autosomal dominant, somatic mutation" EXACT []
+synonym: "colorectal cancer, somatic" EXACT []
+synonym: "colorectal cancer, susceptibility to, autosomal dominant, somatic mutation" EXACT []
+synonym: "colorectum cancer" EXACT [MONDO:patterns/location]
+synonym: "CRC" RELATED ABBREVIATION []
+synonym: "malignant colorectal neoplasm" EXACT [NCIT:C4978]
+synonym: "malignant colorectal tumor" EXACT [NCIT:C4978]
+synonym: "malignant colorectal tumour" EXACT OMO:0003005 []
+synonym: "malignant colorectum neoplasm" EXACT [MONDO:patterns/cancer]
+synonym: "malignant large bowel neoplasm" EXACT []
+synonym: "malignant large bowel tumor" EXACT []
+synonym: "malignant large bowel tumour" EXACT OMO:0003005 []
+synonym: "malignant large intestine neoplasm" EXACT []
+synonym: "malignant large intestine tumor" EXACT []
+synonym: "malignant large intestine tumour" EXACT OMO:0003005 []
+synonym: "malignant neoplasm of colorectum" EXACT [MONDO:patterns/cancer]
+synonym: "malignant neoplasm of large bowel" EXACT []
+synonym: "malignant neoplasm of large intestine" EXACT []
+synonym: "malignant neoplasm of the large bowel" EXACT []
+synonym: "malignant neoplasm of the large intestine" EXACT []
+synonym: "malignant tumor of large bowel" EXACT []
+synonym: "malignant tumor of large intestine" EXACT []
+synonym: "malignant tumor of the large bowel" EXACT []
+synonym: "malignant tumor of the large intestine" EXACT []
+synonym: "malignant tumour of large bowel" EXACT OMO:0003005 []
+synonym: "malignant tumour of large intestine" EXACT OMO:0003005 []
+synonym: "malignant tumour of the large bowel" EXACT OMO:0003005 []
+synonym: "malignant tumour of the large intestine" EXACT OMO:0003005 []
+xref: DOID:5672 {source="MONDO:equivalentTo"}
+xref: DOID:9256 {source="EFO:0005842", source="MONDO:equivalentTo"}
+xref: MEDGEN:83428 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: NCIT:C4978 {source="EFO:0005842", source="MONDO:equivalentTo", source="DOID:5672"}
+xref: OMIM:114500 {source="MONDO:equivalentTo", source="DOID:9256"}
+xref: Orphanet:466667 {source="MONDO:equivalentObsolete"}
+xref: SCTID:363510005 {source="MONDO:equivalentTo", source="DOID:5672"}
+xref: UMLS:C0346629 {source="MONDO:equivalentTo", source="MONDO:MEDGEN", source="MEDGEN:83428"}
+is_a: MONDO:0005335 {source="MONDO:Redundant", source="NCIT:C4978"} ! colorectal neoplasm
+is_a: MONDO:0005814 {source="DOID:5672", source="DOID:9256/inferred", source="MONDO:Redundant", source="NCIT:C4978"} ! intestinal cancer
+intersection_of: MONDO:0004992 ! cancer
+intersection_of: disease_has_location UBERON:0012652 ! colorectum
+property_value: curated_content_resource "https://www.malacards.org/card/large_intestine_cancer" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: IAO:0000233 "https://github.com/monarch-initiative/mondo/issues/4521" xsd:anyURI
+property_value: skos:exactMatch DOID:5672
+property_value: skos:exactMatch DOID:9256
+property_value: skos:exactMatch MEDGEN:83428
+property_value: skos:exactMatch NCIT:C4978
+property_value: skos:exactMatch OMIM:114500
+property_value: skos:exactMatch SCTID:363510005
+property_value: skos:exactMatch UMLS:C0346629
+property_value: terms:conformsTo http://purl.obolibrary.org/obo/mondo/patterns/cancer.yaml
+
+[Term]
+id: MONDO:0011122
+name: obesity disorder
+def: "A disorder involving an excessive amount of body fat." [https://www.ama-assn.org/sites/default/files/media-browser/public/about-ama/councils/Council%20Reports/council-on-science-public-health/a13csaph3.pdf, https://www.mayoclinic.org/diseases-conditions/obesity/symptoms-causes/syc-20375742]
+comment: Obesity is a complex disease that may involve multiple environmental and genetic causes. See the subclass monogenic disease for genetic subtypes
+subset: otar {source="MONDO:OTAR"}
+synonym: "obesity" EXACT [DOID:9970, MONDO:ambiguous, NCIT:C3283]
+synonym: "obesity disease" EXACT []
+xref: DOID:9970 {source="MONDO:equivalentTo", source="EFO:0001073"}
+xref: EFO:0001073 {source="MONDO:equivalentTo", source="MONDO:EFO"}
+xref: HP:0001513 {source="MONDO:otherHierarchy"}
+xref: ICD9:278.0 {source="MONDO:equivalentTo", source="MONDO:i2s", source="EFO:0001073"}
+xref: ICD9:278.00 {source="MONDO:equivalentTo", source="MONDO:i2s", source="DOID:9970", source="EFO:0001073"}
+xref: MEDGEN:18127 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: NCIT:C3283 {source="MONDO:equivalentTo", source="MONDO:otherHierarchy", source="DOID:9970", source="EFO:0001073"}
+xref: Orphanet:521399 {source="MONDO:equivalentObsolete"}
+xref: SCTID:414916001 {source="MONDO:equivalentTo", source="DOID:9970", source="EFO:0001073"}
+xref: UMLS:C0028754 {source="MONDO:equivalentTo", source="MONDO:MEDGEN", source="MEDGEN:18127"}
+is_a: MONDO:0003916 {source="DOID:9970"} ! overnutrition
+intersection_of: MONDO:0000001 ! disease
+intersection_of: disease_has_feature HP:0001513 ! Obesity
+relationship: disease_has_feature HP:0001513 ! Obesity
+property_value: curated_content_resource "https://www.malacards.org/card/body_mass_index_quantitative_trait_locus_11" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: skos:exactMatch DOID:9970
+property_value: skos:exactMatch EFO:0001073
+property_value: skos:exactMatch MEDGEN:18127
+property_value: skos:exactMatch NCIT:C3283
+property_value: skos:exactMatch SCTID:414916001
+property_value: skos:exactMatch UMLS:C0028754
+
+[Term]
+id: MONDO:0016667
+name: obsolete sickle cell disease associated with an other hemoglobin anomaly
+synonym: "Double heterozygotes sickling disorder" EXACT []
+xref: Orphanet:251355 {source="MONDO:obsoleteEquivalentObsolete"}
+property_value: curated_content_resource "https://www.malacards.org/card/sickle_cell_disease_associated_with_another_hemoglobin_anomaly" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: IAO:0000231 OMO:0001000 {source="MONDO:excludeGrouping"}
+property_value: IAO:0000233 "https://github.com/monarch-initiative/mondo/issues/5114" xsd:anyURI
+property_value: IAO:0000233 "https://github.com/monarch-initiative/mondo/issues/6746" xsd:anyURI
+property_value: IAO:0000233 "https://github.com/monarch-initiative/mondo/issues/6877" xsd:anyURI
+property_value: seeAlso "https://rarediseases.info.nih.gov/diseases/12459/sickle-cell-disease-associated-with-an-other-hemoglobin-anomaly" xsd:anyURI {source="GARD:0012459"}
+property_value: skos:exactMatch Orphanet:251355
+is_obsolete: true
+
+[Term]
+id: MONDO:0024331
+name: colorectal carcinoma
+def: "A malignant epithelial neoplasm that arises from the colon or rectum and invades through the muscularis mucosa into the submucosa. The vast majority are adenocarcinomas." [NCIT:C2955]
+subset: otar {source="MONDO:OTAR"}
+synonym: "cancer of large bowel" BROAD []
+synonym: "cancer of large intestine" BROAD []
+synonym: "cancer of the large bowel" BROAD []
+synonym: "cancer of the large intestine" BROAD []
+synonym: "carcinoma of colorectum" EXACT [MONDO:patterns/carcinoma]
+synonym: "carcinoma of large bowel" EXACT []
+synonym: "carcinoma of large intestine" EXACT []
+synonym: "carcinoma of the large bowel" EXACT []
+synonym: "carcinoma of the large intestine" EXACT []
+synonym: "colorectal (colon or rectal) cancer" BROAD []
+synonym: "colorectal cancer" BROAD []
+synonym: "colorectal carcinoma" EXACT [DOID:0080199, NCIT:C2955]
+synonym: "colorectum carcinoma" EXACT [MONDO:patterns/location]
+synonym: "CRC" EXACT ABBREVIATION [NCIT:C2955]
+synonym: "large bowel cancer" BROAD []
+synonym: "large bowel carcinoma" EXACT []
+synonym: "large intestine cancer" BROAD []
+synonym: "large intestine carcinoma" EXACT []
+xref: DOID:0080199 {source="MONDO:equivalentTo"}
+xref: EFO:1001951 {source="MONDO:equivalentTo", source="MONDO:EFO"}
+xref: MEDGEN:3170 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: NCIT:C2955 {source="DOID:0080199", source="MONDO:equivalentTo"}
+xref: UMLS:C0009402 {source="MONDO:equivalentTo", source="MONDO:MEDGEN", source="MEDGEN:3170"}
+is_a: MONDO:0005575 {source="DOID:0080199", source="DOID:0080199/inferred", source="MONDO:Redundant", source="NCIT:C2955"} ! colorectal cancer
+is_a: MONDO:0006181 {source="MONDO:Redundant", source="NCIT:C2955"} ! digestive system carcinoma
+intersection_of: MONDO:0004993 ! carcinoma
+intersection_of: disease_has_location UBERON:0012652 ! colorectum
+property_value: skos:exactMatch DOID:0080199
+property_value: skos:exactMatch EFO:1001951
+property_value: skos:exactMatch MEDGEN:3170
+property_value: skos:exactMatch NCIT:C2955
+property_value: skos:exactMatch UMLS:C0009402
+property_value: terms:conformsTo http://purl.obolibrary.org/obo/mondo/patterns/carcinoma.yaml
+
+[Term]
+id: MONDO:0025082
+name: helminthiasis, animal
+def: "Infestation of animals with parasitic worms of the helminth class. The infestation may be experimental or veterinary." [MESH:D006374]
+synonym: "animal Helminthiases" RELATED [MESH:D006374]
+synonym: "animal helminthiasis" RELATED [MESH:D006374]
+synonym: "Helminthiases, animal" RELATED [MESH:D006374]
+xref: MESH:D006374 {source="MONDO:equivalentTo"}
+is_a: MONDO:0024969 {source="MESH:D006374"} ! parasitic disease, non-human animal
+property_value: skos:exactMatch MESH:D006374
+property_value: vocab:crossSpeciesExactMatch MONDO:0004664
+
+[Term]
+id: MONDO:0100096
+name: COVID-19
+def: "A disease caused by infection with severe acute respiratory syndrome coronavirus 2." [https://www.cdc.gov/coronavirus/2019-ncov/downloads/2019-ncov-factsheet.pdf, MONDO:patterns/infectious_disease_by_agent]
+subset: otar {source="MONDO:OTAR"}
+synonym: "2019 novel coronavirus" RELATED [https://orcid.org/0000-0002-2825-0621, https://www.cdc.gov/covid/index.html]
+synonym: "2019 novel coronavirus infection" EXACT [https://www.cdc.gov/coronavirus/2019-ncov/about/index.html]
+synonym: "2019-nCoV" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+synonym: "2019-nCoV infection" EXACT [DOID:0080600, https://www.cdc.gov/covid/index.html]
+synonym: "beta-CoV" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+synonym: "beta-CoVs" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+synonym: "betacoronavirus" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+synonym: "coronavirus disease 2019" EXACT [https://www.cdc.gov/coronavirus/2019-ncov/about/index.html]
+synonym: "SARS-coronavirus 2" RELATED [doi:10.1038/s41564-020-0695-z, https://orcid.org/0000-0002-2825-0621]
+synonym: "SARS-CoV-2" RELATED [doi:10.1038/s41564-020-0695-z]
+synonym: "severe acute respiratory syndrome coronavirus 2" RELATED [doi:10.1038/s41564-020-0695-z]
+synonym: "severe acute respiratory syndrome coronavirus 2 infectious disease" EXACT [MONDO:patterns/infectious_disease_by_agent]
+synonym: "β-coronavirus" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+synonym: "β-CoV" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+synonym: "β-CoVs" RELATED [https://nextstrain.org/groups/blab/sars-like-cov, https://orcid.org/0000-0002-2825-0621]
+xref: DOID:0080600 {source="MONDO:equivalentTo"}
+xref: ICD10CM:U07.1 {source="MONDO:equivalentTo"}
+xref: icd11.foundation:1730556128 {source="MONDO:equivalentTo"}
+xref: MEDGEN:1699653 {source="MONDO:equivalentTo", source="MONDO:MEDGEN"}
+xref: MESH:C000657245 {source="MONDO:equivalentObsolete"}
+xref: MESH:D000086382 {source="MONDO:equivalentTo"}
+xref: SCTID:840539006 {source="MONDO:equivalentTo"}
+xref: UMLS:C5203670 {source="MONDO:equivalentTo", source="MONDO:MEDGEN", source="MEDGEN:1699653"}
+is_a: MONDO:0020753 {source="DOID:0080600"} ! Orthocoronavirinae infectious disease
+intersection_of: MONDO:0005550 ! infectious disease
+intersection_of: MONDO:0100332 NCBITaxon:2697049 ! disease has primary infectious agent Severe acute respiratory syndrome coronavirus 2
+relationship: disease_has_feature HP:0000458 {source="PMID:32215896", source="PMID:32237238", source="PMID:32240279", source="doi:10.1101/2020.03.25.009084", source="https://github.com/monarch-initiative/mondo/issues/1373"} ! Anosmia
+relationship: disease_has_feature HP:0041051 {source="PMID:32237238", source="https://github.com/monarch-initiative/mondo/issues/1373"} ! Ageusia
+relationship: MONDO:0100332 NCBITaxon:2697049 ! disease has primary infectious agent Severe acute respiratory syndrome coronavirus 2
+property_value: curated_content_resource "https://www.malacards.org/card/covid_19" xsd:anyURI {source="MONDO:MalaCards"}
+property_value: skos:exactMatch DOID:0080600
+property_value: skos:exactMatch icd10cm:U07.1
+property_value: skos:exactMatch icd11.foundation:1730556128
+property_value: skos:exactMatch MEDGEN:1699653
+property_value: skos:exactMatch MESH:D000086382
+property_value: skos:exactMatch SCTID:840539006
+property_value: skos:exactMatch UMLS:C5203670
+property_value: terms:creator https://orcid.org/0000-0001-5208-3432
+

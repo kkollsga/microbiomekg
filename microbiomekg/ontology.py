@@ -17,6 +17,9 @@ import json
 from pathlib import Path
 
 __all__ = [
+    "ASSOCIATION_RELATIONSHIPS",
+    "EVIDENCE_CONTRACT",
+    "EVIDENCE_PROPERTY_TYPES",
     "ONTOLOGY",
     "EVIDENCE_LEVELS",
     "OBSERVATIONAL_BY_SEQUENCING",
@@ -149,6 +152,54 @@ EVIDENCE_CONTRACT: list[str] = [
     "signature_id",
 ]
 
+#: Declared types for the contract's properties. `property_types` is enforced
+#: at `error` because *we* write these columns: a type violation is a bug here,
+#: not a gap upstream.
+EVIDENCE_PROPERTY_TYPES: dict[str, str] = {
+    "direction": "string",
+    "study_design": "string",
+    "evidence_level": "string",
+    "sequencing_type": "string",
+    "statistical_test": "string",
+    "group_0_size": "integer",
+    "group_1_size": "integer",
+    "pmid": "integer",
+    "source": "string",
+    "signature_id": "string",
+}
+
+#: The relationships that carry the evidence contract, **named** rather than
+#: inferred. `tests/test_ontology.py` used to work out which relationships were
+#: associations by looking for a direction plus a study design, which is a
+#: heuristic standing in for a declaration (C21.5).
+ASSOCIATION_RELATIONSHIPS: tuple[str, ...] = (
+    "ASSOCIATED_WITH",
+    "ASSOCIATED_WITH_PHENOTYPE",
+    "ASSOCIATED_WITH_EXPOSURE",
+)
+
+#: The condition node type each association relationship points at, positionally.
+ASSOCIATION_RANGES: tuple[str, ...] = ("Disease", "Phenotype", "Exposure")
+
+
+def _association(range_class: str) -> dict:
+    """One association relationship declaration. Identical but for its range."""
+    return {
+        "domain": "Taxon",
+        "range": range_class,
+        "required_properties": EVIDENCE_CONTRACT,
+        "property_types": EVIDENCE_PROPERTY_TYPES,
+        # warn, not error, and permanently: the gaps are upstream curation
+        # reality (BugSigDB is missing group sizes on ~17% of signatures).
+        # Failing the build on someone else's missing data would only mean
+        # never building. `property_types` is ours — our prep writes the
+        # column types — so that one is an error.
+        "enforcement": {"required_properties": "warn", "property_types": "error"},
+        "description": f"Differential abundance of a taxon in a {range_class.lower()}, "
+        f"with the evidence that established it. One edge per (signature, taxon).",
+    }
+
+
 ONTOLOGY: dict = {
     "classes": {
         # Abstract only where it buys a union endpoint a flat schema cannot
@@ -167,7 +218,23 @@ ONTOLOGY: dict = {
             "is_a": "ReportedTaxon",
             "description": "A source's organism string that no NCBI id could be resolved for.",
         },
-        "Disease": {"description": "A condition, keyed by EFO id where the source gives one."},
+        # Three condition types, chosen by the CURIE's vocabulary, never by the
+        # column name (C14). They are separate types rather than one with a
+        # `kind` property because the schema survey's §5(a) counter-example is
+        # exactly that merge: PrimeKG folded HPO phenotypes and drug side
+        # effects into one type and cannot undo it.
+        "Disease": {
+            "description": "A disease, keyed on its MONDO CURIE where MONDO declares "
+            "an equivalence and on the source CURIE otherwise."
+        },
+        "Phenotype": {
+            "description": "An observable trait coded in HP — kept apart from Disease, "
+            "which it is not."
+        },
+        "Exposure": {
+            "description": "What the subjects were exposed to or characterised by: a "
+            "chemical, an environment, a social or an exposure-ontology term."
+        },
         "BodySite": {"description": "An anatomical site, keyed by UBERON id."},
         "Study": {"description": "One curated study — the unit that carries a citation."},
         "Signature": {
@@ -187,31 +254,14 @@ ONTOLOGY: dict = {
             "cardinality": {"max": 1},
             "description": "NCBI parent pointer; walk it with -[:HAS_PARENT*1..]->.",
         },
-        # The headline contract.
-        "ASSOCIATED_WITH": {
-            "domain": "Taxon",
-            "range": "Disease",
-            "required_properties": EVIDENCE_CONTRACT,
-            "property_types": {
-                "direction": "string",
-                "study_design": "string",
-                "evidence_level": "string",
-                "sequencing_type": "string",
-                "statistical_test": "string",
-                "group_0_size": "integer",
-                "group_1_size": "integer",
-                "pmid": "integer",
-                "source": "string",
-                "signature_id": "string",
-            },
-            # warn, not error, and permanently: the gaps are upstream curation
-            # reality (BugSigDB is missing group sizes on ~17% of signatures).
-            # Failing the build on someone else's missing data would only mean
-            # never building. `property_types` is ours — our prep writes the
-            # column types — so that one is an error.
-            "enforcement": {"required_properties": "warn", "property_types": "error"},
-            "description": "Differential abundance of a taxon in a condition, with the "
-            "evidence that established it. One edge per (signature, taxon).",
+        # The headline contract, once per condition type. Three relationship
+        # names for one relation is not a modelling choice — a blueprint
+        # junction edge names exactly one target node type and one relationship
+        # per source node type, so a single ASSOCIATED_WITH over a union range
+        # is not expressible (docs/model.md section 8).
+        **{
+            rel: _association(rng)
+            for rel, rng in zip(ASSOCIATION_RELATIONSHIPS, ASSOCIATION_RANGES)
         },
         "REPORTED_BY": {
             "domain": "ReportedTaxon",
@@ -248,17 +298,38 @@ ONTOLOGY: dict = {
             "enforcement": {"cardinality": "error", "required": "error"},
             "description": "Every signature belongs to exactly one study.",
         },
-        # No `cardinality: {max: 1}` on either of these, and that is a data
-        # fact, not an oversight: 329 BugSigDB signatures name two conditions
-        # and 462 name two body sites (comma-joined in one cell), so both are
-        # genuinely one-to-many and are loaded from junction CSVs.
+        # No `cardinality: {max: 1}` on any of these, and that is a data fact,
+        # not an oversight: 329 BugSigDB signatures name two conditions and 462
+        # name two body sites (comma-joined in one cell), so both are genuinely
+        # one-to-many and are loaded from junction CSVs.
+        #
+        # `required` is declared on IN_CONDITION only, and it counts exactly
+        # what it says: signatures with no *disease*-coded condition. The
+        # ontology cannot express "at least one of these three relationships",
+        # so putting `required` on all three would report ~99% violations on
+        # the two narrow ones; putting it on none would drop the gate.
         "IN_CONDITION": {
             "domain": "Signature",
             "range": "Disease",
             "required": True,
             "inverse_name": "HAS_SIGNATURE",
             "enforcement": {"required": "warn"},
-            "description": "A condition the signature contrasts. Multi-valued upstream.",
+            "description": "A disease the signature contrasts. Multi-valued upstream. "
+            "Its `required` violations are signatures with no disease-coded condition "
+            "— which includes those whose condition is a phenotype or an exposure.",
+        },
+        "IN_PHENOTYPE": {
+            "domain": "Signature",
+            "range": "Phenotype",
+            "inverse_name": "HAS_SIGNATURE",
+            "description": "An HP-coded phenotype the signature contrasts.",
+        },
+        "IN_EXPOSURE": {
+            "domain": "Signature",
+            "range": "Exposure",
+            "inverse_name": "HAS_SIGNATURE",
+            "description": "A chemical, environmental or social exposure the signature "
+            "contrasts.",
         },
         "AT_BODY_SITE": {
             "domain": "Signature",

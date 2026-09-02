@@ -601,3 +601,27 @@ def test_below_ceiling_falls_back_to_the_ladder_for_other_ceilings():
     assert below_ceiling("genus", "genus") is False
     assert below_ceiling("species", "strain") is False
     assert below_ceiling("no rank", "genus") is None
+
+
+def test_a_rankless_node_under_a_species_is_promoted(index):
+    """C8/C21.3: 83334 `Escherichia coli O157:H7` is rank `no rank` with parent
+    562 `Escherichia coli`, and NCBI files 190,787 nodes that way.
+
+    Its rank string cannot place it — `no rank` sits above species too — so the
+    lineage decides, and the ancestor that decides is *at* the ceiling, not
+    below it. Reading "at the ceiling" as "not below" leaves every serovar,
+    pathovar and O-antigen as a species-level node of its own.
+    """
+    r = index.resolve(tax_id=83334)
+    assert r.status == "promoted"
+    assert r.tax_id == 562
+    assert r.original_tax_id == 83334
+    assert r.original_rank == "no rank"
+
+
+def test_a_rankless_node_above_a_species_is_not_promoted(index):
+    """The other half: 48479 `environmental samples` is also `no rank`, and its
+    nearest unambiguous ancestor is a genus — above the ceiling, so it stays."""
+    r = index.resolve(tax_id=48479)
+    assert r.status == "exact"
+    assert r.tax_id == 48479
