@@ -20,12 +20,12 @@ did not answer; the exact error is recorded.
 | 1 | NCBI Taxonomy | fetched | 1.1 GB | `data/raw/ncbi_taxonomy/` |
 | 2 | BugSigDB | fetched | 46 MB | `data/raw/bugsigdb/` |
 | 3 | Disbiome | **unreachable** | — | — |
-| 4 | HMDB | **manual** | — | `data/raw/hmdb/` (expected) |
+| 4 | HMDB | fetched manually (user, browser) | 6.5 GB | `data/raw/hmdb/hmdb_metabolites.xml` |
 | 5 | CARD | fetched | 72 MB | `data/raw/card/` |
 | 6 | Reactome | fetched | 86 MB | `data/raw/reactome/` |
 | 7 | KEGG | fetched | 2.4 MB | `data/raw/kegg/` |
 | 8 | ChEMBL | fetched (REST subset) | 44 MB | `data/raw/chembl/` |
-| 9 | gutMDisorder | **unreachable** | — | — |
+| 9 | gutMDisorder | fetched (Wayback 2020 snapshot) | 2.4 MB | `data/raw/gutmdisorder/` |
 | 10 | PubMed / PubChem | not fetched (by design) | — | — |
 
 Total on disk: **1.3 GB** across 61 files. 8 of 10 sources usable; 2 blocked.
