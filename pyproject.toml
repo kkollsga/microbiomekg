@@ -6,6 +6,8 @@ requires-python = ">=3.11"
 dependencies = [
     "kglite>=0.16.21",
     "pandas>=2.0",
+    "openpyxl>=3.1",
+    "requests>=2.31",
 ]
 
 [project.optional-dependencies]
