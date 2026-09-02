@@ -1,0 +1,6 @@
+data/raw/
+data/csv/
+*.kgl
+graph/
+.venv/
+__pycache__/
