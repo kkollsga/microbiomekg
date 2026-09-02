@@ -12,7 +12,16 @@ import re
 import pandas as pd
 import pytest
 
-from microbiomekg.ontology import EVIDENCE_LEVELS, ONTOLOGY
+from microbiomekg.ontology import (
+    AGENT_TYPES,
+    ASSOCIATION_RELATIONSHIPS,
+    EVIDENCE_LEVELS,
+    KNOWLEDGE_LEVELS,
+    ONTOLOGY,
+    SOURCE_LICENCE,
+    agent_type,
+    knowledge_level,
+)
 
 from conftest import read_bugsigdb
 
@@ -44,19 +53,9 @@ EVIDENCE_CONCEPTS = {
     "direction": ("direction", "abundance_direction", "effect_direction"),
     "sample size (group 0)": ("group_0_size", "group0_sample_size", "n_group0"),
     "sample size (group 1)": ("group_1_size", "group1_sample_size", "n_group1"),
-    "source": ("source", "source_db", "source_database", "source_id"),
+    "source": ("primary_source", "source", "source_db", "source_database"),
     "paper": ("pmid", "doi", "paper_id"),
 }
-
-# A relationship is an *association* — the thing A1 is about — when it carries
-# both a direction and a study design. That is what separates the taxon-disease
-# edge from provenance edges such as REPORTED_BY, which also carry a `source`
-# but are written by this repo and may legitimately be enforced at `error`.
-ASSOCIATION_MARKERS = (
-    EVIDENCE_CONCEPTS["direction"],
-    EVIDENCE_CONCEPTS["study design"],
-)
-
 
 def split_designs(value: str) -> list[str]:
     """Split against the known vocabulary, longest match first (C11)."""
@@ -75,19 +74,17 @@ def split_designs(value: str) -> list[str]:
 
 
 def association_relationships() -> dict[str, dict]:
-    """Relationships that declare any evidence property as required.
+    """The declared association relationships (C21.5).
 
-    ONTOLOGY does not name its association edges explicitly (see the interface
-    gap noted in Part C20), so they are identified by the property set they
-    carry. That is enough to catch the real defect class — one evidence field
-    declared, another forgotten.
+    This used to *infer* them — "a relationship requiring both a direction and
+    a study design" — which is a heuristic standing in for a declaration. The
+    heuristic passes for the wrong reason the moment a future provenance edge
+    happens to carry both.
     """
-    out = {}
-    for rel, decl in ONTOLOGY.get("relationships", {}).items():
-        required = set(decl.get("required_properties", ()))
-        if all(required & set(marker) for marker in ASSOCIATION_MARKERS):
-            out[rel] = decl
-    return out
+    rels = ONTOLOGY.get("relationships", {})
+    missing = [r for r in ASSOCIATION_RELATIONSHIPS if r not in rels]
+    assert not missing, f"ASSOCIATION_RELATIONSHIPS names undeclared {missing}"
+    return {r: rels[r] for r in ASSOCIATION_RELATIONSHIPS}
 
 
 # --------------------------------------------------------------------------
@@ -299,3 +296,98 @@ def test_relationship_endpoints_are_declared_classes():
         for side in ("domain", "range"):
             if side in decl:
                 assert decl[side] in classes, f"{rel}.{side} = {decl[side]!r} undeclared"
+
+
+# --------------------------------------------------------------------------
+# Schema survey §5(b) — the Biolink evidence vocabulary, verbatim
+# --------------------------------------------------------------------------
+
+
+def test_the_biolink_enums_are_the_biolink_values_verbatim():
+    """A near-miss spelling is worse than no field: it exports silently and
+    nothing downstream recognises it."""
+    assert KNOWLEDGE_LEVELS == (
+        "knowledge_assertion",
+        "logical_entailment",
+        "prediction",
+        "statistical_association",
+        "text_co_occurrence",
+        "observation",
+        "not_provided",
+    )
+    assert AGENT_TYPES == (
+        "manual_agent",
+        "automated_agent",
+        "data_analysis_pipeline",
+        "computational_model",
+        "text_mining_agent",
+        "image_processing_agent",
+        "manual_validation_of_automated_agent",
+        "not_provided",
+    )
+
+
+def test_a_curated_differential_abundance_signature_is_a_statistical_association():
+    """A BugSigDB row is a curator transcribing a study's statistical result:
+    the *claim* is a statistical association, the *agent* is a person."""
+    assert knowledge_level("bugsigdb") == "statistical_association"
+    assert agent_type("bugsigdb") == "manual_agent"
+
+
+def test_an_unmapped_source_is_not_provided_never_a_default_guess():
+    """`not_provided` is a real countable value, not a null — and never a
+    silent stand-in for a source whose evidence model nobody has read."""
+    assert knowledge_level("some-source-we-have-not-mapped") == "not_provided"
+    assert agent_type("some-source-we-have-not-mapped") == "not_provided"
+    assert knowledge_level(None) == "not_provided"
+
+
+@pytest.mark.parametrize(
+    "prop",
+    [
+        "knowledge_level",
+        "agent_type",
+        "primary_source",
+        "source_record_id",
+        "source_licence",
+        "source_relation",
+    ],
+)
+def test_the_provenance_properties_are_required_on_every_association(prop):
+    """Declared, so `ontology_audit()` counts an edge that lacks one. A
+    provenance field nothing audits is a comment, not a contract."""
+    for rel, decl in association_relationships().items():
+        assert prop in decl.get("required_properties", ()), (
+            f"{rel} does not require {prop!r}"
+        )
+
+
+def test_the_source_licence_is_the_one_the_csv_declares():
+    """BugSigDB's export declares CC BY 4.0 on its own first line. A per-edge
+    licence is what lets a mixed-licence graph ship in parts (KEGG makes that
+    non-optional here) — so it has to be the real one, not a placeholder."""
+    assert SOURCE_LICENCE["bugsigdb"] == "CC-BY-4.0"
+
+
+def test_no_property_is_declared_twice_under_two_names():
+    """`primary_source` replaced `source` and `source_record_id` replaced
+    `signature_id` on the association edge; keeping both would put two
+    byte-identical strings on 110,547 edges."""
+    for rel, decl in association_relationships().items():
+        required = decl.get("required_properties", ())
+        assert len(required) == len(set(required)), f"{rel} repeats a property"
+        assert "source" not in required, f"{rel} still declares the old `source`"
+        assert "signature_id" not in required, (
+            f"{rel} still declares `signature_id` beside `source_record_id`"
+        )
+
+
+def test_association_relationships_all_carry_the_same_contract():
+    decls = association_relationships()
+    contracts = {tuple(d.get("required_properties", ())) for d in decls.values()}
+    assert len(contracts) == 1, (
+        "the three association relationships are one relation split by the "
+        "engine's one-target-per-junction rule; a contract that differs "
+        "between them is a bug, not a model"
+    )
+    assert {d["range"] for d in decls.values()} == {"Disease", "Phenotype", "Exposure"}

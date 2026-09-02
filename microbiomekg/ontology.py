@@ -17,7 +17,12 @@ import json
 from pathlib import Path
 
 __all__ = [
+    "AGENT_TYPES",
     "ASSOCIATION_RELATIONSHIPS",
+    "KNOWLEDGE_LEVELS",
+    "SOURCE_LICENCE",
+    "agent_type",
+    "knowledge_level",
     "EVIDENCE_CONTRACT",
     "EVIDENCE_PROPERTY_TYPES",
     "ONTOLOGY",
@@ -135,10 +140,88 @@ def evidence_level(
 
 # ---------------------------------------------------------------- ontology
 
-#: The nine properties every taxon–disease association edge must carry. This
-#: list *is* the project's thesis: the audit's ``ASSOCIATED_WITH
-#: .required_properties`` row is the fraction of associations that do not say
-#: how they were demonstrated.
+# ------------------------------------------------- Biolink evidence vocabulary
+
+#: Biolink's ``knowledge_level`` enum, **verbatim**. This is the interoperable
+#: half of A1: ``evidence_level`` above is project-controlled because ECO has no
+#: term that separates 16S from shotgun differential abundance, but *how much of
+#: a claim* an edge is has a portable vocabulary and this is it. A near-miss
+#: spelling exports silently and nothing downstream recognises it, so the tuple
+#: is pinned and tested rather than written out at each use.
+KNOWLEDGE_LEVELS: tuple[str, ...] = (
+    "knowledge_assertion",
+    "logical_entailment",
+    "prediction",
+    "statistical_association",
+    "text_co_occurrence",
+    "observation",
+    "not_provided",
+)
+
+#: Biolink's ``agent_type`` enum, verbatim. Together with
+#: :data:`KNOWLEDGE_LEVELS` it replaces the single-confidence-score pattern the
+#: schema survey's §5(d) argues against: "a curator asserted this" and "a
+#: pipeline emitted this" are different facts and neither is a number.
+AGENT_TYPES: tuple[str, ...] = (
+    "manual_agent",
+    "automated_agent",
+    "data_analysis_pipeline",
+    "computational_model",
+    "text_mining_agent",
+    "image_processing_agent",
+    "manual_validation_of_automated_agent",
+    "not_provided",
+)
+
+#: source token → its ``(knowledge_level, agent_type)``.
+#:
+#: **BugSigDB is `statistical_association` + `manual_agent`.** The assertion an
+#: edge carries is "this taxon's abundance differed significantly between these
+#: two groups" — a statistical association, not a knowledge assertion about
+#: causation and not a prediction. The *agent* is a person: a named curator read
+#: a published figure or table and transcribed it, with a curation date and a
+#: review state on the row. It is deliberately not `data_analysis_pipeline`,
+#: which would be right for a resource that re-ran the statistics itself.
+SOURCE_EVIDENCE: dict[str, tuple[str, str]] = {
+    "bugsigdb": ("statistical_association", "manual_agent"),
+}
+
+#: source token → the licence its records ship under, as an SPDX-ish token. A
+#: per-edge licence is what lets a mixed-licence graph be redistributed in parts
+#: instead of not at all, and with KEGG in the source list that is not optional.
+#: BugSigDB declares CC BY 4.0 on the export's own first line.
+SOURCE_LICENCE: dict[str, str] = {
+    "bugsigdb": "CC-BY-4.0",
+}
+
+
+def knowledge_level(source: str | None) -> str:
+    """Biolink ``knowledge_level`` for a source, or a countable ``not_provided``.
+
+    Never a guess: a source nobody has read the evidence model of gets
+    ``not_provided``, which is a real value one ``WHERE`` clause counts — not a
+    null, and not a plausible-looking default.
+    """
+    return SOURCE_EVIDENCE.get(source or "", ("not_provided", "not_provided"))[0]
+
+
+def agent_type(source: str | None) -> str:
+    """Biolink ``agent_type`` for a source, or a countable ``not_provided``."""
+    return SOURCE_EVIDENCE.get(source or "", ("not_provided", "not_provided"))[1]
+
+
+# ---------------------------------------------------------------- ontology
+
+#: Every property an association edge must carry. This list *is* the project's
+#: thesis: the audit's ``ASSOCIATED_WITH.required_properties`` row is the
+#: fraction of associations that do not say how they were demonstrated.
+#:
+#: The first block is *how it was demonstrated*; the second is *who says so and
+#: under what terms*, from the schema survey's §5(b) minimal provenance set.
+#: ``primary_source`` and ``source_record_id`` carry what ``source`` and
+#: ``signature_id`` used to, under the names a Biolink/KGX export uses — they
+#: are renames, not additions, because two byte-identical strings on 110,547
+#: edges is duplication, not provenance.
 EVIDENCE_CONTRACT: list[str] = [
     "direction",
     "study_design",
@@ -148,8 +231,12 @@ EVIDENCE_CONTRACT: list[str] = [
     "group_0_size",
     "group_1_size",
     "pmid",
-    "source",
-    "signature_id",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
 ]
 
 #: Declared types for the contract's properties. `property_types` is enforced
@@ -164,8 +251,12 @@ EVIDENCE_PROPERTY_TYPES: dict[str, str] = {
     "group_0_size": "integer",
     "group_1_size": "integer",
     "pmid": "integer",
-    "source": "string",
-    "signature_id": "string",
+    "knowledge_level": "string",
+    "agent_type": "string",
+    "primary_source": "string",
+    "source_record_id": "string",
+    "source_licence": "string",
+    "source_relation": "string",
 }
 
 #: The relationships that carry the evidence contract, **named** rather than

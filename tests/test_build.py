@@ -33,7 +33,10 @@ pytest.importorskip(
     reason="microbiomekg.ontology is not implemented — the build has no ontology to gate on",
 )
 
-from microbiomekg.ontology import EVIDENCE_CONTRACT  # noqa: E402
+from microbiomekg.ontology import (  # noqa: E402
+    ASSOCIATION_RELATIONSHIPS,
+    EVIDENCE_CONTRACT,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "blueprint.json"
@@ -584,16 +587,20 @@ def test_ontology_audit_counts_the_missing_evidence_edges(graph):
         )
     }
     assert audit, "ontology_audit() returned nothing — no ontology was declared"
-    rule = audit.get("ASSOCIATED_WITH.required_properties")
-    assert rule is not None, (
-        "the association relationship declares no required_properties — "
-        "the evidence contract is then unmeasurable"
-    )
-    assert rule["total"] == EDGE_COUNTS["ASSOCIATED_WITH"]
-    assert rule["violations"] == EDGES_MISSING_EVIDENCE
-    assert rule["severity"] == "warn", (
-        "an upstream-data-reality rule at `error` refuses to build the real export"
-    )
+    violations = total = 0
+    for rel in ASSOCIATION_RELATIONSHIPS:
+        rule = audit.get(f"{rel}.required_properties")
+        assert rule is not None, (
+            f"{rel} declares no required_properties — the evidence contract is "
+            f"then unmeasurable"
+        )
+        assert rule["severity"] == "warn", (
+            "an upstream-data-reality rule at `error` refuses to build the real export"
+        )
+        violations += rule["violations"]
+        total += rule["total"]
+    assert total == ASSOCIATION_EDGES
+    assert violations == EDGES_MISSING_EVIDENCE
 
 
 def test_edge_property_violation_names_the_evidence_free_row(graph):
@@ -638,22 +645,62 @@ def test_edge_property_violation_names_the_evidence_free_row(graph):
         ("study_design", 3),
         ("group_1_size", 5),
         ("sequencing_type", 5),
-        ("evidence_level", 0),   # always derived, never absent
-        ("source", 0),
-        ("signature_id", 0),
+        ("evidence_level", 0),      # always derived, never absent
+        # The source's own wording of the relation, kept beside the normalised
+        # `direction`. Absent exactly where the direction is, so the gap stays
+        # countable instead of being papered over with a "not reported" string.
+        ("source_relation", 1),
+        ("knowledge_level", 0),
+        ("agent_type", 0),
+        ("primary_source", 0),
+        ("source_record_id", 0),
+        ("source_licence", 0),
     ],
 )
 def test_per_field_evidence_gap_census(graph, prop, missing):
     """C17/A1: "what fraction of edges lack each evidence field" is the ask.
 
     `ontology_audit()` gives the edge count; only this query gives the
-    per-field breakdown, and A1 asks for the per-field number.
+    per-field breakdown, and A1 asks for the per-field number. It runs over
+    *every* association relationship: asking only the disease one would report
+    a confidently low number that happens to be right.
     """
     got = count(
         graph,
-        f"MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.{prop} IS NULL RETURN count(r) AS n",
+        f"MATCH ()-[r:{ANY_ASSOCIATION}]->() WHERE r.{prop} IS NULL "
+        f"RETURN count(r) AS n",
     )
     assert got == missing, f"{prop}: {got} edges lack it, expected {missing}"
+
+
+def test_every_association_carries_the_biolink_evidence_pair(graph):
+    """Schema survey §5(b): the pair replaces a confidence score, so it has to
+    be on every edge, verbatim, and derived from the source — not defaulted."""
+    got = {
+        (r["k"], r["a"], r["s"], r["lic"]): r["n"]
+        for r in rows(
+            graph,
+            f"MATCH ()-[r:{ANY_ASSOCIATION}]->() "
+            f"RETURN r.knowledge_level AS k, r.agent_type AS a, "
+            f"r.primary_source AS s, r.source_licence AS lic, count(r) AS n",
+        )
+    }
+    assert got == {("statistical_association", "manual_agent", "bugsigdb",
+                    "CC-BY-4.0"): ASSOCIATION_EDGES}
+
+
+def test_the_source_record_id_is_the_sources_own_key(graph):
+    """It is what makes an edge re-verifiable against the source and diffable
+    across a refresh, so it must be BugSigDB's BSDB ID, not a mint of ours."""
+    hit = rows(
+        graph,
+        f"MATCH ()-[r:{ANY_ASSOCIATION}]->() "
+        f"WHERE r.source_record_id = 'bsdb:adv-noevidence/1/1' "
+        f"RETURN r.source_relation AS rel, r.signature_id AS sig",
+    )
+    assert hit, "no edge carries the source's own record id"
+    assert hit[0]["sig"] == "bsdb:adv-noevidence/1/1"
+    assert hit[0]["rel"] == "abundance in group 1 increased"
 
 
 def test_audit_denominators_are_not_zero(graph):

@@ -315,8 +315,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     assoc_fields = ["tax_id", "condition_id", "direction", "study_design",
                     "evidence_level", "sequencing_type", "statistical_test",
-                    "group_0_size", "group_1_size", "pmid", "source", "signature_id",
-                    "study_id", "host_species", "body_site",
+                    "group_0_size", "group_1_size", "pmid",
+                    "knowledge_level", "agent_type", "primary_source",
+                    "source_record_id", "source_licence", "source_relation",
+                    "signature_id", "study_id", "host_species", "body_site",
                     "significance_threshold", "mht_correction"]
     assoc = {
         "Disease": Writer(out / "taxon_disease.csv", assoc_fields, dedupe_full=True),
@@ -541,9 +543,32 @@ def main(argv: list[str] | None = None) -> int:
                                 "group_0_size": g0,
                                 "group_1_size": g1,
                                 "pmid": pmid,
-                                "source": SOURCE,
-                                # The source's own record id for this assertion —
-                                # part of the evidence contract, not just context.
+                                # The interoperable half of the evidence
+                                # contract: what kind of claim this is, and who
+                                # made it. Constant for BugSigDB, derived from
+                                # the source token rather than typed in, so the
+                                # next source cannot pick up this one's answer.
+                                "knowledge_level": ont.knowledge_level(SOURCE),
+                                "agent_type": ont.agent_type(SOURCE),
+                                "primary_source": SOURCE,
+                                # The source's own primary key for this
+                                # assertion — what makes the edge re-verifiable
+                                # and diffable across a source refresh.
+                                "source_record_id": bsdb,
+                                "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                                # The relation as the source words it, kept
+                                # beside the normalised `direction` so the
+                                # normalisation stays recoverable. Absent when
+                                # the source reports no direction, so the gap
+                                # is counted rather than papered over.
+                                "source_relation": (
+                                    f"abundance in group 1 {direction}"
+                                    if direction
+                                    else ""
+                                ),
+                                # Still the join key onto the Signature node,
+                                # and deliberately outside the contract: the
+                                # audited provenance field is `source_record_id`.
                                 "signature_id": bsdb,
                                 "study_id": study_id,
                                 "host_species": host,
