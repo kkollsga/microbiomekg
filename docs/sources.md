@@ -155,11 +155,16 @@ it for the current endpoint. **The graph is built without Disbiome.**
 
 - **URL** — `https://hmdb.ca/system/downloads/current/hmdb_metabolites.zip`
   (download page: `https://hmdb.ca/downloads`)
-- **Licence** — free for academic and non-commercial use; **redistribution is
-  not granted**. Commercial use requires permission. (Stated on the HMDB site;
-  could not be re-read today — see below.)
-- **Format** — ZIP containing one large XML document.
-- **Status** — **manual**.
+- **Licence** — per the downloads page (read by the user 2026-09-02): "offered
+  to the public as a freely available resource"; use and re-distribution for
+  *commercial* purposes requires the authors' permission and acknowledgement;
+  citation requested for significant downloads. Non-commercial redistribution
+  with citation is therefore permitted.
+- **Format** — ZIP containing one large XML document (HMDB 5.0, XML dated
+  2021-11-17).
+- **Status** — **fetched manually by the user** (browser download; the
+  Cloudflare challenge below blocks every non-browser client).
+  `data/raw/hmdb/hmdb_metabolites.xml`, 6,486,862,079 bytes, uncompressed.
 
 Every request to `hmdb.ca` returns **HTTP 403** with `server: cloudflare` and
 `cf-mitigated: challenge`, serving the "Just a moment…" interstitial. This was
@@ -308,6 +313,22 @@ Tried `http://` and `https://` with the full browser header set, and
 `http://www.bio-annotation.cn/` separately. All refused in under half a second.
 As with Disbiome, the failure precedes HTTP, so no request shaping helps.
 **The graph is built without gutMDisorder.** Retry the download page later.
+
+**Update 2026-09-02 (coordinator):** the origin stays down, but the site's own
+bulk exports were captured by the Wayback Machine and downloaded from the
+exact snapshot URLs (browser User-Agent; playback returns 429 intermittently,
+retry after a pause):
+
+| File | Snapshot | Bytes | sha256 | Sheets (rows) |
+|---|---|---:|---|---|
+| `data/raw/gutmdisorder/human.xlsx` | 20200812224039 | 1,643,490 | 4e0984d2…7dfceae | Literature 325, Sample 724, Association 2,263 |
+| `data/raw/gutmdisorder/mouse.xlsx` | 20200812224042 | 728,405 | 68ceb9f1…8bac30c504 | Literature 190, Sample 563, Association 930 |
+
+This is the 2020 (v1) release; the 2022 update (gutMDisorder 2.0) was never
+archived. Association rows carry `Gut Microbiata NCBI ID`, `Classification`
+(rank), `P Value`, `Statistical Method`, `Alteration` (increase/decrease);
+Literature rows carry `PMID`, `DOID`, `Research Type`, `Intervention`.
+Licence: unstated by the site; the NAR 2020 paper says "freely available".
 
 ## 10. PubMed / PubChem
 
