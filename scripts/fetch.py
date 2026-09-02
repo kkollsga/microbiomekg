@@ -435,7 +435,11 @@ KEGG_ENDPOINTS = [
     ("/list/compound", "list_compound.tsv"),
     ("/link/compound/pathway", "link_compound_pathway.tsv"),
     ("/conv/compound/pubchem", "conv_compound_pubchem.tsv"),
-    ("/list/organism", "list_organism.tsv"),
+    # /list/organism is retired — it answers 400 as of 2026-09-02. /list/genome is
+    # the live organism roster, but it returns two columns (T-number, "code; name")
+    # where /list/organism returned four: the taxonomic lineage column is gone, so
+    # KEGG organism codes must be joined to NCBI taxids through another route.
+    ("/list/genome", "list_genome.tsv"),
 ]
 
 
