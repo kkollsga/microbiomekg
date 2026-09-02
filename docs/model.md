@@ -16,7 +16,9 @@ NCBI taxonomy + BugSigDB; the rest of the sources extend the same shapes.
 |---|---|---|---|---|
 | `Taxon` | `tax_id` (int) | `scientific_name` | NCBI `nodes.dmp` | 1 |
 | `UnresolvedTaxon` | `unresolved:<source>:<raw>` | `raw_name` | our own | 1 |
-| `Disease` | source CURIE (`MONDO:0005265`) else `cond:<slug>` | `label` | BugSigDB "EFO ID" | 1 |
+| `Disease` | MONDO CURIE where MONDO declares an equivalence, else the source CURIE | `label` | BugSigDB "EFO ID" | 1 |
+| `Phenotype` | HP CURIE | `label` | BugSigDB "EFO ID" | 1 |
+| `Exposure` | CHEBI / ENVO / EXO / GSSO CURIE | `label` | BugSigDB "EFO ID" | 1 |
 | `BodySite` | `UBERON:0001155` else `site:<slug>` | `label` | BugSigDB "UBERON ID" | 1 |
 | `Study` | `bsdb:<n>` | `title` | BugSigDB BSDB ID prefix | 1 |
 | `Signature` | `bsdb:<study>/<exp>/<sig>` | `description` | BugSigDB BSDB ID | 1 |
@@ -29,13 +31,87 @@ NCBI taxonomy + BugSigDB; the rest of the sources extend the same shapes.
 
 Decisions worth the ink:
 
-**`Disease` is not EFO-keyed, despite the column name.** BugSigDB's "EFO ID"
-column carries twelve vocabularies: MONDO 48%, EFO 36%, then HP, OBA, CHEBI,
-GO, NCBITAXON, CL, OBI, PATO, XCO, ENVO, and more. The pk is therefore the raw
-CURIE and the prefix is kept as an `ontology` property, so
-`WHERE d.ontology = 'MONDO'` is expressible instead of silently pretending the
-column is homogeneous. The 1.3% of signatures with a condition label but no
-CURIE get a `cond:<slug>` key, never a drop.
+**The column named "EFO ID" is neither EFO nor, in 7% of its mentions, a
+condition this model has a type for.** It carries **21** vocabularies over the
+full dump — MONDO 7,390 mentions, EFO 5,447, HP 678, GO 348, CHEBI 324, OBA
+257, IDOMAL 130, NCBITAXON 127, and thirteen more. Three decisions follow, all
+made in `microbiomekg/conditions.py` so no prep script re-decides them.
+
+**Node type comes from the CURIE's prefix, never from the column's name.**
+`MONDO`/`EFO`/`DOID`/`ORPHANET` become `Disease`, `HP` becomes `Phenotype`,
+`CHEBI`/`ENVO`/`EXO`/`GSSO` become `Exposure`. Everything else — `GO`
+processes, `OBA` measurements, `CL` cell types, `OBI` protocols,
+`NCIT:C102763` (a *surgical procedure*), `XCO`, `PO`, `BTO`, `MP`, `IDOMAL`,
+`PR` and `NCBITAXON` — gets **no node type at all**. `NCBITAXON:568703` is
+*Lacticaseibacillus rhamnosus* GG, a probiotic used as the exposure; typing it
+`:Disease` puts a bacterial strain in the disease list, and inventing an
+`Anything` type for the other twelve would be the same error with more steps.
+Those 116 terms and 1,027 mentions go to `data/csv/unresolved_conditions.csv`
+with their raw strings and the reason — recorded, never dropped. `Phenotype` is
+kept apart from `Disease` on the schema survey's own counter-example: PrimeKG
+folded HPO phenotypes and drug side effects into one type and cannot undo it.
+
+**The key is the MONDO CURIE where MONDO says the two terms are the same.**
+MONDO ships curated 1:1 equivalence axioms as `xref:` lines qualified
+`source="MONDO:equivalentTo"`, and that qualifier is the *only* thing read.
+Measured on the 2026-09-01 release: **372 of 875 typed terms join the hub**
+(371 live MONDO ids plus their own identity), and **503 keep their own CURIE
+with `mondo_id` null**. Both halves stay queryable — `source_id` and
+`source_vocabulary` are on every node, so `WHERE d.source_vocabulary = 'EFO'`
+survives the rename, and `source_condition` keeps the verbatim string BugSigDB
+wrote.
+
+Two measured facts worth stating plainly, because both are counter-intuitive:
+
+- **None of BugSigDB's 394 EFO ids has a MONDO equivalence.** MONDO's 2,400
+  `EFO:` equivalence xrefs and BugSigDB's 394 EFO ids are disjoint sets. The
+  hub therefore joins nothing on this source's second-largest vocabulary; it
+  will join gutMDisorder's DOIDs (12,091 equivalences) when that source lands.
+  The EFO ids stay `Disease` nodes with their own CURIE — and some of them
+  (`EFO:0000246` Age, `EFO:0004340` Body mass index) plainly are not diseases.
+  Routing those correctly needs a term-level EFO import, which this increment
+  does not have; guessing from the label would be the merge-on-name failure the
+  survey catalogues.
+- **A `source="EFO:…"` attribute is not an equivalence, and reading it as one
+  is measurably wrong.** `xref: NCIT:C84442 {source="EFO:0000195",
+  source="MONDO:equivalentTo"}` says *MONDO ≡ NCIT:C84442, as asserted by EFO's
+  record* — not MONDO ≡ EFO:0000195. Taking it as an equivalence yields exactly
+  four EFO joins on the real dump and **all four are wrong**: `EFO:0000195`
+  *Metabolic syndrome* would become `MONDO:0000816` *abdominal
+  obesity-metabolic syndrome*, and `EFO:0000180` *HIV-1 infection* would become
+  `MONDO:0004951` *susceptibility to HIV infection*. The cheap-looking join
+  more than doubles hub coverage and poisons it.
+- **Two MONDO ids BugSigDB cites are obsolete** in the current release
+  (`MONDO:0016667`, `MONDO:0100318`), and an obsolete term's `name:` literally
+  begins with the word "obsolete". They are treated as not-live: own CURIE as
+  key, `mondo_id` null.
+
+**Condition ↔ id pairing: the C11 comma trap, in a second column.** Both
+`Condition` and `EFO ID` are comma-joined, and — exactly like `Study design` —
+some *condition labels contain a comma*: `Helminthiasis, animal`,
+`Osteoarthritis, knee`, `Hypertension, pregnancy-induced`. **All 42 rows of the
+full dump whose two columns disagree on comma count are that shape.** Worse,
+`MONDO:0024647,MONDO:0008171` appears with `Nephrolithiasis,Urolithiasis` on
+one row and the reverse label order on another, so a positional zip is not
+merely incomplete, it is contradictory. Three rules, in order:
+
+1. **Equal comma counts → pair positionally** (14,603 rows). Nothing is in
+   doubt.
+2. **Otherwise, match by label**: look each id's name up in MONDO and consume
+   the contiguous run of fragments whose `", "`-join equals it. That
+   reassembles `Helminthiasis` + `animal` — **18 of the 42**.
+3. **Otherwise, if the row has exactly one id**, the whole `Condition` cell
+   verbatim is that id's label — **24 of the 42**. With one id there is no
+   pairing decision to get wrong, so this is an identity, not a guess. (It is
+   what carries `Hepatitis, Alcoholic` onto `MONDO:0001505`, whose MONDO name
+   is *alcoholic hepatitis* and which no label match reassembles.)
+
+Anything still unpaired goes to the ledger with its raw string. On the full
+dump that is one row: a condition label with no id at all.
+
+**Accounting.** 14,987 condition mentions in; 12,843 `IN_CONDITION` + 678
+`IN_PHENOTYPE` + 438 `IN_EXPOSURE` + 1,028 ledger rows out. The three sinks sum
+to the input, which is C18's rule applied to the condition column.
 
 **`Paper` is separate from `Study`.** Every later source (CARD, ChEMBL,
 Disbiome) cites PMIDs too, so `Paper` is the join point that makes "what else
@@ -94,17 +170,36 @@ per taxon (BugSigDB does not).
 |---|---|---|
 | `HAS_PARENT` | `Taxon` → `Taxon` | — (parent pointer, `ancestry`) |
 | `ASSOCIATED_WITH` | `Taxon` → `Disease` | **the evidence contract** |
+| `ASSOCIATED_WITH_PHENOTYPE` | `Taxon` → `Phenotype` | **the same contract** |
+| `ASSOCIATED_WITH_EXPOSURE` | `Taxon` → `Exposure` | **the same contract** |
 | `REPORTED_BY` | `ReportedTaxon` → `Signature` | reconciliation provenance |
 | `PART_OF_STUDY` | `Signature` → `Study` | — |
 | `IN_CONDITION` | `Signature` → `Disease` | — |
+| `IN_PHENOTYPE` | `Signature` → `Phenotype` | — |
+| `IN_EXPOSURE` | `Signature` → `Exposure` | — |
 | `AT_BODY_SITE` | `Signature` → `BodySite` | — |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
 
+**Three association relationships are one relation, split by the engine.** The
+model wants a single `ASSOCIATED_WITH` over a union range, and the ontology can
+express that (an abstract `Condition` class with three subclasses, the way
+`ReportedTaxon` already works on the domain side). The **blueprint** cannot:
+`junction_edges` is a map keyed by relationship name inside one node spec, and
+each entry names exactly one `target` node type — so one relationship cannot be
+loaded from three CSVs pointing at three types. The names are therefore listed
+in `microbiomekg.ontology.ASSOCIATION_RELATIONSHIPS`, "any association" is
+`-[:ASSOCIATED_WITH|ASSOCIATED_WITH_PHENOTYPE|ASSOCIATED_WITH_EXPOSURE]->`, and
+the split is recorded in §8 as an engine limitation rather than a preference.
+The same constraint splits `IN_CONDITION`.
+
 ### The evidence contract on `ASSOCIATED_WITH`
 
-Ten properties, declared `required_properties` in the ontology. One edge per
-`(signature, taxon, condition)` — parallel edges are the point, not an error:
-they *are* the independent observations.
+Fourteen properties, declared `required_properties` on all three association
+relationships. One edge per `(signature, taxon, condition)` — parallel edges
+are the point, not an error: they *are* the independent observations.
+
+The first eight are **how it was demonstrated**; the last six are **who says
+so, and under what terms** — the schema survey's §5(b) minimal provenance set.
 
 | Property | Type | From | Missing (measured) |
 |---|---|---|---|
@@ -116,17 +211,52 @@ they *are* the independent observations.
 | `group_0_size` | int | Group 0 sample size | 11.7% |
 | `group_1_size` | int | Group 1 sample size | 11.6% |
 | `pmid` | int | PMID | 0.9% |
-| `source` | string `bugsigdb` | ours | 0% |
-| `signature_id` | string, the BSDB ID | BSDB ID | 0% |
+| `knowledge_level` | Biolink enum, `statistical_association` | derived from the source | 0% |
+| `agent_type` | Biolink enum, `manual_agent` | derived from the source | 0% |
+| `primary_source` | string `bugsigdb` | ours | 0% |
+| `source_record_id` | string, the BSDB ID | BSDB ID | 0% |
+| `source_licence` | string `CC-BY-4.0` | the export's own banner line | 0% |
+| `source_relation` | string, the source's own wording | Abundance in Group 1 | 0.8% |
 
 Also carried, deliberately outside the audited contract because they are
-context rather than evidence: `study_id`, `host_species`,
-`body_site`, `significance_threshold`, `mht_correction`.
+context rather than evidence: `signature_id` (the join key onto the
+`Signature` node), `study_id`, `host_species`, `body_site`,
+`significance_threshold`, `mht_correction`.
 
-**Measured headline: 14.00% of association edges (16,455 of 117,160) are
-missing at least one contract field.** That number is what
-`ontology_audit()` returns and what the build prints, and it is the number the
-project exists to make visible.
+**Measured headline: 13.7% of association edges (15,127 of 110,547) are
+missing at least one contract field** — 13.9% of the 103,461 disease edges,
+6.2% of the 4,717 phenotype edges, 20.5% of the 2,369 exposure edges. Those
+three numbers are what `ontology_audit()` returns and what the build prints,
+and they are the numbers the project exists to make visible.
+
+**Why the Biolink pair, and why these two values.** `evidence_level` below is
+project-controlled by necessity — ECO has no term that separates 16S from
+shotgun differential abundance — but *how much of a claim an edge is* has a
+portable vocabulary, and Biolink's `knowledge_level` × `agent_type` is it. The
+two enums are pinned verbatim in `microbiomekg.ontology` (a near-miss spelling
+exports silently and nothing downstream recognises it). A curated BugSigDB
+signature is **`statistical_association` + `manual_agent`**: the assertion is
+"these two groups' abundances differed significantly", which is a statistical
+association and not a knowledge assertion about causation; and the agent is a
+person — a named curator, with a curation date and a review state on the row,
+transcribing a published figure. It is deliberately *not*
+`data_analysis_pipeline`, which would be right for a resource that re-ran the
+statistics itself. Both values come from a per-source table, so the next source
+cannot inherit this one's answer, and a source nobody has read the evidence
+model of gets `not_provided` — a real, countable value, never a plausible
+default.
+
+**`source_relation` is what makes normalisation reversible.** `direction` is
+our two-valued normalisation; `source_relation` is BugSigDB's own wording of
+the same fact (`abundance in group 1 increased`). RTX-KG2 quantifies what this
+protects against: 1,228 source relation types collapsing into 77 Biolink
+predicates. It is absent exactly where `direction` is absent, so the gap stays
+countable rather than being papered over with a "not reported" string.
+
+**`primary_source` and `source_record_id` are renames, not additions.** They
+carry what `source` and `signature_id` used to, under the names a Biolink/KGX
+export uses. Keeping both spellings would put two byte-identical strings on
+110,547 edges, which is duplication rather than provenance.
 
 `required_properties` reports one row per *edge*, not per field, so the audit
 gives one honest completeness fraction and the per-field breakdown is a Cypher
@@ -162,8 +292,9 @@ Measured over all 14,846 signatures: `observational-16S` 55.6%,
 ### `REPORTED_BY` — the provenance edge
 
 `(Taxon | UnresolvedTaxon) -[:REPORTED_BY]-> (Signature)`, 114,742 edges,
-carrying `reported_name`, `reported_rank`, `reported_tax_id`,
-`resolution_status`, `resolution_note`, `direction`, `source`. Its
+carrying `reported_name`, `reported_rank`, `original_rank`, `reported_tax_id`,
+`resolution_status`, `resolution_normalized`, `resolution_note`, `direction`,
+`source`. Its
 `required_properties` are declared at `enforcement: error` because *we* write
 them unconditionally — a violation there is a bug in this repo, not upstream
 data, so it should fail the build.
@@ -171,7 +302,26 @@ data, so it should fail the build.
 Its domain is the abstract class `ReportedTaxon`, which is the one place an
 abstract class earns its keep here: one declaration covers edges from two
 concrete types, and `ontology_audit({by: 'domain_class'})` then splits the
-result by resolved-vs-unresolved for free.
+result by resolved-vs-unresolved for free. (That the *range* side cannot do the
+same for the association edges is the blueprint limitation above, not an
+ontology one.)
+
+**`reported_rank` and `original_rank` are two different claims and are stored
+as two properties.** `reported_rank` is what the *source* said: MetaPhlAn's
+prefix vocabulary, which has no `subspecies` and files one under `t__` =
+strain. `original_rank` is **NCBI's** rank for the id as given, straight out of
+`nodes.dmp`. Folding one into the other — which this repo did until now, with
+NCBI's value overwriting MetaPhlAn's — loses a real disagreement: on the full
+dump 170 mentions carry a MetaPhlAn rank that NCBI contradicts, 151 of them
+`species` where NCBI says `subspecies`. A rank query should trust
+`original_rank`; a question about what the source claimed needs
+`reported_rank`.
+
+**`resolution_normalized`** says the name matched only through the
+authority-stripped fallback index (C4). It is a boolean rather than prose in
+`resolution_note` so it can be counted. It is `false` on all 114,742 BugSigDB
+edges, because BugSigDB resolves by id; it will vary the moment CARD, HMDB or
+Disbiome arrive with names.
 
 ---
 
@@ -188,16 +338,34 @@ in the prep scripts, so every source routes through one policy.
 2. **`merged.dmp` remap**, chased transitively. Measured: **413 of 115,634
    BugSigDB taxon mentions point at an id NCBI has since merged.** Without the
    remap those become 413 dangling or duplicate taxa.
-3. **Rank promotion.** `rank_ceiling` defaults to `species`: anything more
-   specific (strain, subspecies, varietas, isolate, serotype…) is promoted to
-   its nearest ancestor at or above the ceiling, status `promoted`, with the
-   original id kept in `reported_tax_id` and the walk recorded in
-   `resolution_note`. Measured: 152 promotions.
-   The rule for **unplaced** ranks (`no rank`, `clade`) matters and is easy to
-   get wrong: such a node is treated as below the ceiling only if its *nearest
-   placed ancestor* is also below it. Otherwise `Enterobacteriaceae incertae
-   sedis` (rank `no rank`, parent = a family) would be "promoted" to its family
-   and a real intermediate node would vanish.
+3. **Rank promotion, against an enumerated rank set — not a rank ladder.**
+   `rank_ceiling` defaults to `species`, and "more specific than species" is
+   answered by `BELOW_SPECIES_RANKS`, a set **enumerated from the real
+   `nodes.dmp`** rather than inferred from an ordering: of 2,993,228 nodes,
+   290,597 sit strictly below a species and they carry exactly 15 rank
+   strings — `no rank` 190,787, `strain` 49,211, `subspecies` 35,704,
+   `varietas` 10,933, `isolate` 1,322, `forma specialis` 859, `forma` 779,
+   `serotype` 573, `clade` 207, `serogroup` 164, `genotype` 22, `biotype` 18,
+   `morph` 11, `pathogroup` 6, `subvariety` 1. A hand-kept ladder is a claim
+   about a file; this is a reading of it. (`RANK_LADDER` survives as the
+   fallback for a non-`species` ceiling, and is documented as the weaker
+   claim.) Promotion keeps the original id in `reported_tax_id` and the walk in
+   `resolution_note`. Measured: 163 promotions.
+
+   **Two of those 15 ranks are ambiguous and the lineage has to place them.**
+   `no rank` and `clade` also occur *above* species (75,020 and 729 nodes), so
+   the rank string alone cannot decide; `below_ceiling()` returns `None` there
+   and the nearest *unambiguous* ancestor decides. The test is **at or below**
+   the ceiling, not below it: 83334 `Escherichia coli O157:H7` is `no rank`
+   with parent 562, a species — the ancestor that places it sits *at* the
+   ceiling. Reading that as "not below" leaves every serovar, pathovar and
+   O-antigen standing as its own species-level node. The other direction is
+   the older trap: `Enterobacteriaceae incertae sedis` (`no rank`, parent a
+   family) must **not** be "promoted" to its family, or a real intermediate
+   node vanishes.
+3b. **`original_rank` is NCBI's rank, always.** `Resolution.original_rank` is
+   read from `nodes.dmp` for the id as given, and it is never overwritten by a
+   source's own rank claim. See §2 for the two-property split on the edge.
 4. **Name lookup** is case-insensitive over the name classes
    `scientific name`, `synonym`, `equivalent name`, `genbank synonym`,
    `includes`. `authority` and `in-part` are excluded — the first is a citation
@@ -222,8 +390,9 @@ in the prep scripts, so every source routes through one policy.
    cuts at the first `(` or four-digit year and leaves a string with neither
    untouched — which is what keeps it from manufacturing hits for
    `Clostridium symbiosum` (bracket marker) or `Cibiobacter qucibialis`
-   (`Candidatus` marker). A normalised match records the decorated spelling it
-   matched in `note`.
+   (`Candidatus` marker). A normalised match sets `Resolution.normalized` and
+   records the decorated spelling it matched in `note` — the boolean so it can
+   be *counted*, the prose so it can be read.
 5. **Ambiguity is never guessed.** A name matching more than one taxon returns
    `status="ambiguous"`, `tax_id=None`, and the full candidate tuple. The dump
    has 1,992 ambiguous name keys (`bacteria`, `paracoccus`,
@@ -239,9 +408,31 @@ in the prep scripts, so every source routes through one policy.
    one node is the whole argument for the policy: a silent drop would have
    removed 16 real observations and left no trace.
 
+7. **"Resolved" and "actionable" are two different questions, so they are two
+   fields.** `Resolution.placeholder` is true when the taxon the resolution
+   landed on carries an NCBI placeholder name: `uncultured`, `unclassified`,
+   `unidentified`, `environmental sample`, a ` sp.`/` spp.` epithet, a
+   `Candidatus ` prefix, or the `[` of a bracketed misapplied genus. Status
+   stays `exact` — 77133 *is* a real tax_id with 13 real signatures — and the
+   flag rides onto the `Taxon` node so a Part D query excludes them with
+   `WHERE NOT t.placeholder` instead of string-matching the name, which is the
+   string-matching this document argues against everywhere else.
+
+   Measured at microbial scope: **572,631 of 863,880 taxa (66%) are
+   placeholders**, 516,889 of them ` sp.` epithets — that is what NCBI's
+   bacterial taxonomy mostly *is*. Of the 8,078 taxa BugSigDB actually cites,
+   1,936 (24%) are placeholders, and 6,485 of the 103,461 disease associations
+   (6.3%) rest on one. The marker set is a floor, not a ceiling: names like
+   `Gammaproteobacteria bacterium SCGC AG-485_A06` are placeholders by any
+   reading and are not flagged, because widening the rule past NCBI's own
+   markers would be guessing.
+
 `Resolution.status` ∈ `exact` | `synonym` | `merged` | `promoted` |
 `ambiguous` | `deleted` | `unresolved`. `resolve()` never raises, and never
-returns a `tax_id` for the last three.
+returns a `tax_id` for the last three. `placeholder` and `normalized` are
+**orthogonal booleans**, deliberately not extra statuses: collapsing them into
+the enum would lose the difference between "77133 is a real id" and "the name
+matched nothing".
 
 Measured over BugSigDB: `exact` 115,042, `merged` 413, `promoted` 163,
 `deleted` 16 (of 115,634 mentions), collapsing to 8,078 distinct taxa.
@@ -255,26 +446,50 @@ Measured over BugSigDB: `exact` 115,042, `merged` 413, `promoted` 163,
 build-time gate.
 
 ```python
+ASSOCIATION_RELATIONSHIPS = (
+    "ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "ASSOCIATED_WITH_EXPOSURE",
+)
+
 "ASSOCIATED_WITH": {
     "domain": "Taxon", "range": "Disease",
-    "required_properties": EVIDENCE_CONTRACT,          # the ten fields
-    "property_types": {"pmid": "integer", "group_0_size": "integer", ...},
+    "required_properties": EVIDENCE_CONTRACT,          # the fourteen fields
+    "property_types": EVIDENCE_PROPERTY_TYPES,
     "enforcement": {"required_properties": "warn", "property_types": "error"},
 },
 ```
 
+**`ASSOCIATION_RELATIONSHIPS` is a declaration, replacing a heuristic.**
+`tests/test_ontology.py` used to work out which relationships carried the
+evidence contract by looking for one that required both a direction and a study
+design. That passes for the wrong reason the moment a provenance edge happens
+to carry both, and it silently covers nothing if a rename breaks the marker.
+The three names are now stated, and the test asserts they are declared rather
+than inferring which they are.
+
 **Severity is split on who owns the gap**, which is the lifecycle the kglite
 ontology guide prescribes:
 
-- `warn`, permanently: `ASSOCIATED_WITH.required_properties` (14.0%),
-  `IN_CONDITION.required` (1.3%), `AT_BODY_SITE.required` (0.5%). These are
+- `warn`, permanently: the three `*.required_properties` rules on the
+  association relationships (13.9% / 6.2% / 20.5%), `IN_CONDITION.required`
+  (15.4%), `AT_BODY_SITE.required` (0.5%). These are
   upstream curation reality. Failing the build on BugSigDB's missing group
   sizes would only mean never building; the number belongs in the build log,
   not the exit code.
-- `error`: `REPORTED_BY.required_properties`, both `property_types` checks,
+- `error`: `REPORTED_BY.required_properties`, every `property_types` check,
   `PART_OF_STUDY.required`/`cardinality`, `PUBLISHED_AS.cardinality`. These are
   things *our* prep guarantees, so a violation is a regression here and should
   stop the build. All measure 0.
+
+**`IN_CONDITION.required` counts something narrower than it used to, and its
+description says so.** With three condition relationships, "the signature names
+some condition" is a disjunction over three, and the ontology cannot express
+"at least one of these relationships" (`exempt` covers only
+`required_properties` and `property_types`). Declaring `required` on all three
+would report ~99% violations on the two narrow ones; declaring it on none would
+drop the gate. It is declared on `IN_CONDITION` alone and reads as **signatures
+with no disease-coded condition** — 2,292 of 14,846 (15.4%), up from the 200
+(1.3%) that had no condition of any kind. The 200 is still measured: the prep
+script prints it as the `empty` condition-pairing method.
 
 **`ancestry: True` on `HAS_PARENT`, never `transitive: True`.** They are
 mutually exclusive and mean different things: `transitive` is a promise that the
@@ -285,10 +500,11 @@ records that the chain is meaningful and is walked with `*1..`, and enrolls no
 check — exactly the parent-pointer shape. (The 512-class cap says the same thing
 from the other side: a 3M-node taxonomy is *data*, not classes.)
 
-Classes are kept minimal and only `ReportedTaxon` is abstract, because it is the
-only place an abstract class buys a union endpoint (§2). `Metabolite`, `Drug`
-and the rest are **not** declared yet: a concrete class naming no live node type
-is a returned warning, so classes land with their data.
+Classes are kept minimal and only `ReportedTaxon` is abstract, because it is
+the only place an abstract class buys a union endpoint that the *blueprint* can
+also load (§2 — the range side wanted the same trick and could not have it).
+`Metabolite`, `Drug` and the rest are **not** declared yet: a concrete class
+naming no live node type is a returned warning, so classes land with their data.
 
 Materialization (`materialize_ontology()`) is **not** used. It would stamp
 `:ReportedTaxon` on 863k `Taxon` nodes to make one query shape shorter, and
@@ -341,7 +557,7 @@ non-terminating.
 |---|---|---|
 | `Taxon` | `scientific_name` | the everyday lookup |
 | `Taxon` | `synonyms` | reconciliation by an old name — "Bacillus coli" → *Escherichia coli* |
-| `Disease` | `label` | condition free text, since 48% of ids are MONDO and few users know MONDO ids |
+| `Disease` | `label` | condition free text, since the key is a MONDO or EFO CURIE and few users know either |
 | `Signature` | `description` | the curator's sentence: "genus-level microbes correlating with odor intensity" |
 | `Paper` | `title` | literature entry point |
 
@@ -354,8 +570,9 @@ values, an exact match is better), any numeric or CURIE field.
 Index sizes at microbial scope: `Taxon.scientific_name` 863,879 documents /
 442,903 terms; `Taxon.synonyms` 103,111 / 98,543 (760,768 taxa have no synonym
 at all, so BM25 skips them — an absent property is not an empty document);
-`Signature.description` 14,425 / 6,383; `Disease.label` 992; `Paper.title`
-2,110. All five build in well under a second.
+`Signature.description` 14,425 / 6,383; `Disease.label` 770; `Paper.title`
+2,110. All five build in well under a second. `Phenotype.label` (62) and
+`Exposure.label` (43) are not indexed — at that size an exact match beats BM25.
 
 ---
 
@@ -385,7 +602,8 @@ pipeline is not scrambling anything.
 **Q2 — biomarker signature for one condition.**
 
 ```cypher
-MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005265'})
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {condition_id: 'MONDO:0011122'})
+WHERE NOT t.placeholder
 RETURN t.title AS taxon, t.rank AS rank, r.direction AS direction,
        count(DISTINCT r.study_id) AS studies,
        collect(DISTINCT r.evidence_level) AS levels
@@ -406,7 +624,7 @@ ORDER BY taxon
 **Q4 — shortestPath between a taxon and a disease.**
 
 ```cypher
-MATCH p = shortestPath((t:Taxon {id: 853})-[*..4]-(d:Disease {id: 'MONDO:0005011'}))
+MATCH p = shortestPath((t:Taxon {id: 853})-[*..4]-(d:Disease {condition_id: 'MONDO:0011122'}))
 RETURN length(p) AS hops, [n IN nodes(p) | labels(n)[0]] AS types
 ```
 
@@ -430,7 +648,8 @@ RETURN count(r) AS edges,
        sum(CASE WHEN r.statistical_test IS NULL THEN 1 ELSE 0 END) AS no_stat
 ```
 
-→ `117160, 894, 1074, 13666, 1515`.
+→ `103461, 894, 1051, 11873, 1283`. Swap `ASSOCIATED_WITH` for the three-way
+alternation to census every association type at once.
 
 **Q6 — resolve an obsolete name through the synonym index.**
 
@@ -440,7 +659,7 @@ RETURN t.title, t.rank, text_bm25(t, 'synonyms', 'Bacillus coli') AS score
 ORDER BY score DESC LIMIT 3
 ```
 
-→ *Escherichia coli* (10.16), well clear of the next hit.
+→ *Escherichia coli* (7.27), well clear of the next hit.
 
 **Q7 — what failed to reconcile, and what it cost.**
 
@@ -459,13 +678,15 @@ RETURN rule, severity, violations, total, pct ORDER BY pct DESC
 ```
 
 ```
-ASSOCIATED_WITH.required_properties   warn      16455 / 117160   14.00%
-IN_CONDITION.required                 warn        200 / 14846     1.30%
-AT_BODY_SITE.required                 warn         78 / 14846     0.50%
-ASSOCIATED_WITH.property_types        error         0 / 117160     0.00%
-REPORTED_BY.required_properties       error         0 / 114742     0.00%
-PART_OF_STUDY.cardinality             error         0 / 14846      0.00%
-… 24 rules total, all others 0
+ASSOCIATED_WITH_EXPOSURE.required_properties  warn     485 / 2369     20.46%
+IN_CONDITION.required                         warn    2292 / 14846    15.44%
+ASSOCIATED_WITH.required_properties           warn   14349 / 103461   13.87%
+ASSOCIATED_WITH_PHENOTYPE.required_properties warn     293 / 4717      6.21%
+AT_BODY_SITE.required                         warn      78 / 14846     0.53%
+ASSOCIATED_WITH.property_types                error       0 / 103461    0.00%
+REPORTED_BY.required_properties               error       0 / 114742    0.00%
+PART_OF_STUDY.cardinality                     error       0 / 14846     0.00%
+… 36 rules total, all others 0
 ```
 
 Drill down to individual edges with
@@ -490,13 +711,14 @@ KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000 \
 blueprint junction-edge loader streams each junction CSV in 100,000-row chunks
 and calls the connect path once per chunk; parallel edges are written on the
 *first* call for a relationship type and **deduplicated on every call after it**.
-`taxon_disease.csv` is ~117k rows of deliberately parallel edges, so a default
-build silently produced 109,065 of them instead of 117,160 — **7.7% of the
-evidence lost, with no warning and no error**. Setting the chunk size above the
-row count restores the exact count (verified both ways). Worth reporting
-upstream: the chunk boundary changes the *result*, not just the memory profile.
+`taxon_disease.csv` is ~103k rows of deliberately parallel edges, so a default
+build silently drops every repeat of a pair it saw in the first chunk — **with
+no warning and no error**. Setting the chunk size above the row count restores
+the exact count (verified both ways). Worth reporting upstream: the chunk
+boundary changes the *result*, not just the memory profile.
 
-Four other things the blueprint format could not express:
+Six other things the blueprint or the ontology could not express. **These go to
+the engine, not into a workaround this repo pretends is a design.**
 
 1. **No list property from CSV.** `map_blueprint_type` accepts only
    `string`/`int`/`float`/`bool`/`date`-family plus the spatial and temporal
@@ -522,8 +744,38 @@ Four other things the blueprint format could not express:
 4. **The ontology audits edge properties only.** There is no
    `required_properties` for *node* properties, which is the single fact that
    decided §1's edge-vs-node split. And `required_properties` reports per edge,
-   not per property, so a ten-field contract yields one percentage and the
+   not per property, so a fourteen-field contract yields one percentage and the
    per-field breakdown has to be a Cypher query (Q5).
+5. **One relationship cannot span a union range from a blueprint.**
+   `connections.junction_edges` is a map *keyed by relationship name* inside one
+   node spec, and each entry names exactly one `target` node type. So
+   `ASSOCIATED_WITH` cannot be loaded from three CSVs pointing at `Disease`,
+   `Phenotype` and `Exposure` — the second entry would collide on the key. The
+   *ontology* can express it (abstract class + `is_a`, exactly what
+   `ReportedTaxon` does on the domain side); the loader cannot. This repo
+   therefore ships three relationship names for one relation, and every "any
+   association" query is a three-way alternation
+   (`ASSOCIATION_RELATIONSHIPS` in `microbiomekg/ontology.py`). It is the
+   single largest modelling compromise in this document. What would fix it: a
+   per-row target type, or an optional `relationship:` field on the junction
+   entry so the map key can be a local alias.
+6. **The ontology cannot say "at least one of these relationships".**
+   `required: true` is per relationship, and `exempt` covers only
+   `required_properties` and `property_types` (`EXEMPTABLE_CHECKS`), so there
+   is no way to declare that a `Signature` must have an `IN_CONDITION` **or**
+   an `IN_PHENOTYPE` **or** an `IN_EXPOSURE`. §4 explains the reading that
+   keeps the gate honest instead; the metric it used to report — signatures
+   with no condition of any kind — now has to come from the prep script's own
+   counter. Falls away entirely if (5) is fixed.
+7. **Relationship-type alternation is a syntax error inside `EXISTS { }`.**
+   `MATCH (n)-[:A|B]->()` parses; `WHERE EXISTS { (n)-[:A|B]->() }` and
+   `WHERE EXISTS { MATCH (n)-[:A|B]->() }` both fail with
+   *"Unexpected token in EXISTS pattern: |"* (kglite 0.16.21, reproduced on a
+   two-node scratch graph). Given (5) forces three relationship names, the
+   natural "signatures that name no condition at all" query —
+   `WHERE NOT EXISTS { (s)-[:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->() }` —
+   is unavailable, and has to be written as three separate `NOT EXISTS`
+   clauses. This one looks like a parser gap rather than a design choice.
 
 Two upstream data traps, both silent, recorded so the next source does not
 re-learn them:

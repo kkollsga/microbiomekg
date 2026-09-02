@@ -106,12 +106,15 @@ the fixture without a network call.
 
 Fixture inventory:
 
-- `tests/fixtures/taxdump_mini/` — 219 nodes (64 taxa of interest + 155
-  lineage scaffolding to `root`), 532 name rows, 6 `merged.dmp` rows, 3
+- `tests/fixtures/taxdump_mini/` — 220 nodes (65 taxa of interest + 155
+  lineage scaffolding to `root`), 533 name rows, 6 `merged.dmp` rows, 3
   `delnodes.dmp` rows. Every line is copied verbatim from the real dump.
-- `tests/fixtures/bugsigdb_mini.csv` — 34 real rows + 8 hand-built
+- `tests/fixtures/bugsigdb_mini.csv` — 34 real rows + 9 hand-built
   adversarial rows, in the real 51-column export format including the
   leading licence banner line.
+- `tests/fixtures/mondo_mini.obo` — 11 MONDO stanzas copied verbatim from the
+  2026-09-01 release: the six terms the BugSigDB fixture cites, an obsolete
+  one, and terms carrying `MONDO:equivalentTo` xrefs to EFO and DOID.
 
 Test modules: `tests/test_reconcile.py` (the taxonomy pitfalls, C1–C9),
 `tests/test_ontology.py` (C11, C17, and the ontology-artifact drift guard
@@ -420,7 +423,7 @@ one.
 Contract: a `Signature` node per source row, and taxon–condition association
 edges hung off the signature. A `MERGE`-style collapse on (taxon, condition)
 would turn 3 into 1 and make "list the supporting studies" (A1) unanswerable.
-The count that proves it: the fixture's 42 rows resolve to **53** distinct
+The count that proves it: the fixture's 43 rows resolve to **53** distinct
 taxa but **71** taxon-report edges.
 
 Guard: `tests/test_build.py::test_same_pair_from_three_signatures_is_three_edges`,
@@ -474,14 +477,31 @@ terms: `EFO` (9), `MONDO` (5), `CHEBI` (2), `EXO` (1), `GSSO` (1), `HP` (1),
   has to find both, which is what the ontology's `is_a` forest is for.
 
 Contract: node type is chosen by the id's **prefix**, never by the column
-name; the free-text `Condition` is stored as an observed label, not as the
-key; the label↔id association is taken as a set per row, never zipped by
-position.
+name; the key is the MONDO CURIE where MONDO declares an equivalence and the
+source CURIE otherwise; the free-text `Condition` is stored as an observed
+label, not as the key; and the label↔id pairing is positional only when the two
+columns agree on comma count, otherwise resolved against MONDO's own labels or
+reported.
 
-Guard: `tests/test_build.py::test_condition_terms_keep_their_source_ontology`,
-`::test_non_disease_terms_are_distinguishable`,
+**Resolved (`microbiomekg/conditions.py`).** All 42 mismatched rows turn out to
+be one shape — a *single* id whose condition label contains a comma
+(`Helminthiasis, animal`, `Osteoarthritis, knee`), i.e. C11's trap in a second
+column. 18 are reassembled by matching MONDO's label, 24 by the single-id
+identity, 0 lost. `MONDO`/`EFO`/`DOID`/`ORPHANET` become `Disease`, `HP`
+becomes `Phenotype`, `CHEBI`/`ENVO`/`EXO`/`GSSO` become `Exposure`, and the
+other 13 vocabularies (116 terms, 1,027 mentions) get no node type and go to
+`data/csv/unresolved_conditions.csv`. See `docs/model.md` §1.
+
+Guard: `tests/test_conditions.py` (the whole module),
+`tests/test_build.py::test_condition_terms_keep_their_source_vocabulary`,
+`::test_non_disease_terms_are_not_disease_nodes`,
+`::test_the_phenotype_and_exposure_terms_are_their_own_types`,
 `::test_two_colorectal_terms_stay_distinct`,
-`::test_multi_condition_row_links_to_both_terms`.
+`::test_multi_condition_row_links_to_both_terms`,
+`::test_a_live_mondo_id_keys_its_own_disease_node`,
+`::test_terms_with_no_mondo_equivalence_keep_their_own_curie`,
+`::test_a_comma_inside_a_condition_label_does_not_mispair`,
+`::test_every_condition_mention_is_accounted_for`.
 
 ### C15. Paper identity: PMID is not always there, and DOI is not normalised
 
@@ -501,9 +521,10 @@ Guard: `tests/test_build.py::test_condition_terms_keep_their_source_ontology`,
   two sources under two DOI spellings becomes two `:Paper` nodes.
 
 Contract: paper key = PMID if present, else normalised DOI (lowercased, URL
-prefix stripped), else `study:<BugSigDB Study id>`. The fixture's 42 rows
-yield **38** distinct papers under that rule and **34** under "PMID only,
-NA collapses".
+prefix stripped), else `study:<BugSigDB Study id>`. The fixture's 43 rows
+yield **39** distinct papers under that rule and **34** under "PMID only,
+NA collapses". As built, `:Paper` is keyed on PMID alone: 33 nodes, and the six
+PMID-less studies correctly get no paper at all.
 
 Guard: `tests/test_build.py::test_papers_without_pmid_do_not_collapse`,
 `::test_doi_forms_are_normalised`.
@@ -545,7 +566,8 @@ engine directly — `tests/test_loader_contracts.py::test_integer_ids_survive_a_
 ### C17. Evidence completeness must be countable, not invisible
 
 The A1 contract is that an edge with unknown evidence exists but is
-*countable*. Over the fixture's **73** `ASSOCIATED_WITH` edges, the per-field
+*countable*. Over the fixture's **72** association edges (55 `ASSOCIATED_WITH`,
+3 `ASSOCIATED_WITH_PHENOTYPE`, 14 `ASSOCIATED_WITH_EXPOSURE`), the per-field
 gap census is:
 
 | evidence property | edges lacking it |
@@ -557,8 +579,9 @@ gap census is:
 | `study_design` | 3 |
 | `group_0_size` | 2 |
 | `direction` | 1 |
-| `evidence_level`, `source`, `signature_id` | 0 (always derived/written) |
-| **edges missing at least one** | **16** (21.9%) |
+| `source_relation` | 1 (absent exactly where `direction` is) |
+| `evidence_level`, `knowledge_level`, `agent_type`, `primary_source`, `source_record_id`, `source_licence` | 0 (always derived/written) |
+| **edges missing at least one** | **16** (22.2%) |
 
 Two things about the instrument, both verified against kglite 0.16.21:
 
@@ -574,6 +597,9 @@ Two things about the instrument, both verified against kglite 0.16.21:
   built from the procedure alone silently under-counts every field but the
   first.
 
+Since the union runs over three relationships (C14), `ontology_audit()` reports
+three `*.required_properties` rows and the 16 is their sum.
+
 Setting `enforcement: "error"` on the association's `required_properties`
 would fail the build on upstream data reality; per KGLite's ontology guide
 those stay `warn`. Rules over fields *this repo* writes (`REPORTED_BY`'s
@@ -585,7 +611,7 @@ derivation returns the string `"unknown"` when the design is missing. A
 required-property check cannot see it, so "how many edges have an unknown
 evidence level" is a `WHERE r.evidence_level = 'unknown'` query, not an audit
 row. That is a deliberate choice (never silently "observational"), but it
-means the audit's 21.9% is a floor, not the whole gap.
+means the audit's 22.2% is a floor, not the whole gap.
 
 Guard: `tests/test_ontology.py::test_every_evidence_property_is_required_on_associations`,
 `::test_evidence_rules_are_not_enforcement_error`,
@@ -650,23 +676,30 @@ reading the pipeline's output — and the two agree.
 
 | node type | golden | | relationship | golden |
 |---|---|---|---|---|
-| `Signature` | **42** | | `HAS_PARENT` | **142** |
-| `Study` | **38** | | `REPORTED_BY` | **74** |
-| `Paper` | **33** | | `ASSOCIATED_WITH` | **73** |
-| `Disease` | **20** | | `IN_CONDITION` | **43** |
-| `BodySite` | **9** | | `AT_BODY_SITE` | **44** |
-| `Taxon` | **143** | | `PART_OF_STUDY` | **42** |
-| `UnresolvedTaxon` | **3** | | `PUBLISHED_AS` | **33** |
+| `Signature` | **43** | | `HAS_PARENT` | **142** |
+| `Study` | **39** | | `REPORTED_BY` | **74** |
+| `Paper` | **33** | | `ASSOCIATED_WITH` | **55** |
+| `Disease` | **15** | | `ASSOCIATED_WITH_PHENOTYPE` | **3** |
+| `Phenotype` | **1** | | `ASSOCIATED_WITH_EXPOSURE` | **14** |
+| `Exposure` | **4** | | `IN_CONDITION` | **34** |
+| `BodySite` | **9** | | `IN_PHENOTYPE` | **3** |
+| `Taxon` | **143** | | `IN_EXPOSURE` | **6** |
+| `UnresolvedTaxon` | **3** | | `AT_BODY_SITE` | **45** |
+| | | | `PART_OF_STUDY` | **43** |
+| | | | `PUBLISHED_AS` | **34** |
 
 and the derived quantities:
 
 | quantity | golden |
 |---|---|
-| input rows | **42** (34 real + 8 adversarial) |
+| input rows | **43** (34 real + 9 adversarial) |
 | taxon mentions in | **74** |
 | taxa some signature named | **53** |
 | lineage ancestors carried for `HAS_PARENT` | **90** (143 − 53) |
 | unresolved records | **3** |
+| condition terms with no node type (ledgered) | **1** |
+| typed condition terms with no MONDO equivalence | **14** |
+| association edges (all three relationships) | **72** |
 | association edges missing ≥1 evidence field | **16** |
 
 Three of these numbers are where the guards actually bit during this
@@ -676,8 +709,13 @@ only the `NCBI Taxonomy IDs` column and ignored the taxon *names* — see C18.
 
 `Taxon` is 143 rather than 53 because the lineage has to stay walkable: the
 90 extra nodes are ancestors, and they must carry **no** `REPORTED_BY` and
-**no** `ASSOCIATED_WITH` edge (C10). `Paper` is 33 rather than 38 because
-five studies have no PMID and correctly get no `:Paper` at all (C15).
+**no** `ASSOCIATED_WITH` edge (C10). `Paper` is 33 rather than 39 because
+six studies have no PMID and correctly get no `:Paper` at all (C15) — and
+because the 43rd row reuses an existing PMID, so `PUBLISHED_AS` is 34 against
+33 papers. The 20 distinct condition terms split 15 / 1 / 4 across the three
+condition types with one ledgered (C14), and the association edges are 72
+rather than 73 because the one association to `NCBITAXON:568703` has no
+condition node to point at.
 
 Guard: `tests/test_build.py::test_golden_node_counts`,
 `::test_golden_edge_counts`, `::test_only_leaf_taxa_are_cited`,
@@ -706,7 +744,8 @@ Guard: `tests/test_ontology.py::test_the_checked_in_ontology_json_matches_the_mo
 
 ### C21. Interface gaps this catalog exposes
 
-Recorded here because they are contract changes, not test bugs.
+Recorded here because they are contract changes, not test bugs. **Items 1–5 are
+closed**; the resolution is noted under each, and item 6 stands.
 
 1. **`Resolution` has no way to say "resolved, but not an organism".** C9's
    placeholder taxa — `uncultured bacterium` (77133), `Bacteroides sp.`
@@ -717,19 +756,29 @@ Recorded here because they are contract changes, not test bugs.
    **Recommendation: add a boolean (`placeholder`), do not overload
    `status`** — the taxon *is* resolved, and collapsing the two would lose
    the difference between "77133 is a real id" and "the name matched
-   nothing".
+   nothing". **Done:** `Resolution.placeholder`, set from
+   `is_placeholder_name()` on the scientific name of the taxon the resolution
+   landed on, and carried onto the `Taxon` node so the exclusion is
+   `WHERE NOT t.placeholder`. 1,936 of the 8,078 cited taxa are flagged.
 2. **No status for "resolved only after normalisation".** C4's four
    decorated-only cases come back `status="synonym"`, which is true but does
    not record that an authority tail had to be stripped. `note` carries it
    today, and
    `tests/test_reconcile.py::test_decorated_only_synonym_records_the_normalisation`
    pins that, so the audit trail exists — but it is prose, not a field, and
-   nothing can aggregate it.
+   nothing can aggregate it. **Done:** `Resolution.normalized`, and
+   `resolution_normalized` on the `REPORTED_BY` edge.
 3. **`rank_ceiling` says nothing about the rank vocabulary.** The 219-node
    fixture alone carries 25 distinct rank strings including `clade`,
    `no rank` and `cellular root`. The *below-ceiling* set has to be
    enumerated explicitly, and belongs in `docs/model.md`: "above species" is
-   not a total order over NCBI's rank strings.
+   not a total order over NCBI's rank strings. **Done:**
+   `BELOW_SPECIES_RANKS`, 15 rank strings enumerated from the real `nodes.dmp`
+   (290,597 of 2,993,228 nodes sit below a species), with `AMBIGUOUS_RANKS`
+   naming the two the lineage has to place. Enumerating it found a live bug the
+   ladder hid: 83334 `Escherichia coli O157:H7` is `no rank` under a *species*,
+   and "below the ceiling" had to become "at or below" for it — and for 190,786
+   siblings — to promote at all.
 4. **`reported_rank` on the edge is the source's claim, not NCBI's.** Both
    below-species adversarial rows use MetaPhlAn's `t__` prefix, so both land
    as `reported_rank = "strain"` even though 1682 is a `subspecies` in
@@ -737,13 +786,18 @@ Recorded here because they are contract changes, not test bugs.
    means the NCBI rank of a promoted taxon survives only inside the prose of
    `resolution_note` (`"promoted from 1682 (subspecies) to 216816
    (species)"`). A separate `original_rank` column on the edge would make it
-   queryable.
+   queryable. **Done:** `REPORTED_BY` carries `reported_rank` (the source's
+   claim) and `original_rank` (NCBI's) as two properties. They disagree on 170
+   of the 114,742 real mentions — 151 where MetaPhlAn says `species` and NCBI
+   says `subspecies`.
 5. **`ONTOLOGY` does not name its association relationships.**
    `tests/test_ontology.py` has to *infer* which relationships carry the
    evidence contract (it takes those requiring both a direction and a study
    design) so it can hold them to `warn` while letting this repo's own
    `REPORTED_BY` sit at `error`. An explicit `ASSOCIATION_RELATIONSHIPS`
-   tuple would turn a heuristic into a declaration.
+   tuple would turn a heuristic into a declaration. **Done:**
+   `microbiomekg.ontology.ASSOCIATION_RELATIONSHIPS`, which the tests now
+   assert against instead of inferring from.
 6. **`CALL edge_property_violation()` under-reports.** One row per violating
    edge, naming only the first missing property — see C17. Anything that
    needs a per-field gap census must use Cypher instead, and a reader who
