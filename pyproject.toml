@@ -1,0 +1,32 @@
+[project]
+name = "microbiomekg"
+version = "0.1.0"
+description = "A microbiome knowledge graph on kglite, with the evidence model as the point."
+requires-python = ">=3.11"
+dependencies = [
+    "kglite>=0.16.21",
+    "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Every test carries a hang ceiling. A test that hits it is a FAILED test —
+# fix the hang, never raise the ceiling. The whole suite runs against a
+# 42-row fixture, so nothing here should take more than a second; the
+# ceiling exists to catch a promotion loop that never terminates (see
+# docs/usecases-and-pitfalls.md C8, where root is its own parent).
+timeout = 120
+timeout_method = "thread"
+addopts = "-ra --strict-markers"
+markers = [
+    "fixture: asserts a property of the checked-in fixture itself, not of the implementation",
+]
+filterwarnings = [
+    "default",
+]

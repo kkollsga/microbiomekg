@@ -1,0 +1,261 @@
+{
+  "settings": {
+    "root": "./data/csv",
+    "output": "graph/microbiomekg.kgl"
+  },
+  "ontology": "ontology.json",
+  "nodes": {
+    "Taxon": {
+      "csv": "taxon.csv",
+      "pk": "tax_id",
+      "title": "scientific_name",
+      "properties": {
+        "rank": "string",
+        "scientific_name": "string",
+        "synonyms": "string",
+        "synonym_count": "int",
+        "lineage_species": "string",
+        "lineage_genus": "string",
+        "lineage_family": "string",
+        "lineage_order": "string",
+        "lineage_class": "string",
+        "lineage_phylum": "string",
+        "lineage_kingdom": "string",
+        "lineage_domain": "string"
+      },
+      "skipped": ["parent_tax_id"],
+      "connections": {
+        "fk_edges": {
+          "HAS_PARENT": {
+            "target": "Taxon",
+            "fk": "parent_tax_id"
+          }
+        },
+        "junction_edges": {
+          "ASSOCIATED_WITH": {
+            "csv": "taxon_disease.csv",
+            "source_fk": "tax_id",
+            "target": "Disease",
+            "target_fk": "disease_id",
+            "properties": [
+              "direction",
+              "study_design",
+              "evidence_level",
+              "sequencing_type",
+              "statistical_test",
+              "group_0_size",
+              "group_1_size",
+              "pmid",
+              "source",
+              "signature_id",
+              "study_id",
+              "host_species",
+              "body_site",
+              "significance_threshold",
+              "mht_correction"
+            ],
+            "property_types": {
+              "group_0_size": "int",
+              "group_1_size": "int",
+              "pmid": "int",
+              "significance_threshold": "float",
+              "direction": "string",
+              "study_design": "string",
+              "evidence_level": "string",
+              "sequencing_type": "string",
+              "statistical_test": "string",
+              "source": "string",
+              "signature_id": "string",
+              "study_id": "string",
+              "host_species": "string",
+              "body_site": "string",
+              "mht_correction": "string"
+            }
+          },
+          "REPORTED_BY": {
+            "csv": "taxon_signature.csv",
+            "source_fk": "tax_id",
+            "target": "Signature",
+            "target_fk": "signature_id",
+            "properties": [
+              "reported_name",
+              "reported_rank",
+              "reported_tax_id",
+              "resolution_status",
+              "resolution_note",
+              "direction",
+              "source"
+            ],
+            "property_types": {
+              "reported_tax_id": "int",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "resolution_status": "string",
+              "resolution_note": "string",
+              "direction": "string",
+              "source": "string"
+            }
+          }
+        }
+      }
+    },
+
+    "UnresolvedTaxon": {
+      "csv": "unresolved_taxa.csv",
+      "pk": "unresolved_id",
+      "title": "raw_name",
+      "properties": {
+        "raw_name": "string",
+        "reported_rank": "string",
+        "reported_tax_id": "int",
+        "source": "string",
+        "status": "string",
+        "candidates": "string",
+        "note": "string",
+        "n_signatures": "int"
+      },
+      "connections": {
+        "junction_edges": {
+          "REPORTED_BY": {
+            "csv": "unresolved_taxon_signature.csv",
+            "source_fk": "unresolved_id",
+            "target": "Signature",
+            "target_fk": "signature_id",
+            "properties": [
+              "reported_name",
+              "reported_rank",
+              "reported_tax_id",
+              "resolution_status",
+              "resolution_note",
+              "direction",
+              "source"
+            ],
+            "property_types": {
+              "reported_tax_id": "int",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "resolution_status": "string",
+              "resolution_note": "string",
+              "direction": "string",
+              "source": "string"
+            }
+          }
+        }
+      }
+    },
+
+    "Signature": {
+      "csv": "signature.csv",
+      "pk": "signature_id",
+      "title": "description",
+      "properties": {
+        "description": "string",
+        "direction": "string",
+        "study_design": "string",
+        "evidence_level": "string",
+        "host_species": "string",
+        "location": "string",
+        "group_0_size": "int",
+        "group_1_size": "int",
+        "sequencing_type": "string",
+        "variable_region": "string",
+        "sequencing_platform": "string",
+        "data_transformation": "string",
+        "statistical_test": "string",
+        "significance_threshold": "float",
+        "mht_correction": "string",
+        "shannon": "float",
+        "chao1": "float",
+        "richness": "float",
+        "pmid": "int",
+        "n_taxa": "int",
+        "n_unresolved": "int",
+        "curated_date": "string",
+        "source": "string"
+      },
+      "skipped": ["study_id"],
+      "connections": {
+        "fk_edges": {
+          "PART_OF_STUDY": {
+            "target": "Study",
+            "fk": "study_id"
+          }
+        },
+        "junction_edges": {
+          "IN_CONDITION": {
+            "csv": "signature_condition.csv",
+            "source_fk": "signature_id",
+            "target": "Disease",
+            "target_fk": "disease_id"
+          },
+          "AT_BODY_SITE": {
+            "csv": "signature_bodysite.csv",
+            "source_fk": "signature_id",
+            "target": "BodySite",
+            "target_fk": "bodysite_id"
+          }
+        }
+      }
+    },
+
+    "Study": {
+      "csv": "study.csv",
+      "pk": "study_id",
+      "title": "title",
+      "properties": {
+        "title": "string",
+        "journal": "string",
+        "year": "int",
+        "doi": "string",
+        "url": "string",
+        "authors": "string",
+        "keywords": "string",
+        "pmid": "int",
+        "pmid_raw": "string",
+        "study_number": "string"
+      },
+      "connections": {
+        "fk_edges": {
+          "PUBLISHED_AS": {
+            "target": "Paper",
+            "fk": "pmid"
+          }
+        }
+      }
+    },
+
+    "Paper": {
+      "csv": "paper.csv",
+      "pk": "pmid",
+      "title": "title",
+      "properties": {
+        "title": "string",
+        "journal": "string",
+        "year": "int",
+        "doi": "string"
+      }
+    },
+
+    "Disease": {
+      "csv": "disease.csv",
+      "pk": "disease_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "source_id": "string",
+        "ontology": "string"
+      }
+    },
+
+    "BodySite": {
+      "csv": "bodysite.csv",
+      "pk": "bodysite_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "source_id": "string",
+        "ontology": "string"
+      }
+    }
+  }
+}

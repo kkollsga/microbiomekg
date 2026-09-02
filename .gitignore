@@ -4,3 +4,5 @@ data/csv/
 graph/
 .venv/
 __pycache__/
+ontology.json
+.DS_Store

@@ -17,6 +17,7 @@ Input files are the NCBI ``new_taxdump`` ``.dmp`` format: fields separated by
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -27,6 +28,7 @@ __all__ = [
     "NAME_CLASSES",
     "RANK_LADDER",
     "rank_depth",
+    "strip_authority",
 ]
 
 #: Name classes from ``names.dmp`` that may be used to look a taxon up.
@@ -109,6 +111,60 @@ def rank_depth(rank: str | None) -> int | None:
     return _RANK_DEPTH.get(rank.strip().lower())
 
 
+_QUOTED_HEAD = re.compile(r'^"([^"]+)"')
+_YEAR = re.compile(r"\b(?:1[6-9]\d{2}|20\d{2})\b")
+_AUTHOR_TAIL = frozenset({"et", "al.", "al", "and", "&", "ex", "emend.", "corrig."})
+
+
+def strip_authority(name: str) -> str:
+    """Reduce an authority-decorated NCBI name to its bare taxonomic name.
+
+    NCBI keeps some legacy binomials **only** in decorated form. The single
+    most-cited renamed organism in microbiome research is one of them::
+
+        1496 | Clostridioides difficile                        | scientific name
+        1496 | Clostridium difficile (Hall and O'Toole 1935)
+               Prevot 1938 (Approved Lists 1980)               | synonym
+
+    There is no bare ``Clostridium difficile`` row anywhere in ``names.dmp``, so
+    a literal lookup of the name every paper actually prints returns nothing.
+    Same for *Lactobacillus plantarum*, *Lactobacillus reuteri* and *Eubacterium
+    rectale*.
+
+    The rule is deliberately narrow, because the failure mode of a greedy
+    normaliser is a **wrong** id rather than none:
+
+    * a fully quoted head is the name (``"Peptoclostridium difficile" Yutin
+      and Galperin 2013``);
+    * otherwise cut at the first ``(`` or the first four-digit year, whichever
+      comes first, then drop trailing author tokens down to at most two words;
+    * **a string with neither a parenthesis nor a year is returned unchanged.**
+      That is what keeps ``Escherichia coli K-12`` from collapsing onto
+      ``Escherichia coli``, and it leaves bracket and ``Candidatus`` markers
+      (``[Clostridium] symbiosum``) alone — those are part of the scientific
+      name, not decoration.
+    """
+    s = name.strip()
+    m = _QUOTED_HEAD.match(s)
+    if m:
+        return m.group(1).strip()
+
+    paren = s.find("(")
+    year = _YEAR.search(s)
+    cut = paren if paren != -1 else None
+    if year is not None and (cut is None or year.start() < cut):
+        cut = year.start()
+    if cut is None:
+        return s
+
+    tokens = s[:cut].split()
+    while len(tokens) > 2 and (
+        tokens[-1].lower() in _AUTHOR_TAIL or tokens[-1][:1].isupper()
+    ):
+        tokens.pop()
+    return " ".join(tokens)
+
+
 @dataclass(frozen=True)
 class Resolution:
     """The outcome of one reconciliation attempt.
@@ -165,6 +221,9 @@ class TaxonomyIndex:
     scientific_name: dict[int, str] = field(default_factory=dict)
     #: casefolded name → {tax_id: the name string as spelled in names.dmp}
     names: dict[str, dict[int, str]] = field(default_factory=dict)
+    #: casefolded :func:`strip_authority` form → {tax_id: the decorated spelling}.
+    #: Consulted only when `names` misses, so an exact hit always wins.
+    stripped: dict[str, dict[int, str]] = field(default_factory=dict)
     merged: dict[int, int] = field(default_factory=dict)
     deleted: frozenset[int] = frozenset()
 
@@ -214,6 +273,9 @@ class TaxonomyIndex:
             if not key:
                 continue
             idx.names.setdefault(key, {}).setdefault(tid, text)
+            bare = strip_authority(text).casefold()
+            if bare and bare != key:
+                idx.stripped.setdefault(bare, {}).setdefault(tid, text)
 
         merged = d / "merged.dmp"
         if merged.is_file():
@@ -326,7 +388,15 @@ class TaxonomyIndex:
         if not key:
             return Resolution(None, "unresolved", matched_name=name, note="empty name")
 
+        # Exact index first, always: a name that is spelled in names.dmp must
+        # never be answered by the normalised index, which is looser and can
+        # collide (`Escherichia coli K-12` is its own taxon, not a decoration
+        # of `Escherichia coli`).
         hits = self.names.get(key)
+        normalised = False
+        if not hits:
+            hits = self.stripped.get(strip_authority(name).casefold())
+            normalised = hits is not None
         if not hits:
             return Resolution(
                 None, "unresolved", matched_name=name, note="no name match in names.dmp"
@@ -337,19 +407,36 @@ class TaxonomyIndex:
                 "ambiguous",
                 matched_name=name,
                 candidates=tuple(sorted(hits)),
-                note=f"{len(hits)} taxa share this name",
+                note=(
+                    f"{len(hits)} taxa share this name"
+                    + (" after authority stripping" if normalised else "")
+                ),
             )
 
         found_id, spelled = next(iter(hits.items()))
         base = self._resolve_id(found_id, rank_ceiling, matched_name=spelled)
+        notes = [n for n in (base.note,) if n]
+        if normalised:
+            notes.insert(0, f"matched {spelled!r} after authority stripping")
         if base.status == "exact" and self.scientific_name.get(found_id) != spelled:
+            notes.append(f"matched non-scientific name of {found_id}")
             return Resolution(
                 base.tax_id,
                 "synonym",
                 matched_name=spelled,
                 original_tax_id=base.original_tax_id,
                 original_rank=base.original_rank,
-                note=f"matched non-scientific name of {found_id}",
+                note="; ".join(notes),
+            )
+        if normalised:
+            return Resolution(
+                base.tax_id,
+                base.status,
+                matched_name=spelled,
+                original_tax_id=base.original_tax_id,
+                original_rank=base.original_rank,
+                candidates=base.candidates,
+                note="; ".join(notes),
             )
         return base
 

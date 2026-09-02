@@ -146,6 +146,7 @@ EVIDENCE_CONTRACT: list[str] = [
     "group_1_size",
     "pmid",
     "source",
+    "signature_id",
 ]
 
 ONTOLOGY: dict = {
@@ -201,6 +202,7 @@ ONTOLOGY: dict = {
                 "group_1_size": "integer",
                 "pmid": "integer",
                 "source": "string",
+                "signature_id": "string",
             },
             # warn, not error, and permanently: the gaps are upstream curation
             # reality (BugSigDB is missing group sizes on ~17% of signatures).
@@ -214,12 +216,17 @@ ONTOLOGY: dict = {
         "REPORTED_BY": {
             "domain": "ReportedTaxon",
             "range": "Signature",
-            "required": True,
-            "required_properties": ["reported_name", "resolution_status", "source"],
+            # No `required`: most Taxon nodes are ancestors pulled in to keep
+            # HAS_PARENT walkable, and an ancestor no signature named is
+            # correct, not a gap.
+            # `source` is on the edge but deliberately not *declared* here:
+            # this edge asserts "the name as reported, and how it reconciled",
+            # not an evidence claim. Declaring it would file REPORTED_BY as an
+            # association edge for anything reading the ontology by shape.
+            "required_properties": ["reported_name", "resolution_status"],
             "property_types": {
                 "reported_name": "string",
                 "resolution_status": "string",
-                "source": "string",
             },
             # Ours, unconditionally written by prep_bugsigdb.py: a violation is
             # a bug in this repo, so it fails the build.
