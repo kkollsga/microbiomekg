@@ -31,7 +31,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
-from microbiomekg.reconcile import NAME_CLASSES, TaxonomyIndex, _dmp_rows  # noqa: E402
+from microbiomekg.reconcile import (  # noqa: E402
+    NAME_CLASSES,
+    TaxonomyIndex,
+    _dmp_rows,
+    is_placeholder_name,
+)
 
 #: Clade roots for ``--scope microbial``: Bacteria, Archaea, Fungi.
 MICROBIAL_ROOTS = (2, 2157, 4751)
@@ -56,6 +61,11 @@ FIELDS = [
     "scientific_name",
     "rank",
     "parent_tax_id",
+    # Resolved, but not an organism anyone can act on: `uncultured bacterium`,
+    # `Bacteroides sp.`, `[Clostridium] symbiosum`, a Candidatus. Carried as a
+    # node property so a query excludes them with `WHERE NOT t.placeholder`
+    # instead of string-matching the name (C9, C21.1).
+    "placeholder",
     "synonyms",
     "synonym_count",
     *LINEAGE_COLUMNS[1:],
@@ -192,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out.mkdir(parents=True, exist_ok=True)
     path = args.out / "taxon.csv"
-    n_truncated = 0
+    n_truncated = n_placeholder = 0
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDS)
         w.writeheader()
@@ -202,10 +212,14 @@ def main(argv: list[str] | None = None) -> int:
             syn = synonyms.get(tid, [])
             if len(syn) > SYNONYM_CAP:
                 n_truncated += 1
+            name = idx.scientific_name.get(tid, lin[0] or str(tid))
+            placeholder = is_placeholder_name(name)
+            n_placeholder += placeholder
             row = {
                 "tax_id": tid,
-                "scientific_name": idx.scientific_name.get(tid, lin[0] or str(tid)),
+                "scientific_name": name,
                 "rank": idx.rank.get(tid, ""),
+                "placeholder": "true" if placeholder else "false",
                 # root(1) is its own parent in nodes.dmp; a self-edge would make
                 # -[:HAS_PARENT*1..]-> non-terminating on any walk that reaches it.
                 "parent_tax_id": "" if parent == tid or parent not in keep else parent,
@@ -215,8 +229,8 @@ def main(argv: list[str] | None = None) -> int:
             row.update(zip(LINEAGE_COLUMNS[1:], lin[1:]))
             w.writerow(row)
 
-    print(f"wrote {path} ({len(keep):,} rows; {n_truncated:,} synonym lists capped "
-          f"at {SYNONYM_CAP})")
+    print(f"wrote {path} ({len(keep):,} rows; {n_placeholder:,} placeholder names; "
+          f"{n_truncated:,} synonym lists capped at {SYNONYM_CAP})")
     return 0
 
 

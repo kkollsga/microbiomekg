@@ -227,6 +227,12 @@ ONTOLOGY: dict = {
             "property_types": {
                 "reported_name": "string",
                 "resolution_status": "string",
+                # The source's rank claim and NCBI's own rank for the same id
+                # are different facts and are stored as different properties
+                # (C21.4): MetaPhlAn's prefix vocabulary has no `subspecies`.
+                "reported_rank": "string",
+                "original_rank": "string",
+                "resolution_normalized": "boolean",
             },
             # Ours, unconditionally written by prep_bugsigdb.py: a violation is
             # a bug in this repo, so it fails the build.

@@ -275,12 +275,17 @@ def test_below_species_rows_land_on_the_species_node(
         f"MATCH (t:Taxon)-[r:REPORTED_BY]->(s:Signature) "
         f"WHERE s.signature_id = '{signature_id}' "
         f"RETURN t.tax_id AS tax_id, r.resolution_status AS status, "
-        f"r.reported_tax_id AS reported, r.reported_rank AS rank",
+        f"r.reported_tax_id AS reported, r.reported_rank AS reported_rank, "
+        f"r.original_rank AS original_rank",
     )
     assert [h["tax_id"] for h in hit] == [landed]
     assert hit[0]["status"] == "promoted"
     assert hit[0]["reported"] == cited
-    assert hit[0]["rank"] == rank
+    # C21.4: two ranks, two meanings. `reported_rank` is what the *source*
+    # claimed — MetaPhlAn's `t__` prefix, which has no `subspecies` and calls
+    # both of these a strain. `original_rank` is NCBI's rank for the same id.
+    assert hit[0]["reported_rank"] == "strain"
+    assert hit[0]["original_rank"] == rank
 
 
 # --------------------------------------------------------------------------
@@ -737,3 +742,59 @@ def test_taxon_lineage_is_walkable_to_root(graph):
     assert hit, "Escherichia coli does not reach root through HAS_PARENT"
     # 562 -> 561 -> 543 -> 91347 -> 1236 -> 1224 -> 3379134 -> 2 -> 131567 -> 1
     assert hit[0]["len"] == 9
+
+
+# --------------------------------------------------------------------------
+# C21.1 / C21.2 — the reconciliation flags reach the graph
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "tax_id, placeholder",
+    [
+        (77133, True),    # uncultured bacterium
+        (29523, True),    # Bacteroides sp.
+        (1512, True),     # [Clostridium] symbiosum
+        (2500537, True),  # Candidatus Cibiobacter qucibialis
+        (48479, True),    # environmental samples (a lineage ancestor)
+        (562, False),
+        (1496, False),
+        (853, False),
+    ],
+)
+def test_placeholder_taxa_are_excludable_with_one_clause(graph, tax_id, placeholder):
+    """C9/C21.1: `WHERE NOT t.placeholder`, not a LIKE over the name."""
+    hit = rows(
+        graph, f"MATCH (t:Taxon) WHERE t.tax_id = {tax_id} RETURN t.placeholder AS p"
+    )
+    assert hit, f"{tax_id} is not in the graph at all"
+    assert hit[0]["p"] is placeholder
+
+
+def test_placeholder_is_a_boolean_not_a_string(graph):
+    """A string `"true"` makes `WHERE NOT t.placeholder` silently wrong."""
+    value = rows(
+        graph, "MATCH (t:Taxon) WHERE t.tax_id = 77133 RETURN t.placeholder AS p"
+    )[0]["p"]
+    assert isinstance(value, bool)
+
+
+def test_authority_stripped_matches_are_countable_on_the_edge(graph):
+    """C21.2: `bsdb:adv-legacyname/1/1` names `Clostridium difficile`, which
+    exists in names.dmp only in authority-decorated form."""
+    hit = rows(
+        graph,
+        "MATCH ()-[r:REPORTED_BY]->(s:Signature) "
+        "WHERE s.signature_id = 'bsdb:adv-legacyname/1/1' "
+        "RETURN r.resolution_normalized AS n, r.resolution_status AS status",
+    )
+    assert hit and hit[0]["n"] is True
+    assert hit[0]["status"] == "synonym"
+    assert (
+        count(
+            graph,
+            "MATCH ()-[r:REPORTED_BY]->() WHERE r.resolution_normalized "
+            "RETURN count(r) AS n",
+        )
+        == 1
+    ), "exactly one fixture mention needed authority stripping"

@@ -249,20 +249,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     reported = Writer(
         out / "taxon_signature.csv",
-        ["tax_id", "signature_id", "reported_name", "reported_rank", "reported_tax_id",
-         "resolution_status", "resolution_note", "direction", "source"],
+        ["tax_id", "signature_id", "reported_name", "reported_rank", "original_rank",
+         "reported_tax_id", "resolution_status", "resolution_normalized",
+         "resolution_note", "direction", "source"],
         dedupe_full=True,
     )
     reported_unres = Writer(
         out / "unresolved_taxon_signature.csv",
         ["unresolved_id", "signature_id", "reported_name", "reported_rank",
-         "reported_tax_id", "resolution_status", "resolution_note", "direction", "source"],
+         "original_rank", "reported_tax_id", "resolution_status",
+         "resolution_normalized", "resolution_note", "direction", "source"],
         dedupe_full=True,
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "reported_tax_id", "source",
-         "status", "candidates", "note", "n_signatures"],
+        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
+         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
         key="unresolved_id",
     )
     assoc = Writer(
@@ -394,16 +396,20 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     res = idx.resolve(pretty or None, rank_ceiling=args.rank_ceiling)
                 reported_name = pretty or idx.scientific_name.get(res.tax_id or -1) or raw_id
-                # NCBI's own rank for the id as given beats the MetaPhlAn
-                # prefix, which has no `subspecies` and files it under `t__`.
-                rank = res.original_rank or rank
 
+                # Two ranks, two claims, both kept (C21.4). `reported_rank` is
+                # the source's: MetaPhlAn's prefix vocabulary has no
+                # `subspecies`, so it files 1682 under `t__` = strain.
+                # `original_rank` is NCBI's own rank for the id as given, which
+                # is the one a rank query should trust.
                 base = {
                     "signature_id": bsdb,
                     "reported_name": reported_name,
                     "reported_rank": rank,
+                    "original_rank": res.original_rank or "",
                     "reported_tax_id": raw_id,
                     "resolution_status": res.status,
+                    "resolution_normalized": "true" if res.normalized else "false",
                     "resolution_note": res.note,
                     "direction": direction,
                     "source": SOURCE,
@@ -417,6 +423,7 @@ def main(argv: list[str] | None = None) -> int:
                             "unresolved_id": uid,
                             "raw_name": reported_name,
                             "reported_rank": rank,
+                            "original_rank": res.original_rank or "",
                             "reported_tax_id": raw_id,
                             "source": SOURCE,
                             "status": res.status,

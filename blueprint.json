@@ -12,6 +12,7 @@
       "properties": {
         "rank": "string",
         "scientific_name": "string",
+        "placeholder": "bool",
         "synonyms": "string",
         "synonym_count": "int",
         "lineage_species": "string",
@@ -23,7 +24,9 @@
         "lineage_kingdom": "string",
         "lineage_domain": "string"
       },
-      "skipped": ["parent_tax_id"],
+      "skipped": [
+        "parent_tax_id"
+      ],
       "connections": {
         "fk_edges": {
           "HAS_PARENT": {
@@ -80,8 +83,10 @@
             "properties": [
               "reported_name",
               "reported_rank",
+              "original_rank",
               "reported_tax_id",
               "resolution_status",
+              "resolution_normalized",
               "resolution_note",
               "direction",
               "source"
@@ -93,13 +98,14 @@
               "resolution_status": "string",
               "resolution_note": "string",
               "direction": "string",
-              "source": "string"
+              "source": "string",
+              "original_rank": "string",
+              "resolution_normalized": "bool"
             }
           }
         }
       }
     },
-
     "UnresolvedTaxon": {
       "csv": "unresolved_taxa.csv",
       "pk": "unresolved_id",
@@ -107,6 +113,7 @@
       "properties": {
         "raw_name": "string",
         "reported_rank": "string",
+        "original_rank": "string",
         "reported_tax_id": "int",
         "source": "string",
         "status": "string",
@@ -124,8 +131,10 @@
             "properties": [
               "reported_name",
               "reported_rank",
+              "original_rank",
               "reported_tax_id",
               "resolution_status",
+              "resolution_normalized",
               "resolution_note",
               "direction",
               "source"
@@ -137,13 +146,14 @@
               "resolution_status": "string",
               "resolution_note": "string",
               "direction": "string",
-              "source": "string"
+              "source": "string",
+              "original_rank": "string",
+              "resolution_normalized": "bool"
             }
           }
         }
       }
     },
-
     "Signature": {
       "csv": "signature.csv",
       "pk": "signature_id",
@@ -173,7 +183,9 @@
         "curated_date": "string",
         "source": "string"
       },
-      "skipped": ["study_id"],
+      "skipped": [
+        "study_id"
+      ],
       "connections": {
         "fk_edges": {
           "PART_OF_STUDY": {
@@ -197,7 +209,6 @@
         }
       }
     },
-
     "Study": {
       "csv": "study.csv",
       "pk": "study_id",
@@ -223,7 +234,6 @@
         }
       }
     },
-
     "Paper": {
       "csv": "paper.csv",
       "pk": "pmid",
@@ -235,7 +245,6 @@
         "doi": "string"
       }
     },
-
     "Disease": {
       "csv": "disease.csv",
       "pk": "disease_id",
@@ -246,7 +255,6 @@
         "ontology": "string"
       }
     },
-
     "BodySite": {
       "csv": "bodysite.csv",
       "pk": "bodysite_id",

@@ -11,7 +11,13 @@ from __future__ import annotations
 
 import pytest
 
-from microbiomekg.reconcile import Resolution, TaxonomyIndex
+from microbiomekg.reconcile import (
+    AMBIGUOUS_RANKS,
+    BELOW_SPECIES_RANKS,
+    Resolution,
+    TaxonomyIndex,
+    below_ceiling,
+)
 
 from conftest import TAXDUMP_MINI, read_dmp
 
@@ -445,3 +451,153 @@ def test_fixture_contains_the_pitfall_taxa():
     assert required <= ids, f"fixture lost {sorted(required - ids)}"
     assert 1440055 not in ids, "a merged id must not be a live node"
     assert 1009 not in ids, "a deleted id must not be a live node"
+
+
+# --------------------------------------------------------------------------
+# C21.1 — placeholder taxa are resolved AND flagged
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name, tax_id",
+    [
+        ("uncultured bacterium", 77133),
+        ("Bacteroides sp.", 29523),
+        ("[Clostridium] symbiosum", 1512),
+        ("Candidatus Cibiobacter qucibialis", 2500537),
+        ("environmental samples", 48479),
+    ],
+)
+def test_placeholder_taxa_resolve_exactly_and_are_flagged(index, name, tax_id):
+    """C21.1: the taxon *is* resolved — `placeholder` is a second axis, not a status.
+
+    Collapsing the two would lose the difference between "77133 is a real NCBI
+    id" and "the name matched nothing".
+    """
+    r = index.resolve(name)
+    assert r.tax_id == tax_id
+    assert r.status == "exact", "a placeholder name is still an exact match"
+    assert r.placeholder is True
+
+
+@pytest.mark.parametrize("tax_id", [77133, 29523, 1512, 2500537, 48479])
+def test_placeholder_flag_is_set_from_the_id_route_too(index, tax_id):
+    """The flag is a property of the taxon, not of how it was looked up."""
+    assert index.resolve(tax_id=tax_id).placeholder is True
+
+
+@pytest.mark.parametrize("tax_id", [562, 1496, 1386, 216816, 853, 39491])
+def test_real_organisms_are_not_flagged_as_placeholders(index, tax_id):
+    assert index.resolve(tax_id=tax_id).placeholder is False
+
+
+def test_promotion_reports_the_flag_of_the_taxon_it_landed_on(index):
+    """83333 `Escherichia coli K-12` promotes to 562, which is a real organism."""
+    r = index.resolve(tax_id=83333)
+    assert r.tax_id == 562
+    assert r.placeholder is False
+
+
+@pytest.mark.parametrize("kwargs", [{"name": "Bacillus"}, {"tax_id": 999999999}])
+def test_unresolved_results_are_not_placeholders(index, kwargs):
+    """No id, no taxon to describe — the flag stays False rather than guessing."""
+    assert index.resolve(**kwargs).placeholder is False
+
+
+# --------------------------------------------------------------------------
+# C21.2 — "resolved only after authority stripping" is a field, not prose
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name, tax_id",
+    [(n, t) for n, t, bare in LEGACY_NAMES if not bare],
+)
+def test_authority_stripped_match_sets_normalized(index, name, tax_id):
+    """C21.2: `note` carries it as prose; nothing can aggregate prose."""
+    r = index.resolve(name)
+    assert r.tax_id == tax_id
+    assert r.normalized is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["Escherichia coli", "bacterium 10a", "Clostridium symbiosum"]
+    + [n for n, _, bare in LEGACY_NAMES if bare],
+)
+def test_names_found_in_the_exact_index_are_not_normalized(index, name):
+    assert index.resolve(name).normalized is False
+
+
+def test_id_lookups_are_never_normalized(index):
+    """Normalisation is a name-index fallback; an id never goes through it."""
+    assert index.resolve(tax_id=1440055).normalized is False
+
+
+# --------------------------------------------------------------------------
+# C21.3 — the below-ceiling rank set is enumerated, not inferred from an order
+# --------------------------------------------------------------------------
+
+
+def test_below_species_ranks_are_the_ranks_ncbi_uses_under_species():
+    """C21.3: "above species" is not a total order over NCBI's rank strings.
+
+    The set was enumerated from the real `nodes.dmp` (see the module docstring
+    for the counts); these twelve occur *only* below a species.
+    """
+    for rank in (
+        "strain",
+        "subspecies",
+        "varietas",
+        "isolate",
+        "forma specialis",
+        "forma",
+        "serotype",
+        "serogroup",
+        "genotype",
+        "biotype",
+        "morph",
+        "pathogroup",
+        "subvariety",
+    ):
+        assert rank in BELOW_SPECIES_RANKS, f"{rank!r} is missing from the enumeration"
+
+
+@pytest.mark.parametrize(
+    "rank", ["species", "genus", "family", "species group", "species subgroup", "cellular root"]
+)
+def test_ranks_at_or_above_species_are_not_in_the_below_set(rank):
+    assert rank not in BELOW_SPECIES_RANKS
+
+
+@pytest.mark.parametrize("rank", ["no rank", "clade"])
+def test_the_lineage_decides_for_ranks_that_occur_on_both_sides(rank):
+    """`no rank` and `clade` sit above *and* below species, so the string alone
+    cannot decide — `below_ceiling` says so instead of guessing."""
+    assert rank in BELOW_SPECIES_RANKS
+    assert rank in AMBIGUOUS_RANKS
+    assert below_ceiling(rank, "species") is None
+
+
+@pytest.mark.parametrize(
+    "rank, expected",
+    [
+        ("strain", True),
+        ("subspecies", True),
+        ("serotype", True),
+        ("species", False),
+        ("genus", False),
+        ("cellular root", False),
+        ("not-a-rank-ncbi-uses", False),
+    ],
+)
+def test_below_ceiling_answers_from_the_enumeration(rank, expected):
+    assert below_ceiling(rank, "species") is expected
+
+
+def test_below_ceiling_falls_back_to_the_ladder_for_other_ceilings():
+    """Only `species` is enumerated; other ceilings still use RANK_LADDER."""
+    assert below_ceiling("species", "genus") is True
+    assert below_ceiling("genus", "genus") is False
+    assert below_ceiling("species", "strain") is False
+    assert below_ceiling("no rank", "genus") is None
