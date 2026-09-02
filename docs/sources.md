@@ -27,6 +27,7 @@ did not answer; the exact error is recorded.
 | 8 | ChEMBL | fetched (REST subset) | 44 MB | `data/raw/chembl/` |
 | 9 | gutMDisorder | fetched (Wayback 2020 snapshot) | 2.4 MB | `data/raw/gutmdisorder/` |
 | 10 | PubMed / PubChem | not fetched (by design) | — | — |
+| 11 | MONDO | fetched | 53 MB | `data/raw/mondo/` |
 
 Total on disk: **1.3 GB** across 61 files. 8 of 10 sources usable; 2 blocked.
 
@@ -379,3 +380,19 @@ bulk. Both resources are public domain, so nothing here is a licence decision.
 
 Source names: `ncbi`, `bugsigdb`, `disbiome`, `hmdb`, `card`, `reactome`,
 `kegg`, `chembl`, `gutmdisorder`, `pubmed`.
+
+## 11. MONDO (disease id hub) — added by the coordinator, 2026-09-02
+
+- **URL** — `https://github.com/monarch-initiative/mondo/releases/latest/download/mondo.obo`
+  (release 2026-09-01; the `mondo.sssom.tsv` asset is not published on this
+  release, HTTP 404).
+- **Licence** — CC BY 4.0.
+- **Format** — OBO. Equivalences are `xref:` lines carrying
+  `source="MONDO:equivalentTo"`: 2,400 to EFO (BugSigDB's disease ids) and
+  12,091 to DOID (gutMDisorder's), plus MeSH/NCIT/UMLS.
+- **Status** — fetched. `data/raw/mondo/mondo.obo`, 53,134,854 bytes, sha256 in
+  `data/raw/mondo/PROVENANCE.md`.
+- **Why** — the schema survey (`docs/research/existing-graphs-and-schemas.md`)
+  recommends MONDO as the canonical disease key with source ids kept as
+  properties; without it, the same condition arrives as an EFO id from one
+  source and a DOID from another and never joins.
