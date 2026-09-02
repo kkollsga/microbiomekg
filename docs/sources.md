@@ -73,20 +73,28 @@ obstacle in the way of redistribution.
   redistribution; citation requested, not required.
 - **Format** — gzipped tar of `.dmp` files: pipe-delimited with `\t|\t`
   separators and a trailing `\t|`, no header row.
-- **Size** — 160,755,049 B archive; 977 MB extracted (the five files we keep).
+- **Size** — 160,754,260 B archive; 941 MB extracted (the five files we keep).
 - **Status** — **fetched**, md5 verified against the published digest
-  (`3838e1c791844a5449f69c560a638215`).
+  (`c529466d7d6d3c2069d07988f9a3ad97`, dump of 2026-09-02).
+
+> **This file is rebuilt daily and the figures above move with it.** A rebuilt
+> member can keep its byte count while changing content, so `fetch.py` ties each
+> extracted `.dmp` to the sha256 of the archive it came from and re-extracts
+> whenever the archive changes; the `.md5` sidecar is always refetched rather
+> than cached, because at a constant 53 bytes its size can never reveal that it
+> is stale. Expect these numbers to differ on a later run — that is the source
+> moving, not a fault.
 
 Only the five members the graph needs are unpacked; the rest of the tarball is
 left inside it:
 
 | File | Bytes | Rows |
 |------|------:|-----:|
-| `names.dmp` | 284,230,285 | 4,746,472 |
-| `nodes.dmp` | 285,303,865 | 2,993,226 |
-| `rankedlineage.dmp` | 397,295,649 | 2,993,226 |
-| `merged.dmp` | 1,900,944 | 100,910 |
-| `delnodes.dmp` | 7,611,559 | 778,120 |
+| `names.dmp` | 284,232,912 | 4,746,518 |
+| `nodes.dmp` | 285,314,099 | 2,993,228 |
+| `rankedlineage.dmp` | 397,296,008 | 2,993,228 |
+| `merged.dmp` | 1,900,963 | 100,911 |
+| `delnodes.dmp` | 7,611,539 | 778,118 |
 
 `merged.dmp` and `delnodes.dmp` are what let the prep step resolve taxids that
 other sources cite but NCBI has since merged or retired — without them, stale

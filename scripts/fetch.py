@@ -263,17 +263,42 @@ def write_text_file(source: str, filename: str, url: str, text: str) -> Path:
     return dest
 
 
+def stale_members(source: str, out: Path, names: list[str], archive_key: str,
+                  force: bool) -> list[str]:
+    """Which of `names` must be (re-)extracted from the archive at archive_key.
+
+    Presence alone is not freshness. NCBI rebuilds its taxdump daily and CARD
+    ships new bundles under the same URL, and a rebuilt member can keep its byte
+    count while changing content — so extracted files are tied to the sha256 of
+    the archive they came from, and any archive change re-extracts. This also
+    self-heals a run that downloaded a new archive but died before extracting.
+    """
+    archive_sha = MANIFEST_DATA.get(archive_key, {}).get("sha256")
+    todo = []
+    for name in names:
+        target = out / name
+        entry = MANIFEST_DATA.get(f"{source}/{target.relative_to(RAW / source).as_posix()}", {})
+        if force or not target.exists() or entry.get("from_archive_sha256") != archive_sha:
+            todo.append(name)
+    return todo
+
+
 # ------------------------------------------------------------------- sources
 
 def fetch_ncbi(args) -> None:
     log("NCBI Taxonomy")
     base = "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/"
+    # The .md5 sidecar is ALWAYS refetched, never cached. It is 53 bytes whatever
+    # it contains, so "present at its full size" cannot detect that NCBI has
+    # regenerated the dump — and a stale sidecar checked against a fresh tarball
+    # reports a digest mismatch that looks like corruption but is just staleness.
     md5 = download("ncbi_taxonomy", base + "new_taxdump.tar.gz.md5",
-                   "new_taxdump.tar.gz.md5", force=args.force)
+                   "new_taxdump.tar.gz.md5", force=True)
     tar = download("ncbi_taxonomy", base + "new_taxdump.tar.gz",
                    "new_taxdump.tar.gz", timeout=600, force=args.force)
     if not tar:
         return
+
 
     if md5:
         want = md5.read_text().split()[0]
@@ -293,7 +318,9 @@ def fetch_ncbi(args) -> None:
     # Only the five members we need; the tarball holds a lot more.
     wanted = ["names.dmp", "nodes.dmp", "rankedlineage.dmp", "merged.dmp", "delnodes.dmp"]
     out = RAW / "ncbi_taxonomy"
-    missing = [n for n in wanted if not (out / n).exists() or args.force]
+    tar_key = "ncbi_taxonomy/new_taxdump.tar.gz"
+    tar_sha = MANIFEST_DATA[tar_key]["sha256"]
+    missing = stale_members("ncbi_taxonomy", out, wanted, tar_key, args.force)
     if missing:
         log(f"  extracting {', '.join(missing)}")
         with tarfile.open(tar, "r:gz") as tf:
@@ -305,8 +332,10 @@ def fetch_ncbi(args) -> None:
     for name in wanted:
         p = out / name
         if p.exists():
-            record_file("ncbi_taxonomy", p, base + "new_taxdump.tar.gz", "extracted")
-            log(f"  extracted {name} ({p.stat().st_size:,} B)")
+            record_file("ncbi_taxonomy", p, base + "new_taxdump.tar.gz", "extracted",
+                        from_archive_sha256=tar_sha)
+            verb = "extracted" if name in missing else "verified"
+            log(f"  {verb} {name} ({p.stat().st_size:,} B)")
 
 
 def fetch_bugsigdb(args) -> None:
@@ -426,20 +455,24 @@ def fetch_card(args) -> None:
             continue
         out = RAW / "card" / name.replace(".tar.bz2", "")
         out.mkdir(parents=True, exist_ok=True)
+        arc_key = f"card/{name}"
+        arc_sha = MANIFEST_DATA[arc_key]["sha256"]
         with tarfile.open(arc, "r:bz2") as tf:
-            for member in tf.getmembers():
-                if not member.isfile():
-                    continue
+            members = [m for m in tf.getmembers() if m.isfile()]
+            want = stale_members("card", out, [Path(m.name).name for m in members],
+                                 arc_key, args.force)
+            for member in members:
                 target = out / Path(member.name).name
-                if target.exists() and not args.force:
+                if target.name not in want:
                     continue
                 with tf.extractfile(member) as src, target.open("wb") as dst:
                     while chunk := src.read(1 << 20):
                         dst.write(chunk)
         for p in sorted(out.iterdir()):
             if p.is_file():
-                record_file("card", p, url, "extracted")
-                log(f"  extracted {p.relative_to(RAW / 'card')} ({p.stat().st_size:,} B)")
+                record_file("card", p, url, "extracted", from_archive_sha256=arc_sha)
+                verb = "extracted" if p.name in want else "verified"
+                log(f"  {verb} {p.relative_to(RAW / 'card')} ({p.stat().st_size:,} B)")
 
 
 def fetch_reactome(args) -> None:
