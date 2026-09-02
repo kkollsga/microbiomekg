@@ -224,6 +224,7 @@ def main(argv: list[str] | None = None) -> int:
          "pairing_method", "reason", "source"],
         dedupe_full=True,
         merge=True,
+        owner=("source", SOURCE),
     )
     bodysites = Writer(
         out / "bodysite.csv", ["bodysite_id", "label", "source_id", "ontology"], key="bodysite_id"
@@ -236,6 +237,7 @@ def main(argv: list[str] | None = None) -> int:
          "group_1_definition", "sequencing_type", "variable_region", "sequencing_platform",
          "data_transformation", "statistical_test", "significance_threshold",
          "mht_correction", "lda_score_above", "matched_on", "confounders",
+         "antibiotics_exclusion",
          "shannon", "chao1", "richness", "curator", "curated_date", "source_figure",
          "state", "pmid", "n_taxa", "n_unresolved", "source"],
         key="signature_id",
@@ -276,6 +278,7 @@ def main(argv: list[str] | None = None) -> int:
          "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
         key="unresolved_id",
         merge=True,
+        owner=("source", SOURCE),
     )
     assoc_fields = ["tax_id", "condition_id", "direction", "study_design",
                     "evidence_level", "sequencing_type", "statistical_test",
@@ -286,11 +289,14 @@ def main(argv: list[str] | None = None) -> int:
                     "significance_threshold", "mht_correction"]
     assoc = {
         "Disease": Writer(
-            out / "taxon_disease.csv", assoc_fields, dedupe_full=True, merge=True),
+            out / "taxon_disease.csv", assoc_fields, dedupe_full=True, merge=True,
+            owner=("primary_source", SOURCE)),
         "Phenotype": Writer(
-            out / "taxon_phenotype.csv", assoc_fields, dedupe_full=True, merge=True),
+            out / "taxon_phenotype.csv", assoc_fields, dedupe_full=True, merge=True,
+            owner=("primary_source", SOURCE)),
         "Exposure": Writer(
-            out / "taxon_exposure.csv", assoc_fields, dedupe_full=True, merge=True),
+            out / "taxon_exposure.csv", assoc_fields, dedupe_full=True, merge=True,
+            owner=("primary_source", SOURCE)),
     }
 
     cited: "OrderedDict[int, int]" = OrderedDict()
@@ -572,6 +578,13 @@ def main(argv: list[str] | None = None) -> int:
                     "lda_score_above": na(row.get("LDA Score above")),
                     "matched_on": na(row.get("Matched on")),
                     "confounders": na(row.get("Confounders controlled for")),
+                    # G7 is "confounder control is schema, not metadata": all
+                    # three columns are queryable per signature, so "which
+                    # studies for disease Y controlled for medication" is one
+                    # query (D11). 26 differentially abundant ASVs in T2D
+                    # became 0 after matching on host variables, and this is
+                    # the only surveyed source that records the fact at all.
+                    "antibiotics_exclusion": na(row.get("Antibiotics exclusion")),
                     "shannon": na(row.get("Shannon")),
                     "chao1": na(row.get("Chao1")),
                     "richness": na(row.get("Richness")),
@@ -613,6 +626,12 @@ def main(argv: list[str] | None = None) -> int:
         f"{m} {n:,}" for m, n in sorted(pairing_methods.items())))
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
+    shared = {w.path.name: w.merged_in for w in (
+        studies, papers, *conditions.values(), unresolved_nodes, *assoc.values(),
+        unresolved_conditions, cited_writer) if w.merged_in}
+    if shared:
+        print("  merged into tables another source had written: " + ", ".join(
+            f"{name} +{n:,}" for name, n in shared.items()))
     print(f"  {ont_path.name:34s}  (ontology document)")
     return 0
 

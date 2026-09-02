@@ -160,14 +160,13 @@ design requirement: over 10,803 fecal metagenomes, naively transferred models
 
 **Can this graph answer it? PARTIAL.** The cross-disease specificity leg is
 answerable now (D3): `count(DISTINCT r.study_id)` per (taxon, condition), across
-conditions, with sizes and direction. Two things are missing. (a) **The
-confounder fields are extracted but not loaded.** `prep_bugsigdb.py` writes
-`matched_on` and `confounders` into `signature.csv`, but `blueprint.json`'s
-`Signature.properties` declares neither, and `Antibiotics exclusion` is not
-extracted at all — so the fields the research calls "the strongest argument for
-BugSigDB as the spine" do not reach the graph. That is a loader gap, not a data
-gap (see D11). (b) Healthy-baseline prevalence is absent; GMrepo or `bugphyzz`
-fills it (D14).
+conditions, with sizes and direction. (a) **The confounder fields are loaded**
+as of 2026-09-03: `matched_on` (2,304 signatures), `confounders` (1,958) and
+`antibiotics_exclusion` (6,485) are extracted and declared, so the fields the
+research calls "the strongest argument for BugSigDB as the spine" are queryable
+per signature (D11, which also records what the original diagnosis of this gap
+got wrong). (b) Healthy-baseline prevalence is still absent; GMrepo or
+`bugphyzz` fills it (D14).
 
 ### W3. Probiotic / live-biotherapeutic candidate selection
 
@@ -437,9 +436,10 @@ about one time in three; every guard below follows from that.
 - **G7 — Confounder control is schema, not metadata.** `matched_on`,
   `confounders` and `antibiotics_exclusion` are queryable per signature, so
   "which studies for disease Y controlled for medication" is one query.
-  Testable: D11 returns a non-empty breakdown. **This guard currently fails** —
-  `matched_on` and `confounders` reach `signature.csv` but are not declared in
-  `blueprint.json`, and `Antibiotics exclusion` is not extracted (D11). Warrant:
+  Testable: D11 returns a non-empty breakdown. **This guard holds as of
+  2026-09-03** — `antibiotics_exclusion` is extracted and all three columns are
+  declared, which `tests/test_acceptance.py` asserts separately from their
+  values (D11 records what the original diagnosis got wrong). Warrant:
   26 differentially abundant ASVs in T2D → **0** after matching on host
   variables (Vujkovic-Cvijin et al., Nature 587:448, 2020).
 - **G8 — Curated and machine-extracted are segregated at the schema level.**
@@ -1538,10 +1538,11 @@ candidates, never conclusions.
 
 ### D11 — "Which studies for disease Y controlled for medication or antibiotics?"
 
-*Status:* **`partial` — and this is the one place the graph fails a guard it
-declared.** The research calls this "the strongest argument for BugSigDB as the
-spine": no other source in the survey records confounder control. *Fields:*
-`Antibiotics exclusion` · `Confounders controlled for` · `Matched on`.
+*Status:* **`answerable-now`** (was `partial` — the one place the graph failed
+a guard it declared; closed 2026-09-03). The research calls this "the strongest
+argument for BugSigDB as the spine": no other source in the survey records
+confounder control. *Fields:* `Antibiotics exclusion` · `Confounders controlled
+for` · `Matched on`.
 
 ```cypher
 MATCH (s:Signature)-[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005148'})
@@ -1553,16 +1554,26 @@ RETURN s.id AS signature, s.pmid AS pmid, s.study_design AS design,
 ORDER BY pmid
 ```
 
-*What is missing, precisely:* `prep_bugsigdb.py` writes `matched_on` and
-`confounders` into `data/csv/signature.csv`, but `blueprint.json`'s
-`Signature.properties` declares neither, so both come back null; and
-`Antibiotics exclusion` (BugSigDB column 24) is not extracted at all. The fix is
-three column names, not a new source. Until it lands, **G7 is unenforceable and
-D18's competing-explanation check has no BugSigDB-side counterpart.** *Why it
-matters more than its rank suggests:* 26 differentially abundant ASVs in T2D
-became **0** after matching on host variables, and significance vanished
-entirely for depression, autism, lung disease, thyroid disease, migraine and
-SIBO. An unfiltered graph serves every one of those edges.
+*What was missing, and what was wrong about the diagnosis.* `Antibiotics
+exclusion` (BugSigDB column 24) was genuinely never extracted — that half was
+right, and it is the widest of the three columns: **6,485 of 14,846
+signatures** carry an exclusion window. The other half was not: `matched_on`
+and `confounders` were *not* returning null. The blueprint declared neither,
+but kglite's loader carries every CSV column a node spec does not `skip`, so
+both reached the graph anyway — 2,304 and 1,958 signatures respectively,
+measured. That is a weaker guarantee than it looks (an undeclared column has no
+declared type and no `property_types` check), so the fix was still three column
+names: extract the third, and *declare* all three, which
+`tests/test_acceptance.py` now asserts separately from their values. **G7 is
+enforceable as of that fix**; D18's competing-explanation check still waits on
+MASI for its drug→taxon half. *Golden check (measured 2026-09-03):* 14,846
+signatures carry 2,304 `matched_on`, 1,958 `confounders` and 6,485
+`antibiotics_exclusion`; for type 2 diabetes (`MONDO:0005148`) the query returns
+180 signatures, 58 with confounders and 42 matched on. *Why it matters more
+than its rank suggests:* 26 differentially abundant ASVs in T2D became **0**
+after matching on host variables, and significance vanished entirely for
+depression, autism, lung disease, thyroid disease, migraine and SIBO. An
+unfiltered graph serves every one of those edges.
 
 ### D12 — "This paper says *Lactobacillus reuteri*. What is the current name and tax_id, and does a query for *Limosilactobacillus reuteri* find it?"
 
@@ -1829,8 +1840,8 @@ interactions "naturally unable to predict all organism-specific traits".
 
 | Status | Count | Queries |
 |---|---:|---|
-| `answerable-now` | **7** | D1, D2, D3, D9, D15, D16, D17 |
-| `partial` | **5** | D4, D10, D11, D12, D14 |
+| `answerable-now` | **8** | D1, D2, D3, D9, D11, D15, D16, D17 |
+| `partial` | **4** | D4, D10, D12, D14 |
 | `pending-source` | **6** | D5, D6, D7, D8, D13, D18 |
 | `descoped` | **2** | D19, D20 |
 | **total** | **20** | |
@@ -1838,8 +1849,8 @@ interactions "naturally unable to predict all organism-specific traits".
 Which source closes which pending query: **MiMeDB** → D5 (and D10's, D13's
 metabolite legs); **NJC19** → D6; **CARD** → D7 (and D10's AMR leg); **MASI** →
 D8, D18; **gutMDisorder** → D4's intervention leg; **KEGG/Reactome** → D13's
-pathway leg. Of the five `partial` queries, **two need no new source at all** —
-D11 needs three column names declared in `blueprint.json` and one more extracted
-in `prep_bugsigdb.py`, and D14's non-specificity half already works. The
+pathway leg. Of the original five `partial` queries, **two needed no new source at all** —
+D11 is closed (three column names declared, one more extracted), and D14's
+non-specificity half already works. The
 remaining three (D4, D10, D12) each split cleanly into an answerable leg and a
 named pending one.

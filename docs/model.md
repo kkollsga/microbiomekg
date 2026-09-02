@@ -133,15 +133,29 @@ a rule that stops it being duplication:**
 > Anything the ontology must *audit* lives on the edge. Everything else lives on
 > the `Signature` node.
 
-- `Signature` (14,846 nodes) carries the full 30-field curation record: group
-  names and definitions, variable region, sequencing platform, data
-  transformation, MHT correction, LDA cutoff, matched-on, confounders, alpha
-  diversity, curator, curation date, figure of origin, state.
-- `ASSOCIATED_WITH` (117,160 edges) carries the **ten-field evidence
-  contract** and nothing else, because `required_properties` is the only
-  completeness check kglite can enforce, and it works on **edge** properties
-  only. Putting the evidence on the `Signature` node would make the whole
-  premise of this project unauditable.
+- `Signature` (14,846 nodes) carries the full curation record: group names and
+  definitions, variable region, sequencing platform, data transformation, MHT
+  correction, LDA cutoff, **`matched_on`, `confounders`,
+  `antibiotics_exclusion`**, alpha diversity, curator, curation date, figure of
+  origin, state. Those three confounder columns are guard G7 —
+  *confounder control is schema, not metadata* — and D11 is the query that
+  reads them: 26 differentially abundant ASVs in type 2 diabetes became **0**
+  after matching on host variables, and no other source in the survey records
+  the fact at all.
+- The three association relationships (110,547 edges: 103,461 `ASSOCIATED_WITH`
+  + 4,717 `ASSOCIATED_WITH_PHENOTYPE` + 2,369 `ASSOCIATED_WITH_EXPOSURE`) carry
+  the **fourteen-field evidence contract** and nothing else, because
+  `required_properties` is the only completeness check kglite can enforce, and
+  it works on **edge** properties only. Putting the evidence on the `Signature`
+  node would make the whole premise of this project unauditable.
+
+> **A column the blueprint does not declare still reaches the graph** — the
+> loader carries every CSV column it is not told to `skip`. So "the property
+> answers a query" is not evidence that anything guarantees it: an undeclared
+> column has no declared type, is invisible to the ontology's `property_types`
+> check, and rests on the loader staying generous. Every property a query in
+> Part D reads is therefore declared, and `tests/test_acceptance.py` asserts
+> the declaration rather than the value's presence.
 
 What the `Signature` node buys, concretely:
 
@@ -224,10 +238,11 @@ context rather than evidence: `signature_id` (the join key onto the
 `significance_threshold`, `mht_correction`.
 
 **Measured headline: 13.7% of association edges (15,127 of 110,547) are
-missing at least one contract field** — 13.9% of the 103,461 disease edges,
-6.2% of the 4,717 phenotype edges, 20.5% of the 2,369 exposure edges. Those
-three numbers are what `ontology_audit()` returns and what the build prints,
-and they are the numbers the project exists to make visible.
+missing at least one contract field** — **14,349 of the 103,461 disease edges,
+13.87%**, which is the number the project quotes, plus 293 of 4,717 phenotype
+edges (6.21%) and 485 of 2,369 exposure edges (20.46%). Those three numbers are
+what `ontology_audit()` returns and what the build prints, and they are the
+numbers the project exists to make visible.
 
 **Why the Biolink pair, and why these two values.** `evidence_level` below is
 project-controlled by necessity — ECO has no term that separates 16S from
@@ -264,8 +279,55 @@ query (§7, Q5). That is a deliberate reading of the tool, not a workaround.
 
 ### `evidence_level`
 
+**The vocabulary is twelve values, and this table is the authority.** It is the
+reconciliation `docs/usecases-and-pitfalls.md` Part B argues to — the research
+document's nine-value list against the schema survey's seven — under one rule:
+**`evidence_level` describes one observation, never a body of evidence.** An
+edge is one signature's report of one taxon; it cannot know how many other
+studies agree, and a stored answer would be frozen at build time and wrong
+after the next refresh. So `curated_single_study`, `curated_replicated`,
+`temporal_or_genetic` and `established` are *not* values here: replication is
+`count(DISTINCT r.study_id)` at query time (D3, D17), the temporal axis
+survives verbatim in `study_design`, and "established" is a verdict about a
+pair, which is a query result. Part B carries the argument; this table carries
+the vocabulary, and the two are cross-referenced rather than restated.
+
+Ten values are emitted today by `microbiomekg.ontology.evidence_level()`; two
+are reserved for sources being loaded next. **Spelling is hyphenated with `16S`
+capitalised**, because that is what the built edges carry — a near-miss
+spelling is a silent filter miss, so a source whose profile writes
+`observational_16s` maps to the hyphenated form on write, and D15 counts
+distinct values. The tuple is pinned as
+`microbiomekg.ontology.EVIDENCE_LEVEL_VALUES`.
+
+| Value | One-line definition | What justifies assigning it |
+|---|---|---|
+| `computational-predicted` | No measurement of *this* edge: a genome/MAG pathway call, sequence similarity, homology propagation or a KG inference. | HMDB `status ∈ {predicted, expected}`; CARD's meta-models; MiMeDB's BLAST-propagated layer; Reactome `IEA`. |
+| `text-mined` | Asserted by an NLP or co-occurrence pipeline; no curator read the paper. | No current source emits it. Reserved so a SemMedDB-class source can never land as anything else. |
+| `unknown` | The source records no design, host or assay a level can be derived from. **Never defaulted to observational.** | BugSigDB rows with no `Study design` (8 signatures, 17 edges); KEGG links; HMDB disease associations. |
+| `observational-unspecified` | A human observational differential-abundance result whose assay is not recorded. | An observational design with `Sequencing type` absent or outside the known set. |
+| `observational-targeted` | Observational, measured by a targeted assay rather than a community survey. | `Sequencing type = PCR`; gutMDisorder qPCR / RT-qPCR / PCR / DGGE. |
+| `observational-amplicon` | Observational, non-16S amplicon. | `Sequencing type ∈ {ITS / ITS2, 18S}`. |
+| `observational-16S` | Observational, 16S amplicon — the modal value, and genus-resolution at best. | `Sequencing type = 16S`; gutMDisorder `16S rRNA/rDNA sequences`. |
+| `observational-shotgun` | Observational, whole-metagenome shotgun; the only observational rung that supports a species-level claim. | `Sequencing type = WMS`; gutMDisorder "quantitative metagenomics by shotgun sequencing". |
+| `meta-analysis` | A synthesis over several cohorts, curated as one record. | `Study design = meta-analysis`. |
+| `in-vitro` | Measured in culture: growth, a metabolite assay, an MIC over controls, or a gene→product step shown by knockout or expression. | `Study design = laboratory experiment` with no live host named; CARD's curated models; NJC19 / MASI verified events. |
+| `in-vivo-model` | Demonstrated in a non-human host — any design run in an animal. A discounted tier, never causal support. | `Host species` ∉ {human, absent}, **whatever the design**; the whole gutMDisorder mouse workbook. |
+| `interventional-rct` | A randomised controlled trial in humans, or an approved clinical use. | `Study design = randomized controlled trial` with a human host; gutMDisorder human rows whose `Research Type` names an intervention. |
+
+**Two companions, kept separate and never folded into the level.**
+`knowledge_level` and `agent_type` are Biolink's enums verbatim, pinned in
+`microbiomekg.ontology` and written from a per-source table
+(`SOURCE_EVIDENCE`), never defaulted — a source whose evidence model nobody has
+read gets `not_provided`, which is a real, countable value. And **nothing is
+stored as a score**: a derived confidence may be computed in a query from these
+components, never persisted as the evidence field.
+
 Derived in `microbiomekg.ontology.evidence_level(study_design, sequencing_type,
-host_species)`; the design→level table is `EVIDENCE_LEVELS`. First match wins:
+host_species)` for the sources whose columns fit that shape; a source with a
+different evidence model brings its own derivation in
+`microbiomekg/ontology/<source>.py` and maps onto the same twelve values. The
+design→level table is `EVIDENCE_LEVELS`. First match wins:
 
 1. `laboratory experiment` → `in-vitro` when no live host is named, else
    `in-vivo-model`;
@@ -441,9 +503,14 @@ Measured over BugSigDB: `exact` 115,042, `merged` 413, `promoted` 163,
 
 ## 4. The ontology declaration
 
-`microbiomekg/ontology.py::ONTOLOGY`, written to `ontology.json`, referenced by
+`microbiomekg.ontology.ONTOLOGY`, written to `ontology.json`, referenced by
 `blueprint.json`'s top-level `"ontology"` key so the declarations become a
-build-time gate.
+build-time gate. It is **composed, not authored**: `microbiomekg/ontology/` is
+a package holding the evidence vocabulary (`vocabulary.py`), the shared spine
+every source writes into (`core.py`), and one module per source exporting
+`CLASSES`, `RELATIONSHIPS` and `ASSOCIATION_RELATIONSHIPS`. Source modules are
+discovered rather than listed, and two of them declaring the same class
+differently is a `FragmentConflict`, not a silent override — see §8.
 
 ```python
 ASSOCIATION_RELATIONSHIPS = (
@@ -522,7 +589,7 @@ layer attached:
 | Scope | Taxa | Nodes | Edges | Build | Peak RSS | `.kgl` |
 |---|---|---|---|---|---|---|
 | `cited` | 10,515 | 30,827 | 289,735 | 0.6 s | — | 4 MB |
-| `microbial` | 863,879 | 884,191 | 1,143,099 | **2.4 s** | **1.23 GB** | 25 MB |
+| `microbial` | 863,880 | 884,075 | 1,135,459 | **2.4 s** | **1.23 GB** | 25 MB |
 | `all` | 2,993,226 | ~3.0 M | ~3.3 M | (not built) | ~4 GB est. | — |
 
 An evidence-filtered `ASSOCIATED_WITH` scan runs in **7 ms** at microbial
@@ -567,11 +634,12 @@ values, an exact match is better), any numeric or CURIE field.
 `Taxon.synonyms` is a `" | "`-joined **string**, capped at 20 names per taxon
 (68 taxa hit the cap at microbial scope). It is not a list property — see §8.
 
-Index sizes at microbial scope: `Taxon.scientific_name` 863,879 documents /
-442,903 terms; `Taxon.synonyms` 103,111 / 98,543 (760,768 taxa have no synonym
+Index sizes at microbial scope: `Taxon.scientific_name` 863,880 documents /
+442,904 terms; `Taxon.synonyms` 103,112 / 98,548 (760,768 taxa have no synonym
 at all, so BM25 skips them — an absent property is not an empty document);
-`Signature.description` 14,425 / 6,383; `Disease.label` 770; `Paper.title`
-2,110. All five build in well under a second. `Phenotype.label` (62) and
+`Signature.description` 14,425 / 6,383 (421 signatures have no description);
+`Disease.label` 770 / 919; `Paper.title` 2,110 / 3,915. All five build in well
+under a second, and `scripts/build.py` builds exactly this list. `Phenotype.label` (62) and
 `Exposure.label` (43) are not indexed — at that size an exact match beats BM25.
 
 ---
@@ -698,16 +766,37 @@ and split by source type with `CALL ontology_audit({by: 'domain_class'})`.
 ## 8. Building it, and what the blueprint could not express
 
 ```bash
-uv venv .venv && uv pip install --python .venv/bin/python pandas kglite
+uv venv .venv && uv pip install --python .venv/bin/python pandas openpyxl kglite
 
-.venv/bin/python scripts/prep_bugsigdb.py     # writes cited_taxa.csv — run first
-.venv/bin/python scripts/prep_taxonomy.py --scope microbial
-
-KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000 \
-  .venv/bin/python -c "import kglite; kglite.from_blueprint('blueprint.json', verbose=True)"
+.venv/bin/python scripts/build.py --scope microbial
 ```
 
-**That environment variable is not optional, and this is a kglite defect.** The
+`build.py` is the whole pipeline and the only supported entry point: it empties
+`data/csv/`, runs every `scripts/prep_<source>.py` (discovered, not listed),
+runs `prep_taxonomy.py` last because it reads the `cited_taxa.csv` they all
+write, composes `blueprint.json` from `blueprints/*.json`, writes
+`ontology.json`, loads with the chunk-size workaround below, builds §6's five
+BM25 indexes, prints the counts, the audit and G10's per-source expansion
+factor, and saves `graph/microbiomekg.kgl`.
+
+**Adding a source is adding files, never editing shared ones.** A source brings
+`scripts/prep_<source>.py`, `blueprints/<source>.json`,
+`microbiomekg/ontology/<source>.py` and `tests/test_<source>.py`. The blueprint
+fragments and the ontology modules are composed by
+`microbiomekg.fragments.merge_fragments`, whose rule is the reason for the
+split: two fragments declaring the *same* thing is how a source says "I write
+rows into this table too" and merges; declaring *more* is additive; declaring
+the same key with a **different** value raises `FragmentConflict` naming both
+fragments. A merger that let the last writer win would turn a real
+disagreement about which CSV backs `Disease` into a silently different graph.
+Shared *rows* work the same way: a second source's taxon–disease association is
+a row in `taxon_disease.csv`, not a second relationship, because a junction
+entry names one relationship, one CSV and one target type (item 5 below). That
+is what `microbiomekg.tables.Writer(merge=True, owner=…)` is for.
+
+**`KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000` is not optional, and this is
+a kglite defect.** `scripts/build.py` sets it; anything loading the blueprint
+by hand must too. The
 blueprint junction-edge loader streams each junction CSV in 100,000-row chunks
 and calls the connect path once per chunk; parallel edges are written on the
 *first* call for a relationship type and **deduplicated on every call after it**.
@@ -776,6 +865,16 @@ the engine, not into a workaround this repo pretends is a design.**
    `WHERE NOT EXISTS { (s)-[:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->() }` —
    is unavailable, and has to be written as three separate `NOT EXISTS`
    clauses. This one looks like a parser gap rather than a design choice.
+
+One more loader behaviour, recorded because it is the opposite of the usual
+trap: **an undeclared CSV column is still loaded.** Every column a node spec
+does not `skip` reaches the graph as a property, whether or not
+`properties` names it. So a query answering is not proof that the property is
+part of the contract — an undeclared column carries no declared type, is
+invisible to the ontology's `property_types` check, and would vanish the day
+the loader stopped being generous. `matched_on` and `confounders` lived in that
+state until D11 was written; the fix was to declare them (and to extract
+`antibiotics_exclusion`, which genuinely was missing).
 
 Two upstream data traps, both silent, recorded so the next source does not
 re-learn them:

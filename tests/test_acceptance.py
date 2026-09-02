@@ -59,6 +59,14 @@ GOLDEN = {
     "d17_pairs": 55445,
     "d17_direction_conflict": 8114,
     "d17_single_cohort": 46809,
+    # D11 — the confounder columns, and G7
+    "d11_signatures": 14846,
+    "d11_matched_on": 2304,
+    "d11_confounders": 1958,
+    "d11_antibiotics_exclusion": 6485,
+    "d11_t2d_signatures": 180,
+    "d11_t2d_confounders": 58,
+    "d11_t2d_matched_on": 42,
 }
 
 #: D14's standing fixture: the four genera BugSigDB itself names as reported in
@@ -467,3 +475,76 @@ def test_d17_the_named_fixture_returns_both_directions(graph):
     assert sorted(result["directions"]) == ["decreased", "increased"]
     assert result["n_edges"] == GOLDEN["d2_edges"]
     assert result["n_studies"] == GOLDEN["d2_studies"]
+
+
+# --------------------------------------------------------------------------
+# D11 — "Which studies for disease Y controlled for medication or antibiotics?"
+# --------------------------------------------------------------------------
+#
+# Part D calls this "the one place the graph fails a guard it declared": G7
+# says confounder control is schema, not metadata, and the three columns that
+# make it so are `Matched on`, `Confounders controlled for` and `Antibiotics
+# exclusion`. The research calls them the strongest argument for BugSigDB as
+# the spine — no other surveyed source records confounder control at all — and
+# the number behind that: 26 differentially abundant ASVs in T2D became **0**
+# after matching on host variables.
+
+
+def test_d11_the_confounder_columns_are_declared_by_the_blueprint(graph):
+    """Declared, not merely present. The loader carries an undeclared CSV
+    column into the graph anyway, so `s.confounders` answering is not evidence
+    that anything guarantees it: an undeclared column has no type, is invisible
+    to the ontology's `property_types` check, and disappears the day the
+    loader stops being generous. G7 needs a declaration."""
+    declared = json.loads(BLUEPRINT.read_text())["nodes"]["Signature"]["properties"]
+    for column in ("matched_on", "confounders", "antibiotics_exclusion"):
+        assert declared.get(column) == "string", (
+            f"Signature.{column} is not declared in blueprint.json — "
+            f"G7 is unenforceable and D11 rests on loader generosity"
+        )
+
+
+def test_d11_every_confounder_column_reaches_the_signature(graph):
+    """All three, with their measured non-null counts. `Antibiotics exclusion`
+    is the one that was never extracted at all, and it is the widest of the
+    three: 6,485 of 14,846 signatures carry it."""
+    result = one(
+        graph,
+        """
+        MATCH (s:Signature)
+        RETURN count(s) AS signatures,
+               sum(CASE WHEN s.matched_on IS NULL THEN 0 ELSE 1 END) AS matched_on,
+               sum(CASE WHEN s.confounders IS NULL THEN 0 ELSE 1 END) AS confounders,
+               sum(CASE WHEN s.antibiotics_exclusion IS NULL THEN 0 ELSE 1 END)
+                 AS antibiotics_exclusion
+        """,
+    )
+    assert result["signatures"] == GOLDEN["d11_signatures"]
+    assert result["matched_on"] == GOLDEN["d11_matched_on"]
+    assert result["confounders"] == GOLDEN["d11_confounders"]
+    assert result["antibiotics_exclusion"] == GOLDEN["d11_antibiotics_exclusion"]
+
+
+def test_d11_the_breakdown_for_one_disease_is_one_query(graph):
+    """G7's testable form: "which studies for disease Y controlled for
+    medication" returns a non-empty breakdown, for type 2 diabetes — the
+    disease the Vujkovic-Cvijin result is about."""
+    result = rows(
+        graph,
+        """
+        MATCH (s:Signature)-[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005148'})
+        RETURN s.id AS signature, s.pmid AS pmid, s.study_design AS design,
+               s.matched_on AS matched_on,
+               s.confounders AS confounders_controlled,
+               s.antibiotics_exclusion AS antibiotics_exclusion,
+               s.group_0_size AS n0, s.group_1_size AS n1
+        ORDER BY pmid
+        """,
+    )
+    assert len(result) == GOLDEN["d11_t2d_signatures"]
+    assert sum(1 for r in result if r["confounders_controlled"]) == GOLDEN["d11_t2d_confounders"]
+    assert sum(1 for r in result if r["matched_on"]) == GOLDEN["d11_t2d_matched_on"]
+    assert sum(1 for r in result if r["antibiotics_exclusion"]) > 0, (
+        "not one type 2 diabetes signature records an antibiotics exclusion "
+        "window — the column was not extracted"
+    )

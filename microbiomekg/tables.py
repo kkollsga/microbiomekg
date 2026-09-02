@@ -42,6 +42,16 @@ class Writer:
     than dropped, and a column the *existing* file does not have is added to
     every row — so two sources may contribute different columns to one table
     without either knowing the other's schema.
+
+    ``owner`` is what makes a *re-run* safe. Merging into a file this source
+    already wrote would otherwise either freeze its old rows (a key-deduped
+    node table) or double them (a row-deduped edge table, where one added
+    column changes the dedupe tuple and both copies survive). Given
+    ``owner=("primary_source", "bugsigdb")`` the reader drops the rows that
+    column says this source wrote, so a re-run replaces its own contribution
+    and leaves everyone else's alone. Tables with no such column rely on
+    ``scripts/build.py`` emptying the directory first, which is the supported
+    way to rebuild.
     """
 
     def __init__(
@@ -52,15 +62,20 @@ class Writer:
         dedupe_full: bool = False,
         merge: bool = False,
         sum_fields: tuple[str, ...] = (),
+        owner: tuple[str, str] | None = None,
     ):
         self.path = Path(path)
         self.fields = list(fields)
         self.key = key
         self.dedupe_full = dedupe_full
         self.sum_fields = sum_fields
+        self.owner = owner
         self.seen: set = set()
         self.rows: list[dict[str, str]] = []
+        #: Rows another source had already written into this table.
         self.merged_in = 0
+        #: Rows this source wrote on a previous run, dropped and rewritten.
+        self.replaced = 0
         if merge:
             self._read_existing()
 
@@ -74,6 +89,9 @@ class Writer:
         for extra in (c for c in header if c not in self.fields):
             self.fields.append(extra)
         for row in existing:
+            if self.owner and (row.get(self.owner[0]) or "") == self.owner[1]:
+                self.replaced += 1
+                continue
             self.add({f: (row.get(f) or "") for f in self.fields})
         self.merged_in = len(self.rows)
 
