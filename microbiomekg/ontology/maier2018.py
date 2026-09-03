@@ -79,6 +79,7 @@ from __future__ import annotations
 
 import re
 
+from ..drugs import atc_level5, strip_salt
 from .vocabulary import DRUG_DESCRIPTION, register_source
 
 __all__ = [
@@ -100,13 +101,11 @@ __all__ = [
     "SOURCE",
     "SOURCE_RELATIONS",
     "SPECIES_OVERRIDES",
-    "atc_level5",
     "drug_variants",
     "effect_of",
     "nt_code_of",
     "pubchem_cid",
     "relation_for",
-    "strip_salt",
 ]
 
 SOURCE = "maier2018"
@@ -233,35 +232,6 @@ _COLUMN_NT = re.compile(r"\((?P<code>NT\d+)\)\s*$")
 #: are the PubChem CID, zero-padded.
 _STITCH = re.compile(r"^CID(?P<flavour>\d)(?P<cid>\d{8})$")
 
-#: A level-5 ATC code — seven characters, ``A10BA02``: the level that names one
-#: substance. Level 4 (``L01BB``) names a *class* and joining on it would put
-#: every drug in the class on one node, so only the seven-character form is a
-#: join key. The ``Q`` prefix of a veterinary code makes it eight, and ChEMBL
-#: does not carry those.
-_ATC5 = re.compile(r"^[A-Z]\d{2}[A-Z]{2}\d{2}$")
-
-#: The salt and hydrate suffixes the Prestwick catalogue appends to a parent
-#: drug's name. ChEMBL keys ``Drug`` on the parent molecule for exactly this
-#: reason (docs/model.md §ChEMBL: "metformin and metformin hydrochloride are two
-#: nodes with half the mechanisms each and nothing says so"), so stripping one
-#: moves *towards* this graph's own identity rather than away from it — which is
-#: why this route exists at all and why it is tried **last**, after the source's
-#: own spelling and after the ATC code.
-_SALT_SUFFIX = re.compile(
-    r"\s+(?:"
-    r"hydrochlorides?|dihydrochloride|hydrobromide|hydroiodide|"
-    r"sodium|potassium|calcium|magnesium|lithium|ammonium|"
-    r"maleate|mesilate|mesylate|besylate|tosylate|napsylate|"
-    r"sulfate|sulphate|bisulfate|succinate|tartrate|bitartrate|citrate|"
-    r"acetate|phosphate|diphosphate|nitrate|fumarate|oxalate|lactate|"
-    r"malate|gluconate|pamoate|embonate|stearate|palmitate|mucate|"
-    r"chloride|bromide|iodide|"
-    r"salt|"
-    r"dihydrate|trihydrate|monohydrate|hemihydrate|hydrate"
-    r")\b.*$",
-    re.IGNORECASE,
-)
-
 
 def nt_code_of(column_header: str) -> str:
     """The ``NT`` code an ``S3a`` species column names, or ``""``.
@@ -282,34 +252,6 @@ def pubchem_cid(stitch_id: str | None) -> str:
     """
     match = _STITCH.match(str(stitch_id or "").strip())
     return str(int(match.group("cid"))) if match else ""
-
-
-def atc_level5(cell: str | None) -> list[str]:
-    """Every level-5 ATC code in a supplementary-table-1 ``ATC codes`` cell.
-
-    The cell is space-joined and mixes levels: ``QJ01GB90 QJ51GB90 QA07AA92``,
-    ``C01EA01 G04BE01``, ``L01BB``, ``-``. Only the seven-character human codes
-    survive, in source order and deduplicated — a level-4 code names a class
-    rather than a substance, and a veterinary ``Q`` code is eight characters and
-    has no ChEMBL counterpart.
-    """
-    out: list[str] = []
-    for token in re.split(r"[\s|,;]+", str(cell or "").strip()):
-        code = token.strip().upper()
-        if _ATC5.match(code) and code not in out:
-            out.append(code)
-    return out
-
-
-def strip_salt(name: str) -> str:
-    """``Cetirizine dihydrochloride`` -> ``Cetirizine``; unchanged if no suffix.
-
-    Deliberately naive, and it costs nothing when it is wrong: the derived
-    spelling either names a ChEMBL ``pref_name`` exactly or it does not, and an
-    unmatched variant is skipped. It is the last route tried, so it can never
-    displace a match on what the source actually wrote.
-    """
-    return _SALT_SUFFIX.sub("", (name or "").strip()).strip()
 
 
 def drug_variants(name: str, atc_cell: str | None) -> list[tuple[str, str, str]]:

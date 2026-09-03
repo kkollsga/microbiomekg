@@ -62,7 +62,6 @@ threshold rather than as rows.
 from __future__ import annotations
 
 import argparse
-import csv
 import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
@@ -70,6 +69,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from microbiomekg import ontology as ont  # noqa: E402
+from microbiomekg.drugs import DrugIndex, atc_level5, join_drug  # noqa: E402
 from microbiomekg.ontology import maier2018 as mz  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
@@ -284,34 +284,6 @@ def check_threshold(screen: list[dict]) -> int:
     return len(screen)
 
 
-def chembl_indexes(path: Path) -> tuple[dict[str, str], dict[str, str]]:
-    """``(casefolded pref_name -> drug_id, level-5 ATC code -> drug_id)``.
-
-    An ATC code claimed by more than one ChEMBL node is dropped from the index
-    rather than resolved: the code is only a join key while it names one
-    substance, and picking one of two would be the merge-on-a-shared-attribute
-    failure the schema survey catalogues. Measured on ChEMBL 37: none is.
-    """
-    names: dict[str, str] = {}
-    atc: dict[str, list[str]] = {}
-    if not path.is_file():
-        return names, {}
-    with path.open(encoding="utf-8", newline="") as fh:
-        for row in csv.DictReader(fh):
-            drug_id = row.get("drug_id") or ""
-            # This source's own minted nodes from a previous run are excluded:
-            # `Writer(owner=...)` drops and rewrites them, so a second run that
-            # saw them would join a drug to a node it is about to delete.
-            if not drug_id or (row.get("source") or "") == SOURCE:
-                continue
-            name = (row.get("pref_name") or "").strip().casefold()
-            if name:
-                names.setdefault(name, drug_id)
-            for code in mz.atc_level5(row.get("atc_codes")):
-                atc.setdefault(code, []).append(drug_id)
-    return names, {c: ids[0] for c, ids in atc.items() if len(set(ids)) == 1}
-
-
 def contested_atc_codes(drug_rows: dict[str, dict]) -> dict[str, list[str]]:
     """Level-5 ATC codes that **more than one library entry** claims.
 
@@ -327,38 +299,15 @@ def contested_atc_codes(drug_rows: dict[str, dict]) -> dict[str, list[str]]:
     it is a wrong one: it attributes the R-enantiomer's measurement to the
     molecule ChEMBL keys as propranolol. So a contested code is **not a join
     key for either entry**, which is the same rule
-    :func:`chembl_indexes` already applies from the other side to a code two
-    ChEMBL nodes claim. The entries fall through to the salt-strip route or are
-    minted on their catalogue number, and each dropped code is a ledger row.
+    :meth:`microbiomekg.drugs.DrugIndex.from_csv` already applies from the other
+    side to a code two ChEMBL nodes claim. The entries fall through to the
+    salt-strip route or are minted on their catalogue number, and each dropped code is a ledger row.
     """
     claimed: dict[str, list[str]] = {}
     for prestwick, row in drug_rows.items():
-        for code in mz.atc_level5(row.get("ATC codes")):
+        for code in atc_level5(row.get("ATC codes")):
             claimed.setdefault(code, []).append(prestwick)
     return {code: ids for code, ids in claimed.items() if len(set(ids)) > 1}
-
-
-def join_drug(
-    name: str, atc_cell: str | None, names: dict[str, str], atc: dict[str, str]
-) -> tuple[str, str, list[str]]:
-    """``(drug_id or "", join route, every other candidate the routes reached)``.
-
-    The first route that names a node wins, in
-    :func:`ontology.maier2018.drug_variants`' order — the source's own spelling
-    before anything derived from it. The third element is what the *losing*
-    routes reached, which is only ever non-empty when two routes disagree; the
-    caller ledgers those rather than letting the precedence hide them.
-    """
-    found: list[tuple[str, str]] = []
-    for kind, key, route in mz.drug_variants(name, atc_cell):
-        index = names if kind == "name" else atc
-        hit = index.get(key.casefold() if kind == "name" else key)
-        if hit is not None and hit not in [d for d, _ in found]:
-            found.append((hit, route))
-    if not found:
-        return "", "minted", []
-    winner, route = found[0]
-    return winner, route, [d for d, _ in found[1:]]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -401,11 +350,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  hit threshold p < {mz.HIT_THRESHOLD} reproduces the sheet's own "
           f"n_hit on all {len(screen):,} drugs")
 
-    names_index, atc_index = chembl_indexes(out / "drug.csv")
     contested = contested_atc_codes(drug_rows)
-    atc_index = {c: d for c, d in atc_index.items() if c not in contested}
-    print(f"drug.csv: {len(names_index):,} ChEMBL pref_names, "
-          f"{len(atc_index):,} level-5 ATC codes claimed by exactly one ChEMBL "
+    index = DrugIndex.from_csv(out / "drug.csv", exclude_source=SOURCE).without_atc(
+        contested
+    )
+    print(f"drug.csv: {len(index.names):,} ChEMBL pref_names, "
+          f"{len(index.atc):,} level-5 ATC codes claimed by exactly one ChEMBL "
           f"node and one library entry")
     print(f"  {len(contested):,} ATC codes are claimed by two library entries and "
           f"are a join key for neither")
@@ -514,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
         library = drug_rows.get(prestwick, {})
         name = str(library.get("chemical name") or row["chemical_name"]).strip()
         atc_cell = library.get("ATC codes")
-        drug_id, route, others = join_drug(name, atc_cell, names_index, atc_index)
+        drug_id, route, others = join_drug(mz.drug_variants(name, atc_cell), index)
         if others:
             # The name route reaches a ChEMBL *salt* node while the ATC code
             # reaches its parent, on 14 of the 415 drugs both routes answer.
@@ -534,7 +484,7 @@ def main(argv: list[str] | None = None) -> int:
                 drugs.add({
                     "drug_id": drug_id, "chembl_id": "", "pref_name": name,
                     "molecule_type": "", "max_phase": "", "first_approval": "",
-                    "atc_codes": "|".join(mz.atc_level5(atc_cell)),
+                    "atc_codes": "|".join(atc_level5(atc_cell)),
                     # Not `true`: the Prestwick library is "approved drugs", but
                     # `approved` in this graph means ChEMBL max_phase 4 and
                     # inheriting that claim from a catalogue's marketing copy

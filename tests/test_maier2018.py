@@ -49,6 +49,7 @@ for _needed in (PREP, MAIER_MINI / "NIHMS76168-supplement-Supplementary_table_3.
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
+from microbiomekg.drugs import atc_level5, strip_salt  # noqa: E402
 from microbiomekg.ontology import EVIDENCE_LEVEL_VALUES  # noqa: E402
 from microbiomekg.ontology.maier2018 import (  # noqa: E402
     EVIDENCE_LEVEL,
@@ -58,12 +59,10 @@ from microbiomekg.ontology.maier2018 import (  # noqa: E402
     RELATION_INHIBITS,
     RELATION_NO_EFFECT,
     SPECIES_OVERRIDES,
-    atc_level5,
     drug_variants,
     nt_code_of,
     pubchem_cid,
     relation_for,
-    strip_salt,
 )
 
 SOURCE = "maier2018"
