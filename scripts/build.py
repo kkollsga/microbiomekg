@@ -77,6 +77,36 @@ TEXT_INDEXES: tuple[tuple[str, str], ...] = (
     ("Paper", "title"),
 )
 
+#: docs/model.md §6b. ``(node type, property)`` — the vector lane, over the
+#: same two identity columns the reconciliation queries hit. Written with
+#: :class:`microbiomekg.embedder.CharGramEmbedder`: a deterministic character-
+#: n-gram hasher, **not** a semantic model. It exists because the lookup this
+#: graph needs is a misspelt name (``Clostridium dificile``), which BM25's
+#: whole-token lane cannot reach and n-gram cosine can; and because a
+#: downloaded model would make the build depend on the network.
+#:
+#: Measured 2026-09-03 at ``--scope microbial`` over all 864,099 taxon names:
+#: 26.7 s to embed, 50.1 s to build the HNSW index, ``.kgl`` 44.1 MB -> 210.0 MB
+#: (+165.9 MB). Both are inside the budget this project set for the whole-scope
+#: option (2 minutes, 200 MB), which is why the store is the whole scope rather
+#: than the ~7,910 taxa carrying an association edge. The cost the budget did
+#: not name is resident memory: a served graph goes from ~1.4 GB to ~2.4 GB.
+#:
+#: The third element is ``ef_search``, and on ``Taxon`` it is **not** the
+#: kglite default. Hashed character n-grams are the "unclustered
+#: high-dimensional" corpus kglite's semantic-search guide warns about, and at
+#: the default ``ef_search=64`` the HNSW index misses badly rather than
+#: approximately: ``Citrobacter frundii`` returned a top hit at cosine 0.428
+#: while *Citrobacter freundii* sat at 0.808, unfound. It is silent — Cypher
+#: pushes ``ORDER BY text_score(...) DESC LIMIT n`` into the index, so the
+#: wrong answer arrives as an ordinary result set. At 512 all five of this
+#: project's reconciliation fixtures agree with an exact scan, at 1-2 ms
+#: against the exact scan's 21 ms. Measured 2026-09-03; see docs/model.md §8.
+VECTOR_INDEXES: tuple[tuple[str, str, int], ...] = (
+    ("Taxon", "scientific_name", 512),
+    ("Disease", "label", 512),
+)
+
 
 #: Exit code a prep script uses for "my raw input is not on this machine".
 #: Distinct from a real failure so the build can go on without that source
@@ -382,6 +412,14 @@ def main(argv: list[str] | None = None) -> int:
         "the ontology without re-reading 3M taxonomy rows.",
     )
     ap.add_argument("--no-save", action="store_true")
+    ap.add_argument(
+        "--no-vectors",
+        action="store_true",
+        help="Skip the character-n-gram vector lane (VECTOR_INDEXES). The BM25 "
+        "lane still builds; a graph saved this way scores 0.0 on every "
+        "text_score() call, so mcp/microbiomekg.skills/reconciliation.md's "
+        "hybrid lookup silently degrades to BM25 alone.",
+    )
     for source, flag in LICENCE_GATED.items():
         ap.add_argument(
             flag, action="store_true",
@@ -468,6 +506,27 @@ def main(argv: list[str] | None = None) -> int:
             f"  {node_type}.{prop:<18s} {stats.get('indexed', 0):>9,} docs, "
             f"{stats.get('terms', 0):>8,} terms, {stats.get('skipped', 0):>5,} skipped"
         )
+
+    if not args.no_vectors:
+        # After the BM25 pass, because the two lanes index the same columns and
+        # a `score_fuse` query needs both present; before `report`, so the audit
+        # and the save see one finished graph.
+        from microbiomekg.embedder import CharGramEmbedder
+
+        print("\n--- vector indexes (character-n-gram, see microbiomekg/embedder.py)")
+        graph.set_embedder(CharGramEmbedder())
+        for node_type, prop, ef_search in VECTOR_INDEXES:
+            t0 = time.time()
+            stats = graph.embed_texts(node_type, prop, show_progress=False)
+            t_embed = time.time() - t0
+            t0 = time.time()
+            index = graph.build_vector_index(node_type, prop, ef_search=ef_search)
+            print(
+                f"  {node_type}.{prop:<18s} {stats.get('embedded', 0):>9,} vectors, "
+                f"dim {stats.get('dimension', 0)}, {stats.get('skipped', 0):>5,} skipped, "
+                f"embed {t_embed:.1f}s, hnsw {time.time() - t0:.1f}s "
+                f"({index.get('indexed', 0):,} indexed)"
+            )
 
     report(graph, loaded, fragments, args.csv)
 

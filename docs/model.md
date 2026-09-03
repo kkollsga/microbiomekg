@@ -995,6 +995,53 @@ build in well under a second, and `scripts/build.py` builds exactly this list. `
 
 ---
 
+## 6b. Semantic name lookup (character n-grams, `text_score`)
+
+A second lane over the same two identity columns, for the lookup BM25
+structurally cannot do: a **misspelt** name. `Fecalibacterium`,
+`Akkermansia muciniphilia` and `Citrobacter frundii` share no whole token with
+their targets, so no token-level index reaches them; character n-grams do.
+
+| Node type | Property | Vectors | What it is for |
+|---|---|---|---|
+| `Taxon` | `scientific_name` | 864,099 | a printed name -> a tax_id, typos included |
+| `Disease` | `label` | 808 | free text -> a MONDO/EFO CURIE nobody memorises |
+
+**The embedder is `microbiomekg.embedder.CharGramEmbedder`, not a downloaded
+model, and that is a deliberate scope statement rather than a shortfall.** It
+hashes 3/4/5-character n-grams of the casefolded name into 256 signed
+dimensions and L2-normalises, so cosine similarity **is** n-gram overlap.
+`text_score()` here therefore means *spelled like*, never *means the same as*:
+it resolves `Akkermansia muciniphilia`, and it will not connect "bowel" to
+"intestinal". Two reasons it is the right instrument anyway: the lookup this
+graph needs is a name-reconciliation problem, not a semantic one (Part C); and
+a published model would make the build depend on a model download. The hash is
+`zlib.crc32` rather than `hash()` because Python salts string hashing per
+process — a salted hash would embed the same name differently on every run and
+the store would quietly stop matching queries after a restart.
+
+**Cost, measured 2026-09-03 at `--scope microbial`.** Embedding all 864,099
+taxon names takes **26.7 s**, the HNSW index **50.1 s**, and the `.kgl` goes
+**44.1 MB -> 209.6 MB (+165.5 MB)**. Both are inside the 2-minute / 200 MB
+budget set for the whole-scope option, which is why the store covers every
+taxon rather than only the ~7,910 that carry an association edge. The cost the
+budget did not name is resident memory: a served graph goes from ~1.4 GB to
+~2.4 GB.
+
+**`ef_search` is pinned to 512 and the default is not safe here** — see §8
+item 9. At kglite's default 64, one fixture in five came back catastrophically
+wrong through Cypher's `ORDER BY text_score(...)` index pushdown, as an
+ordinary result set.
+
+**How the two lanes are used is a routing rule, not a blend.** Lexical first
+(the synonym index resolves an exactly-spelled old binomial), vector on a miss,
+and the vector query fuses *two* lanes — the whole name and the epithet alone —
+because a genus rename destroys the first word and leaves the second.
+`mcp/microbiomekg.skills/reconciliation.md` is the authority; the measured
+outcomes are in `tests/test_semantic_lookup.py`.
+
+---
+
 ## 7. Demo queries
 
 All eight run against the built graph.
@@ -1247,6 +1294,65 @@ the engine, not into a workaround this repo pretends is a design.**
    `WHERE NOT EXISTS { (s)-[:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->() }` —
    is unavailable, and has to be written as three separate `NOT EXISTS`
    clauses. This one looks like a parser gap rather than a design choice.
+8. **`text_bm25()` on an unindexed property fails two different ways, and the
+   likelier query shape is the silent one.** Calling it where no BM25 index
+   exists normally raises a clear, actionable error naming
+   `build_text_index(...)`. But a query that both filters and ranks —
+   `WHERE text_bm25(n, 'p', $q) > 0 … ORDER BY …`, which is the *documented
+   fast-path shape* — returns **zero rows and no error at all** (kglite
+   0.16.21, reproduced on this graph for `Metabolite.name` and
+   `UnresolvedTaxon.raw_name`; the same query without the `ORDER BY` raises).
+   So the mistake is invisible in exactly the form an author is most likely to
+   write, and "no hits" is indistinguishable from "nothing matched". Two skill
+   queries shipped broken this way and passed a test that only asserted the
+   Cypher executed; `tests/test_mcp_skills.py::test_no_block_ranks_on_a_property_with_no_bm25_index`
+   now checks `has_text_index()` directly rather than trusting the engine to
+   complain.
+9. **An HNSW vector index changes the answer, and Cypher gives no way to opt
+   out.** `ORDER BY text_score(…) DESC LIMIT n` is pushed into the vector index
+   when one exists, so an approximate result arrives as an ordinary result set.
+   On §6b's character-n-gram vectors — the "unclustered high-dimensional"
+   corpus kglite's semantic-search guide warns recall degrades on — the default
+   `ef_search = 64` did not degrade gracefully: `Citrobacter frundii` returned
+   *Enterobacteriaceae bacterium HGPR34* at cosine **0.428** while *Citrobacter
+   freundii* sat unfound at **0.808**, one catastrophic miss in five fixtures.
+   `ef_search = 512` fixes it (all five agree with an exact scan, 1-2 ms
+   against the exact scan's 21 ms) and `scripts/build.py` pins it, with
+   `tests/test_semantic_lookup.py::test_the_index_agrees_with_an_exact_scan`
+   as the gate. Two things would have made this a tuning question rather than a
+   wrong-answer question: `vector_search(exact=True)` has **no Cypher
+   equivalent**, so a query cannot ask for the exact scan it is fast enough to
+   afford; and nothing in the result says the index served it.
+10. **`embed_texts()` cannot be scoped to a selection.** It embeds every node
+   of a type, so "embed only the 7,910 taxa carrying an association edge"
+   is not expressible — the fallback is `add_embeddings()` with an explicit id
+   dict, which loses the model id and the per-node text hashes `embed_texts`
+   records and therefore loses `mode='changed'` re-embedding too. Here the
+   whole-scope store fit the budget (§6b) so it did not bite; on a larger
+   taxonomy it would force the provenance-free path.
+11. **`score_fuse()` has no per-lane normalisation, so mixing BM25 with cosine
+   is a weighting problem the caller has to solve by hand.** BM25 is unbounded
+   and cosine is capped at 1, so at equal weights the lexical lane simply *is*
+   the ranking: on this repo's eight reconciliation fixtures, equal weights
+   resolve 4 of 8 and `[0.05, 0.475, 0.475]` resolves 7 of 8. The documented
+   alternative — RRF over `rank() OVER (…)` window functions — puts the lanes
+   on one scale but costs a full sort per lane (445 ms against 150 ms over
+   864,099 taxa here) and, on this corpus, ranked *worse* than either fused
+   form. A rank- or min-max-normalising lane wrapper would make the hybrid
+   query the one-liner the guide presents it as. Recorded in
+   `mcp/microbiomekg.skills/reconciliation.md`, which routes in two stages
+   instead.
+12. **A skill pack is discovered from the *manifest* basename, not the graph's.**
+   `mcp/microbiomekg_mcp.yaml` auto-loads `mcp/microbiomekg_mcp.skills/`, so a
+   pack named for the graph it documents — `mcp/microbiomekg.skills/` — is
+   found only through the list form, `skills: [true, ./microbiomekg.skills]`.
+   Not a defect, but it is silent, and doubly so: a `skills:` path that does
+   not exist at all boots cleanly too — `--selftest` still prints
+   `Selftest PASSED` with every capability green, because it counts tools and
+   never counts skills. So a typo'd or deleted pack costs an agent all of its
+   methodology with no diagnostic anywhere. Compare `source_root:`, which does
+   report an unresolved path in the boot summary. Until `--selftest` grows a
+   skills line, `tests/test_mcp_skills.py` is the only thing that notices.
 
 One more loader behaviour, recorded because it is the opposite of the usual
 trap: **an undeclared CSV column is still loaded.** Every column a node spec
