@@ -1,7 +1,7 @@
-"""``scripts/build.py``'s own machinery: prep order, the CSV root, re-runs.
+"""``scripts/build.py``'s own machinery: prep order, the CSV root, the report.
 
-This is about the *build script*, not about a source. The three things it tests each
-failed silently before they were tested:
+This is about the *build script*, not about a source. Each thing it tests
+failed silently before it was tested:
 
 * prep scripts ran in **name** order, so ``prep_chembl`` read gutMDisorder's
   ``intervention.csv`` before ``prep_gutmdisorder`` wrote it and the ``IS_DRUG``
@@ -11,7 +11,10 @@ failed silently before they were tested:
   ``settings.root`` still said ``./data/csv`` — so a build into a temp
   directory loaded the default one and reported *its* numbers;
 * ``cited_taxa.csv`` had no column saying which source wrote a row, so a prep
-  re-run added its mention counts to its own previous ones.
+  re-run added its mention counts to its own previous ones;
+* the G10 expansion factor covered three relationship names spelled out in a
+  tuple, so every relationship a later source added was outside the report
+  that exists to say what an edge count means.
 """
 
 from __future__ import annotations
@@ -28,6 +31,7 @@ from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
+FRAGMENTS = ROOT / "blueprints"
 
 sys.path.insert(0, str(SCRIPTS))
 
@@ -257,3 +261,67 @@ def test_the_cited_taxa_table_says_which_source_claimed_each_taxon(tmp_path):
     # One row per (taxon, source): the key the owner column completes.
     keys = [(row["tax_id"], row["source"]) for row in rows]
     assert len(set(keys)) == len(keys)
+
+
+# --------------------------------------------------------------------------
+# G10 — the expansion factor, over every relationship the fragments declare
+# --------------------------------------------------------------------------
+
+
+def test_the_expansion_report_covers_every_declared_relationship():
+    """G10 is "edges per source record, published rather than assumed". The
+    report named three relationships in a tuple, which was the whole graph when
+    it was written and is a fifth of it now — so the number that says what an
+    edge count means was missing for every relationship four later sources
+    added, including the one that was loading zero edges."""
+    declared = build.declared_relationships(FRAGMENTS)
+    assert {"ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "ASSOCIATED_WITH_EXPOSURE",
+            "ABUNDANCE_CHANGED_BY", "IS_DRUG", "PRODUCES", "HAS_MECHANISM",
+            "CARRIES_RESISTANCE_GENE", "CONFERS_RESISTANCE_TO", "IN_PATHWAY",
+            "PART_OF_PATHWAY", "REPORTED_BY", "HAS_PARENT"} <= set(declared)
+    for rel, spec in declared.items():
+        assert spec.csvs, f"{rel} names no CSV to count records in"
+        assert spec.fragments, f"{rel} is declared by no fragment"
+    # One relationship name, two CSVs: a taxon mention that resolved and one
+    # that did not are the same edge type from two tables, and a report keyed
+    # on the name alone would count the rows of whichever it saw last.
+    assert build.declared_relationships(FRAGMENTS)["REPORTED_BY"].csvs == (
+        "taxon_signature.csv", "unresolved_taxon_signature.csv"
+    )
+    # An `fk_edges` relationship has no junction CSV of its own: its records
+    # are the rows of the node table carrying the foreign key.
+    assert declared["HAS_PARENT"].csvs == ("taxon.csv",)
+
+
+def test_every_csv_a_fragment_names_is_one_the_report_can_count():
+    """The report reads its record counts off the fragments, so a relationship
+    whose CSV a fragment misnames would be reported as zero records rather than
+    as an error."""
+    csv_dir = ROOT / "data" / "csv"
+    if not (csv_dir / "taxon_disease.csv").is_file():
+        pytest.skip("no built CSVs — run scripts/build.py first")
+    missing = sorted(
+        name
+        for spec in build.declared_relationships(FRAGMENTS).values()
+        for name in spec.csvs
+        if not (csv_dir / name).is_file()
+    )
+    assert missing == []
+
+
+def test_the_expansion_report_names_every_relationship_it_declared(
+    tmp_path, fixture_csvs
+):
+    """The report is what publishes G10, so it is asserted from the build's own
+    output rather than from the function behind it. A relationship the build
+    loaded **zero** edges for gets a line too — that absence is the finding."""
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
+         "--csv", str(fixture_csvs), "--no-save"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    section = proc.stdout.split("expansion factor (G10)")[1]
+    for rel in ("ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "REPORTED_BY",
+                "HAS_PARENT", "PART_OF_STUDY", "PUBLISHED_AS", "AT_BODY_SITE"):
+        assert rel in section, f"{rel} is declared and unreported"

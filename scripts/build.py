@@ -44,6 +44,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -211,6 +212,80 @@ def sources_with_tables(fragments: Path, sources: list[str], csv_dir: Path) -> l
             if all((csv_dir / name).is_file() for name in fragment_csvs(fragments, s))]
 
 
+#: One relationship as the fragments declare it: the CSVs whose rows the loader
+#: read to make it, and the fragments that asked for it. Two fragments may
+#: declare one name (``ASSOCIATED_WITH`` is core's shape and gutMDisorder's
+#: extra columns) and one name may be backed by two tables (``REPORTED_BY``
+#: loads from the resolved and the unresolved taxon mentions alike).
+class Relationship(NamedTuple):
+    name: str
+    csvs: tuple[str, ...]
+    fragments: tuple[str, ...]
+
+
+def declared_relationships(
+    fragments: Path, sources: list[str] | None = None
+) -> dict[str, Relationship]:
+    """Every relationship ``blueprints/*.json`` declares, junction and FK alike.
+
+    Read off the fragments rather than listed here, for the reason the G10
+    report exists: a list goes stale silently, and a relationship missing from
+    the expansion table is exactly the one whose edge count nobody checked.
+    A ``fk_edges`` relationship has no junction table — its records are the
+    rows of the node CSV carrying the foreign key.
+
+    ``sources`` narrows it the way :func:`build_blueprint.compose` does, so the
+    report covers what *this* build declared: a line for a relationship no
+    source in the build writes would be a zero that means nothing, and the
+    zeros this report is for are the ones that mean something.
+    """
+    from build_blueprint import compose
+
+    wanted = None if sources is None else {"core", *sources}
+    declared_by: dict[str, list[str]] = {}
+    for path in sorted(fragments.glob("*.json")):
+        if wanted is not None and path.stem not in wanted:
+            continue
+        document = json.loads(path.read_text(encoding="utf-8"))
+        for spec in document.get("nodes", {}).values():
+            connections = spec.get("connections", {})
+            for kind in ("junction_edges", "fk_edges"):
+                for rel in connections.get(kind, {}):
+                    declared_by.setdefault(rel, []).append(path.stem)
+
+    csvs: dict[str, set[str]] = {}
+    for spec in compose(fragments, sources).get("nodes", {}).values():
+        connections = spec.get("connections", {})
+        for rel, edge in connections.get("junction_edges", {}).items():
+            csvs.setdefault(rel, set()).add(edge["csv"])
+        for rel in connections.get("fk_edges", {}):
+            if spec.get("csv"):
+                csvs.setdefault(rel, set()).add(spec["csv"])
+
+    return {
+        rel: Relationship(rel, tuple(sorted(names)),
+                          tuple(dict.fromkeys(declared_by.get(rel, ()))))
+        for rel, names in sorted(csvs.items())
+    }
+
+
+def csv_rows(path: Path) -> int:
+    """Data rows in a CSV, or ``-1`` when it is not there.
+
+    Counted in binary chunks: ``taxon.csv`` is 128 MB and this runs for every
+    declared relationship. Newlines inside a quoted field would over-count, and
+    no table this counts has any — the loader would not survive one either,
+    since kglite reads these files by column position.
+    """
+    if not path.is_file():
+        return -1
+    lines = 0
+    with path.open("rb") as fh:
+        while chunk := fh.read(1 << 20):
+            lines += chunk.count(b"\n")
+    return max(lines - 1, 0)
+
+
 def write_load_blueprint(
     blueprint: dict, csv_dir: Path, ontology: Path, out: Path
 ) -> Path:
@@ -238,7 +313,7 @@ def write_load_blueprint(
     return out
 
 
-def report(graph, sources: list[str]) -> None:
+def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
     def rows(query):
         return list(graph.cypher(query))
 
@@ -266,17 +341,30 @@ def report(graph, sources: list[str]) -> None:
     # G10: edges per source record, published rather than assumed. An
     # expansion factor is how a curated source turns into a big-looking graph,
     # and it is the number that says whether "N million edges" means anything.
-    print("\n--- expansion factor (G10): association edges per source record")
-    for rel in ("ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "ASSOCIATED_WITH_EXPOSURE"):
-        for r in rows(
+    # Every relationship the fragments declare gets a line, including one the
+    # build loaded no edges for — that absence is the finding, and it is how
+    # `IS_DRUG` sat at zero through a release with its audit reporting 0 / 0.
+    print("\n--- expansion factor (G10): edges per source record, for every")
+    print("    relationship blueprints/ declares. `records` is the distinct")
+    print("    source_record_id where the edge carries one, else the input rows")
+    print("    of the CSV(s) it was loaded from, marked `rows`.")
+    for rel, spec in declared_relationships(fragments, sources).items():
+        rows_in = sum(max(csv_rows(csv_dir / name), 0) for name in spec.csvs)
+        breakdown = rows(
             f"MATCH ()-[r:{rel}]->() "
             "RETURN r.primary_source AS source, count(r) AS edges, "
             "count(DISTINCT r.source_record_id) AS records ORDER BY edges DESC"
-        ):
-            ratio = r["edges"] / r["records"] if r["records"] else 0.0
+        )
+        if not breakdown:
+            print(f"  {rel:<28s} {'-':<14s} {0:>9,} edges / {rows_in:>9,} rows "
+                  f"— declared by {', '.join(spec.fragments)}, loaded nothing")
+            continue
+        for r in breakdown:
+            records, unit = (r["records"], "records") if r["records"] else (rows_in, "rows")
+            ratio = r["edges"] / records if records else 0.0
             print(
-                f"  {rel:<28s} {str(r['source']):<14s} "
-                f"{r['edges']:>8,} edges / {r['records']:>7,} records = {ratio:5.1f}x"
+                f"  {rel:<28s} {str(r['source'] or '-'):<14s} "
+                f"{r['edges']:>9,} edges / {records:>9,} {unit:<7s} = {ratio:5.1f}x"
             )
     print(f"\nsources loaded: {', '.join(sources) or '(none detected)'}")
 
@@ -381,7 +469,7 @@ def main(argv: list[str] | None = None) -> int:
             f"{stats.get('terms', 0):>8,} terms, {stats.get('skipped', 0):>5,} skipped"
         )
 
-    report(graph, loaded)
+    report(graph, loaded, fragments, args.csv)
 
     if not args.no_save:
         args.out.parent.mkdir(parents=True, exist_ok=True)
