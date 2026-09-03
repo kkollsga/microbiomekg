@@ -128,6 +128,12 @@ MISSING_INPUT = 3
 LICENCE_GATED: dict[str, str] = {"kegg": "--with-kegg"}
 
 
+def opted_into(source: str, args: argparse.Namespace) -> bool:
+    """Was ``--with-<source>`` passed for a licence-gated source?"""
+    flag = LICENCE_GATED.get(source)
+    return flag is not None and bool(getattr(args, flag[2:].replace("-", "_")))
+
+
 def run(script: Path, *args: str) -> int:
     print(f"\n=== {script.name} {' '.join(args)}", flush=True)
     proc = subprocess.run([sys.executable, str(script), *args], cwd=ROOT)
@@ -242,6 +248,16 @@ def sources_with_tables(fragments: Path, sources: list[str], csv_dir: Path) -> l
     there loads that node type as empty, and an ontology rule over an empty
     type reports 0 / 0: a gate that cannot fail, which this project treats as
     worse than no gate.
+
+    The rule is "all of my CSVs are here", and a source that declares only
+    *shared* tables passes it whether or not it wrote a row. KEGG is exactly
+    that — its fragment adds no key of its own, only `pathway.csv` and
+    `metabolite_pathway.csv`, which Reactome writes — so a ``--skip-prep``
+    build listed it under "sources loaded" while carrying none of it. Harmless
+    to the graph and not harmless to say: the whole point of the licence gate
+    is that a build states whether it carries KEGG. So a licence-gated source
+    is included only when its flag was passed, which is the same answer the
+    prep loop's exit code gives.
     """
     return [s for s in sources
             if all((csv_dir / name).is_file() for name in fragment_csvs(fragments, s))]
@@ -462,9 +478,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"cleared {removed} CSV(s) from {args.csv}")
         for prep in preps:
             source = prep.stem.removeprefix("prep_")
-            flag = LICENCE_GATED.get(source)
-            opted_in = flag is not None and getattr(args, flag[2:].replace("-", "_"))
-            gate = [flag] if opted_in else []
+            gate = [LICENCE_GATED[source]] if opted_into(source, args) else []
             code = run(
                 prep, "--raw", str(args.raw), "--out", str(args.csv),
                 *prep_arguments(source, args), *gate,
@@ -481,7 +495,10 @@ def main(argv: list[str] | None = None) -> int:
     # this project treats as worse than no gate.
     fragments = ROOT / "blueprints"
     loaded = sources_with_tables(
-        fragments, [s for s in sources if s not in skipped], args.csv
+        fragments,
+        [s for s in sources
+         if s not in skipped and (s not in LICENCE_GATED or opted_into(s, args))],
+        args.csv,
     )
 
     from build_blueprint import compose

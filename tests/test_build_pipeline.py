@@ -309,6 +309,31 @@ def test_every_csv_a_fragment_names_is_one_the_report_can_count():
     assert missing == []
 
 
+def test_a_licence_gated_source_is_not_reported_as_loaded_without_its_flag(
+    fixture_csvs,
+):
+    """`--skip-prep` hears no exit code, so the gate has to be asked directly.
+
+    KEGG's fragment declares no key of its own — it writes rows into
+    Reactome's `pathway.csv` and `metabolite_pathway.csv` — so "all my CSVs are
+    present" was true of it in any build that ran Reactome, and a `--skip-prep`
+    build printed `kegg` under "sources loaded" while carrying none of it. The
+    graph was right and the report was not, which for a licence gate is the
+    part that matters.
+    """
+    import argparse
+
+    args = argparse.Namespace(with_kegg=False)
+    assert not build.opted_into("kegg", args)
+    assert "kegg" not in build.sources_with_tables(
+        FRAGMENTS,
+        [s for s in ("bugsigdb", "reactome", "kegg")
+         if s not in build.LICENCE_GATED or build.opted_into(s, args)],
+        fixture_csvs,
+    )
+    assert build.opted_into("kegg", argparse.Namespace(with_kegg=True))
+
+
 def test_the_record_count_is_rows_and_not_newlines(tmp_path):
     """G10's denominator was newlines, and six of these tables carry quoted ones.
 
