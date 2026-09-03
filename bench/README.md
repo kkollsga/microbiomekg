@@ -85,6 +85,10 @@ Consequences worth knowing:
   `docs/model.md` §6b names as its authority.
 - **Two cells are the harness's own** (`point_taxon_by_id`, `lineage_walk`):
   shapes the evaluation asks for by name that Part D has no block for.
+- **A query cell within 3× the noise floor is called out under the table.** The
+  2× rule that keeps a control honest applies to a query too: a point lookup at
+  1.8 µs against a 1.0 µs floor is reporting the cost of *asking*, and quoting
+  it as the lookup's cost would claim more than the instrument can support.
 - **The graph gets an embedder before any query runs.** `mcp/microbiomekg_mcp.yaml`
   registers `microbiomekg.embedder:build` under `extensions.embedder`, so the
   served graph has one; without it every `text_score()` cell raises instead of

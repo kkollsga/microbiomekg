@@ -298,7 +298,28 @@ def section_saveload(save: dict[str, Any]) -> list[str]:
     return lines
 
 
-def section_query(query: dict[str, Any]) -> list[str]:
+def near_floor(cells: list[dict[str, Any]], floor: float | None) -> list[str]:
+    """Query cells sitting within 3x the dispatch floor.
+
+    Protocol item 8 requires a *control* to clear 2x the noise floor because
+    below that it measures nothing. The same arithmetic applies to a query
+    cell: at 1.8 us against a 1.0 us floor, a point lookup's number is mostly
+    the cost of asking, and quoting it as "the lookup takes 1.8 us" would be a
+    claim the instrument cannot support.
+    """
+    if not floor:
+        return []
+    close = [c for c in cells if c["value"] < 3 * floor]
+    if not close:
+        return []
+    return ["", "**At the dispatch floor** — these cells are within 3x the "
+            f"{fmt_time(floor)} noise floor, so most of what they report is the "
+            "cost of issuing a query, not of answering it:", ""] + [
+        f"- `{c['name']}` — {fmt_time(c['value'])}, {c['value'] / floor:.1f}x the floor"
+        for c in close]
+
+
+def section_query(query: dict[str, Any], floor: float | None = None) -> list[str]:
     lines = [
         "## 5. Query — every `answerable-now` / `partial` Part D acceptance query",
         "",
@@ -310,6 +331,7 @@ def section_query(query: dict[str, Any]) -> list[str]:
         "",
     ]
     lines += timing_table(query["cells"])
+    lines += near_floor(query["cells"], floor)
     marks = notes_list(query["cells"])
     if marks:
         lines += ["", "**Distribution flags:**", ""] + marks
@@ -418,7 +440,11 @@ def render_markdown(capture: dict[str, Any]) -> str:
         "",
     ]
     lines += section_meta(meta)
+    floor = capture["sections"].get("control", {}).get("floor", {}).get("median")
     for name in ORDER:
-        if name in capture["sections"]:
-            lines += RENDERERS[name](capture["sections"][name])
+        if name not in capture["sections"]:
+            continue
+        section = capture["sections"][name]
+        lines += (RENDERERS[name](section, floor) if name == "query"
+                  else RENDERERS[name](section))
     return "\n".join(lines).rstrip() + "\n"

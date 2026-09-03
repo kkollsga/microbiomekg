@@ -174,6 +174,10 @@ Extracted from `docs/usecases-and-pitfalls.md` Part D at run time and run as aut
 | `point_taxon_by_id` | 1 | min | **1.8 µs** | 1.8 µs | 1.9 µs | 1.9 µs | 2.0 µs | 2.3 µs | 600 |
 | `lineage_walk` | 1 | min | **54.6 µs** | 54.6 µs | 55.0 µs | 55.3 µs | 57.5 µs | 62.0 µs | 300 |
 
+**At the dispatch floor** — these cells are within 3x the 1.0 µs noise floor, so most of what they report is the cost of issuing a query, not of answering it:
+
+- `point_taxon_by_id` — 1.8 µs, 1.8x the floor
+
 ## 6. Control cells — the machine-drift meter
 
 Noise floor (`RETURN 1`, dispatch + materialisation with no graph work behind it): **1.0 µs** median, 0.9 µs min. Protocol item 8 requires each control's median at **2x that or more**; the ratio is in the last column.
