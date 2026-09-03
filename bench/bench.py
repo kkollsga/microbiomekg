@@ -808,7 +808,9 @@ def run_queries(graph, scale: float) -> dict[str, Any]:
         if not ok:
             skipped.append({"name": name, "error": error, "query": query})
             continue
-        call = (lambda q=query, p=params: list(graph.cypher(q, params=p) if p else graph.cypher(q)))
+        def call(q=query, p=params):
+            return list(graph.cypher(q, params=p) if p else graph.cypher(q))
+
         cell = measure(name, call, scale=scale, note=note)
         cell.rows = rows
         cell.extra["query"] = " ".join(query.split())

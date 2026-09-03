@@ -657,7 +657,7 @@ def test_the_publications_are_all_of_them_and_pmid_is_one_of_them(graph):
     carries all four as a native list property."""
     result = one(
         graph,
-        f"MATCH ()-[r:VIA_MECHANISM]->() WHERE r.card_model_id = '1474' "
+        "MATCH ()-[r:VIA_MECHANISM]->() WHERE r.card_model_id = '1474' "
         "RETURN DISTINCT r.pmid AS pmid, r.publications AS publications, "
         "r.n_publications AS n",
     )

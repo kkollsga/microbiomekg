@@ -25,7 +25,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 import tarfile
@@ -595,7 +594,7 @@ def chembl_get(path: str, params: dict) -> dict:
 def chembl_page_all(path: str, collection: str, params: dict, dest: Path) -> int:
     """Page an endpoint into a JSONL file, one record per line."""
     tmp = dest.with_suffix(dest.suffix + ".part")
-    total, offset, limit = None, 0, int(params.get("limit", 1000))
+    total, offset = None, 0
     with tmp.open("w") as fh:
         while True:
             page = chembl_get(path, {**params, "offset": offset})

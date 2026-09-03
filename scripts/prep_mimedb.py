@@ -482,7 +482,7 @@ def main(argv: list[str] | None = None) -> int:
     counts = {w.path.name: w.flush() for w in tables}
 
     print(f"\nmetabolites: {len(records):,} records read from MiMeDB {release}")
-    print(f"  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items())))
+    print("  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items())))
     print(f"  loaded {counters['loaded']:,} new Metabolite nodes, "
           f"skipped {counters['not_selected']:,} that no rule selected")
     print(f"  not written because the compound already has a node: "

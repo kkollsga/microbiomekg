@@ -32,3 +32,17 @@ markers = [
 filterwarnings = [
     "default",
 ]
+
+[tool.ruff]
+# The gate must mean the same thing next month. ruff's implicit defaults move
+# between releases — 0.14 reported 9 findings on this tree where 0.16 reported
+# 308, none of them a new defect — so the rule set is pinned here rather than
+# inherited, and widening it is a deliberate change with its own commit.
+line-length = 88
+target-version = "py311"
+extend-exclude = ["data", "graph", ".venv"]
+
+[tool.ruff.lint]
+# ruff's documented default set: pyflakes (F) plus the pycodestyle subsets that
+# catch real errors rather than layout opinions, which `ruff format` owns.
+select = ["E4", "E7", "E9", "F"]

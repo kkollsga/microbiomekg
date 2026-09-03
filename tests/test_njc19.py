@@ -563,7 +563,7 @@ def test_a_species_row_on_genus_level_literature_is_marked(graph):
     assert marked["refs"] == ["217(G)"]
     plain = one(
         graph,
-        f"MATCH ()-[r:CONSUMES]->() WHERE r.reported_compound = 'Deoxycholic acid' "
+        "MATCH ()-[r:CONSUMES]->() WHERE r.reported_compound = 'Deoxycholic acid' "
         "RETURN r.genus_level_evidence AS g, r.n_references AS n",
     )
     assert plain["g"] is False

@@ -849,8 +849,8 @@ def main(argv: list[str] | None = None) -> int:
         f"{r} {n:,}" for r, n in condition_routes.most_common()))
     print(f"  {disease_counters['no_mondo']:,} associations on a disease no MONDO "
           f"term names; those keep MASI's own id as key")
-    print(f"  every one fills 8 of the contract's 14 properties: the export has "
-          f"no design, host, sequencing, test or arm-size column")
+    print("  every one fills 8 of the contract's 14 properties: the export has "
+          "no design, host, sequencing, test or arm-size column")
     claimed = sum(1 for held in probiotic_claims.values() if held["probiotic"])
     named = sum(
         1 for entry in microbes.values()
