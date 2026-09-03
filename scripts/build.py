@@ -66,7 +66,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 #: or CURIE field.
 TEXT_INDEXES: tuple[tuple[str, str], ...] = (
     ("Taxon", "scientific_name"),
-    ("Taxon", "synonyms"),
+    # ``synonyms_text``, not ``synonyms``: the property is a native list since
+    # the blueprint learned the type, and `build_text_index` refuses a
+    # list-valued property. ``prep_taxonomy.py`` writes both from one source
+    # list — the list is what a query reads, this is what BM25 reads.
+    ("Taxon", "synonyms_text"),
     ("Disease", "label"),
     ("Signature", "description"),
     ("Paper", "title"),

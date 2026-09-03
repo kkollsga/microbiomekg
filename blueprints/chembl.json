@@ -1,5 +1,5 @@
 {
-  "_doc": "ChEMBL 37 (mechanism.jsonl + molecule_max_phase4.jsonl + target.jsonl): the Drug and ProteinTarget nodes, the HAS_MECHANISM edge between them, the OF_ORGANISM edge that carries a target onto an NCBI Taxon — the one field in ChEMBL that touches a microbe, and what makes D8 partially answerable while MASI is pending — and IS_DRUG, which makes the Intervention nodes gutMDisorder mints from DrugBank ids reachable from a ChEMBL id. Drug is keyed on the PARENT molecule, so a salt form is the same drug: 1,626 mechanism rows name a salt and keying on molecule_chembl_id would split those drugs in half. The Intervention entry declares connections only — gutMDisorder owns that node's table, the way core.json owns Taxon's.",
+  "_doc": "ChEMBL 37 (mechanism.jsonl + molecule_max_phase4.jsonl + target.jsonl): the Drug and ProteinTarget nodes, the HAS_MECHANISM edge between them, the OF_ORGANISM edge that carries a target onto an NCBI Taxon \u2014 the one field in ChEMBL that touches a microbe, and what makes D8 partially answerable while MASI is pending \u2014 and IS_DRUG, which makes the Intervention nodes gutMDisorder mints from DrugBank ids reachable from a ChEMBL id. Drug is keyed on the PARENT molecule, so a salt form is the same drug: 1,626 mechanism rows name a salt and keying on molecule_chembl_id would split those drugs in half. The Intervention entry declares connections only \u2014 gutMDisorder owns that node's table, the way core.json owns Taxon's.",
   "nodes": {
     "Drug": {
       "csv": "drug.csv",
@@ -11,7 +11,7 @@
         "molecule_type": "string",
         "max_phase": "int",
         "first_approval": "int",
-        "atc_codes": "string",
+        "atc_codes": "list",
         "approved": "bool",
         "withdrawn": "bool",
         "therapeutic": "bool",
@@ -20,7 +20,7 @@
         "topical": "bool",
         "smiles": "string",
         "salt_form": "bool",
-        "salt_ids": "string",
+        "salt_ids": "list",
         "source": "string",
         "source_licence": "string",
         "chembl_release": "string"
@@ -62,8 +62,8 @@
               "source_relation": "string",
               "action_type": "string",
               "mechanism_of_action": "string",
-              "publications": "string",
-              "regulatory_refs": "string",
+              "publications": "list",
+              "regulatory_refs": "list",
               "clinical_phase": "int",
               "direct_interaction": "bool",
               "disease_efficacy": "bool",
@@ -86,7 +86,7 @@
         "target_type": "string",
         "organism": "string",
         "tax_id": "int",
-        "uniprot": "string",
+        "uniprot": "list",
         "n_components": "int",
         "species_group": "bool",
         "source": "string",

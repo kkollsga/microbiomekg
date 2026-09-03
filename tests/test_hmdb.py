@@ -187,16 +187,17 @@ def test_only_the_selected_slice_is_loaded(graph, prep_output):
 def test_each_selection_rule_is_recorded_on_the_node_it_kept(graph):
     """`selection_rule` makes the rule countable in the graph. A rule described
     only in a docstring cannot be audited, and cannot be changed safely."""
-    counts = {
-        r["rule"]: r["n"]
+    # `selection_rule` is a list property, so the rules come apart in Cypher
+    # rather than in a `.split("|")` here.
+    rules = {
+        r["rule"]
         for r in rows(
             graph,
-            "MATCH (m:Metabolite) RETURN m.selection_rule AS rule, count(m) AS n",
+            "MATCH (m:Metabolite) UNWIND m.selection_rule AS rule "
+            "RETURN rule, count(m) AS n",
         )
     }
-    assert set().union(*(set(k.split("|")) for k in counts)) == {
-        "microbial-origin", "feces", "reactome-chebi",
-    }
+    assert rules == {"microbial-origin", "feces", "reactome-chebi"}
     # A metabolite kept by the Reactome bridge alone: predicted, never in
     # feces, no microbial origin — and still needed, because it is the far end
     # of an IN_PATHWAY edge.
@@ -205,8 +206,8 @@ def test_each_selection_rule_is_recorded_on_the_node_it_kept(graph):
         "MATCH (m:Metabolite {id: 'CHEBI:28834'}) RETURN m.selection_rule AS rule, "
         "m.status AS status, m.microbial_origin AS microbial, m.biospecimens AS bio",
     )
-    assert lone == {"rule": "reactome-chebi", "status": "predicted",
-                    "microbial": False, "bio": "Blood"}
+    assert lone == {"rule": ["reactome-chebi"], "status": "predicted",
+                    "microbial": False, "bio": ["Blood"]}
 
 
 def test_a_feces_metabolite_is_kept_without_microbial_origin(graph):
@@ -217,7 +218,7 @@ def test_a_feces_metabolite_is_kept_without_microbial_origin(graph):
         "MATCH (m:Metabolite {id: 'CHEBI:9169'}) RETURN m.selection_rule AS rule, "
         "m.microbial_origin AS microbial, m.biospecimens AS bio",
     )
-    assert result == {"rule": "feces", "microbial": False, "bio": "Feces"}
+    assert result == {"rule": ["feces"], "microbial": False, "bio": ["Feces"]}
 
 
 # --------------------------------------------------------------------------
@@ -470,8 +471,8 @@ def test_the_publication_cap_is_visible_rather_than_silent(graph):
         "RETURN r.publications AS refs, r.n_publications AS n",
     )
     assert result["n"] == 30
-    assert len(result["refs"].split("|")) == 25
-    assert result["refs"].startswith("PMID:")
+    assert len(result["refs"]) == 25
+    assert all(ref.startswith("PMID:") for ref in result["refs"])
 
 
 def test_a_repeated_pmid_is_one_publication(graph):
@@ -483,7 +484,7 @@ def test_a_repeated_pmid_is_one_publication(graph):
         "RETURN r.publications AS refs, r.n_publications AS n LIMIT 1",
     )
     assert result["n"] == 2
-    assert result["refs"] == "PMID:10362454|PMID:7762816"
+    assert result["refs"] == ["PMID:10362454", "PMID:7762816"]
 
 
 # --------------------------------------------------------------------------
@@ -543,7 +544,7 @@ def test_the_retired_accession_redirect_table_is_loaded(graph):
         "MATCH (m:Metabolite {id: 'CHEBI:17968'}) "
         "RETURN m.secondary_accessions AS secondary",
     )
-    assert result["secondary"] == "HMDB00011|HMDB0004935"
+    assert result["secondary"] == ["HMDB00011", "HMDB0004935"]
 
 
 def test_microbial_origin_is_a_boolean_not_a_string(graph):
@@ -569,7 +570,7 @@ def test_a_microbial_metabolite_can_name_no_organism_at_all(graph, prep_output):
         "MATCH (m:Metabolite {id: 'HMDB:HMDB0000031'}) "
         "RETURN m.microbial_origin AS microbial, m.selection_rule AS rule",
     )
-    assert result == {"microbial": True, "rule": "microbial-origin"}
+    assert result == {"microbial": True, "rule": ["microbial-origin"]}
     assert not rows(
         graph, "MATCH ()-[r:PRODUCES]->(m:Metabolite {id: 'HMDB:HMDB0000031'}) RETURN r"
     )

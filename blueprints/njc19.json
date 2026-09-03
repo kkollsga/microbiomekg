@@ -13,12 +13,12 @@
         "pubchem_cid": "int",
         "inchikey": "string",
         "status": "string",
-        "biospecimens": "string",
+        "biospecimens": "list",
         "microbial_origin": "bool",
-        "origin": "string",
+        "origin": "list",
         "chemical_formula": "string",
-        "secondary_accessions": "string",
-        "selection_rule": "string",
+        "secondary_accessions": "list",
+        "selection_rule": "list",
         "source": "string"
       }
     },
@@ -63,7 +63,7 @@
               "reported_compound": "string",
               "metabolite_join": "string",
               "genus_level_evidence": "bool",
-              "reference_ids": "string",
+              "reference_ids": "list",
               "n_references": "int"
             }
           },
@@ -105,7 +105,7 @@
               "reported_compound": "string",
               "metabolite_join": "string",
               "genus_level_evidence": "bool",
-              "reference_ids": "string",
+              "reference_ids": "list",
               "n_references": "int"
             }
           },
@@ -147,7 +147,7 @@
               "reported_compound": "string",
               "metabolite_join": "string",
               "genus_level_evidence": "bool",
-              "reference_ids": "string",
+              "reference_ids": "list",
               "n_references": "int"
             }
           },
@@ -189,7 +189,7 @@
               "reported_compound": "string",
               "metabolite_join": "string",
               "genus_level_evidence": "bool",
-              "reference_ids": "string",
+              "reference_ids": "list",
               "n_references": "int"
             }
           }

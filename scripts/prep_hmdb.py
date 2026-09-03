@@ -68,7 +68,7 @@ from microbiomekg import ontology as ont  # noqa: E402
 from microbiomekg.ontology import hmdb as hm  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = hm.SOURCE
 
@@ -252,7 +252,7 @@ def publications(el) -> tuple[str, int]:
         if pmid.isdigit():
             seen.setdefault(f"PMID:{pmid}", None)
     ids = list(seen)
-    return "|".join(ids[:MAX_PUBLICATIONS]), len(ids)
+    return as_list(ids[:MAX_PUBLICATIONS]), len(ids)
 
 
 def reactome_chebi_ids(path: Path) -> set[str]:
@@ -426,14 +426,14 @@ def main(argv: list[str] | None = None) -> int:
             "pubchem_cid": text(el, "pubchem_compound_id"),
             "inchikey": text(el, "inchikey"),
             "status": status,
-            "biospecimens": "|".join(biospecimens),
+            "biospecimens": as_list(biospecimens),
             "microbial_origin": "true" if microbial else "false",
-            "origin": "|".join(origins(paths)),
+            "origin": as_list(origins(paths)),
             "chemical_formula": text(el, "chemical_formula"),
             # The redirect table: 80,986 retired ids across the file, without
             # which a citation of `HMDB00001` finds nothing.
-            "secondary_accessions": "|".join(texts(el, "secondary_accessions", "accession")),
-            "selection_rule": "|".join(keep),
+            "secondary_accessions": as_list(texts(el, "secondary_accessions", "accession")),
+            "selection_rule": as_list(keep),
             "source": SOURCE,
         })
 
@@ -532,7 +532,7 @@ def main(argv: list[str] | None = None) -> int:
                         "reported_tax_id": "",
                         "source": SOURCE,
                         "status": res.status,
-                        "candidates": "|".join(str(c) for c in res.candidates),
+                        "candidates": as_list(str(c) for c in res.candidates),
                         "note": res.note,
                         "n_signatures": "0",
                     })

@@ -692,7 +692,7 @@ def test_an_ambiguous_strain_is_a_tombstone_naming_what_was_rejected(graph, csv_
     )
     assert tomb["status"] == "unresolved"
     assert tomb["rank"] == "strain-level isolate"
-    assert sorted(tomb["candidates"].split("|")) == ["1268240", "311784"]
+    assert sorted(tomb["candidates"]) == ["1268240", "311784"]
     assert len([r for r in table(csv_dir, "unresolved_taxa.csv")
                 if r["source"] == SOURCE]) == UNRESOLVED_TAXA
     strain_rows = ledger(csv_dir, "strain")
@@ -748,9 +748,9 @@ def test_a_gene_product_rides_on_the_edge_of_the_one_isolate_it_came_from(graph)
         "RETURN r.gene_locus_tags AS tags, r.gene_products AS products, "
         "r.gene_protein_ids AS proteins, r.n_gene_products AS n",
     )
-    assert edge["tags"] == "Z_0152"
-    assert edge["products"] == "acetyl esterase (acetylxylosidase)"
-    assert edge["proteins"] == "NP_809065.1"
+    assert edge["tags"] == ["Z_0152"]
+    assert edge["products"] == ["acetyl esterase (acetylxylosidase)"]
+    assert edge["proteins"] == ["NP_809065.1"]
     assert edge["n"] == 1
     sibling = one(
         graph,
@@ -779,12 +779,12 @@ def test_the_two_experiments_are_allowed_to_disagree_and_the_disagreement_shows(
         f"WHERE r.screen_column = '{E_COLI_GENE_COLUMN}' "
         "RETURN r.gene_locus_tags AS tags, r.effect AS effect",
     )
-    assert divergent["tags"] == "Z_2068"
+    assert divergent["tags"] == ["Z_2068"]
     assert divergent["effect"] == "not-metabolised"
     carried = one(
         graph,
         f"MATCH ()-[r:{RELATION_METABOLISES}|{RELATION_NO_METABOLISM}]->() "
-        "WHERE r.gene_locus_tags <> '' RETURN count(r) AS n",
+        "WHERE r.gene_locus_tags IS NOT NULL RETURN count(r) AS n",
     )
     assert carried["n"] == GENE_PAIRS
     assert (
@@ -892,7 +892,7 @@ def test_the_evidence_is_stated_and_is_the_same_on_every_edge(graph):
             assert row["kl"] == "knowledge_assertion"
             assert row["agent"] == "manual_agent"
             assert row["licence"] == "Zimmermann2019-unstated"
-            assert row["pubs"] == PUBLICATION == "PMID:31158845"
+            assert row["pubs"] == [PUBLICATION] == ["PMID:31158845"]
             assert row["pmid"] == 31158845
 
 

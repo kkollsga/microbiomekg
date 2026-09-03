@@ -65,7 +65,7 @@ from microbiomekg import ontology as ont  # noqa: E402
 from microbiomekg.ontology import njc19 as nj  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = nj.SOURCE
 
@@ -312,7 +312,7 @@ def main(argv: list[str] | None = None) -> int:
                 "reported_tax_id": "",
                 "source": SOURCE,
                 "status": res.status,
-                "candidates": "|".join(str(c) for c in res.candidates),
+                "candidates": as_list(str(c) for c in res.candidates),
                 "note": res.note,
                 "n_signatures": "0",
             })
@@ -396,7 +396,7 @@ def main(argv: list[str] | None = None) -> int:
                 "reported_compound": compound,
                 "metabolite_join": route,
                 "genus_level_evidence": "true" if genus_level else "false",
-                "reference_ids": "|".join(refs),
+                "reference_ids": as_list(refs),
                 "n_references": str(len(refs)),
             })
 

@@ -332,6 +332,13 @@ GROWTH_CONTRACT: list[str] = [
 #: edge was reached.
 GROWTH_PROPERTY_TYPES: dict[str, str] = {
     **{field: "string" for field in GROWTH_CONTRACT},
+    # `any`, not a list type: kglite 0.16.22 gave the *blueprint* a "list"
+    # column type but the ontology's `property_types` grammar still accepts
+    # only string/integer/float/boolean/date/datetime/timestamp/point/any, so
+    # "string" here reads every list cell as a violation and there is nothing
+    # narrower to say. Presence is still checked — these fields are in the
+    # relationship's `required_properties` — only the shape is not.
+    "publications": "any",
     "pmid": "integer",
     "adjusted_p_value": "float",
     "screen_concentration_um": "float",

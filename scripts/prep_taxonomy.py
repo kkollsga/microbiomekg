@@ -31,6 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
+from microbiomekg.tables import as_list  # noqa: E402
 from microbiomekg.reconcile import (  # noqa: E402
     NAME_CLASSES,
     TaxonomyIndex,
@@ -96,6 +97,14 @@ FIELDS = [
     # instead of string-matching the name (C9, C21.1).
     "placeholder",
     "synonyms",
+    # The same names again, joined, and this is a kglite gap rather than a
+    # choice: `build_text_index` refuses a list-valued property ("BM25 indexes
+    # text: a numeric or list-valued property is not indexable"), and
+    # `Taxon.synonyms` carries one of the five BM25 indexes — the lane D12 and
+    # the reconciliation skill rank an old binomial through. So the list is the
+    # queryable property and this is what the index reads. One join, at write
+    # time, so the two cannot disagree.
+    "synonyms_text",
     "synonym_count",
     *LINEAGE_COLUMNS[1:],
     # Three-state on purpose: `true` for a taxon MASI marks as a probiotic,
@@ -281,7 +290,8 @@ def main(argv: list[str] | None = None) -> int:
                 # root(1) is its own parent in nodes.dmp; a self-edge would make
                 # -[:HAS_PARENT*1..]-> non-terminating on any walk that reaches it.
                 "parent_tax_id": "" if parent == tid or parent not in keep else parent,
-                "synonyms": " | ".join(syn[:SYNONYM_CAP]),
+                "synonyms": as_list(syn[:SYNONYM_CAP]),
+                "synonyms_text": " | ".join(syn[:SYNONYM_CAP]),
                 "synonym_count": len(syn),
             }
             row.update(zip(LINEAGE_COLUMNS[1:], lin[1:]))

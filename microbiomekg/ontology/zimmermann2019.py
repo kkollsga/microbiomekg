@@ -485,6 +485,13 @@ GENE_PROPERTIES: tuple[str, ...] = (
 #: each end and how each end reached a node, plus the gene block.
 METABOLISM_PROPERTY_TYPES: dict[str, str] = {
     **{field: "string" for field in METABOLISM_CONTRACT},
+    # `any`, not a list type: kglite 0.16.22 gave the *blueprint* a "list"
+    # column type but the ontology's `property_types` grammar still accepts
+    # only string/integer/float/boolean/date/datetime/timestamp/point/any, so
+    # "string" here reads every list cell as a violation and there is nothing
+    # narrower to say. Presence is still checked — these fields are in the
+    # relationship's `required_properties` — only the shape is not.
+    "publications": "any",
     "pmid": "integer",
     # The measurement itself. `drug_threshold_percent` is on the edge and not
     # only in `source_relation` because it is per *drug*: a query comparing two
@@ -514,9 +521,9 @@ METABOLISM_PROPERTY_TYPES: dict[str, str] = {
     "taxon_join": "string",
     # Supplementary table 13's gain-of-function screen, on the 37 pairs it
     # covers and empty on the other 20,017.
-    "gene_locus_tags": "string",
-    "gene_products": "string",
-    "gene_protein_ids": "string",
+    "gene_locus_tags": "any",
+    "gene_products": "any",
+    "gene_protein_ids": "any",
     "n_gene_products": "integer",
 }
 

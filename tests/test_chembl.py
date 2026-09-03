@@ -290,7 +290,7 @@ def test_the_salt_and_its_parent_are_one_drug_node(graph):
         "RETURN d.title AS name, d.salt_ids AS salts, d.approved AS approved",
     )
     assert result["name"] == "METFORMIN"
-    assert result["salts"] == "CHEMBL1703"
+    assert result["salts"] == ["CHEMBL1703"]
     assert result["approved"] is True
 
 
@@ -525,20 +525,28 @@ def test_publications_and_regulatory_refs_are_two_different_claims(graph):
         "RETURN r.publications AS pubs, r.regulatory_refs AS regs, "
         "r.evidence_level AS level",
     )
-    assert result["pubs"] == "PMID:222"
-    assert "dailymed" in result["regs"]
+    assert result["pubs"] == ["PMID:222"]
+    assert any("dailymed" in r for r in result["regs"])
     assert result["level"] == "interventional-rct"
 
 
-def test_several_publications_are_one_joined_string(graph):
-    """A CSV column cannot become a list property (docs/model.md §8.1), so the
-    CURIEs are `|`-joined and the join is documented rather than assumed."""
+def test_several_publications_are_a_list_property(graph):
+    """`publications` is a native list, so a per-citation question is a query.
+
+    It was a `|`-joined string until kglite 0.16.22 gave the blueprint a
+    `"list"` column type; the prep writes a JSON array and the fragment
+    declares it, so `UNWIND` and `IN` work without a re-parse."""
     result = one(
         graph,
         "MATCH ()-[r:HAS_MECHANISM]->() WHERE r.source_record_id = '12' "
         "RETURN r.publications AS pubs",
     )
-    assert result["pubs"] == "PMID:555|DOI:10.1000/acarbose"
+    assert result["pubs"] == ["PMID:555", "DOI:10.1000/acarbose"]
+    assert one(
+        graph,
+        "MATCH ()-[r:HAS_MECHANISM]->() WHERE 'DOI:10.1000/acarbose' IN r.publications "
+        "RETURN count(r) AS n",
+    )["n"] == 1
 
 
 # --------------------------------------------------------------------------
@@ -614,9 +622,9 @@ def test_uniprot_accessions_come_from_the_components(graph):
             "p.n_components AS n, p.target_type AS type",
         )
     }
-    assert result["CHEMBL:CHEMBL2095165"]["uniprot"] == "O43451|P14410"
+    assert result["CHEMBL:CHEMBL2095165"]["uniprot"] == ["O43451", "P14410"]
     assert result["CHEMBL:CHEMBL2095165"]["n"] == 2
-    assert result["CHEMBL:CHEMBL3623"]["uniprot"] == "P0AD68"
+    assert result["CHEMBL:CHEMBL3623"]["uniprot"] == ["P0AD68"]
     assert result["CHEMBL:CHEMBL2364701"]["uniprot"] is None
     assert result["CHEMBL:CHEMBL2364701"]["n"] == 0
     assert len(result) == PROTEIN_TARGETS

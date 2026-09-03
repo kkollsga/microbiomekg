@@ -14,7 +14,8 @@
         "rank": "string",
         "scientific_name": "string",
         "placeholder": "bool",
-        "synonyms": "string",
+        "synonyms": "list",
+        "synonyms_text": "string",
         "synonym_count": "int",
         "lineage_species": "string",
         "lineage_genus": "string",
@@ -25,9 +26,9 @@
         "lineage_kingdom": "string",
         "lineage_domain": "string",
         "probiotic": "bool",
-        "probiotic_use_species": "string",
-        "probiotic_research_stage": "string",
-        "probiotic_reported_name": "string"
+        "probiotic_use_species": "list",
+        "probiotic_research_stage": "list",
+        "probiotic_reported_name": "list"
       },
       "skipped": [
         "parent_tax_id"
@@ -204,7 +205,7 @@
         "reported_tax_id": "int",
         "source": "string",
         "status": "string",
-        "candidates": "string",
+        "candidates": "list",
         "note": "string",
         "n_signatures": "int"
       }

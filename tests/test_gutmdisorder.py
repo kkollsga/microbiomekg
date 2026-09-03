@@ -496,7 +496,7 @@ def test_a_three_arm_study_carries_all_three_arm_sizes(graph):
         "WHERE r.study_id = 'STUDY:gutmdisorder-mouse-2' "
         "RETURN DISTINCT r.study_arm_sizes AS arms, r.study_sample_size AS total",
     )
-    assert result["arms"] == "10|16|16"
+    assert result["arms"] == ["10", "16", "16"]
     assert result["total"] == 42
 
 

@@ -469,25 +469,32 @@ def test_every_restated_pair_names_the_source_that_measured_it(graph):
     contract: on the real file 7,161 of 11,456 edges (62.5%) restate a pair a
     loaded screen already measures, and "what does MASI *add*" is one clause.
     kglite writes an empty column as null, so the clause is `IS NULL` — asserted
-    here so a doc that writes `= ''` is caught by a test rather than by a user."""
+    here so a doc that writes `= ''` is caught by a test rather than by a user.
+    The property is a **list**, so the grouping key is its JSON text rather than
+    the value; `'maier2018' IN r.duplicates_primary_source` is the query form."""
     counted = {
-        r["dup"]: r["n"] for r in rows(
+        (tuple(r["dup"]) if r["dup"] is not None else None): r["n"] for r in rows(
             graph,
             "MATCH ()-[r]->(:Substance) "
             "RETURN r.duplicates_primary_source AS dup, count(*) AS n",
         )
     }
     assert counted == {
-        "maier2018|zimmermann2019": 2, "maier2018": 3, "zimmermann2019": 2,
+        ("maier2018", "zimmermann2019"): 2, ("maier2018",): 3, ("zimmermann2019",): 2,
         None: EDGES - DUPLICATED_EDGES,
     }
+    assert one(
+        graph,
+        "MATCH ()-[r]->(:Substance) WHERE 'maier2018' IN r.duplicates_primary_source "
+        "RETURN count(r) AS n",
+    )["n"] == 5
     # The pair both screens measured: MASI curates it a third time, and says so.
     assert one(
         graph,
         f"MATCH (t:Taxon {{id: {B_THETA}}})-[r:{RELATION_METABOLISES}]->"
         f"(:Substance {{id: 'MASI:PMDBD6'}}) "
         f"RETURN r.duplicates_primary_source AS dup",
-    )["dup"] == "maier2018|zimmermann2019"
+    )["dup"] == ["maier2018", "zimmermann2019"]
     # And a compound no screen carries: null, not an empty string.
     assert one(
         graph,
@@ -708,8 +715,8 @@ def test_a_probiotic_claim_survives_two_microbes_collapsing_onto_one_taxon(graph
         f"t.probiotic_reported_name AS reported",
     )
     assert coli == {
-        "probiotic": True, "used_in": "Human", "stage": "Clinical trial",
-        "reported": "Escherichia coli O157:H7",
+        "probiotic": True, "used_in": ["Human"], "stage": ["Clinical trial"],
+        "reported": ["Escherichia coli O157:H7"],
     }
 
 
@@ -915,7 +922,7 @@ def test_the_aggregator_publication_is_not_the_edge_s_own_citation(graph):
         f"RETURN r.publications AS publications, "
         f"r.aggregator_publication AS aggregator",
     )
-    assert edge["publications"] == "PMID:31158845"
+    assert edge["publications"] == ["PMID:31158845"]
     assert edge["aggregator"] == "PMID:33313900"
     assert edge["publications"] != edge["aggregator"]
 

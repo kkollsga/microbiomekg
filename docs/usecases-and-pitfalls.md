@@ -2189,11 +2189,11 @@ LPSN's correct-name/synonym status, which NCBI does not carry.
 // the easy half: an obsolete binomial through the synonym index.
 // The rank filter is not cosmetic — see the golden check below.
 MATCH (t:Taxon)
-WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') > 0
   AND t.rank = 'species'
 RETURN t.id AS tax_id, t.title AS current_name, t.rank AS rank,
        t.synonyms AS synonyms,
-       text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
+       text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') AS score
 ORDER BY score DESC LIMIT 3
 
 // and the audit trail: how did each spelling actually resolve?

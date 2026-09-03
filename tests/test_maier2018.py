@@ -658,7 +658,7 @@ def test_the_evidence_is_stated_and_is_the_same_on_every_edge(graph):
             assert row["kl"] == "knowledge_assertion"
             assert row["agent"] == "manual_agent"
             assert row["licence"] == "Maier2018-unstated"
-            assert row["pubs"] == PUBLICATION == "PMID:29555994"
+            assert row["pubs"] == [PUBLICATION] == ["PMID:29555994"]
             assert row["pmid"] == 29555994
 
 

@@ -67,7 +67,7 @@ from microbiomekg.conditions import (  # noqa: E402
 from microbiomekg.ontology import gutmdisorder as gmd  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = gmd.SOURCE
 
@@ -328,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
                 "sequencing_type": gmd.sequencing_type(technology),
                 "evidence_level": gmd.evidence_level(workbook, research_type, technology),
                 "sample_size_total": str(sum(int(s) for s in sizes if s)) if any(sizes) else "",
-                "arm_sizes": "|".join(sizes),
+                "arm_sizes": as_list(sizes),
             }
             study_meta[index] = meta
             levels[meta["evidence_level"]] += 1
@@ -511,7 +511,7 @@ def main(argv: list[str] | None = None) -> int:
                     "reported_tax_id": raw_id,
                     "source": SOURCE,
                     "status": res.status,
-                    "candidates": "|".join(str(c) for c in res.candidates),
+                    "candidates": as_list(str(c) for c in res.candidates),
                     "note": res.note,
                     "n_signatures": "0",
                 })

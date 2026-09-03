@@ -542,8 +542,8 @@ def test_the_gene_family_is_a_property_and_the_drug_class_is_not(graph):
         f"MATCH (g:ResistanceGene {{id: '{CBLA1}'}}) "
         "RETURN g.gene_family AS family, g.gene_family_aro AS family_aro",
     )
-    assert result["family"] == "CblA beta-lactamase"
-    assert result["family_aro"] == "ARO:3002998"
+    assert result["family"] == ["CblA beta-lactamase"]
+    assert result["family_aro"] == ["ARO:3002998"]
 
 
 # --------------------------------------------------------------------------
@@ -654,8 +654,7 @@ def test_a_determinant_with_no_citation_is_not_provided_not_asserted(graph):
 def test_the_publications_are_all_of_them_and_pmid_is_one_of_them(graph):
     """`pmid` is a single integer because the contract's column is; a model
     citing four papers would otherwise silently lose three. `publications`
-    carries the list, joined, until kglite can load a list column from a CSV
-    (docs/model.md §8 item 1)."""
+    carries all four as a native list property."""
     result = one(
         graph,
         f"MATCH ()-[r:VIA_MECHANISM]->() WHERE r.card_model_id = '1474' "
@@ -663,7 +662,7 @@ def test_the_publications_are_all_of_them_and_pmid_is_one_of_them(graph):
         "r.n_publications AS n",
     )
     assert result["n"] == len(MEXR_PMIDS)
-    assert result["publications"] == " | ".join(MEXR_PMIDS)
+    assert result["publications"] == list(MEXR_PMIDS)
     assert str(result["pmid"]) in MEXR_PMIDS
 
 

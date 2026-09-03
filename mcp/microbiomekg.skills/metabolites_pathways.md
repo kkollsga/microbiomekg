@@ -127,7 +127,7 @@ returns zero rows, resolve the name first rather than reporting absence:
 
 ```cypher
 // CONTAINS, not text_bm25(): only five columns carry a BM25 index in this
-// graph (Taxon.scientific_name, Taxon.synonyms, Disease.label,
+// graph (Taxon.scientific_name, Taxon.synonyms_text, Disease.label,
 // Signature.description, Paper.title) and Metabolite.name is not one.
 MATCH (m:Metabolite)
 WHERE toLower(m.name) CONTAINS toLower($name)
@@ -152,7 +152,8 @@ computing MES over a conjugate pair has to say which term they mean.
 `m.selection_rule` says why the metabolite is in the graph at all —
 `microbial-origin` (a microbial-origin claim), `feces` (a gut biospecimen),
 `reactome-chebi` (reachable from a pathway), `njc19-exchange` (an exchange
-partner), joined with `|` when several applied. It is a filter, not decoration.
+partner) — a list, so filter it with `WHERE 'feces' IN m.selection_rule`. It is
+a filter, not decoration.
 
 ## Pathways: capability, not production (D13)
 

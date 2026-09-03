@@ -556,12 +556,19 @@ CONTRACT: list[str] = [
 #: Declared types for every property a MASI interaction edge carries.
 INTERACTION_PROPERTY_TYPES: dict[str, str] = {
     **{field: "string" for field in CONTRACT},
+    # `any`, not a list type: kglite 0.16.22 gave the *blueprint* a "list"
+    # column type but the ontology's `property_types` grammar still accepts
+    # only string/integer/float/boolean/date/datetime/timestamp/point/any, so
+    # "string" here reads every list cell as a violation and there is nothing
+    # narrower to say. Presence is still checked — these fields are in the
+    # relationship's `required_properties` — only the shape is not.
+    "publications": "any",
     "pmid": "integer",
     "aggregator_publication": "string",
-    # The aggregator contract, made countable. Empty when no loaded primary
-    # source measures this (taxon, compound) pair; otherwise the pipe-joined
+    # The aggregator contract, made countable. Absent when no loaded primary
+    # source measures this (taxon, compound) pair; otherwise a list of the
     # source tokens of the ones that do.
-    "duplicates_primary_source": "string",
+    "duplicates_primary_source": "any",
     "direction": "string",
     "interaction_category": "string",
     # MASI's own record id, which is **not** unique: 2,891 of the 12,512 rows

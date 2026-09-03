@@ -399,7 +399,7 @@ def test_an_ambiguous_genus_is_refused_and_not_guessed(graph, csv_dir):
         "RETURN u.status AS status, u.candidates AS candidates",
     )
     assert tomb["status"] == "ambiguous"
-    assert set(tomb["candidates"].split("|")) == {"1386", "55087"}
+    assert set(tomb["candidates"]) == {"1386", "55087"}
     # Scoped to this source: HMDB's loader *does* write a Bacillus edge, because
     # its organism term came from a microbial-origin path and that context picks
     # the one candidate under Bacteria. NJC19's column carries no such context.
@@ -482,7 +482,7 @@ def test_a_compound_no_source_holds_is_minted_not_dropped(graph):
     )
     assert row["id"] == "NJC19:Mucin"
     assert row["source"] == SOURCE
-    assert row["rule"] == "njc19-exchange"
+    assert row["rule"] == ["njc19-exchange"]
     assert row["route"] == "minted"
     # The source's own spelling survives on the edge, synonym list and all.
     assert row["said"] == "Mucin (Mucus Glycoprotein)"
@@ -560,7 +560,7 @@ def test_a_species_row_on_genus_level_literature_is_marked(graph):
         "RETURN r.genus_level_evidence AS g, r.reference_ids AS refs",
     )
     assert marked["g"] is True
-    assert marked["refs"] == "217(G)"
+    assert marked["refs"] == ["217(G)"]
     plain = one(
         graph,
         f"MATCH ()-[r:CONSUMES]->() WHERE r.reported_compound = 'Deoxycholic acid' "

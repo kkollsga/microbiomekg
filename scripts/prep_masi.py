@@ -59,7 +59,7 @@ from microbiomekg.drugs import DrugIndex, join_drug  # noqa: E402
 from microbiomekg.ontology import masi as ms  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = ms.SOURCE
 
@@ -617,10 +617,10 @@ def main(argv: list[str] | None = None) -> int:
             "source_record_id": source_record_id,
             "source_licence": licence,
             "source_relation": ms.SOURCE_RELATIONS[relationship][1],
-            "publications": "|".join(publications),
+            "publications": as_list(publications),
             "pmid": str(pmid) if pmid else "",
             "aggregator_publication": aggregator,
-            "duplicates_primary_source": "|".join(pair_sources),
+            "duplicates_primary_source": as_list(pair_sources),
             "direction": direction,
             "interaction_category": category,
             "masi_record_id": record_id,
@@ -730,7 +730,7 @@ def main(argv: list[str] | None = None) -> int:
             "masi_microbe_id": microbe_id,
             "microbiota_site": value(row, "Microbiota-site"),
             "association_type": row.get("Association-type", "").strip(),
-            "publications": "|".join(publications),
+            "publications": as_list(publications),
             "reported_name": reported_name,
             "reported_rank": entry["reported_rank"],
             "original_rank": entry["original_rank"],
@@ -781,9 +781,9 @@ def main(argv: list[str] | None = None) -> int:
         probiotic_rows += probiotics.add({
             "tax_id": str(tax_id),
             "probiotic": "true" if held["probiotic"] else "false",
-            "probiotic_use_species": "|".join(held["use"]),
-            "probiotic_research_stage": "|".join(held["stage"]),
-            "probiotic_reported_name": "|".join(held["names"]),
+            "probiotic_use_species": as_list(held["use"]),
+            "probiotic_research_stage": as_list(held["stage"]),
+            "probiotic_reported_name": as_list(held["names"]),
             "source": SOURCE,
         })
 

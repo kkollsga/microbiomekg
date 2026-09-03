@@ -57,9 +57,9 @@ ORDER BY score DESC LIMIT 5
 #: The lexical stage: an exactly-spelled old binomial through the synonym index.
 BM25_SYNONYMS = """
 MATCH (t:Taxon)
-WHERE text_bm25(t, 'synonyms', $name) > 0 AND t.rank = $rank
+WHERE text_bm25(t, 'synonyms_text', $name) > 0 AND t.rank = $rank
 RETURN t.id AS tax_id, t.title AS current_name,
-       text_bm25(t, 'synonyms', $name) AS score
+       text_bm25(t, 'synonyms_text', $name) AS score
 ORDER BY score DESC LIMIT 5
 """
 
@@ -67,7 +67,7 @@ ORDER BY score DESC LIMIT 5
 BLENDED = """
 MATCH (t:Taxon)
 WHERE t.rank = $rank AND t.placeholder = false
-WITH t, score_fuse(text_bm25(t, 'synonyms', $name),
+WITH t, score_fuse(text_bm25(t, 'synonyms_text', $name),
                    text_score(t, 'scientific_name', $name),
                    text_score(t, 'scientific_name', $epithet),
                    $weights) AS score

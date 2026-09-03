@@ -9,16 +9,16 @@
         "name": "string",
         "card_short_name": "string",
         "description": "string",
-        "gene_family": "string",
-        "gene_family_aro": "string",
+        "gene_family": "list",
+        "gene_family_aro": "list",
         "model_type": "string",
         "card_model_id": "string",
         "curated": "bool",
         "protein_accession": "string",
         "dna_accession": "string",
-        "aro_parents": "string",
+        "aro_parents": "list",
         "name_source": "string",
-        "publications": "string",
+        "publications": "list",
         "n_publications": "int",
         "source": "string",
         "source_licence": "string"
@@ -57,7 +57,7 @@
               "card_model_id": "string",
               "model_type": "string",
               "curated": "bool",
-              "publications": "string",
+              "publications": "list",
               "n_publications": "int"
             }
           },
@@ -93,7 +93,7 @@
               "card_model_id": "string",
               "model_type": "string",
               "curated": "bool",
-              "publications": "string",
+              "publications": "list",
               "n_publications": "int"
             }
           }
@@ -106,7 +106,7 @@
       "title": "label",
       "properties": {
         "label": "string",
-        "aro_parents": "string",
+        "aro_parents": "list",
         "source": "string",
         "source_licence": "string"
       }
@@ -117,7 +117,7 @@
       "title": "label",
       "properties": {
         "label": "string",
-        "aro_parents": "string",
+        "aro_parents": "list",
         "source": "string",
         "source_licence": "string"
       }
@@ -164,7 +164,7 @@
               "card_model_id": "string",
               "model_type": "string",
               "curated": "bool",
-              "publications": "string",
+              "publications": "list",
               "n_publications": "int",
               "sequence_derived": "bool",
               "taxon_scope": "string",

@@ -21,9 +21,53 @@ declared prep order, and re-running one prep script twice is a no-op.
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
+from typing import Iterable
 
-__all__ = ["Writer"]
+__all__ = ["Writer", "as_list", "from_list"]
+
+
+def as_list(values: Iterable[object]) -> str:
+    """A multi-valued cell, as the JSON array a ``"list"`` column reads.
+
+    kglite's blueprint has no delimiter option and will not grow one: a
+    delimited cell is ambiguous the moment a value contains the delimiter, and
+    1,983 of this graph's synonym lists contain a comma. So a column whose
+    cells are several values is written as JSON here and declared ``"list"`` in
+    the fragment, and ``'x' IN n.synonyms`` is a query rather than a Python
+    re-parse.
+
+    **Empty in means empty out — deliberately not ``[]``.** kglite reads an
+    empty cell as an absent property and a ``[]`` cell as a present empty list,
+    and this graph counts absences: ``WHERE r.publications IS NULL`` is 3,717
+    CARD carriage edges with no citation, and an empty list would answer that
+    question with zero.
+    """
+    items = [v for v in values if v not in (None, "")]
+    return json.dumps(items, ensure_ascii=False) if items else ""
+
+
+def from_list(cell: str | None) -> list[str]:
+    """The values in a cell :func:`as_list` wrote, back as a list of strings.
+
+    A prep that reads a table another prep wrote reads the **CSV**, not the
+    graph, so a ``"list"`` column arrives as its JSON text and
+    ``cell.split("|")`` now returns `'["a"', '"b"]'`. Anything that does not
+    parse as a JSON array is one value kept whole, which is the right reading
+    for a raw upstream cell that never went through :func:`as_list`.
+    """
+    text = (cell or "").strip()
+    if not text:
+        return []
+    if text.startswith("["):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return [text]
+        if isinstance(parsed, list):
+            return [str(v) for v in parsed]
+    return [text]
 
 
 class Writer:

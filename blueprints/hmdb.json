@@ -1,5 +1,5 @@
 {
-  "_doc": "HMDB 5.0 (hmdb_metabolites.xml, 2021-11-17): the Metabolite node and the Taxon-[:PRODUCES]->Metabolite edge, which is D5's whole answer until MiMeDB lands. Only a selected slice of the 217,920 metabolites is loaded — microbial-origin, or detected in feces, or carrying a ChEBI id Reactome has a pathway for — and `selection_rule` on the node says which of those kept it, so the rule is countable rather than described. The disease layer is deliberately not loaded: 20,020 of its 27,670 rows carry one disease name. PRODUCES carries its own contract rather than the fourteen-property association one, because a production claim has no direction, no assay and no cohort.",
+  "_doc": "HMDB 5.0 (hmdb_metabolites.xml, 2021-11-17): the Metabolite node and the Taxon-[:PRODUCES]->Metabolite edge, which is D5's whole answer until MiMeDB lands. Only a selected slice of the 217,920 metabolites is loaded \u2014 microbial-origin, or detected in feces, or carrying a ChEBI id Reactome has a pathway for \u2014 and `selection_rule` on the node says which of those kept it, so the rule is countable rather than described. The disease layer is deliberately not loaded: 20,020 of its 27,670 rows carry one disease name. PRODUCES carries its own contract rather than the fourteen-property association one, because a production claim has no direction, no assay and no cohort.",
   "nodes": {
     "Metabolite": {
       "csv": "metabolite.csv",
@@ -13,12 +13,12 @@
         "pubchem_cid": "int",
         "inchikey": "string",
         "status": "string",
-        "biospecimens": "string",
+        "biospecimens": "list",
         "microbial_origin": "bool",
-        "origin": "string",
+        "origin": "list",
         "chemical_formula": "string",
-        "secondary_accessions": "string",
-        "selection_rule": "string",
+        "secondary_accessions": "list",
+        "selection_rule": "list",
         "source": "string"
       }
     },
@@ -61,7 +61,7 @@
               "resolution_status": "string",
               "hmdb_status": "string",
               "microbe_path": "string",
-              "publications": "string",
+              "publications": "list",
               "n_publications": "int"
             }
           }

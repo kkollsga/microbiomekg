@@ -62,7 +62,7 @@ from microbiomekg import ontology as ont  # noqa: E402
 from microbiomekg.ontology import card  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = card.SOURCE
 
@@ -76,11 +76,6 @@ DEPENDS_ON: list[str] = []
 DRUG_CLASS = "Drug Class"
 MECHANISM = "Resistance Mechanism"
 GENE_FAMILY = "AMR Gene Family"
-
-#: Until kglite can load a list property from a CSV column (docs/model.md §8
-#: item 1), a multi-valued field is a joined string. The separator matches
-#: ``Taxon.synonyms``, so one `contains()` idiom works across the graph.
-JOIN = " | "
 
 #: ``aro.obo`` ``def:`` lines carry their references as ``[PMID:123, ...]``.
 _DEF_PMID = re.compile(r"PMID:(\d+)")
@@ -410,17 +405,17 @@ def main(argv: list[str] | None = None) -> int:
             "name": name,
             "card_short_name": (model.get("CARD_short_name") or "").strip(),
             "description": (model.get("ARO_description") or "").strip(),
-            "gene_family": JOIN.join(n for _, n in family),
-            "gene_family_aro": JOIN.join(a for a, _ in family),
+            "gene_family": as_list(n for _, n in family),
+            "gene_family_aro": as_list(a for a, _ in family),
             "model_type": (model.get("model_type") or "").strip(),
             "card_model_id": model_id,
             "curated": "true" if curated else "false",
             "protein_accession": (sequence.get("protein_sequence") or {}).get(
                 "accession", ""),
             "dna_accession": (sequence.get("dna_sequence") or {}).get("accession", ""),
-            "aro_parents": JOIN.join(obo_parents(terms, term)),
+            "aro_parents": as_list(obo_parents(terms, term)),
             "name_source": name_source,
-            "publications": JOIN.join(publications),
+            "publications": as_list(publications),
             "n_publications": str(len(publications)),
             "source": SOURCE,
             # The node's own facts — name, parents — are aro.obo's, and that
@@ -446,7 +441,7 @@ def main(argv: list[str] | None = None) -> int:
             "card_model_id": model_id,
             "model_type": (model.get("model_type") or "").strip(),
             "curated": "true" if curated else "false",
-            "publications": JOIN.join(publications),
+            "publications": as_list(publications),
             "n_publications": str(len(publications)),
         }
 
@@ -456,7 +451,7 @@ def main(argv: list[str] | None = None) -> int:
                 drug_classes.add({
                     "drug_class_id": accession,
                     "label": obo_name(terms, accession) or label,
-                    "aro_parents": JOIN.join(obo_parents(terms, accession)),
+                    "aro_parents": as_list(obo_parents(terms, accession)),
                     "source": SOURCE,
                     "source_licence": card.ONTOLOGY_LICENCE,
                 })
@@ -478,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
                 mechanisms.add({
                     "mechanism_id": accession,
                     "label": obo_name(terms, accession) or label,
-                    "aro_parents": JOIN.join(obo_parents(terms, accession)),
+                    "aro_parents": as_list(obo_parents(terms, accession)),
                     "source": SOURCE,
                     "source_licence": card.ONTOLOGY_LICENCE,
                 })

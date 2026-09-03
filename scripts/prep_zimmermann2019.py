@@ -80,7 +80,7 @@ from microbiomekg.drugs import DrugIndex, join_drug  # noqa: E402
 from microbiomekg.ontology import zimmermann2019 as zm  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = zm.SOURCE
 
@@ -588,7 +588,7 @@ def main(argv: list[str] | None = None) -> int:
                 "reported_rank": zm.REPORTED_RANK,
                 "original_rank": res.original_rank or "", "reported_tax_id": "",
                 "source": SOURCE, "status": res.status,
-                "candidates": "|".join(
+                "candidates": as_list(
                     str(c) for c in (res.candidates or [t for t, _n in rejected])
                 ),
                 "note": res.note, "n_signatures": "0",
@@ -743,7 +743,7 @@ def main(argv: list[str] | None = None) -> int:
                 "source_record_id": f"{SOURCE}:{molename}|{label.strip()}",
                 "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
                 "source_relation": source_relation,
-                "publications": zm.PUBLICATION,
+                "publications": as_list([zm.PUBLICATION]),
                 "pmid": str(zm.PUBMED_ID),
                 "percent_consumed": _num(values[0]),
                 "percent_consumed_std": _num(values[1]),
@@ -766,9 +766,9 @@ def main(argv: list[str] | None = None) -> int:
                 "resolution_status": strain["resolution_status"],
                 "strain_join": strain["strain_join"],
                 "taxon_join": strain["taxon_join"],
-                "gene_locus_tags": "|".join(g["locus_tag"] for g in found),
-                "gene_products": "|".join(g["product"] for g in found),
-                "gene_protein_ids": "|".join(g["protein_id"] for g in found),
+                "gene_locus_tags": as_list(g["locus_tag"] for g in found),
+                "gene_products": as_list(g["product"] for g in found),
+                "gene_protein_ids": as_list(g["protein_id"] for g in found),
                 "n_gene_products": str(len(found)) if found else "",
             })
 

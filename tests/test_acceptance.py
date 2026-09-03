@@ -1173,7 +1173,7 @@ def test_chembl_still_has_no_drug_taxon_edge_of_its_own(chembl_graph):
         "RETURN d.title AS name, d.atc_codes AS atc, d.first_approval AS approved",
     )
     assert metformin["name"] == "METFORMIN"
-    assert metformin["atc"] == "A10BA02"
+    assert metformin["atc"] == ["A10BA02"]
 
 
 def test_chembl_an_intervention_that_names_a_drug_reaches_it(chembl_graph):
@@ -2075,7 +2075,7 @@ PARTIAL_GOLDEN = {
 def synonym_index(graph):
     """`text_bm25` is opt-in, so D12's query needs the index built first —
     which `scripts/build.py` does and the acceptance fixture does not."""
-    graph.build_text_index("Taxon", "synonyms")
+    graph.build_text_index("Taxon", "synonyms_text")
     return graph
 
 
@@ -2187,9 +2187,9 @@ def test_d12_the_synonym_lookup_needs_the_rank_filter_to_be_an_answer(
         synonym_index,
         """
         MATCH (t:Taxon)
-        WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+        WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') > 0
         RETURN t.id AS tax_id, t.rank AS rank,
-               text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
+               text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') AS score
         ORDER BY score DESC LIMIT 3
         """,
     )
@@ -2200,11 +2200,11 @@ def test_d12_the_synonym_lookup_needs_the_rank_filter_to_be_an_answer(
         synonym_index,
         """
         MATCH (t:Taxon)
-        WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+        WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') > 0
           AND t.rank = 'species'
         RETURN t.id AS tax_id, t.title AS current_name, t.rank AS rank,
                t.synonyms AS synonyms,
-               text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
+               text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') AS score
         ORDER BY score DESC LIMIT 3
         """,
     )
@@ -2213,14 +2213,25 @@ def test_d12_the_synonym_lookup_needs_the_rank_filter_to_be_an_answer(
     # C4, in the built graph: NCBI keeps the old binomial **only** in
     # authority-decorated form, so a resolver indexing name classes literally
     # returns `unresolved` for it and the failure looks like a data gap.
-    synonyms = filtered[0]["synonyms"].split(" | ")
+    # `synonyms` is a native list, so this reads it rather than re-splitting a
+    # joined string — and the same check is a Cypher predicate below.
+    synonyms = filtered[0]["synonyms"]
+    assert isinstance(synonyms, list), f"synonyms is not a list property: {synonyms!r}"
     assert PARTIAL_GOLDEN["d12_authority_synonym"] in synonyms
     assert "Lactobacillus reuteri" not in synonyms
+    membership = PARTIAL_GOLDEN["d12_authority_synonym"].replace("'", "\\'")
+    assert one(
+        synonym_index,
+        f"MATCH (t:Taxon) WHERE '{membership}' IN t.synonyms RETURN count(t) AS n",
+    )["n"] >= 1, (
+        "membership on the list property found nothing — the whole point of "
+        "declaring `synonyms` a list is that this is a query, not a re-parse"
+    )
     # And the rank filter is load-bearing rather than tidy: 726 taxa score
     # above zero on that query.
     assert one(
         synonym_index,
-        "MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0 "
+        "MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') > 0 "
         "RETURN count(t) AS n",
     )["n"] == PARTIAL_GOLDEN["d12_scoring_taxa"]
 
@@ -2236,10 +2247,10 @@ def test_d12_the_rhamnosus_case_answers_cleanly_and_is_still_partial(
         synonym_index,
         """
         MATCH (t:Taxon)
-        WHERE text_bm25(t, 'synonyms', 'Lactobacillus rhamnosus') > 0
+        WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus rhamnosus') > 0
           AND t.rank = 'species'
         RETURN t.id AS tax_id, t.title AS name,
-               text_bm25(t, 'synonyms', 'Lactobacillus rhamnosus') AS score
+               text_bm25(t, 'synonyms_text', 'Lactobacillus rhamnosus') AS score
         ORDER BY score DESC LIMIT 3
         """,
     )
@@ -2415,7 +2426,7 @@ def test_d18_masi_reaches_the_three_confounders_gutmdisorder_misses(graph):
     assert {t for t, _d in named} == set(PARTIAL_GOLDEN["d18_absent_fixtures"])
     # The one the caveat is named for, and the paper it comes from.
     intestinibacter = named[("Intestinibacter", "decreased")]
-    assert intestinibacter["publications"] == "PMID:26633628"
+    assert intestinibacter["publications"] == ["PMID:26633628"]
     assert intestinibacter["level"] == "unknown"
     assert ("Escherichia", "increased") in named
 
@@ -2659,7 +2670,7 @@ def test_d8_reproduces_the_metabolism_headline_and_prices_what_it_does_not(graph
         )
     }
     assert set(tombstones) == {"Bacteroides WH2", "Bifidobacterium ruminatum"}
-    assert all(len(c.split("|")) == 2 for c in tombstones.values()), (
+    assert all(len(c) == 2 for c in tombstones.values()), (
         "a refusal has to name what it rejected, or the next reader has a dead end"
     )
 

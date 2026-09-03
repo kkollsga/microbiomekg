@@ -32,6 +32,8 @@ import csv
 import re
 from pathlib import Path
 
+from .tables import from_list
+
 __all__ = ["DrugIndex", "atc_level5", "join_drug", "strip_salt"]
 
 #: A level-5 ATC code — seven characters, ``A10BA02``: the level that names one
@@ -67,17 +69,23 @@ _SALT_SUFFIX = re.compile(
 def atc_level5(cell: str | None) -> list[str]:
     """Every level-5 ATC code in a free-text ``ATC codes`` cell.
 
-    The cell is space-joined and mixes levels: ``QJ01GB90 QJ51GB90 QA07AA92``,
-    ``C01EA01 G04BE01``, ``L01BB``, ``-``. Only the seven-character human codes
-    survive, in source order and deduplicated — a level-4 code names a class
-    rather than a substance, and a veterinary ``Q`` code is eight characters and
-    has no ChEMBL counterpart.
+    Two shapes reach here and both have to work. A screen's own spreadsheet
+    cell is space-joined free text mixing levels — ``QJ01GB90 QJ51GB90
+    QA07AA92``, ``C01EA01 G04BE01``, ``L01BB``, ``-``. ``drug.csv``'s
+    ``atc_codes`` is a JSON array, because the column is a `"list"` property in
+    the blueprint; reading it with the free-text splitter alone returns
+    ``["C01EA01"`` and silently joins nothing.
+
+    Only the seven-character human codes survive, in source order and
+    deduplicated — a level-4 code names a class rather than a substance, and a
+    veterinary ``Q`` code is eight characters and has no ChEMBL counterpart.
     """
     out: list[str] = []
-    for token in re.split(r"[\s|,;]+", str(cell or "").strip()):
-        code = token.strip().upper()
-        if _ATC5.match(code) and code not in out:
-            out.append(code)
+    for value in from_list(cell):
+        for token in re.split(r"[\s|,;]+", value.strip()):
+            code = token.strip().upper()
+            if _ATC5.match(code) and code not in out:
+                out.append(code)
     return out
 
 

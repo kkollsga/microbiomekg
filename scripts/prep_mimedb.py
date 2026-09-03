@@ -82,7 +82,7 @@ from microbiomekg.ontology import mimedb as mm  # noqa: E402
 from microbiomekg.ontology import njc19 as nj  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list, from_list  # noqa: E402
 
 SOURCE = mm.SOURCE
 
@@ -155,7 +155,7 @@ def load_metabolite_index(
             # through the index instead of the writer.
             if not key or (row.get("source") or "") == SOURCE:
                 continue
-            for accession in (row.get("hmdb_id") or "", *(row.get("secondary_accessions") or "").split("|")):
+            for accession in (row.get("hmdb_id") or "", *from_list(row.get("secondary_accessions"))):
                 normalised = mm.normalise_hmdb_id(accession)
                 if normalised:
                     accessions.setdefault(normalised, key)
@@ -449,7 +449,7 @@ def main(argv: list[str] | None = None) -> int:
             "origin": "",
             "chemical_formula": cell(row, "moldb_formula"),
             "secondary_accessions": "",
-            "selection_rule": "|".join(keep),
+            "selection_rule": as_list(keep),
             "source": SOURCE,
             "mimedb_id": mime_id,
             "mimedb_origin": origin,

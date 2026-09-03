@@ -353,7 +353,7 @@ EXCHANGE_PROPERTY_TYPES: dict[str, str] = {
     "reported_compound": "string",
     "metabolite_join": "string",
     "genus_level_evidence": "bool",
-    "reference_ids": "string",
+    "reference_ids": "any",
     "n_references": "integer",
 }
 

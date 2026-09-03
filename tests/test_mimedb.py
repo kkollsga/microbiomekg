@@ -438,13 +438,12 @@ def test_each_selection_rule_is_recorded_on_the_node_it_kept(graph):
     """A rule described only in a docstring cannot be audited and cannot be
     changed safely."""
     kept = {
-        rule
+        r["rule"]
         for r in rows(
             graph,
             f"MATCH (m:Metabolite) WHERE m.source = '{SOURCE}' "
-            "RETURN DISTINCT m.selection_rule AS rule",
+            "UNWIND m.selection_rule AS rule RETURN DISTINCT rule",
         )
-        for rule in r["rule"].split("|")
     }
     assert kept <= set(SELECTION_RULES)
     assert kept == {"observed", "origin-classified", "njc19-compound"}
@@ -457,7 +456,7 @@ def test_the_njc19_rule_selects_a_compound_njc19_needs_and_not_one_it_might(grap
     the rule is "a compound NJC19 needs", not "a compound like the ones it
     needs"."""
     pectin = one(graph, "MATCH (m:Metabolite {title: 'Pectin'}) RETURN m.selection_rule AS r")
-    assert pectin["r"] == "njc19-compound"
+    assert pectin["r"] == ["njc19-compound"]
     assert not rows(graph, "MATCH (m:Metabolite {title: 'Chitin'}) RETURN m")
 
 

@@ -67,7 +67,7 @@ from microbiomekg import ontology as ont  # noqa: E402
 from microbiomekg.ontology import chembl as chem  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = chem.SOURCE
 
@@ -81,12 +81,6 @@ DEPENDS_ON: list[str] = ["gutmdisorder"]
 MECHANISM_FILE = "mechanism.jsonl"
 MOLECULE_FILE = "molecule_max_phase4.jsonl"
 TARGET_FILE = "target.jsonl"
-
-#: Multi-valued properties are ``|``-joined strings: a CSV column cannot become
-#: a list property (docs/model.md §8.1), and the alternative — a node per
-#: accession or per publication — would add tens of thousands of nodes to serve
-#: a lookup that is a `contains()` away.
-JOIN = "|"
 
 
 def text(value: Any) -> str:
@@ -149,7 +143,7 @@ def drug_key(molecule_chembl_id: str, parents: Mapping[str, str]) -> str:
 
 
 def atc_codes(molecule: Mapping[str, Any]) -> str:
-    return JOIN.join(text(c) for c in (molecule.get("atc_classifications") or []) if c)
+    return as_list(text(c) for c in (molecule.get("atc_classifications") or []) if c)
 
 
 def smiles(molecule: Mapping[str, Any]) -> str:
@@ -341,7 +335,7 @@ def main(argv: list[str] | None = None) -> int:
             "topical": flag(molecule.get("topical")) if molecule else "",
             "smiles": smiles(molecule) if molecule else "",
             "salt_form": flag(bool(molecule_ids) and not own),
-            "salt_ids": JOIN.join(salt_ids),
+            "salt_ids": as_list(salt_ids),
             "source": SOURCE,
             "source_licence": chem.LICENCE,
             "chembl_release": chem.RELEASE,
@@ -368,7 +362,7 @@ def main(argv: list[str] | None = None) -> int:
             "target_type": text(target.get("target_type")),
             "organism": organism,
             "tax_id": text(raw_tax),
-            "uniprot": JOIN.join(uniprot),
+            "uniprot": as_list(uniprot),
             "n_components": str(len(target.get("target_components") or [])),
             "species_group": flag(target.get("species_group_flag")),
             "source": SOURCE,
@@ -457,8 +451,8 @@ def main(argv: list[str] | None = None) -> int:
             "source_relation": text(row.get("mechanism_of_action")),
             "action_type": text(row.get("action_type")),
             "mechanism_of_action": text(row.get("mechanism_of_action")),
-            "publications": JOIN.join(publications),
-            "regulatory_refs": JOIN.join(regulatory_urls(row)),
+            "publications": as_list(publications),
+            "regulatory_refs": as_list(regulatory_urls(row)),
             "clinical_phase": text(chem.max_phase(row.get("max_phase"))),
             "direct_interaction": flag(row.get("direct_interaction")),
             "disease_efficacy": flag(row.get("disease_efficacy")),
@@ -599,7 +593,7 @@ def link_interventions(
                       "non-molecular intervention, never a fuzzy match")
         ledger.add({
             "kind": "intervention_unlinked", "record_id": intervention_id,
-            "subject": label, "detail": JOIN.join(found),
+            "subject": label, "detail": "|".join(found),
             "reason": reason, "source": SOURCE,
         })
     return linked, len(rows)

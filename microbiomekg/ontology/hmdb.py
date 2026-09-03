@@ -196,7 +196,7 @@ PRODUCTION_PROPERTY_TYPES: dict[str, str] = {
     "resolution_status": "string",
     "hmdb_status": "string",
     "microbe_path": "string",
-    "publications": "string",
+    "publications": "any",
     "n_publications": "integer",
 }
 

@@ -73,7 +73,7 @@ from microbiomekg.drugs import DrugIndex, atc_level5, join_drug  # noqa: E402
 from microbiomekg.ontology import maier2018 as mz  # noqa: E402
 from microbiomekg.rawdata import find_taxdump  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg.tables import Writer, as_list  # noqa: E402
 
 SOURCE = mz.SOURCE
 
@@ -428,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
                 "reported_rank": mz.REPORTED_RANK,
                 "original_rank": res.original_rank or "", "reported_tax_id": "",
                 "source": SOURCE, "status": res.status,
-                "candidates": "|".join(str(c) for c in res.candidates),
+                "candidates": as_list(str(c) for c in res.candidates),
                 "note": res.note, "n_signatures": "0",
             })
             unresolved_hits[uid] += 1
@@ -484,7 +484,7 @@ def main(argv: list[str] | None = None) -> int:
                 drugs.add({
                     "drug_id": drug_id, "chembl_id": "", "pref_name": name,
                     "molecule_type": "", "max_phase": "", "first_approval": "",
-                    "atc_codes": "|".join(atc_level5(atc_cell)),
+                    "atc_codes": as_list(atc_level5(atc_cell)),
                     # Not `true`: the Prestwick library is "approved drugs", but
                     # `approved` in this graph means ChEMBL max_phase 4 and
                     # inheriting that claim from a catalogue's marketing copy
@@ -544,7 +544,7 @@ def main(argv: list[str] | None = None) -> int:
                 "source_record_id": f"{SOURCE}:{prestwick}|{code}",
                 "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
                 "source_relation": source_relation,
-                "publications": mz.PUBLICATION,
+                "publications": as_list([mz.PUBLICATION]),
                 "pmid": str(mz.PUBMED_ID),
                 "adjusted_p_value": repr(adjusted_p),
                 "screen_concentration_um": repr(mz.SCREEN_CONCENTRATION_UM),

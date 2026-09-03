@@ -147,8 +147,8 @@ is in its `biospecimen_locations` (6,791 —
 the gut slice, and HMDB's second-largest biospecimen class); or its `chebi_id`
 is one Reactome's `ChEBI2Reactome.txt` maps, which is the only way an HMDB
 record can reach a pathway. Which rule kept it is `Metabolite.selection_rule`,
-joined with `|` when several did, so `WHERE m.selection_rule = 'feces'` counts
-the rule rather than trusting this paragraph. `status` rides on the node for
+a **list** when several did, so `WHERE 'feces' IN m.selection_rule` counts the
+rule rather than trusting this paragraph. `status` rides on the node for
 the same reason: it is what makes "measured or predicted" a filter.
 
 **Three sources write `Metabolite` nodes, and `source` says which.** 9,056 in
@@ -556,10 +556,10 @@ reference sequence, which is what makes D7's predicted layer excludable with one
 is no `hit_category`: RGI's Perfect/Strict/Loose is produced by *running* RGI
 against a sample and appears in no CARD download, so D7's `c.hit_category` is
 unanswerable from this source and is not written as an empty column pretending
-otherwise. And `publications` is a `" | "`-joined string rather than a list,
-because a CSV column cannot carry a list property (§8 item 1); `pmid` holds the
-first of them so the contract's integer column is filled, and it is *a*
-citation for the determinant, not a claim to be the principal one.
+otherwise. And `publications` is a **list** of `PMID:` CURIEs, so
+`UNWIND r.publications` is the per-citation tally; `pmid` holds the first of
+them so the contract's integer column is filled, and it is *a* citation for the
+determinant, not a claim to be the principal one.
 
 ---
 
@@ -619,8 +619,9 @@ detection status. What the status changes is `evidence_level` — `in-vitro` whe
 the metabolite is `detected`/`quantified`, `computational-predicted` otherwise.
 Those answer different questions and Part B keeps them in different columns;
 folding them would make `prediction` mean "nobody has run the assay yet".
-`publications` is a `|`-joined PMID list capped at 25 with `n_publications`
-beside it, and HMDB mints **no `Paper` node**: its references are free-text
+`publications` is a PMID **list** capped at 25 with `n_publications` beside
+it — the count is the untruncated one, so `size(r.publications)` and
+`r.n_publications` disagree by design on 353 edges — and HMDB mints **no `Paper` node**: its references are free-text
 citation strings, so a minted node would have no title, which is what
 `paper.csv` is keyed and BM25-indexed on.
 
@@ -879,7 +880,7 @@ of the 1,350 substances have **no therapeutic category at all** — *Cadmium*,
 different column.
 
 **And where a restatement exists, the edge says so.**
-`duplicates_primary_source` carries the pipe-joined source tokens of every
+`duplicates_primary_source` is a **list** of the source tokens of every
 loaded primary source that measures that exact (taxon, compound) pair —
 `maier2018` 4,783, `zimmermann2019` 1,331, both 1,047 — and is **null**
 otherwise. "What does MASI add that this graph did not already have" is one
@@ -1726,7 +1727,7 @@ non-terminating.
 | Node type | Property | What it is for |
 |---|---|---|
 | `Taxon` | `scientific_name` | the everyday lookup |
-| `Taxon` | `synonyms` | reconciliation by an old name — "Bacillus coli" → *Escherichia coli* |
+| `Taxon` | `synonyms_text` | reconciliation by an old name — "Bacillus coli" → *Escherichia coli* (the queryable `synonyms` beside it is a list, which BM25 cannot index) |
 | `Disease` | `label` | condition free text, since the key is a MONDO or EFO CURIE and few users know either |
 | `Signature` | `description` | the curator's sentence: "genus-level microbes correlating with odor intensity" |
 | `Paper` | `title` | literature entry point |
@@ -1734,15 +1735,20 @@ non-terminating.
 Not indexed: `Study.title` (identical to `Paper.title`), `BodySite.label` (237
 values, an exact match is better), any numeric or CURIE field.
 
-`Taxon.synonyms` is a `" | "`-joined **string**, capped at 20 names per taxon
-(68 taxa hit the cap at microbial scope). It is not a list property — see §8.
+`Taxon.synonyms` is a **native list**, capped at 20 names per taxon (68 taxa
+hit the cap at microbial scope), so `'Bacillus coli' IN t.synonyms` and
+`UNWIND t.synonyms` are queries rather than a Python re-parse. The BM25 lane
+reads `Taxon.synonyms_text`, the same names joined with `" | "`, because
+`build_text_index` refuses a list-valued property — *"BM25 indexes text: a
+numeric or list-valued property is not indexable"*. `prep_taxonomy.py` writes
+both from one list in one place, so they cannot disagree; §8 records the gap.
 **A synonym lookup should say which rank it wants.** BM25 scores a short
 document higher, and a strain's synonym string repeats its species binomial in
-fewer words, so `text_bm25(t, 'synonyms', 'Lactobacillus reuteri')` returns
+fewer words, so `text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri')` returns
 three *strains* before it reaches species 1598 (Part D, D12).
 
 Index sizes at microbial scope with all six sources: `Taxon.scientific_name`
-864,099 documents / 443,091 terms; `Taxon.synonyms` 103,174 / 98,652 (760,925
+864,099 documents / 443,091 terms; `Taxon.synonyms_text` 103,174 / 98,652 (760,925
 taxa have no synonym at all, so BM25 skips them — an absent property is not an
 empty document); `Signature.description` 14,425 / 6,383 (421 signatures have no
 description); `Disease.label` 808 / 952; `Paper.title` 2,486 / 4,372. All five
@@ -1809,7 +1815,7 @@ pipeline that queries by tax_id, and not for shipping the graph.
 It gives them the **whole graph** — every node, edge, property and evidence
 field is identical, because the lane adds an index and changes no data — plus
 §6's five BM25 indexes
-(`Taxon.scientific_name`, `Taxon.synonyms`, `Disease.label`,
+(`Taxon.scientific_name`, `Taxon.synonyms_text`, `Disease.label`,
 `Signature.description`, `Paper.title`). So exact lookups, an old binomial
 through the synonym index, and free-text entry into diseases, signatures and
 papers all work; and every tax_id in it was already reconciled at load time by
@@ -1939,8 +1945,8 @@ alternation to census every association type at once.
 **Q6 — resolve an obsolete name through the synonym index.**
 
 ```cypher
-MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms', 'Bacillus coli') > 0
-RETURN t.title, t.rank, text_bm25(t, 'synonyms', 'Bacillus coli') AS score
+MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms_text', 'Bacillus coli') > 0
+RETURN t.title, t.rank, text_bm25(t, 'synonyms_text', 'Bacillus coli') AS score
 ORDER BY score DESC LIMIT 3
 ```
 
@@ -2066,14 +2072,19 @@ rows, and it needs no re-measuring when a source lands.
 Six other things the blueprint or the ontology could not express. **These go to
 the engine, not into a workaround this repo pretends is a design.**
 
-1. **No list property from CSV.** `map_blueprint_type` accepts only
-   `string`/`int`/`float`/`bool`/`date`-family plus the spatial and temporal
-   virtual types. `add_nodes` turns a DataFrame column of Python lists into a
-   native list property and `from_records` does the same for a JSON array, but a
-   CSV column cannot. `Taxon.synonyms` is therefore a `" | "`-joined string —
-   fine for BM25 and `contains()`, but `'Bacillus coli' IN t.synonyms` is not
-   available. The alternative (a `TaxonName` sub-node per name) would add ~3.5M
-   nodes to serve a lookup that already happens in Python at prep time.
+1. **No list property from CSV.** **Closed by kglite 0.16.22**, which added
+   the `"list"` / `"array"` column type: a cell holding a JSON array loads as a
+   list. `microbiomekg.tables.as_list` writes them and 61 declarations across
+   the eleven fragments read them, so `'Bacillus coli' IN t.synonyms`,
+   `UNWIND m.selection_rule` and `'maier2018' IN r.duplicates_primary_source`
+   are queries rather than a Python re-parse. Two residues, both recorded
+   because they are the next engine asks rather than choices made here:
+   `build_text_index` refuses a list-valued property, so `Taxon.synonyms` is
+   accompanied by a joined `Taxon.synonyms_text` that carries the BM25 lane;
+   and the *ontology*'s `property_types` grammar still accepts only
+   `string`/`integer`/`float`/`boolean`/`date`/`datetime`/`timestamp`/`point`/`any`,
+   so a list property is declared `any` there and its shape is unchecked while
+   its presence still is.
 2. **FK edges cannot carry properties** — only junction edges can. Any
    evidence-bearing edge therefore needs its own CSV even when the data is 1:1
    with a node row. That is why `taxon_disease.csv` exists as a separate file
