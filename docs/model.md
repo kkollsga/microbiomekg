@@ -5,11 +5,12 @@ papers) with one thing added that it does not have: **an association edge
 cannot exist without saying how it was demonstrated**, and the ontology
 reports what fraction of them fail that.
 
-Everything below is built and measured. Increment 1 is NCBI taxonomy +
-BugSigDB; increment 2 adds gutMDisorder; the rest of the sources extend the
-same shapes. A source is added as files — `scripts/prep_<source>.py`,
-`blueprints/<source>.json`, `microbiomekg/ontology/<source>.py` — never by
-editing a shared one (§8).
+Everything below is built and measured, on a clean `scripts/build.py` run of
+2026-09-03 carrying **six** sources: NCBI taxonomy + BugSigDB (increment 1),
+gutMDisorder (increment 2), then CARD, HMDB, Reactome and ChEMBL. KEGG is
+licence-gated and off by default, so no number here includes it. A source is
+added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
+`microbiomekg/ontology/<source>.py` — never by editing a shared one (§8).
 
 ---
 
@@ -181,7 +182,7 @@ a rule that stops it being duplication:**
   reads them: 26 differentially abundant ASVs in type 2 diabetes became **0**
   after matching on host variables, and no other source in the survey records
   the fact at all.
-- The three association relationships (110,547 edges: 103,461 `ASSOCIATED_WITH`
+- The three association relationships (112,183 edges: 105,097 `ASSOCIATED_WITH`
   + 4,717 `ASSOCIATED_WITH_PHENOTYPE` + 2,369 `ASSOCIATED_WITH_EXPOSURE`) carry
   the **fourteen-field evidence contract** and nothing else, because
   `required_properties` is the only completeness check kglite can enforce, and
@@ -703,15 +704,15 @@ the drugs it would have reached — `Acetylsalicylic acid` is ASPIRIN to ChEMBL,
 and `Clarithromycin,Metronidazole` is one cell naming two molecules — because
 accepting either would invent an intervention gutMDisorder never curated.
 
-> **The link needs a prep-order hook this repo does not have.**
-> `intervention.csv` is gutMDisorder's, and `scripts/build.py` runs the prep
-> scripts in **name** order, which puts `prep_chembl.py` first — so in a
-> single-pass build the table is not there yet and `IS_DRUG` is empty, reported
-> as such on stderr. Re-running `python scripts/prep_chembl.py` after a build
-> merges the links in. The fix is the ordering hook `prep_taxonomy` already
-> has (it runs last because it reads `cited_taxa.csv`), and it belongs in
-> `build.py` rather than in a workaround here — a consumer that re-derived
-> another source's node ids from its raw input would dangle silently, and a
+> **The link needed a prep-order hook, and that is now what orders the build.**
+> `intervention.csv` is gutMDisorder's, and `scripts/build.py` used to run the
+> prep scripts in **name** order, which puts `prep_chembl.py` first — so a
+> single-pass build found no table, loaded `IS_DRUG` with **zero** edges, and
+> reported `IS_DRUG.required_properties` as 0 of 0: a rule that cannot fail.
+> Each prep now declares `DEPENDS_ON` (`prep_chembl` names `gutmdisorder`,
+> `prep_taxonomy` names every source that writes `cited_taxa.csv`) and
+> `build.py` topologically sorts them. A consumer that re-derived another
+> source's node ids from its raw input would dangle silently instead, and a
 > dangling junction endpoint is vivified rather than refused.
 
 Two statements in `docs/research/source-formats.md`'s ChEMBL extraction table
@@ -819,11 +820,11 @@ in the prep scripts, so every source routes through one policy.
    `WHERE NOT t.placeholder` instead of string-matching the name, which is the
    string-matching this document argues against everywhere else.
 
-   Measured at microbial scope: **572,631 of 863,880 taxa (66%) are
-   placeholders**, 516,889 of them ` sp.` epithets — that is what NCBI's
-   bacterial taxonomy mostly *is*. Of the 8,078 taxa BugSigDB actually cites,
-   1,936 (24%) are placeholders, and 6,485 of the 103,461 disease associations
-   (6.3%) rest on one. The marker set is a floor, not a ceiling: names like
+   Measured at microbial scope: **572,636 of 864,099 taxa (66%) are
+   placeholders**, 520,358 of them carrying an ` sp.` epithet — that is what
+   NCBI's bacterial taxonomy mostly *is*. Of the 8,078 taxa BugSigDB cites,
+   1,936 (24%) are placeholders, and 6,550 of the 105,097 disease associations
+   (6.2%) rest on one. The marker set is a floor, not a ceiling: names like
    `Gammaproteobacteria bacterium SCGC AG-485_A06` are placeholders by any
    reading and are not flagged, because widening the rule past NCBI's own
    markers would be guessing.
@@ -925,18 +926,22 @@ label to maintain.
 ## 5. Storage: microbial scope, default (in-memory)
 
 **Recommendation: `--scope microbial` (Bacteria + Archaea + Fungi + everything
-cited), `storage="default"`.** Measured on this machine, with the full BugSigDB
-layer attached:
+cited), `storage="default"`.** Measured on this machine:
 
-| Scope | Taxa | Nodes | Edges | Build | Peak RSS | `.kgl` |
-|---|---|---|---|---|---|---|
-| `cited` | 10,515 | 30,827 | 289,735 | 0.6 s | — | 4 MB |
-| `microbial` | 863,924 | 885,328 | 1,139,034 | **2.2 s** | **1.23 GB** | 41 MB |
-| `all` | 2,993,226 | ~3.0 M | ~3.3 M | (not built) | ~4 GB est. | — |
+| Scope | Taxa | Nodes | Edges | Load | Peak RSS | `.kgl` | Sources |
+|---|---|---|---|---|---|---|---|
+| `cited` | 10,515 | 30,827 | 289,735 | 0.6 s | — | 4 MB | BugSigDB only |
+| `microbial` | 864,099 | 930,985 | 1,234,745 | **2.3 s** | **1.38 GB** | 44 MB | all six |
+| `all` | 2,993,228 | ~3.1 M | ~3.4 M | (not built) | ~4 GB est. | — | — |
 
-An evidence-filtered `ASSOCIATED_WITH` scan runs in **7 ms** at microbial
-scope, and a BM25 index over all 863,879 scientific names builds in **0.2 s**
-(442,903 terms). There is no memory or latency argument for `mapped` or `disk`
+The `cited` row is the increment-1 measurement and has not been rebuilt; the
+`microbial` row is the shipping graph as of 2026-09-03, and its peak RSS
+includes §6's five BM25 indexes.
+
+An evidence-filtered `ASSOCIATED_WITH` scan runs in **14 ms** at microbial
+scope (min of five; it was 7 ms over the two-source graph, which had 103,461
+of the 105,097 association edges but a third of the nodes), and a BM25 index
+over all 864,099 scientific names builds in **0.2 s** (443,091 terms). There is no memory or latency argument for `mapped` or `disk`
 here, and `disk` would additionally **refuse `build_text_index()`** — the BM25
 index is heap-resident by design, and text search over taxon names and
 synonyms is a core feature of this graph, not a nicety. Revisit only if a later
@@ -975,9 +980,13 @@ values, an exact match is better), any numeric or CURIE field.
 
 `Taxon.synonyms` is a `" | "`-joined **string**, capped at 20 names per taxon
 (68 taxa hit the cap at microbial scope). It is not a list property — see §8.
+**A synonym lookup should say which rank it wants.** BM25 scores a short
+document higher, and a strain's synonym string repeats its species binomial in
+fewer words, so `text_bm25(t, 'synonyms', 'Lactobacillus reuteri')` returns
+three *strains* before it reaches species 1598 (Part D, D12).
 
-Index sizes at microbial scope with both sources: `Taxon.scientific_name`
-863,924 documents / 442,940 terms; `Taxon.synonyms` 103,125 / 98,571 (760,799
+Index sizes at microbial scope with all six sources: `Taxon.scientific_name`
+864,099 documents / 443,091 terms; `Taxon.synonyms` 103,174 / 98,652 (760,925
 taxa have no synonym at all, so BM25 skips them — an absent property is not an
 empty document); `Signature.description` 14,425 / 6,383 (421 signatures have no
 description); `Disease.label` 808 / 952; `Paper.title` 2,486 / 4,372. All five
@@ -1058,7 +1067,7 @@ RETURN count(r) AS edges,
        sum(CASE WHEN r.statistical_test IS NULL THEN 1 ELSE 0 END) AS no_stat
 ```
 
-→ `103461, 894, 1051, 11873, 1283`. Swap `ASSOCIATED_WITH` for the three-way
+→ `105097, 894, 1051, 13509, 1292`. Swap `ASSOCIATED_WITH` for the three-way
 alternation to census every association type at once.
 
 **Q6 — resolve an obsolete name through the synonym index.**
@@ -1069,7 +1078,9 @@ RETURN t.title, t.rank, text_bm25(t, 'synonyms', 'Bacillus coli') AS score
 ORDER BY score DESC LIMIT 3
 ```
 
-→ *Escherichia coli* (7.27), well clear of the next hit.
+→ *Escherichia coli* (7.27) at the top; the next two hits are one of its own
+strains (6.84) and an unrelated *Bacillus* (6.69), so the margin is real but
+narrow — which is why D12 filters on rank.
 
 **Q7 — what failed to reconcile, and what it cost.**
 
@@ -1088,16 +1099,28 @@ RETURN rule, severity, violations, total, pct ORDER BY pct DESC
 ```
 
 ```
-ASSOCIATED_WITH_EXPOSURE.required_properties  warn     485 / 2369     20.46%
-IN_CONDITION.required                         warn    2292 / 14846    15.44%
-ASSOCIATED_WITH.required_properties           warn   14349 / 103461   13.87%
-ASSOCIATED_WITH_PHENOTYPE.required_properties warn     293 / 4717      6.21%
-AT_BODY_SITE.required                         warn      78 / 14846     0.53%
-ASSOCIATED_WITH.property_types                error       0 / 103461    0.00%
+ABUNDANCE_CHANGED_BY.required_properties      warn    1380 / 1380    100.00%
+CONFERS_RESISTANCE_TO.required_properties     warn    8052 / 13691    58.80%
+CARRIES_RESISTANCE_GENE.required_properties   warn    3717 / 6415     57.90%
+VIA_MECHANISM.required_properties             warn    3717 / 6513     57.10%
+ASSOCIATED_WITH_EXPOSURE.required_properties  warn     485 / 2369     20.50%
+IN_CONDITION.required                         warn    2292 / 14846    15.40%
+ASSOCIATED_WITH.required_properties           warn   15985 / 105097   15.20%
+ASSOCIATED_WITH_PHENOTYPE.required_properties warn     293 / 4717      6.20%
+AT_BODY_SITE.required                         warn      78 / 14846     0.50%
+ASSOCIATED_WITH.property_types                error       0 / 105097    0.00%
 REPORTED_BY.required_properties               error       0 / 114742    0.00%
-PART_OF_STUDY.cardinality                     error       0 / 14846     0.00%
-… 36 rules total, all others 0
+IS_DRUG.required_properties                   error       0 / 15        0.00%
+… 76 rules total, 45 of them at 0 violations
 ```
+
+The four rules above `ASSOCIATED_WITH` are what a new source looks like when
+its columns do not cover this graph's contract, not a regression:
+gutMDisorder records no study design and no per-association arm sizes, and
+CARD's carriage and drug-class edges carry no group sizes or statistical test
+because there are none to carry. The number to watch is the *denominator* —
+`IS_DRUG.required_properties` read 0 / 0 for a whole release while the
+relationship silently loaded nothing (§8).
 
 Drill down to individual edges with
 `CALL edge_property_violation() YIELD relationship, check, source, target, property`,
@@ -1114,12 +1137,29 @@ uv venv .venv && uv pip install --python .venv/bin/python pandas openpyxl kglite
 ```
 
 `build.py` is the whole pipeline and the only supported entry point: it empties
-`data/csv/`, runs every `scripts/prep_<source>.py` (discovered, not listed),
-runs `prep_taxonomy.py` last because it reads the `cited_taxa.csv` they all
-write, composes `blueprint.json` from `blueprints/*.json`, writes
-`ontology.json`, loads with the chunk-size workaround below, builds §6's five
-BM25 indexes, prints the counts, the audit and G10's per-source expansion
-factor, and saves `graph/microbiomekg.kgl`.
+`data/csv/`, runs every `scripts/prep_<source>.py` (discovered, not listed) in
+**declared dependency order** — each prep names the preps whose tables it reads
+in its own `DEPENDS_ON` and `build.py` topologically sorts them, so
+`prep_taxonomy` runs after everything that writes `cited_taxa.csv` and
+`prep_chembl` after the gutMDisorder table its `IS_DRUG` join reads — composes
+`blueprint.json` from `blueprints/*.json`, writes the ontology document and a
+`blueprint.load.json` **into the CSV directory** with every path bound to that
+build, loads it with the chunk-size workaround below, builds §6's five BM25
+indexes, prints the counts, the audit and G10's expansion factor for every
+declared relationship, and saves `graph/microbiomekg.kgl`.
+
+Three of those are answers to defects rather than choices. The **order** is
+declared because name order silently loaded `IS_DRUG` with zero edges. The
+load blueprint is **written beside the CSVs** because `blueprint.json`'s
+`settings.root` is `./data/csv` and a build given `--csv` elsewhere loaded the
+default directory and reported its numbers. And the *checked-in*
+`blueprint.json` is always composed from the whole fragment set, never from the
+sources one machine happened to have, because it is a tracked artifact with a
+drift gate (`tests/test_fragments.py`) — a partial build rewriting it left the
+repo dirty and the gate red. A source whose declared CSVs are not in `--csv` is
+left out of the *load* blueprint instead, which is the same rule as the
+`MISSING_INPUT` skip: a node type loaded empty gives its ontology rules a 0 / 0
+denominator.
 
 **Adding a source is adding files, never editing shared ones.** A source brings
 `scripts/prep_<source>.py`, `blueprints/<source>.json`,

@@ -6,14 +6,22 @@ papers) but with the *evidence model* as the point: every association edge
 carries study design, direction, sample size and the citing paper, and the
 ontology audit reports what fraction of edges lack evidence.
 
+Six sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome and
+ChEMBL, over NCBI taxonomy. KEGG has a loader and is **off by default** —
+`--with-kegg` — because its licence forbids redistributing a graph carrying it.
+
 Layout:
 
 - `scripts/fetch.py`  — manifest-driven downloads into `data/raw/` (skip if present, resume).
 - `scripts/prep_*.py` — per-source preprocessing into flat CSVs in `data/csv/`.
-- `scripts/build.py`  — the whole build: prep, compose, load, index, audit, save.
+  Each declares `DEPENDS_ON`: the preps whose tables it reads.
+- `scripts/build.py`  — the whole build: prep in dependency order, compose,
+  load, index, audit, save.
 - `blueprints/*.json` — one blueprint fragment per source, composed into
   `blueprint.json` by `scripts/build_blueprint.py`.
 - `microbiomekg/ontology/` — one module per source, composed into `ONTOLOGY`.
+- `microbiomekg/tables.py` — the shared flat-CSV writer, and how two sources
+  merge rows into one table without either knowing the other's columns.
 - `docs/model.md`     — the graph model and the evidence-field contract.
 - `docs/sources.md`   — each source: URL, licence, format, fetch status.
 - `docs/usecases-and-pitfalls.md` — the user contract: workflows, the evidence
@@ -21,15 +29,23 @@ Layout:
 
 **Adding a source** means adding files, not editing shared ones:
 `scripts/prep_<source>.py`, `blueprints/<source>.json`,
-`microbiomekg/ontology/<source>.py`, `tests/test_<source>.py`. All three are
-discovered rather than listed, and a fragment that contradicts another is a
-build error rather than a silent override.
+`microbiomekg/ontology/<source>.py`, `tests/test_<source>.py`. The prep
+scripts, the blueprint fragments and the ontology modules are each discovered
+by glob rather than listed anywhere, the prep's `DEPENDS_ON` is what places it
+in the build, and a fragment that contradicts another is a build error rather
+than a silent override.
 
 Build it:
 
 ```bash
-.venv/bin/python scripts/build.py --scope microbial
+.venv/bin/python scripts/build.py          # --scope microbial is the default
 .venv/bin/python -m pytest -q
 ```
+
+The build prints node and edge counts, the ontology audit, and G10's expansion
+factor — edges per source record — for every relationship the fragments
+declare. It writes the graph to `graph/microbiomekg.kgl` and, beside the CSVs
+it loaded, the `blueprint.load.json` and ontology document that describe *that*
+build. `--csv <dir>` moves all of it somewhere else.
 
 Engine: kglite (`../../Rust/KGLite`, source of API truth `kglite/__init__.pyi`).
