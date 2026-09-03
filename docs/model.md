@@ -1809,6 +1809,10 @@ here):
 | resident memory, served | 1.2 GB | 3.7 GB | **+2.5 GB** |
 | the five BM25 indexes | 276 ms, +14.3 MB | the same | — (why they are unconditional) |
 
+The **delta** is the transferable number, not the left column: the eleven-source
+default `.kgl` is 49.3 MB now, having grown with MASI and again with the list
+properties, and this capture has not been re-run.
+
 What it buys is one measured thing: the five misspellings in
 `tests/test_semantic_lookup.py` — `Clostridium dificile`, `Fecalibacterium`,
 `Akkermansia muciniphilia`, `Citrobacter frundii`, `Lactobacillus plantari` —
@@ -2095,8 +2099,34 @@ asserts rows == edges for all 29 junction relationships of the real build. The
 second is the one that cannot be satisfied by a build that quietly dropped
 rows, and it needs no re-measuring when a source lands.
 
-Six other things the blueprint or the ontology could not express. **These go to
-the engine, not into a workaround this repo pretends is a design.**
+Twelve things the blueprint, the ontology or the query surface could not
+express. **These go to the engine, not into a workaround this repo pretends is
+a design** — and that is now a claim with a track record rather than a policy:
+**kglite 0.16.22 was cut for this list, and closed eight of the twelve.**
+
+| item | status |
+|---|---|
+| 1. no list property from CSV | **closed** — `"list"` column type |
+| 2. FK edges cannot carry properties | **closed** — `fk_edges` reads `properties` (nothing here needed to move) |
+| 3. no secondary labels | **closed** — `labels` on a node spec; `Condition` is stamped, `ReportedTaxon` deliberately is not |
+| 4. audit reports per edge, not per property | **half closed** — `{by: 'property'}`; *node*-property rules still do not exist |
+| 5. one relationship cannot span a union range | **closed** — `target` list + `target_type_column` |
+| 6. ontology cannot say "at least one of these" | **stands**, and no longer bites — (5) removed the case |
+| 7. `[:A\|B]` is a syntax error inside `EXISTS { }` | **closed** — fixed, verified here |
+| 8. `text_bm25()` on an unindexed property fails silently in one shape | **closed** — both shapes raise |
+| 9. an HNSW index changes the answer and Cypher cannot opt out | **stands** |
+| 10. `embed_texts()` cannot be scoped to a selection | **stands** |
+| 11. `score_fuse()` has no per-lane normalisation | **stands** |
+| 12. a missing skills pack booted silently | **closed** — boot error, and `--selftest` counts skills |
+
+Two more that this migration found and that are *not* in the list above,
+because they are the residue of closing item 1 rather than anything this repo
+worked around before: **`build_text_index` refuses a list-valued property**, so
+`Taxon.synonyms` needs the joined `Taxon.synonyms_text` twin beside it; and the
+**ontology's `property_types` grammar has no list type** — it accepts
+`string`/`integer`/`float`/`boolean`/`date`/`datetime`/`timestamp`/`point`/`any`
+and nothing else — so a list property is declared `any` there and its shape
+goes unchecked while its presence is still required.
 
 1. **No list property from CSV.** **Closed by kglite 0.16.22**, which added
    the `"list"` / `"array"` column type: a cell holding a JSON array loads as a
@@ -2243,13 +2273,16 @@ the engine, not into a workaround this repo pretends is a design.**
    `mcp/microbiomekg_mcp.yaml` auto-loads `mcp/microbiomekg_mcp.skills/`, so a
    pack named for the graph it documents — `mcp/microbiomekg.skills/` — is
    found only through the list form, `skills: [true, ./microbiomekg.skills]`.
-   Not a defect, but it is silent, and doubly so: a `skills:` path that does
-   not exist at all boots cleanly too — `--selftest` still prints
-   `Selftest PASSED` with every capability green, because it counts tools and
-   never counts skills. So a typo'd or deleted pack costs an agent all of its
-   methodology with no diagnostic anywhere. Compare `source_root:`, which does
-   report an unresolved path in the boot summary. Until `--selftest` grows a
-   skills line, `tests/test_mcp_skills.py` is the only thing that notices.
+   That half stands: it is a naming convention, not a defect. **The silence
+   around it is closed by kglite 0.16.22.** A `skills:` path that does not
+   exist used to boot cleanly with *every* skill gone, the bundled methodology
+   included, while `--selftest` printed `Selftest PASSED` — it counted tools
+   and never counted skills. Now the bad path is a boot error naming what was
+   written and where it resolved to, and `--selftest` prints the count and the
+   names: `✓ skills: 12 served: amr, cypher_query, drugs, evidence_audit, …`.
+   `tests/test_mcp_manifest.py::test_a_skills_path_that_does_not_exist_fails_the_boot`
+   is the guard, and the selftest assertion now requires this repo's seven to
+   be among the names.
 
 One more loader behaviour, recorded because it is the opposite of the usual
 trap: **an undeclared CSV column is still loaded.** Every column a node spec

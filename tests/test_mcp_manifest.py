@@ -19,9 +19,19 @@ import sys
 
 import pytest
 
-from tests.mcp_support import GRAPH, MANIFEST, MCPClient, ROOT, server_binary
+from tests.mcp_support import (
+    GRAPH,
+    MANIFEST,
+    MCPClient,
+    ROOT,
+    SKILLS_DIR,
+    server_binary,
+)
 
 BINARY = server_binary()
+
+#: Every skill this repo ships, by its filename stem.
+SKILL_NAMES = sorted(p.stem for p in SKILLS_DIR.glob("*.md"))
 
 pytestmark = pytest.mark.skipif(
     BINARY is None,
@@ -84,6 +94,42 @@ def test_selftest_passes_against_the_manifest():
     # nodes, 122 `UnresolvedTaxon` tombstones, 18 `Disease` nodes, 42 `Paper`
     # nodes and 22 taxa nothing else cited.
     assert "934206 node(s)" in output, output
+    # And the skills, which the selftest could not see until kglite 0.16.22:
+    # a `skills:` path that did not exist booted cleanly with *every* skill
+    # gone, the bundled methodology included, while the graph tools answered
+    # normally and this line still printed PASSED (docs/model.md §8 item 12).
+    # It now names the count, and this repo's seven must all be in it.
+    served = next(
+        (line for line in output.splitlines() if "skills:" in line and "served" in line),
+        None,
+    )
+    assert served, f"the selftest no longer reports a skill count:\n{output}"
+    for skill in SKILL_NAMES:
+        assert skill in served, f"{skill} is not among the skills served: {served}"
+
+
+def test_a_skills_path_that_does_not_exist_fails_the_boot(tmp_path):
+    """The failure §8 item 12 recorded, now loud — asserted rather than hoped.
+
+    One bad path used to cost an agent every skill in the session with no
+    diagnostic anywhere: the server booted, the graph tools worked, and
+    `--selftest` printed PASSED. It is a boot error now, and this is the check
+    that would notice if it went quiet again.
+    """
+    _skip_without_graph()
+    manifest = tmp_path / "microbiomekg_mcp.yaml"
+    manifest.write_text(
+        MANIFEST.read_text().replace("./microbiomekg.skills", "./not-a-pack.skills"),
+        encoding="utf-8",
+    )
+    completed = subprocess.run(
+        [sys.executable, "scripts/serve.py", "--selftest",
+         "--mcp-config", str(manifest)],
+        cwd=ROOT, capture_output=True, text=True, timeout=90,
+    )
+    output = completed.stdout + completed.stderr
+    assert completed.returncode != 0, f"a missing skills pack booted cleanly:\n{output}"
+    assert "not-a-pack.skills" in output, output
 
 
 def test_server_is_read_only():
