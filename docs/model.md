@@ -6,10 +6,11 @@ cannot exist without saying how it was demonstrated**, and the ontology
 reports what fraction of them fail that.
 
 Everything below is built and measured, on a clean `scripts/build.py` run of
-2026-09-03 carrying **ten** sources: NCBI taxonomy + BugSigDB (increment 1),
+2026-09-03 carrying **eleven** sources: NCBI taxonomy + BugSigDB (increment 1),
 gutMDisorder (increment 2), then CARD, HMDB, Reactome and ChEMBL, then MiMeDB,
-NJC19 and the two published drug screens — Maier 2018 and Zimmermann 2019, one
-per direction. KEGG is licence-gated and off by default,
+NJC19, the two published drug screens — Maier 2018 and Zimmermann 2019, one per
+direction — and MASI, the aggregator that curates the literature both of those
+screens are in. KEGG is licence-gated and off by default,
 so no number here includes it. A source is
 added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
 `microbiomekg/ontology/<source>.py` — never by editing a shared one (§8).
@@ -37,6 +38,7 @@ added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
 | `ResistanceGene` | `ARO:3002999` | `name` | CARD `card.json` model, named from `aro.obo` | 3 |
 | `DrugClass` | `ARO:0000032` | `label` | CARD ARO category `Drug Class` | 3 |
 | `ResistanceMechanism` | `ARO:0001004` | `label` | CARD ARO category `Resistance Mechanism` | 3 |
+| `Substance` | `MASI:PMDBD<n>` | `name` | MASI's own accession — a drug, a medicinal herb or its compound, a dietary compound or an environmental chemical | 4 |
 
 Decisions worth the ink:
 
@@ -194,7 +196,7 @@ a rule that stops it being duplication:**
   reads them: 26 differentially abundant ASVs in type 2 diabetes became **0**
   after matching on host variables, and no other source in the survey records
   the fact at all.
-- The three association relationships (112,183 edges: 105,097 `ASSOCIATED_WITH`
+- The three association relationships (112,966 edges: 105,880 `ASSOCIATED_WITH`
   + 4,717 `ASSOCIATED_WITH_PHENOTYPE` + 2,369 `ASSOCIATED_WITH_EXPOSURE`) carry
   the **fourteen-field evidence contract** and nothing else, because
   `required_properties` is the only completeness check kglite can enforce, and
@@ -256,6 +258,11 @@ per taxon (BugSigDB does not).
 | `DOES_NOT_INHIBIT_GROWTH_OF` | `Drug` → `Taxon` | **the same nine** — the same screen's *measured* non-hits |
 | `METABOLISES` | `Taxon` → `Drug` | **a nine-property metabolism contract** — Zimmermann 2019's screen hits, the *other* direction |
 | `DOES_NOT_METABOLISE` | `Taxon` → `Drug` | **the same nine** — that screen's *measured* non-hits |
+| `METABOLISES_SUBSTANCE` | `Taxon` → `Substance` | **the same nine** — MASI's *curated* metabolism, kept off the screen's relationship |
+| `DOES_NOT_METABOLISE_SUBSTANCE` | `Taxon` → `Substance` | **the same nine** — MASI's curated refutations |
+| `ABUNDANCE_CHANGED_BY_SUBSTANCE` | `Taxon` → `Substance` | **the same nine**, plus `direction` — MASI's curated abundance shifts |
+| `ABUNDANCE_UNCHANGED_BY_SUBSTANCE` | `Taxon` → `Substance` | **the same nine** — MASI's curated "no significant change" |
+| `SAME_COMPOUND_AS` | `Substance` → `Drug` | — (the declared identity between a MASI substance and a `Drug`) |
 | `IN_PATHWAY` | `Metabolite` → `Pathway` | **a seven-property pathway contract**, plus `evidence_code` |
 | `PART_OF_PATHWAY` | `Pathway` → `Pathway` | — (sub-pathway pointer, `ancestry`, a **DAG**) |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
@@ -326,15 +333,19 @@ context rather than evidence: `signature_id` (the join key onto the
 `Signature` node), `study_id`, `host_species`, `body_site`,
 `significance_threshold`, `mht_correction`.
 
-**Measured headline over both sources: 15.20% of taxon–disease edges (15,985
-of 105,097) are missing at least one contract field**, plus 293 of 4,717
+**Measured headline over all three sources: 15.80% of taxon–disease edges
+(16,768 of 105,880) are missing at least one contract field**, plus 293 of 4,717
 phenotype edges (6.21%), 485 of 2,369 exposure edges (20.46%) and **1,380 of
 1,380 intervention edges (100%)**. Those are what `ontology_audit()` returns and
 what the build prints, and they are the numbers the project exists to make
 visible.
 
-**The number moved when the second source landed, and that is the audit
-working.** BugSigDB alone measured 14,349 of 103,461 = 13.87%. Every one of
+**The number moved when the second source landed, and again when the third
+did, and that is the audit working.** BugSigDB alone measured 14,349 of 103,461
+= 13.87%; gutMDisorder took it to 15.20% and MASI to 15.80%, whose 783
+association edges are violations for the same reason in a third variant — its
+disease export is eleven columns and not one of them is a design, a host, a
+sequencing type, a statistical test or an arm size. Every one of
 gutMDisorder's 1,636 taxon–disease edges is missing three fields, so all 1,636
 are violations: the source records **no study design** at all (`Research Type`
 is a curation category — "gut microbiota associated with disorder" — not a
@@ -831,37 +842,187 @@ upstream and **not verified**: no file in either release carries a licence
 header, and the page that states it is behind the same Cloudflare challenge as
 the downloads.
 
-### MASI — profiled, and deliberately not loaded
+### MASI — an aggregator, loaded as one, and the 62.5% it restates
 
-**Nothing from MASI is in the graph.** The download
-(`MASI_v1.0_download_substanceInfo.{txt,xlsx}`, the same 1,350-row table twice)
-is the **substance dictionary**: 18 columns, no organism column, no interaction
-column, no effect, no direction, no PMID. The 4,001 bacteria→substance and 7,770
-substance→bacteria pairs the research document sizes MASI by are in neither
-file. So there is no prep script, no blueprint fragment and no ontology module.
+**13,122 edges and 1,350 `Substance` nodes, and not one of them on a
+relationship a primary source owns.** MASI (Zeng et al., *NAR* 49:D776, 2021,
+PMID 33313900) curates microbiota–active-substance interactions **out of the
+primary literature**. It measured nothing; it is a curator's index of what other
+people measured — and two of the people it indexes are already sources here.
 
-**And they are unrecoverable rather than unfetched**: `aiddlab.com` no longer
-completes a TLS connection and a domain-wide Wayback CDX query returns only
-`substanceInfo`, so there is no retry that would change this. Loading the
-substances regardless would add 1,350 unconnected nodes, the ones ChEMBL already
-has cannot be enriched (`drug.csv` is keyed on the ChEMBL id, first row per key
-wins), the licence is unstated so `source_licence` would have to be invented,
-and the one true statement the file supports — "MASI curates at least one
-experimentally determined interaction for this substance" — names no organism
-and therefore answers neither query. `data/raw/masi/PROVENANCE.md` carries the
-column-level profile.
+**The number that shaped every decision below.** Of MASI's 12,512 interaction
+records, **5,419 cite PMID 29555994 (Maier 2018) and 2,884 cite PMID 31158845
+(Zimmermann 2019)** — 66.4% of the file. Resolved to (taxon, compound) pairs,
+**7,161 of the 11,456 edges it produces restate a pair one of those two screens
+already carries a measured edge for: 62.5%.** Both screens are loaded from their
+own supplementary tables with every cell of their matrices, negatives included;
+MASI curates their positives.
 
-**The guard this section used to state — `MATCH (d:Drug)-[r]-(t:Taxon)` returns
-0 — is retired, because the gap it protected was closed deliberately.** The
-drug↔taxon layer came from the primary source MASI aggregated, not from MASI
-(§Maier 2018 above), and `tests/test_acceptance.py` now asserts the restatement:
-every direct `Drug`–`Taxon` edge in the graph is one of that screen's two types,
-so a shortcut appearing from anywhere else is still a red test. MASI's own
-requirement — two edge types for the two directions, never one — is what all
-four of these relationships follow: `INHIBITS_GROWTH_OF` and
-`DOES_NOT_INHIBIT_GROWTH_OF` run `Drug → Taxon`, `METABOLISES` and
-`DOES_NOT_METABOLISE` run `Taxon → Drug` (§Zimmermann 2019 below), and the
-direction is what keeps the `Drug`–`Taxon` assertion true.
+**So its substances are `Substance` nodes and its relationships are its own.**
+The alternative was available and was rejected on that measurement rather than
+on taste: a MASI metabolism record could have pointed at the `Drug` node its
+compound joins to and been called `METABOLISES`, which is the same claim in the
+same direction. It would have put ~1,815 restatements of Zimmermann's own cells
+into the same relationship as those cells, so `MATCH (t:Taxon)-[:METABOLISES]->
+(d:Drug)` — **the query D8 is written as** — would have counted a curated
+restatement and a measured screen cell as two observations, with nothing in the
+query text to say so. The schema survey's rule is that an aggregated claim is a
+separate edge with its own provenance; here it is a separate edge, on a separate
+relationship, pointing at a separate node type, with the identity between the
+two declared as an edge rather than performed as a merge. **The duplication is
+opt-in in one hop instead of opt-out in a `WHERE` clause nobody writes.**
+
+There is a second reason and it would not have been sufficient on its own: 278
+of the 1,350 substances have **no therapeutic category at all** — *Cadmium*,
+*Black tea extract*, *Permethrin* — and typing those `Drug` is the C14 error
+(node type from what the thing is, never from the column it arrived in) in a
+different column.
+
+**And where a restatement exists, the edge says so.**
+`duplicates_primary_source` carries the pipe-joined source tokens of every
+loaded primary source that measures that exact (taxon, compound) pair —
+`maier2018` 4,783, `zimmermann2019` 1,331, both 1,047 — and is **null**
+otherwise. "What does MASI add that this graph did not already have" is one
+`WHERE r.duplicates_primary_source IS NULL`, and 4,295 edges answer it. The
+overlap is computed at prep time by reading the screens' own edge tables, which
+is what `DEPENDS_ON = ["chembl", "maier2018", "zimmermann2019"]` buys: an
+aggregator that ran *before* the sources it aggregates could not have measured
+its own redundancy.
+
+**Two categories, four relationships, and the second pair is deliberately not
+`INHIBITS_GROWTH_OF`.** `Interaction_Category` has exactly two values over all
+12,512 rows.
+
+| relationship | edges | from |
+|---|---:|---|
+| `METABOLISES_SUBSTANCE` | 3,356 | `Microbes metabolize substances`, minus the 404 marked otherwise |
+| `DOES_NOT_METABOLISE_SUBSTANCE` | 16 | `Metabolism_Effect_on_Drug = 'Microbe does not metabolize drug'` |
+| `ABUNDANCE_CHANGED_BY_SUBSTANCE` | 7,579 | `Substances alter microbe abundance` with `Microbe_Change` Increase/Decrease |
+| `ABUNDANCE_UNCHANGED_BY_SUBSTANCE` | 505 | the same category's `No significant change` |
+
+The abundance pair reuses neither `INHIBITS_GROWTH_OF` nor
+`ABUNDANCE_CHANGED_BY`. Not `INHIBITS_GROWTH_OF` because MASI's claim is an
+abundance shift — 995 of these records are `In vivo` in a host, which is
+gutMDisorder's shape, not a monoculture growth measurement — and because 4,778
+of the pairs it resolves to are pairs Maier's screen already measured, so the
+merge would have put a weaker restatement into the one relationship D8 *and* D18
+both read. Not `ABUNDANCE_CHANGED_BY` because that relationship's range is
+`Intervention` and a blueprint junction edge names exactly one target type per
+source node type (§8) — the same engine limitation that splits `ASSOCIATED_WITH`
+three ways, and stated here so the two splits are not read as the same kind of
+decision.
+
+**The measured negative is its own relationship on both pairs**, for the reason
+`NO_EXCHANGE_WITH` and `DOES_NOT_INHIBIT_GROWTH_OF` are: a refutation stored as
+a property is counted as an observation by every query that does not know to
+exclude it. `effect` rides on all four, so the whole population is still one
+property. **`DOES_NOT_METABOLISE_SUBSTANCE` is only 16 edges and the reason is
+the most quotable fact in this source**: 388 of the 404 curated "this microbe
+does not metabolise this drug" statements are about `Unclassified gut
+microbiota`, which is not an organism and reaches no NCBI id.
+
+**`SAME_COMPOUND_AS`: 883 of 1,350, by two name routes, and no identifier
+route exists.** The join is the shared `microbiomekg.drugs` module over
+`drug.csv` — the substance's own spelling (727) then its salt-stripped form
+(156) — and where it lands, the `Substance` node carries `drug_id` and one
+`SAME_COMPOUND_AS` edge onto the existing `Drug`. **MASI mints no `Drug` node
+ever**, which is the one thing that separates it from both screens and is
+asserted as such. Its cross-reference block is the richest of any source here —
+709 DrugBank ids, 1,067 PubChem CIDs, 1,067 InChIKeys, 561 KEGG ids — and
+**none of it reaches anything**, because the fetched ChEMBL molecule JSONL
+carries no cross-references at all. That is the wall `IS_DRUG` already
+documents, hit from the other side.
+
+**41 substances are never offered to the join at all**, because MASI's own
+`Substance_subcategory` files them as `Drug Class` or `Drug category` —
+*ACE inhibitors*, *Alpha blockers*. Matching a class onto whichever molecule
+shares its spelling is the level-4-ATC error `microbiomekg.drugs` refuses in so
+many words. The 16 substances with no therapeutic category that *do* reach a
+`Drug` by name — *Nicotine* → CHEMBL3, *Berberine*, *Permethrin* — are allowed
+(they are the same molecules) and every one is a ledger row, so a false merge
+appears in a count rather than in nobody's notes.
+
+**Three routes to a taxon id, and the microbe dictionary is worth a quarter of
+the source.** `Microbe-Tax-ID` is `n.a.` on 4,965 interaction rows;
+`microbesInfo` recovers an id for 3,007 of them (2,922 edges) and knows only a
+*genus* for 92 more microbes (991 edges), where the claim is made at the genus
+and `taxon_id_route` says so. Where the record and the dictionary disagree —
+three microbes, 69 rows, every one a **class** id against a **phylum** id for a
+name NCBI spells at both ranks — the record's own id wins and the disagreement
+is a ledger row, because neither is wrong and preferring one silently would make
+the graph's rank depend on read order.
+
+**This is the only source here with no broadest-accepted rank.** Both screens
+refuse a resolution broader than `genus`, because every organism they screened
+is one cultured isolate. MASI genuinely curates above genus — 45 families, 21
+classes, 14 orders and 11 phyla, and the two organisms its disease table cites
+most are *Firmicutes* and *Bacteroidetes* — so a ceiling would drop real
+curation. `reported_rank` (MASI's own `microbe_tax_level`, lower-cased) beside
+`original_rank` (NCBI's) is what a query filters on: G5's two-rank split doing
+the work a ceiling would do badly. Promotion is unchanged — strains and
+subspecies still promote to the species ceiling (C7).
+
+**`evidence_level` is derived per row, not defaulted.** `in-vitro` 8,272,
+`unknown` 2,249, `in-vivo-model` 935. The rule reads `Experiment_System` and
+`Experiment_Model_Species`: in vivo in a non-human host is `in-vivo-model`, in
+vitro is `in-vitro`, and the 2,396 rows whose system column is `n.a.` are
+`unknown` — as are the 41 in-vivo *human* rows, because nothing in the file says
+those studies were observational and `observational-unspecified` would be a
+guess about a design. The 8,303 rows whose model species reads
+`High-throughput incubation assays` are the two screens' own cells and land at
+`in-vitro`, which is what the primary sources give them.
+
+**The disease half: a fourth `ASSOCIATED_WITH` source, keyed by name because
+there is no id.** 783 edges from 784 records. MASI's disease export carries 56
+labels and **no DOID, MONDO or EFO column anywhere**, so the hub is reached
+through `MondoIndex.mondo_by_name` — a term's own `name:` (358 edges) or an
+**`EXACT`** synonym claimed by exactly one live term (326) — and the route is on
+the `Disease` node as `condition_join`, so it stays countable and reversible. 15
+of the 56 labels reach nothing and keep `MASI:DIS<n>` with `mondo_id` null, the
+same half-joined shape BugSigDB's 503 own-CURIE terms already have. Three of
+those misses are worth naming: `Rheumatoid arthrits` is the source's typo,
+`coeliac disease` is a **second MASI id for celiac disease** that MONDO spells
+only as a `RELATED` synonym, and `Skin and mucosal infections` is not a disease
+term. Nothing corrects them — a spelling rule standing in for a curated
+equivalence is what `MONDO:equivalentTo` exists to avoid, and reading a
+`RELATED` synonym as identity is the same false merge from the synonym side.
+
+**All 783 disease edges violate the fourteen-property contract, and that is the
+audit working.** Eight properties are fillable — `direction`, `evidence_level`,
+`pmid` and the §5(b) provenance block. The other six describe a
+differential-abundance *study*: this export has no design, host species,
+sequencing type, statistical test or arm sizes. `Association-type` is one value
+on all 784 rows (`Microbe abundance associates with disease`) and is a curation
+category, not a design; writing it into `study_design` would improve the audit
+number by misdescribing the data, which is the call gutMDisorder's
+`Research Type` already got.
+
+**Probiotic annotation lands on `Taxon`, and it is three-state.** `if_probiotic`
+is `Yes` on 46 microbes and `n.a.` on 760, and `n.a.` means *not recorded*, never
+*not a probiotic*. So `Taxon.probiotic` is **true** on 44 taxa, **false** on the
+496 other organisms MASI curates, and **null** on every taxon MASI does not
+mention — collapsing null into false would make a claim about 862,000 taxa the
+source never named. `probiotic_use_species`, `probiotic_research_stage` and
+`probiotic_reported_name` ride beside it, written by `prep_taxonomy.py` from a
+table this prep leaves behind, which is why that prep names `masi` in its
+`DEPENDS_ON`. **The reported name is not decoration**: 806 MASI microbes collapse
+onto 540 taxa, so *E. coli* Nissle 1917 promotes onto the same 562 as plain
+*E. coli*, and `taxon_probiotic.csv` is keyed on `tax_id` with first-row-per-key
+winning — which silently dropped 5 of the 46 claims until a probiotic claim was
+made to beat a non-claim. `tests/test_masi.py` keeps that fixed.
+
+**What it refuses, all of it counted.** 1,048 interaction records name a microbe
+that reaches no NCBI id — `Unclassified gut microbiota` 474 and `Unidentified
+gut microbes` 311 between them — and become `UnresolvedTaxon` tombstones keyed on
+**MASI's accession rather than the name**, because 24 microbe ids are written
+under more than one spelling (`PMDBM140` is *Clostridioides*, *Clostridium* and
+*Peptoclostridium difficile*) and a name-keyed tombstone would split one refusal
+into three. 8 records carry a `Microbe_Change` this model has no direction for
+(`delay microbiota maturation`), and a category this loader has not read would
+be a ledger row rather than a guess. `Interation_Record_ID` (the source's own
+spelling) is **not unique** — 2,891 ids appear on two rows, always one curated
+statement about two microbes — so `source_record_id` is
+`masi:<record>|<microbe>|<substance>` and neither organism is lost.
 
 ### Reactome and KEGG — a DAG, an evidence code, and a build flag
 
@@ -1035,9 +1196,12 @@ says a drug does something to a bacterium *directly*. ChEMBL's route from a drug
 to a taxon runs through the protein it acts on, which is a different claim;
 gutMDisorder's `ABUNDANCE_CHANGED_BY` is an abundance observation in a host, not
 a growth measurement in culture. It is what moved D8 and D18 off `partial`, and
-it arrived because MASI — the aggregator that curates this literature — is
-unrecoverable, while the landmark screen MASI aggregates is a supplementary
-table anyone can download (`docs/sources.md` §15).
+it arrived because MASI — the aggregator that curates this literature — was
+believed unrecoverable at the time (an expired TLS certificate, not a dead
+host; `docs/sources.md` §14 carries the retraction), while the landmark screen
+MASI aggregates is a supplementary table anyone can download
+(`docs/sources.md` §15). The order turned out to be the right one anyway: the
+screen measures where the aggregator curates.
 
 **The negatives are the larger half and they are a *measurement*.** A screen
 runs every cell: 1,197 drugs × 40 isolates = 47,880, of which 55 are written
@@ -1415,7 +1579,7 @@ in the prep scripts, so every source routes through one policy.
    Measured at microbial scope: **572,636 of 864,099 taxa (66%) are
    placeholders**, 520,358 of them carrying an ` sp.` epithet — that is what
    NCBI's bacterial taxonomy mostly *is*. Of the 8,078 taxa BugSigDB cites,
-   1,936 (24%) are placeholders, and 6,550 of the 105,097 disease associations
+   1,936 (24%) are placeholders, and 6,553 of the 105,880 disease associations
    (6.2%) rest on one. The marker set is a floor, not a ceiling: names like
    `Gammaproteobacteria bacterium SCGC AG-485_A06` are placeholders by any
    reading and are not flagged, because widening the rule past NCBI's own
@@ -1532,7 +1696,7 @@ includes §6's five BM25 indexes.
 
 An evidence-filtered `ASSOCIATED_WITH` scan runs in **14 ms** at microbial
 scope (min of five; it was 7 ms over the two-source graph, which had 103,461
-of the 105,097 association edges but a third of the nodes), and a BM25 index
+of the 105,880 association edges but a third of the nodes), and a BM25 index
 over all 864,099 scientific names builds in **0.2 s** (443,091 terms). There is no memory or latency argument for `mapped` or `disk`
 here, and `disk` would additionally **refuse `build_text_index()`** — the BM25
 index is heap-resident by design, and text search over taxon names and
@@ -1769,7 +1933,7 @@ RETURN count(r) AS edges,
        sum(CASE WHEN r.statistical_test IS NULL THEN 1 ELSE 0 END) AS no_stat
 ```
 
-→ `105097, 894, 1051, 13509, 1292`. Swap `ASSOCIATED_WITH` for the three-way
+→ `105880, 894, 1051, 14292, 2075`. Swap `ASSOCIATED_WITH` for the three-way
 alternation to census every association type at once.
 
 **Q6 — resolve an obsolete name through the synonym index.**
@@ -1807,13 +1971,13 @@ CARRIES_RESISTANCE_GENE.required_properties   warn    3717 / 6415     57.90%
 VIA_MECHANISM.required_properties             warn    3717 / 6513     57.10%
 ASSOCIATED_WITH_EXPOSURE.required_properties  warn     485 / 2369     20.50%
 IN_CONDITION.required                         warn    2292 / 14846    15.40%
-ASSOCIATED_WITH.required_properties           warn   15985 / 105097   15.20%
+ASSOCIATED_WITH.required_properties           warn   16768 / 105880   15.80%
 ASSOCIATED_WITH_PHENOTYPE.required_properties warn     293 / 4717      6.20%
 AT_BODY_SITE.required                         warn      78 / 14846     0.50%
-ASSOCIATED_WITH.property_types                error       0 / 105097    0.00%
+ASSOCIATED_WITH.property_types                error       0 / 105880    0.00%
 REPORTED_BY.required_properties               error       0 / 114742    0.00%
 IS_DRUG.required_properties                   error       0 / 15        0.00%
-… 76 rules total, 45 of them at 0 violations
+… 123 rules total, 114 of them at 0 violations
 ```
 
 The four rules above `ASSOCIATED_WITH` are what a new source looks like when

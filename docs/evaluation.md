@@ -457,20 +457,24 @@ question the graph answers.
 | Wanted for | Source | Status | Consequence |
 |---|---|---|---|
 | D5/D13 enzyme + reaction | MiMeDB v2.0 reaction table | not bulk-downloadable; the two published dumps are MySQL tables with **zero** cross-references between them | production claims carry no enzyme and no pathway of their own |
-| D8/D18 drug↔taxon aggregate | MASI interaction tables | documented `unrecoverable`; **see caveat below** | replaced by the two primary screens, which are better artefacts |
+| D8/D18 drug↔taxon aggregate | MASI interaction tables | documented `unrecoverable`, **and that was wrong — see the caveat below** | the two primary screens closed both directions first, and measure where MASI curates |
 | D14 healthy baselines | GMrepo / `bugphyzz` | not fetched | "is this taxon just generic dysbiosis?" is answered by signature *breadth* only, a proxy for the r = −0.84 prevalence relationship |
 | D12 nomenclature | LPSN | not fetched | NCBI's name is reported as if uncontested; *Lacticaseibacillus rhamnosus* is taxonomically suspended at LPSN and the graph cannot say so |
 | D13 gene layer | gutSMASH | not fetched | taxon→pathway is genome-inferred in every available case |
 | associations | Disbiome | host does not complete a TCP connection; never archived | one fewer independent curation to cross-check against |
 
-**Caveat on MASI, and it matters.** `docs/sources.md` §14 and Part D's D8 both
-state the interaction tables are *"not recoverable"*. An **uncommitted
-modification to `scripts/fetch.py` in the working tree** (not this
-evaluation's, and not committed) records the opposite: `aiddlab.com` has an
-**expired TLS certificate, not a dead host**, and all eight files answer HTTP
-200 behind `curl -k`, confirmed 2026-09-03. If that holds, MASI's 4,001 + 7,770
-typed pairs are fetchable and the "unrecoverable" verdict in two committed
-documents is wrong. Flagged to the coordinator; not resolved here.
+**Caveat on MASI, and it matters — now settled.** `docs/sources.md` §14 and
+Part D's D8 both stated the interaction tables were *"not recoverable"*. They
+were recoverable: `www.aiddlab.com` has an **expired TLS certificate, not a
+dead host**, and all eight files answer HTTP 200 behind it, confirmed
+2026-09-03. Every automated fetch had been failing at the TLS handshake, and
+the Wayback Machine — which could not handshake either — had archived only the
+one file a person had saved by hand, so two symptoms of one cause were read as
+two independent confirmations. The operator downloaded the eight files through
+a browser rather than have the fetcher disable certificate verification, and
+`docs/sources.md` §14 now carries the retraction and the file list. The
+"unrecoverable" verdict in the committed documents was wrong and has been
+corrected.
 
 ### 4.2 What is thin
 
@@ -733,14 +737,14 @@ That is a real thing, and it is smaller than "a microbiome knowledge graph".
    genus's healthy prevalence and how often it is reported increased) is what
    makes the ranked outputs of W1, W2 and W3 interpretable rather than
    suggestive.
-4. **Settle the MASI question and act on it.** The working tree already
-   contains evidence that `aiddlab.com` is behind an expired certificate rather
-   than gone, and that all eight files answer 200. If that is right, two
-   committed documents state a falsehood ("unrecoverable") and 11,771 typed
-   drug↔microbe pairs are one operator decision away. If it is wrong, the
-   documents should say *why* it is wrong more precisely than they do. Either
-   outcome is cheap and both are better than the current disagreement between
-   `docs/sources.md` and the fetch script.
+4. **~~Settle the MASI question and act on it.~~ Settled 2026-09-03.**
+   `aiddlab.com` was behind an expired certificate rather than gone, all eight
+   files answer 200, and the operator fetched them through a browser rather
+   than have the fetcher disable certificate verification. The two committed
+   documents that stated "unrecoverable" have been corrected, and
+   `docs/sources.md` §14 carries both the retraction and the mechanism of the
+   error: a negative reached by two failures with one shared cause is one
+   observation, not two.
 5. **Scope the exchange layer, or say it is unscoped.** D6 is the project's
    best structural argument and its top answers pair swine pathogens with
    deep-sea thermophiles, because NJC19 curates microbial physiology and nothing
