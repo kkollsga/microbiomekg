@@ -31,7 +31,9 @@ editing a shared one (§8).
 | `Pathway` | `R-HSA-…` / `mapNNNNN` | `name` | Reactome / KEGG, `source` property | 2 |
 | `Drug` | ChEMBL id | `pref_name` | ChEMBL `max_phase = 4` | 3 |
 | `ProteinTarget` | ChEMBL target id | `pref_name` | ChEMBL; `uniprot` property | 3 |
-| `AROTerm` | `ARO:3000015` | `name` | CARD `aro.obo` | 3 |
+| `ResistanceGene` | `ARO:3002999` | `name` | CARD `card.json` model, named from `aro.obo` | 3 |
+| `DrugClass` | `ARO:0000032` | `label` | CARD ARO category `Drug Class` | 3 |
+| `ResistanceMechanism` | `ARO:0001004` | `label` | CARD ARO category `Resistance Mechanism` | 3 |
 
 Decisions worth the ink:
 
@@ -197,6 +199,9 @@ per taxon (BugSigDB does not).
 | `IN_EXPOSURE` | `Signature` → `Exposure` | — |
 | `AT_BODY_SITE` | `Signature` → `BodySite` | — |
 | `ABUNDANCE_CHANGED_BY` | `Taxon` → `Intervention` | **the same contract** |
+| `CONFERS_RESISTANCE_TO` | `ResistanceGene` → `DrugClass` | **CARD's eight-property contract** |
+| `VIA_MECHANISM` | `ResistanceGene` → `ResistanceMechanism` | **the same eight** |
+| `CARRIES_RESISTANCE_GENE` | `Taxon` → `ResistanceGene` | **the same eight**, plus what the taxid means |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
 
 **Three association relationships are one relation, split by the engine.** The
@@ -404,8 +409,67 @@ dump 170 mentions carry a MetaPhlAn rank that NCBI contradicts, 151 of them
 **`resolution_normalized`** says the name matched only through the
 authority-stripped fallback index (C4). It is a boolean rather than prose in
 `resolution_note` so it can be counted. It is `false` on all 114,742 BugSigDB
-edges, because BugSigDB resolves by id; it will vary the moment CARD, HMDB or
-Disbiome arrive with names.
+edges, because BugSigDB resolves by id, and `false` for CARD too, which
+carries an NCBI taxid on every model. It will vary the moment a source
+arrives that names organisms in prose.
+
+### CARD — three node types, two licences, and a weaker claim than it looks
+
+`ResistanceGene` is keyed on the ARO accession and backed by one `card.json`
+model. **`card.json` is the model authority, not `aro_index.tsv`**: they
+disagree about 84 models in the same tarball (48 index-only, 36 JSON-only), the
+JSON is the only file with taxids, and its accessions are unique across all
+6,451 models while the index duplicates five of them. The 84 go to
+`data/csv/card_model_disagreements.csv` rather than being resolved silently.
+Names and `is_a` parents come from `card-ontology/aro.obo`, which covers every
+model term and every category and is the redistributable half; `gene_family`
+stays a property because nothing joins to it, while `DrugClass` is a node
+because it is the other end of D7's question.
+
+**The licence is per edge.** `card-data/` is © McMaster and non-commercial,
+`aro.obo` is CC BY 4.0, and the difference is real rather than bureaucratic:
+`aro.obo` names all 6,451 model terms, so every node fact is `CC-BY-4.0`, but
+6,414 of 6,451 models get their drug class only from `card.json`'s
+`ARO_category` — so **D7's answer lives in the non-redistributable half whatever
+Part D's "prefer the CC BY 4.0 half" advises**. Saying that per edge is what
+lets the graph ship in parts; `WHERE r.source_licence = 'CC-BY-4.0'` is the
+shippable subgraph.
+
+**`CARRIES_RESISTANCE_GENE` does not say the organism is resistant.** Its taxid
+is the *reference sequence's* organism, and three properties say so on every
+edge: `sequence_derived` (always true), `taxon_scope`
+(`reference-sequence-organism`) and `taxon_specificity`, which is
+`species-or-below`, `above-species` (132 models carry taxid 2, Bacteria) or
+`not-an-organism` (17 taxids are plasmids, a transposon, `synthetic construct`
+or a metagenome — and NCBI ranks a plasmid `species`, so only the lineage can
+tell). CARD's own `NCBI_taxonomy_name` is never used as a label: on all 132
+taxid-2 models it is the curation string *"Bacteria, Viruses, Fungi, and other
+genome sequence associated with antimicrobial resistance"* — the same renaming
+`ncbi_taxonomy.obo` is warned about, leaking into `card.json` itself. It
+survives on the edge as `reported_name`, because that is what the source said.
+
+**The contract on these three edges is eight properties, not the shared
+fourteen.** `direction`, `sequencing_type`, `statistical_test` and the two group
+sizes describe a differential-abundance observation; a resistance model is not
+one, and declaring them would report a permanent 100% violation — a gate that
+cannot go green measures as little as one that cannot go red. What is declared
+is `evidence_level`, `pmid` and the six provenance fields, so the audit's number
+means something: it is the share of edges whose determinant has no citation
+(3,717 of 6,451 model terms have no `PMID.tsv` row). `evidence_level` is
+`in-vitro` for a curated model — CARD admits a determinant only with "clear
+experimental evidence of elevated minimum inhibitory concentration (MIC) over
+controls" — and `computational-predicted` for the 36 meta-models that have no
+reference sequence, which is what makes D7's predicted layer excludable with one
+`WHERE`.
+
+**Two things the extraction table asked for that the data cannot give.** There
+is no `hit_category`: RGI's Perfect/Strict/Loose is produced by *running* RGI
+against a sample and appears in no CARD download, so D7's `c.hit_category` is
+unanswerable from this source and is not written as an empty column pretending
+otherwise. And `publications` is a `" | "`-joined string rather than a list,
+because a CSV column cannot carry a list property (§8 item 1); `pmid` holds the
+first of them so the contract's integer column is filled, and it is *a*
+citation for the determinant, not a claim to be the principal one.
 
 ---
 
@@ -418,7 +482,10 @@ in the prep scripts, so every source routes through one policy.
 
 1. **An explicit id beats a name.** BugSigDB *does* carry NCBI ids (column
    `NCBI Taxonomy IDs`), so it resolves by id and the name is only a label.
-   Disbiome and CARD will resolve by name.
+   **CARD carries one too** — `model_sequences.sequence.*.NCBI_taxonomy`,
+   on 6,415 of its 6,451 models — so it also resolves by id, and its own
+   `NCBI_taxonomy_name` is never looked up (on 132 models it is a curation
+   string, not a taxon name). Disbiome will resolve by name.
 2. **`merged.dmp` remap**, chased transitively. Measured: **413 of 115,634
    BugSigDB taxon mentions point at an id NCBI has since merged.** Without the
    remap those become 413 dangling or duplicate taxa.

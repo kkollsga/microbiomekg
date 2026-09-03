@@ -1,0 +1,551 @@
+1	|	all	|		|	synonym	|
+1	|	root	|		|	scientific name	|
+2	|	Bacteria	|	Bacteria <bacteria>	|	scientific name	|
+2	|	bacteria	|	bacteria <blast name>	|	blast name	|
+2	|	bacteria	|	bacteria <genbank common name>	|	genbank common name	|
+2	|	"Bacteria" Cavalier-Smith 1987	|		|	authority	|
+2	|	Bacteria (ex Cavalier-Smith 1987)	|		|	synonym	|
+2	|	Bacteria Woese et al. 2024	|		|	synonym	|
+2	|	"Bacteriobiota" Luketa 2012	|		|	authority	|
+2	|	Bacteriobiota	|		|	synonym	|
+2	|	eubacteria	|		|	common name	|
+2	|	Monera	|	Monera <bacteria>	|	in-part	|
+2	|	Procaryotae	|	Procaryotae <bacteria>	|	in-part	|
+2	|	Prokaryotae	|	Prokaryotae <bacteria>	|	in-part	|
+2	|	Prokaryota	|	Prokaryota <bacteria>	|	in-part	|
+2	|	prokaryote	|	prokaryote <bacteria>	|	in-part	|
+2	|	prokaryotes	|	prokaryotes <bacteria>	|	in-part	|
+286	|	"Chlorobacterium" Guillebeau 1890, nom. rejic. Opin. 6 (not "Chlorobacterium" Lauterborn 1916)	|		|	synonym	|
+286	|	Chryseomonas Holmes et al. 1986	|		|	authority	|
+286	|	Chryseomonas Holmes et al. 1986 emend. Rudra and Gupta 2024	|		|	authority	|
+286	|	Chryseomonas	|		|	synonym	|
+286	|	Flavimonas Holmes et al. 1987	|		|	authority	|
+286	|	Flavimonas	|		|	synonym	|
+286	|	"Liquidomonas" Orla-Jensen 1909	|		|	authority	|
+286	|	Liquidomonas	|		|	synonym	|
+286	|	"Loefflerella" Holden 1935	|		|	authority	|
+286	|	Loefflerella	|		|	synonym	|
+286	|	Pseudomonas Migula 1894 (Approved Lists 1980)	|		|	synonym	|
+286	|	Pseudomonas Migula 1894 emend. Yang et al. 2013	|		|	authority	|
+286	|	Pseudomonas	|		|	scientific name	|
+286	|	RNA similarity group I	|		|	common name	|
+286	|	Serpens Hespell 1977 (Approved Lists 1980)	|		|	synonym	|
+286	|	Serpens	|		|	synonym	|
+287	|	"Bacillus aeruginosus" (Schroeter 1872) Trevisan 1885	|		|	authority	|
+287	|	Bacillus aeruginosus	|		|	synonym	|
+287	|	Bacillus pyocyaneus	|		|	synonym	|
+287	|	"Bacillus pyocyaneus" (Zopf 1884) Flugge 1886	|		|	authority	|
+287	|	"Bacterium aeruginosum" Cohn 1872	|		|	authority	|
+287	|	Bacterium aeruginosum	|		|	synonym	|
+287	|	bacterium ASFP-37	|		|	includes	|
+287	|	bacterium ASFP-38	|		|	includes	|
+287	|	bacterium ASFP-45	|		|	includes	|
+287	|	bacterium ASFP-46	|		|	includes	|
+287	|	bacterium ASFP-48	|		|	includes	|
+287	|	bacterium CRM125	|		|	includes	|
+287	|	Bacterium pyocyaneum	|		|	synonym	|
+287	|	"Bacterium pyocyaneum" (Zopf 1884) Lehmann and Neumann 1896	|		|	authority	|
+287	|	Micrococcus pyocyaneus	|		|	synonym	|
+287	|	"Micrococcus pyocyaneus" Zopf 1884	|		|	authority	|
+287	|	probable synonym or variety: "Pseudomonas polycolor" Clara 1930	|		|	synonym	|
+287	|	Pseudomonas aeruginosa (Schroeter 1872) Migula 1900 (Approved Lists 1980) emend. Rudra et al. 2022	|		|	authority	|
+287	|	Pseudomonas aeruginosa (Schroeter 1872) Migula 1900 (Approved Lists 1980)	|		|	synonym	|
+287	|	Pseudomonas aeruginosa	|		|	scientific name	|
+287	|	Pseudomonas polycolor	|		|	synonym	|
+287	|	Pseudomonas pyocyanea	|		|	synonym	|
+287	|	"Pseudomonas pyocyanea" (Zopf 1884) Migula 1895	|		|	authority	|
+287	|	Pseudomonas sp. 2_1_26	|		|	includes	|
+287	|	Pseudomonas sp. ACP_02	|		|	includes	|
+287	|	Pseudomonas sp. BRD1	|		|	includes	|
+287	|	Pseudomonas sp. CCUG 17619	|		|	includes	|
+287	|	Pseudomonas sp. CRRI 93	|		|	includes	|
+287	|	Pseudomonas sp. HSA1/2016	|		|	includes	|
+287	|	Pseudomonas sp. MM	|		|	includes	|
+287	|	Pseudomonas sp. NCIM 2036	|		|	includes	|
+287	|	Pseudomonas sp. NCIM 2862	|		|	includes	|
+287	|	Pseudomonas sp. PR_01	|		|	includes	|
+287	|	Pseudomonas sp. PSE5	|		|	includes	|
+287	|	Pseudomonas sp. RV3	|		|	includes	|
+287	|	Pseudomonas sp. UFT2/2016	|		|	includes	|
+468	|	Acinetobacteraceae	|		|	synonym	|
+468	|	Branhamaceae	|		|	synonym	|
+468	|	Moraxellaceae Rossau et al. 1991	|		|	authority	|
+468	|	Moraxellaceae Rossau et al. 1991 emend. Flores-Felix et al. 2025	|		|	authority	|
+468	|	Moraxellaceae	|		|	scientific name	|
+469	|	Acinetobacter Brisou and Prevot 1954 (Approved Lists 1980)	|		|	authority	|
+469	|	Acinetobacter	|		|	scientific name	|
+470	|	Acinetobacter baumannii Bouvet and Grimont 1986	|		|	authority	|
+470	|	Acinetobacter baumannii CM-128	|		|	includes	|
+470	|	Acinetobacter baumannii	|		|	scientific name	|
+470	|	Acinetobacter genomosp. 2	|		|	synonym	|
+470	|	Acinetobacter genomospecies 2	|		|	synonym	|
+470	|	Acinetobacter sp. 3208	|		|	includes	|
+470	|	Acinetobacter sp. CCUG 19096	|		|	includes	|
+470	|	Acinetobacter sp. NCTC 7422	|		|	includes	|
+470	|	Bacterium anitratum	|		|	synonym	|
+470	|	bacterium SPL81	|		|	includes	|
+481	|	Neisseriaceae Prevot 1933 (Approved Lists 1980)	|		|	authority	|
+481	|	Neisseriaceae Prevot 1933 (Approved Lists 1980) emend. Adeolu and Gupta 2013	|		|	authority	|
+481	|	Neisseriaceae Prevot 1933 (Approved Lists 1980) emend. Chen et al. 2021	|		|	authority	|
+481	|	Neisseriaceae Prevot 1933 (Approved Lists 1980) emend. Dewhirst et al. 1989	|		|	authority	|
+481	|	Neisseriaceae Prevot 1933 (Approved Lists 1980) emend. Rossau et al. 1989	|		|	authority	|
+481	|	Neisseriaceae	|		|	scientific name	|
+481	|	Simonsiellaceae Steed 1963 (Approved Lists 1980)	|		|	authority	|
+481	|	Simonsiellaceae	|		|	synonym	|
+481	|	Vitreoscillaceae Pringsheim 1949 (Approved Lists 1980)	|	Vitreoscillaceae Pringsheim 1949 (Approved Lists 1980) <b-proteobacteria>	|	authority	|
+481	|	Vitreoscillaceae	|	Vitreoscillaceae <b-proteobacteria>	|	in-part	|
+482	|	"Gonococcus" Lindau 1898	|		|	authority	|
+482	|	Gonococcus	|		|	synonym	|
+482	|	"Merismopedia" Zopf 1885	|		|	synonym	|
+482	|	Neisseria	|		|	scientific name	|
+482	|	Neisseria Trevisan 1885	|		|	authority	|
+485	|	Diplococcus gonorrhoeae	|		|	synonym	|
+485	|	"Diplococcus gonorrhoeae" (Zopf 1885) Lehmann and Neumann 1896	|		|	authority	|
+485	|	"Gonococcus neisseri" Lindau 1898	|		|	authority	|
+485	|	Gonococcus neisseri	|		|	synonym	|
+485	|	Merismopedia gonorrhoeae	|		|	synonym	|
+485	|	"Merismopedia gonorrhoeae" Zopf 1885	|		|	authority	|
+485	|	"Micrococcus der gonorrhoe" Neisser 1879	|		|	authority	|
+485	|	Micrococcus der gonorrhoe	|		|	synonym	|
+485	|	"Micrococcus gonococcus" Schroeter 1886	|		|	authority	|
+485	|	Micrococcus gonococcus	|		|	synonym	|
+485	|	Micrococcus gonorrhoeae	|		|	synonym	|
+485	|	"Micrococcus gonorrhoeae" (Zopf 1885) Flugge 1886	|		|	authority	|
+485	|	Neisseria gonorrhoeae	|		|	scientific name	|
+485	|	Neisseria gonorrhoeae (Zopf 1885) Trevisan 1885	|		|	authority	|
+543	|	Enterobacteraceae (ex Lapage 1979) Lapage 1982	|		|	authority	|
+543	|	Enterobacteraceae	|		|	synonym	|
+543	|	Enterobacteriaceae (ex Rahn 1937) Ewing et al. 1980	|		|	authority	|
+543	|	Enterobacteriaceae Rahn 1937 (Approved Lists 1980) emend. Adeolu et al. 2016	|		|	authority	|
+543	|	Enterobacteriaceae	|		|	scientific name	|
+543	|	enterobacteria	|	enterobacteria <blast name>	|	blast name	|
+543	|	enterobacteria	|	enterobacteria <genbank common name>	|	genbank common name	|
+543	|	gamma-3 proteobacteria	|	gamma-3 proteobacteria <enterobacteria,Enterobacteriaceae>	|	in-part	|
+547	|	"Aerobacter" Hormaeche and Edwards 1958	|		|	synonym	|
+547	|	"Cloaca" Castellani and Chalmers 1919	|		|	authority	|
+547	|	Cloaca	|		|	synonym	|
+547	|	Enterobacter Hormaeche and Edwards 1960 (Approved Lists 1980) emend. Brady et al. 2013	|		|	authority	|
+547	|	Enterobacter	|		|	scientific name	|
+550	|	Achromobacter sp. ATCC13047	|		|	includes	|
+550	|	"Aerobacter cloacae" (Jordan 1890) Bergey et al. 1923	|		|	authority	|
+550	|	"Aerobacter cloacae" (Jordan 1890) Hormaeche and Edwards 1958	|		|	authority	|
+550	|	Aerobacter cloacae	|		|	synonym	|
+550	|	"Bacillus cloacae" Jordan 1890	|		|	authority	|
+550	|	Bacillus cloacae	|		|	synonym	|
+550	|	"Bacterium cloacae" (Jordan 1890) Lehmann and Neumann 1896	|		|	authority	|
+550	|	Bacterium cloacae	|		|	synonym	|
+550	|	"Cloaca cloacae" (Jordan 1890) Castellani and Chalmers 1919	|		|	authority	|
+550	|	Cloaca cloacae	|		|	synonym	|
+550	|	Enterobacter cloacae (Jordan 1890) Hormaeche and Edwards 1960	|		|	authority	|
+550	|	Enterobacter cloacae	|		|	scientific name	|
+550	|	'Enterobacter hormaechei subsp. grimontii'	|		|	includes	|
+550	|	Enterobacter hormaechei subsp. grimontii	|		|	includes	|
+550	|	Enterobacter sp. DIV140	|		|	includes	|
+550	|	Enterobacter sp. DIV160	|		|	includes	|
+550	|	Enterobacter sp. DIV167	|		|	includes	|
+550	|	Enterobacter sp. ES-2	|		|	includes	|
+550	|	Enterobacter sp. JS08.Deg01	|		|	includes	|
+550	|	Enterobacter sp. NCIM 2164	|		|	includes	|
+550	|	Enterobacter sp. PX-A-E.1	|		|	includes	|
+550	|	Klebsiella sp. SBP-8	|		|	includes	|
+561	|	Escherichia Castellani and Chalmers 1919	|		|	authority	|
+561	|	Escherichia	|		|	scientific name	|
+562	|	Achromobacter sp. ATCC 35328	|		|	includes	|
+562	|	"Bacillus coli" Migula 1895	|		|	authority	|
+562	|	Bacillus coli	|		|	synonym	|
+562	|	bacterium 10a	|		|	includes	|
+562	|	"Bacterium coli commune" Escherich 1885	|		|	authority	|
+562	|	Bacterium coli commune	|		|	synonym	|
+562	|	"Bacterium coli" (Migula 1895) Lehmann and Neumann 1896	|		|	authority	|
+562	|	Bacterium coli	|		|	synonym	|
+562	|	bacterium E3	|		|	includes	|
+562	|	E. coli	|		|	common name	|
+562	|	Enterococcus coli	|		|	synonym	|
+562	|	Escherichia coli (Migula 1895) Castellani and Chalmers 1919 (Approved Lists 1980)	|		|	authority	|
+562	|	Escherichia coli	|		|	scientific name	|
+562	|	Escherichia/Shigella coli	|		|	equivalent name	|
+562	|	Escherichia sp. 3_2_53FAA	|		|	includes	|
+562	|	Escherichia sp. MAR	|		|	includes	|
+570	|	Calymmatobacterium Aragao and Vianna 1913 (Approved Lists 1980)	|		|	authority	|
+570	|	Calymmatobacterium	|		|	synonym	|
+570	|	"Donovania" Anderson et al. 1944	|		|	authority	|
+570	|	Donovania	|		|	synonym	|
+570	|	"Hyalococcus" Schroeter 1886	|		|	authority	|
+570	|	Hyalococcus	|		|	synonym	|
+570	|	Klebsiella	|		|	scientific name	|
+570	|	Klebsiella Trevisan 1885 (Approved Lists 1980)	|		|	authority	|
+570	|	Klebsiella Trevisan 1885 (Approved Lists 1980) emend. Carter et al. 1999	|		|	authority	|
+570	|	Klebsiella Trevisan 1885 (Approved Lists 1980) emend. Drancourt et al. 2001	|		|	authority	|
+570	|	Klebsiella Trevisan 1885 (Approved Lists 1980) emend. Ma et al. 2021	|		|	authority	|
+570	|	Raoultella Drancourt et al. 2001	|		|	authority	|
+570	|	Raoultella Drancourt et al. 2001 emend. Brady et al. 2024	|		|	authority	|
+570	|	Raoultella	|		|	synonym	|
+573	|	"Bacillus pneumoniae" (Schroeter 1886) Flugge 1886	|		|	authority	|
+573	|	Bacillus pneumoniae	|		|	synonym	|
+573	|	Bacterium pneumoniae crouposae	|		|	synonym	|
+573	|	"Bacterium pneumoniae crouposae" Zopf 1885	|		|	authority	|
+573	|	"Hyalococcus pneumoniae" Schroeter 1886	|		|	authority	|
+573	|	Hyalococcus pneumoniae	|		|	synonym	|
+573	|	'Klebsiella aerogenes' (Kruse) Taylor et al. 1956	|		|	synonym	|
+573	|	Klebsiella pneumoniae aerogenes	|		|	synonym	|
+573	|	Klebsiella pneumoniae (Schroeter 1886) Trevisan 1887	|		|	authority	|
+573	|	Klebsiella pneumoniae	|		|	scientific name	|
+573	|	Klebsiella sp. 2N3	|		|	includes	|
+573	|	Klebsiella sp. C1(2016)	|		|	includes	|
+573	|	Klebsiella sp. M-AI-2	|		|	includes	|
+573	|	Klebsiella sp. PB12	|		|	includes	|
+573	|	Klebsiella sp. RCE-7	|		|	includes	|
+1224	|	Alphaproteobacteriota	|		|	synonym	|
+1224	|	"Alphaproteobacteriota" Whitman et al. 2018	|		|	synonym	|
+1224	|	"Proteobacteria" Garrity et al. 2005	|		|	authority	|
+1224	|	proteobacteria	|	proteobacteria <blast name>	|	blast name	|
+1224	|	proteobacteria	|	proteobacteria <genbank common name>	|	genbank common name	|
+1224	|	Proteobacteria Stackebrandt et al. 1988	|		|	authority	|
+1224	|	Proteobacteria	|		|	synonym	|
+1224	|	"Proteobacteriota" Panda et al. 2022	|		|	authority	|
+1224	|	Proteobacteriota	|		|	synonym	|
+1224	|	Pseudomonadota corrig. Garrity et al. 2021	|		|	authority	|
+1224	|	Pseudomonadota	|		|	scientific name	|
+1224	|	purple photosynthetic bacteria and relatives	|		|	common name	|
+1236	|	Gammaproteobacteria Garrity et al. 2005 emend. Williams and Kelly 2013	|		|	authority	|
+1236	|	Gammaproteobacteria	|		|	scientific name	|
+1236	|	gamma proteobacteria	|		|	synonym	|
+1236	|	gamma subdivision	|		|	synonym	|
+1236	|	gamma subgroup	|		|	synonym	|
+1236	|	g-proteobacteria	|	g-proteobacteria <blast name>	|	blast name	|
+1236	|	g-proteobacteria	|	g-proteobacteria <genbank common name>	|	genbank common name	|
+1236	|	Proteobacteria gamma subdivision	|		|	synonym	|
+1236	|	"Pseudomonadia" Oren et al. 2016	|		|	authority	|
+1236	|	Pseudomonadia	|		|	synonym	|
+1236	|	Purple bacteria, gamma subdivision	|		|	synonym	|
+1239	|	"Bacillaeota" Oren et al. 2015	|		|	authority	|
+1239	|	Bacillaeota	|		|	synonym	|
+1239	|	Bacillota corrig. Gibbons and Murray 2021	|		|	synonym	|
+1239	|	Bacillota	|		|	scientific name	|
+1239	|	Bacillus/Clostridium group	|		|	synonym	|
+1239	|	clostridial firmicutes	|		|	common name	|
+1239	|	Clostridium group firmicutes	|		|	synonym	|
+1239	|	firmicutes	|	firmicutes <blast name>	|	blast name	|
+1239	|	firmicutes	|	firmicutes <genbank common name>	|	genbank common name	|
+1239	|	Low G+C firmicutes	|		|	synonym	|
+1239	|	low GC Gram+	|		|	common name	|
+1239	|	low G+C Gram-positive bacteria	|		|	common name	|
+1279	|	Aurococcus	|		|	synonym	|
+1279	|	"Aurococcus" Winslow and Rogers 1906	|		|	authority	|
+1279	|	Staphylococcus Rosenbach 1884 (Approved Lists 1980)	|		|	authority	|
+1279	|	Staphylococcus Rosenbach 1884 (Approved Lists 1980) emend. Bello et al. 2023	|		|	authority	|
+1279	|	Staphylococcus	|		|	scientific name	|
+1280	|	"Micrococcus aureus" (Rosenbach 1884) Zopf 1885	|		|	authority	|
+1280	|	Micrococcus aureus	|		|	synonym	|
+1280	|	"Micrococcus pyogenes" Lehmann and Neumann 1896	|		|	authority	|
+1280	|	Micrococcus pyogenes	|		|	synonym	|
+1280	|	"Staphlococcus (sic) pyogenes citreus" Passet 1885	|		|	authority	|
+1280	|	Staphylococcus aureus Rosenbach 1884 (Approved Lists 1980)	|		|	authority	|
+1280	|	Staphylococcus aureus Rosenbach 1884 (Approved Lists 1980) emend. Madhaiyan et al. 2020	|		|	authority	|
+1280	|	Staphylococcus aureus	|		|	scientific name	|
+1280	|	Staphylococcus aureus subsp. anaerobius De La Fuente et al. 1985	|		|	authority	|
+1280	|	Staphylococcus aureus subsp. anaerobius	|		|	synonym	|
+1280	|	Staphylococcus aureus subsp. aureus	|		|	includes	|
+1280	|	Staphylococcus aureus subsp. aureus (Rosenbach 1884) De La Fuente et al. 1985	|		|	authority	|
+1280	|	"Staphylococcus pyogenes aureus" Rosenbach 1884	|		|	authority	|
+1280	|	Staphylococcus pyogenes aureus	|		|	synonym	|
+1280	|	"Staphylococcus pyogenes citreus" Passet 1985	|		|	authority	|
+1280	|	Staphylococcus pyogenes citreus	|		|	synonym	|
+1280	|	Staphylococcus sp. CCUG 17621	|		|	includes	|
+1280	|	Staphylococcus sp. Fddn_Aq4	|		|	includes	|
+1350	|	Enterococcus (ex Thiercelin and Jouhaud 1903) Schleifer and Kilpper-Balz 1984	|		|	authority	|
+1350	|	Enterococcus	|		|	scientific name	|
+1350	|	"Enterococcus" Thiercelin and Jouhaud 1903	|		|	authority	|
+1351	|	Enterococcus faecalis (Andrewes and Horder 1906) Schleifer and Kilpper-Balz 1984	|		|	authority	|
+1351	|	Enterococcus faecalis	|		|	scientific name	|
+1351	|	Enterococcus proteiformis	|		|	synonym	|
+1351	|	"Enterococcus proteiformis" Thiercelin and Jouhaud 1903	|		|	authority	|
+1351	|	Enterococcus sp. 7L76	|		|	includes	|
+1351	|	Enterococcus sp. KB1	|		|	includes	|
+1351	|	Enterocoque	|		|	synonym	|
+1351	|	"Enterocoque" Thiercelin 1902	|		|	authority	|
+1351	|	"Micrococcus ovalis" Escherich 1886	|		|	authority	|
+1351	|	Micrococcus ovalis	|		|	synonym	|
+1351	|	"Micrococcus zymogenes" MacCallum and Hastings 1899	|		|	authority	|
+1351	|	Micrococcus zymogenes	|		|	synonym	|
+1351	|	Streptococcus faecalis Andrewes and Horder 1906 (Approved Lists 1980)	|		|	authority	|
+1351	|	Streptococcus faecalis	|		|	synonym	|
+1351	|	"Streptococcus glycerinaceus" Orla-Jensen 1919	|		|	authority	|
+1351	|	Streptococcus glycerinaceus	|		|	synonym	|
+1351	|	"Streptococcus liquefaciens" Sternberg 1892	|		|	authority	|
+1351	|	Streptococcus liquefaciens	|		|	synonym	|
+1385	|	Bacillales Prevot 1953 (Approved Lists 1980)	|		|	authority	|
+1385	|	Bacillales	|		|	synonym	|
+1385	|	Bacillus/Staphylococcus group	|		|	synonym	|
+1385	|	Caryophanales Peshkoff 1939 (Approved Lists 1980)	|		|	authority	|
+1385	|	Caryophanales	|		|	scientific name	|
+1393	|	Bacillus brevis	|	Bacillus brevis <firmicutes>	|	synonym	|
+1393	|	Bacillus brevis Migula 1900 (Approved Lists 1980)	|		|	authority	|
+1393	|	Bacillus sp. NCIM 2531	|		|	includes	|
+1393	|	Bacillus sp. NCIM 2534	|		|	includes	|
+1393	|	Brevibacillus brevis (Migula 1900) Shida et al. 1996	|		|	authority	|
+1393	|	Brevibacillus brevis	|		|	scientific name	|
+1393	|	Brevibacillus sp. 1404	|		|	includes	|
+1393	|	Brevibacillus sp. JKR7	|		|	includes	|
+1393	|	Lysinibacillus sp. SDF0063	|		|	includes	|
+1760	|	Actinobacteria Stackebrandt et al. 1997	|		|	synonym	|
+1760	|	Actinobacteridae	|		|	includes	|
+1760	|	Actinobacteridae Stackebrandt et al. 1997 emend. Zhi et al. 2009	|		|	authority	|
+1760	|	Actinomycetes Krasil'nikov 1949 (Approved Lists 1980)	|		|	authority	|
+1760	|	Actinomycetes	|		|	scientific name	|
+1760	|	Actinomycetia Salam et al. 2020	|		|	authority	|
+1760	|	Actinomycetia	|		|	synonym	|
+1760	|	high G+C Gram-positive bacteria	|	high G+C Gram-positive bacteria <blast name>	|	blast name	|
+1760	|	high G+C Gram-positive bacteria	|	high G+C Gram-positive bacteria <genbank common name>	|	genbank common name	|
+1762	|	Mycobacteriaceae Chester 1897 (Approved Lists 1980)	|		|	authority	|
+1762	|	Mycobacteriaceae Chester 1897 (Approved Lists 1980) emend. Gupta et al. 2018	|		|	authority	|
+1762	|	Mycobacteriaceae Chester 1897 (Approved Lists 1980) emend. Nouioui et al. 2018	|		|	authority	|
+1762	|	Mycobacteriaceae Chester 1897 (Approved Lists 1980) emend. Stackebrandt et al. 1997	|		|	authority	|
+1762	|	Mycobacteriaceae Chester 1897 (Approved Lists 1980) emend. Zhi et al. 2009	|		|	authority	|
+1762	|	Mycobacteriaceae	|		|	scientific name	|
+1763	|	Mycobacterium Lehmann and Neumann 1896 (Approved Lists 1980) emend. Gupta et al. 2018	|		|	authority	|
+1763	|	Mycobacterium Lehmann and Neumann 1896 (Approved Lists 1980) emend. Val-Calvo and Vazquez-Boland 2023	|		|	authority	|
+1763	|	Mycobacterium Lehmann and Neumann 1896 (Approved Lists 1980)	|		|	synonym	|
+1763	|	Mycobacterium	|		|	scientific name	|
+1763	|	Mycobacterium (subgen. Mycobacterium)	|		|	includes	|
+1763	|	Mycobacterium (subgen. Mycobacterium) (Lehmann and Neumann 1896) Val-Calvo et al. 2025	|		|	authority	|
+1769	|	"Bacillus leprae" Hansen 1880	|		|	authority	|
+1769	|	Bacillus leprae	|		|	synonym	|
+1769	|	Mycobacterium leprae (Hansen 1880) Lehmann and Neumann 1896	|		|	authority	|
+1769	|	Mycobacterium leprae	|		|	scientific name	|
+1773	|	Bacillus tuberculosis	|		|	synonym	|
+1773	|	"Bacillus tuberculosis" (Zopf 1883) Klein 1884	|		|	authority	|
+1773	|	Bacterium tuberculosis	|		|	synonym	|
+1773	|	"Bacterium tuberculosis" Zopf 1883	|		|	authority	|
+1773	|	Mycobacterium tuberculosis	|		|	scientific name	|
+1773	|	"Mycobacterium tuberculosis typus humanus" Lehmann and Neumann 1907	|		|	authority	|
+1773	|	Mycobacterium tuberculosis typus humanus	|		|	synonym	|
+1773	|	"Mycobacterium tuberculosis var. hominis" Bergey et al. 1934	|		|	authority	|
+1773	|	Mycobacterium tuberculosis var. hominis	|		|	synonym	|
+1773	|	Mycobacterium tuberculosis (Zopf 1883) Lehmann and Neumann 1896 (Approved Lists 1980)	|		|	synonym	|
+1883	|	Actinopycnidium Krasil'nikov 1962	|		|	synonym	|
+1883	|	Actinosporangium Krasil'nikov and Yuan 1961	|		|	synonym	|
+1883	|	Chainia	|		|	synonym	|
+1883	|	Chainia Thirumalachar 1955	|		|	authority	|
+1883	|	Elytrosporangium Falcao de Morais et al. 1966	|		|	synonym	|
+1883	|	Kitasatoa Matsumae and Hata 1968 (Approved Lists 1980)	|		|	synonym	|
+1883	|	Microellobosporia Cross et al. 1963 (Approved Lists 1980)	|		|	authority	|
+1883	|	Microellobosporia	|		|	synonym	|
+1883	|	"Microstreptospora" Yan et al.	|		|	synonym	|
+1883	|	Streptomyces	|		|	scientific name	|
+1883	|	Streptomyces Waksman and Henrici 1943 (Approved Lists 1980)	|		|	authority	|
+1883	|	Streptomyces Waksman and Henrici 1943 (Approved Lists 1980) emend. Wellington et al. 1992	|		|	authority	|
+1883	|	Streptomyces Waksman and Henrici 1943 (Approved Lists 1980) emend. Witt and Stackebrandt 1991	|		|	authority	|
+1883	|	Streptoverticillium Baldacci 1958	|		|	synonym	|
+1971	|	Streptomyces albulus Routien 1969 (Approved Lists 1980)	|		|	authority	|
+1971	|	Streptomyces albulus	|		|	synonym	|
+1971	|	Streptomyces noursei Brown et al. 1953 (Approved Lists 1980)	|		|	authority	|
+1971	|	Streptomyces noursei Brown et al. 1953 (Approved Lists 1980) emend. Li et al. 2022	|		|	authority	|
+1971	|	Streptomyces noursei Brown et al. 1953 (Approved Lists 1980) emend. Nouioui et al. 2018	|		|	authority	|
+1971	|	Streptomyces noursei	|		|	scientific name	|
+1971	|	Streptomyces sp. NCIM 2424	|		|	includes	|
+2062	|	Actinoplanaceae	|	Actinoplanaceae <Streptomycetaceae>	|	in-part	|
+2062	|	Actinoplanaceae Couch 1955	|	Actinoplanaceae Couch 1955 <Streptomycetaceae>	|	authority	|
+2062	|	Streptomycetaceae	|		|	scientific name	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980)	|		|	authority	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980) emend. Huang et al. 2017	|		|	authority	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980) emend. Kim et al. 2003	|		|	authority	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980) emend. Nouioui et al. 2018	|		|	authority	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980) emend. Rainey et al. 1997	|		|	authority	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980) emend. Swiecimska et al. 2023	|		|	authority	|
+2062	|	Streptomycetaceae Waksman and Henrici 1943 (Approved Lists 1980) emend. Zhi et al. 2009	|		|	authority	|
+2387	|	transposons	|		|	scientific name	|
+2387	|	Transposon	|		|	synonym	|
+2405	|	Transposon Tn4551	|		|	scientific name	|
+2503	|	Plasmid RP4	|		|	scientific name	|
+28216	|	Betaproteobacteria Garrity et al. 2006 emend. Boden et al. 2017	|		|	authority	|
+28216	|	Betaproteobacteria	|		|	scientific name	|
+28216	|	beta proteobacteria	|		|	synonym	|
+28216	|	beta subdivision	|		|	synonym	|
+28216	|	beta subgroup	|		|	synonym	|
+28216	|	b-proteobacteria	|	b-proteobacteria <blast name>	|	blast name	|
+28216	|	b-proteobacteria	|	b-proteobacteria <genbank common name>	|	genbank common name	|
+28216	|	Proteobacteria beta subdivision	|		|	synonym	|
+28216	|	Purple bacteria, beta subdivision	|		|	synonym	|
+28384	|	other sequences	|	other sequences <blast name>	|	blast name	|
+28384	|	other sequences	|	other sequences <scientific name>	|	scientific name	|
+32630	|	artificial gene	|		|	synonym	|
+32630	|	artificial oligonucleotide	|		|	synonym	|
+32630	|	artificial sequence	|		|	synonym	|
+32630	|	artificial	|		|	synonym	|
+32630	|	primer	|		|	includes	|
+32630	|	synthetic construct	|		|	scientific name	|
+32630	|	synthetic constructs	|		|	synonym	|
+32630	|	synthetic DNA	|		|	synonym	|
+32630	|	synthetic oligonucleotides	|		|	synonym	|
+32630	|	synthetic	|		|	synonym	|
+36549	|	broad host range plasmids	|		|	includes	|
+36549	|	plasmids	|		|	scientific name	|
+36549	|	promiscuous plasmids	|		|	includes	|
+36549	|	wide host range plasmids	|		|	includes	|
+39478	|	Streptomyces laurentii	|		|	scientific name	|
+39478	|	Streptomyces laurentii Trejo et al. 1979 (Approved Lists 1980)	|		|	authority	|
+39478	|	Streptomyces laurentii Trejo et al. 1979 emend. Nouioui et al. 2018	|		|	authority	|
+49928	|	unclassified Bacteria	|		|	scientific name	|
+49928	|	unclassified Eubacteria (miscellaneous)	|		|	synonym	|
+55080	|	Bacillus brevis group	|		|	synonym	|
+55080	|	Brevibacillus	|		|	scientific name	|
+55080	|	Brevibacillus Shida et al. 1996	|		|	authority	|
+55080	|	rRNA group 4 bacilli	|		|	synonym	|
+72274	|	gamma-3 proteobacteria	|	gamma-3 proteobacteria <g-proteobacteria,Pseudomonadales>	|	in-part	|
+72274	|	Pseudomonaceae/Moraxellaceae group	|		|	synonym	|
+72274	|	Pseudomonadales Orla-Jensen 1921 (Approved Lists 1980)	|		|	authority	|
+72274	|	Pseudomonadales Orla-Jensen 1921 (Approved Lists 1980) emend. Flores-Felix et al. 2025	|		|	authority	|
+72274	|	Pseudomonadales Orla-Jensen 1921 emend. Liao et al. 2020	|		|	authority	|
+72274	|	Pseudomonadales	|		|	scientific name	|
+77643	|	Mycobacterium complex	|		|	equivalent name	|
+77643	|	Mycobacterium tuberculosis complex	|		|	scientific name	|
+79880	|	Alkalihalobacillus clausii (Nielsen et al. 1995) Patel and Gupta 2020	|		|	authority	|
+79880	|	Alkalihalobacillus clausii	|		|	synonym	|
+79880	|	Bacillus clausii Nielsen et al. 1995	|		|	authority	|
+79880	|	Bacillus clausii	|		|	synonym	|
+79880	|	Bacillus sp. FSL M8-0080	|		|	includes	|
+79880	|	Bacillus sp. FSL M8-0189	|		|	includes	|
+79880	|	Shouchella clausii (Nielsen et al. 1995) Joshi et al. 2022	|		|	synonym	|
+79880	|	Shouchella clausii	|		|	scientific name	|
+79880	|	Shouchella sp. NRRL B-23342	|		|	includes	|
+79880	|	Shouchella sp. NRRL B-4090	|		|	includes	|
+79880	|	Shouchella sp. NRRL B-4131	|		|	includes	|
+81077	|	artificial sequences	|		|	scientific name	|
+81852	|	Enterococcaceae Ludwig et al. 2010	|		|	authority	|
+81852	|	Enterococcaceae	|		|	scientific name	|
+83332	|	Mycobacterium sp. H37Rv	|		|	synonym	|
+83332	|	Mycobacterium tuberculosis H37Rv	|		|	scientific name	|
+83332	|	Mycobacterium tuberculosis strain H37Rv	|		|	equivalent name	|
+83332	|	Mycobacterium tuberculosis str. H37Rv	|		|	equivalent name	|
+83333	|	Escherichia coli K12	|		|	equivalent name	|
+83333	|	Escherichia coli K-12	|		|	scientific name	|
+85007	|	Corynebacteriales Goodfellow and Jones 2015	|		|	synonym	|
+85007	|	Corynebacteriales	|		|	synonym	|
+85007	|	Corynebacteriineae corrig. Stackebrandt et al. 1997	|		|	synonym	|
+85007	|	Corynebacteriineae	|		|	synonym	|
+85007	|	Corynebacterineae Stackebrandt et al. 1997	|		|	authority	|
+85007	|	Corynebacterineae Stackebrandt et al. 1997 emend. Zhi et al. 2009	|		|	authority	|
+85007	|	Corynebacterineae	|		|	synonym	|
+85007	|	Mycobacteriales Cavalier-Smith, 2002	|		|	authority	|
+85007	|	Mycobacteriales Janke 1924 (Approved Lists 1980)	|		|	synonym	|
+85007	|	Mycobacteriales	|		|	scientific name	|
+85007	|	Mycobacteriineae	|		|	synonym	|
+85007	|	"Mycobacteriineae" Val-Calvo and Vazquez-Boland 2023	|		|	authority	|
+85007	|	Mycobacteriineae Val-Calvo and Vazquez-Boland 2024	|		|	authority	|
+85011	|	Kitasatosporales Kampfer 2022	|		|	authority	|
+85011	|	Kitasatosporales	|		|	scientific name	|
+85011	|	"Streptomycetales" (Rainey et al. 1997) Kampfer 2012	|		|	authority	|
+85011	|	Streptomycetales	|		|	synonym	|
+85011	|	"Streptomycetes" Goodfellow and Williams 1983	|		|	authority	|
+85011	|	Streptomycetes	|		|	synonym	|
+85011	|	Streptomycetineae corrig. Rainey et al. 1997	|		|	authority	|
+85011	|	Streptomycineae Rainey et al. 1997 emend. Zhi et al. 2009	|		|	authority	|
+85011	|	Streptomycineae Rainey et al. 1997	|		|	synonym	|
+85011	|	Streptomycineae	|		|	synonym	|
+90964	|	"Staphylococcaceae" Schleifer and Bell 2009	|		|	authority	|
+90964	|	Staphylococcaceae Schleifer and Bell 2010	|		|	synonym	|
+90964	|	Staphylococcaceae	|		|	scientific name	|
+90964	|	Staphylococceae	|		|	includes	|
+90964	|	Staphylococceae Prevot 1940 (Approved Lists 1980)	|		|	authority	|
+90964	|	Staphylococcus group	|		|	common name	|
+91061	|	Bacilli Ludwig et al. 2010	|		|	authority	|
+91061	|	Bacilli	|		|	scientific name	|
+91061	|	Bacillus/Lactobacillus/Streptococcus group	|		|	synonym	|
+91061	|	Firmibacteria Murray 1988	|		|	authority	|
+91061	|	Firmibacteria	|		|	synonym	|
+91347	|	Enterobacterales Adeolu et al. 2016	|		|	authority	|
+91347	|	Enterobacterales	|		|	scientific name	|
+91347	|	Enterobacteriaceae and related endosymbionts	|		|	synonym	|
+91347	|	Enterobacteriaceae group	|		|	synonym	|
+91347	|	Enterobacteriales	|		|	synonym	|
+91347	|	gamma-3 proteobacteria	|	gamma-3 proteobacteria <enterobacteria,Enterobacterales>	|	in-part	|
+131567	|	biota	|		|	synonym	|
+131567	|	cellular organisms	|		|	scientific name	|
+135621	|	Pseudomonadaceae	|		|	scientific name	|
+135621	|	Pseudomonadaceae Winslow et al. 1917 (Approved Lists 1980)	|		|	authority	|
+135621	|	Pseudomonadaceae Winslow et al. 1917 (Approved Lists 1980) emend. Flores-Felix et al. 2025	|		|	authority	|
+136841	|	Pseudomonas aeruginosa group	|		|	scientific name	|
+158879	|	Staphylococcus aureus (strain N315)	|		|	synonym	|
+158879	|	Staphylococcus aureus subsp. aureus N315	|		|	scientific name	|
+186817	|	Bacillaceae Fischer 1895 (Approved Lists 1980)	|		|	authority	|
+186817	|	Bacillaceae Fischer 1895 (Approved Lists 1980) emend. Li et al. 2024	|		|	authority	|
+186817	|	Bacillaceae	|		|	scientific name	|
+186822	|	Paenibacillaceae De Vos et al. 2010	|		|	authority	|
+186822	|	Paenibacillaceae De Vos et al. 2010 emend. Li et al. 2024	|		|	authority	|
+186822	|	Paenibacillaceae	|		|	scientific name	|
+186826	|	Lactobacillales Ludwig et al. 2010	|		|	authority	|
+186826	|	Lactobacillales	|		|	scientific name	|
+201174	|	Actinobacteraeota Oren et al. 2015	|		|	authority	|
+201174	|	Actinobacteraeota	|		|	synonym	|
+201174	|	actinobacteria	|	actinobacteria <blast name>	|	blast name	|
+201174	|	actinobacteria	|	actinobacteria <genbank common name>	|	genbank common name	|
+201174	|	"Actinobacteria" (ex Margulis 1974) Cavalier-Smith 2020	|		|	authority	|
+201174	|	"Actinobacteria" Goodfellow 2012	|		|	authority	|
+201174	|	Actinobacteria	|		|	synonym	|
+201174	|	"Actinobacteriota" Panda et al. 2022	|		|	authority	|
+201174	|	Actinobacteriota	|		|	synonym	|
+201174	|	"Actinobacteriota" Whitman et al. 2018	|		|	authority	|
+201174	|	Actinomycetota corrig. Goodfellow 2021	|		|	authority	|
+201174	|	Actinomycetota	|		|	scientific name	|
+206351	|	Neisseriales	|		|	scientific name	|
+206351	|	"Neisseriales" Tnjum 2005	|		|	authority	|
+206351	|	Neisseriales Tnjum 2006	|		|	authority	|
+206351	|	Neisseriales Tnjum 2006 emend. Adeolu and Gupta 2013	|		|	authority	|
+206351	|	Neisseriales Tnjum 2006 emend. Chen et al. 2021	|		|	authority	|
+208964	|	Pseudomonas aeruginosa PAO1	|		|	scientific name	|
+208964	|	Pseudomonas sp. PAO1	|		|	equivalent name	|
+272631	|	Mycobacterium leprae strain TN	|		|	equivalent name	|
+272631	|	Mycobacterium leprae str. TN	|		|	equivalent name	|
+272631	|	Mycobacterium leprae TN	|		|	scientific name	|
+282458	|	Staphylococcus aureus subsp. aureus MRSA252	|		|	scientific name	|
+282458	|	Staphylococcus aureus subsp. aureus strain MRSA252	|		|	equivalent name	|
+282458	|	Staphylococcus aureus subsp. aureus str. MRSA252	|		|	equivalent name	|
+316407	|	Escherichia coli strain W3110	|		|	equivalent name	|
+316407	|	Escherichia coli str. K12 substr. W3110	|		|	equivalent name	|
+316407	|	Escherichia coli str. K-12 substr. W3110	|		|	scientific name	|
+316407	|	Escherichia coli str. W3110	|		|	equivalent name	|
+316407	|	Escherichia coli W3110	|		|	synonym	|
+354276	|	Enterobacter cloacae complex	|		|	scientific name	|
+358681	|	Brevibacillus brevis NBRC 100599	|		|	scientific name	|
+358681	|	Brevibacillus brevis strain NBRC 100599	|		|	equivalent name	|
+358681	|	Brevibacillus brevis str. NBRC 100599	|		|	equivalent name	|
+509173	|	Acinetobacter baumannii AYE	|		|	scientific name	|
+509173	|	Acinetobacter baumannii strain AYE	|		|	equivalent name	|
+509173	|	Acinetobacter baumannii str. AYE	|		|	equivalent name	|
+511145	|	Escherichia coli MG1655	|		|	synonym	|
+511145	|	Escherichia coli strain MG1655	|		|	equivalent name	|
+511145	|	Escherichia coli str. K12 substr. MG1655	|		|	equivalent name	|
+511145	|	Escherichia coli str. K-12 substr. MG1655	|		|	scientific name	|
+511145	|	Escherichia coli str. MG1655	|		|	equivalent name	|
+521006	|	Neisseria gonorrhoeae NCCP11945	|		|	scientific name	|
+521006	|	Neisseria gonorrhoeae strain NCCP11945	|		|	equivalent name	|
+521006	|	Neisseria gonorrhoeae str. NCCP11945	|		|	equivalent name	|
+663108	|	mixed culture bacterium AX_gF3SD01_15	|		|	scientific name	|
+909768	|	Acinetobacter calcoaceticus/baumannii complex	|		|	scientific name	|
+1783272	|	Bacillati (Gibbons and Murray 1978) Oren and Goker 2024	|		|	authority	|
+1783272	|	Bacillati	|		|	scientific name	|
+1783272	|	Firmacutes Gibbons and Murray 1978 (Approved Lists 1980)	|		|	authority	|
+1783272	|	Firmacutes	|		|	synonym	|
+1783272	|	"Firmicuteota" Panda et al. 2022	|		|	authority	|
+1783272	|	Firmicuteota	|		|	synonym	|
+1783272	|	Firmicutes corrig. Gibbons and Murray 1978 (Approved Lists 1980)	|		|	synonym	|
+1783272	|	Firmicutes	|		|	synonym	|
+1783272	|	"Terrabacteria" Battistuzzi et al. 2004	|		|	authority	|
+1783272	|	Terrabacteria group	|		|	common name	|
+1783272	|	Terrabacteria	|		|	synonym	|
+1783272	|	"Terrabacterida" Luketa 2012	|		|	authority	|
+1783272	|	Terrabacterida	|		|	synonym	|
+2487418	|	Streptomyces sp. WAC05292	|		|	scientific name	|
+2487418	|	Streptomyces sp. WAC5292	|		|	synonym	|
+2593676	|	unclassified Streptomyces	|		|	scientific name	|
+2787854	|	other entries	|		|	scientific name	|
+2887326	|	"Moraxellales" Liao et al. 2020	|		|	authority	|
+2887326	|	Moraxellales Liao et al. 2021	|		|	authority	|
+2887326	|	Moraxellales	|		|	scientific name	|
+2893057	|	"Shouchella" Joshi et al. 2021	|		|	authority	|
+2893057	|	Shouchella Joshi et al. 2022	|		|	authority	|
+2893057	|	Shouchella	|		|	scientific name	|
+3379134	|	Pseudomonadati (Gibbons and Murray 1978) Oren and Goker 2024	|		|	authority	|
+3379134	|	Pseudomonadati	|		|	scientific name	|
+3390273	|	Klebsiella pneumoniae complex	|		|	scientific name	|

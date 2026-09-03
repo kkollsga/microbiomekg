@@ -1,7 +1,7 @@
 """NCBI taxonomy reconciliation: raw names and ids in, a canonical tax_id out.
 
-Every source in this project names organisms differently — BugSigDB carries
-NCBI ids, Disbiome and CARD carry free text, and all of them are older than the
+Every source in this project names organisms differently — BugSigDB and CARD
+carry NCBI ids, Disbiome carries free text, and all of them are older than the
 current taxdump. This module is the single place that turns any of those into
 the canonical key the graph uses (``Taxon.id`` = NCBI tax_id, integer), and
 records *how* it got there so a caller can keep the failures instead of

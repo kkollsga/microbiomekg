@@ -1,0 +1,84 @@
+1	|	root	|		|		|		|		|		|		|		|		|
+131567	|	cellular organisms	|		|		|		|		|		|		|		|		|
+2	|	Bacteria	|		|		|		|		|		|		|		|		|
+1783272	|	Bacillati	|		|		|		|		|		|		|		|	Bacteria	|
+201174	|	Actinomycetota	|		|		|		|		|		|		|	Bacillati	|	Bacteria	|
+1760	|	Actinomycetes	|		|		|		|		|		|	Actinomycetota	|	Bacillati	|	Bacteria	|
+85011	|	Kitasatosporales	|		|		|		|		|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2062	|	Streptomycetaceae	|		|		|		|	Kitasatosporales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1883	|	Streptomyces	|		|		|	Streptomycetaceae	|	Kitasatosporales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+39478	|	Streptomyces laurentii	|		|	Streptomyces	|	Streptomycetaceae	|	Kitasatosporales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1971	|	Streptomyces noursei	|		|	Streptomyces	|	Streptomycetaceae	|	Kitasatosporales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2593676	|	unclassified Streptomyces	|		|	Streptomyces	|	Streptomycetaceae	|	Kitasatosporales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+2487418	|	Streptomyces sp. WAC05292	|		|	Streptomyces	|	Streptomycetaceae	|	Kitasatosporales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+85007	|	Mycobacteriales	|		|		|		|		|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1762	|	Mycobacteriaceae	|		|		|		|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1763	|	Mycobacterium	|		|		|	Mycobacteriaceae	|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1769	|	Mycobacterium leprae	|		|	Mycobacterium	|	Mycobacteriaceae	|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+272631	|	Mycobacterium leprae TN	|	Mycobacterium leprae	|	Mycobacterium	|	Mycobacteriaceae	|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+77643	|	Mycobacterium tuberculosis complex	|		|	Mycobacterium	|	Mycobacteriaceae	|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1773	|	Mycobacterium tuberculosis	|		|	Mycobacterium	|	Mycobacteriaceae	|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+83332	|	Mycobacterium tuberculosis H37Rv	|	Mycobacterium tuberculosis	|	Mycobacterium	|	Mycobacteriaceae	|	Mycobacteriales	|	Actinomycetes	|	Actinomycetota	|	Bacillati	|	Bacteria	|
+1239	|	Bacillota	|		|		|		|		|		|		|	Bacillati	|	Bacteria	|
+91061	|	Bacilli	|		|		|		|		|		|	Bacillota	|	Bacillati	|	Bacteria	|
+1385	|	Caryophanales	|		|		|		|		|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+186817	|	Bacillaceae	|		|		|		|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+2893057	|	Shouchella	|		|		|	Bacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+79880	|	Shouchella clausii	|		|	Shouchella	|	Bacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+186822	|	Paenibacillaceae	|		|		|		|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+55080	|	Brevibacillus	|		|		|	Paenibacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1393	|	Brevibacillus brevis	|		|	Brevibacillus	|	Paenibacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+358681	|	Brevibacillus brevis NBRC 100599	|	Brevibacillus brevis	|	Brevibacillus	|	Paenibacillaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+90964	|	Staphylococcaceae	|		|		|		|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1279	|	Staphylococcus	|		|		|	Staphylococcaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1280	|	Staphylococcus aureus	|		|	Staphylococcus	|	Staphylococcaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+282458	|	Staphylococcus aureus subsp. aureus MRSA252	|	Staphylococcus aureus	|	Staphylococcus	|	Staphylococcaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+158879	|	Staphylococcus aureus subsp. aureus N315	|	Staphylococcus aureus	|	Staphylococcus	|	Staphylococcaceae	|	Caryophanales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+186826	|	Lactobacillales	|		|		|		|		|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+81852	|	Enterococcaceae	|		|		|		|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1350	|	Enterococcus	|		|		|	Enterococcaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+1351	|	Enterococcus faecalis	|		|	Enterococcus	|	Enterococcaceae	|	Lactobacillales	|	Bacilli	|	Bacillota	|	Bacillati	|	Bacteria	|
+3379134	|	Pseudomonadati	|		|		|		|		|		|		|		|	Bacteria	|
+1224	|	Pseudomonadota	|		|		|		|		|		|		|	Pseudomonadati	|	Bacteria	|
+28216	|	Betaproteobacteria	|		|		|		|		|		|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+206351	|	Neisseriales	|		|		|		|		|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+481	|	Neisseriaceae	|		|		|		|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+482	|	Neisseria	|		|		|	Neisseriaceae	|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+485	|	Neisseria gonorrhoeae	|		|	Neisseria	|	Neisseriaceae	|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+521006	|	Neisseria gonorrhoeae NCCP11945	|	Neisseria gonorrhoeae	|	Neisseria	|	Neisseriaceae	|	Neisseriales	|	Betaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+1236	|	Gammaproteobacteria	|		|		|		|		|		|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+91347	|	Enterobacterales	|		|		|		|		|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+543	|	Enterobacteriaceae	|		|		|		|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+547	|	Enterobacter	|		|		|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+354276	|	Enterobacter cloacae complex	|		|	Enterobacter	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+550	|	Enterobacter cloacae	|		|	Enterobacter	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+561	|	Escherichia	|		|		|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+562	|	Escherichia coli	|		|	Escherichia	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+83333	|	Escherichia coli K-12	|	Escherichia coli	|	Escherichia	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+511145	|	Escherichia coli str. K-12 substr. MG1655	|	Escherichia coli	|	Escherichia	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+316407	|	Escherichia coli str. K-12 substr. W3110	|	Escherichia coli	|	Escherichia	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+570	|	Klebsiella	|		|		|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+3390273	|	Klebsiella pneumoniae complex	|		|	Klebsiella	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+573	|	Klebsiella pneumoniae	|		|	Klebsiella	|	Enterobacteriaceae	|	Enterobacterales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+2887326	|	Moraxellales	|		|		|		|		|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+468	|	Moraxellaceae	|		|		|		|	Moraxellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+469	|	Acinetobacter	|		|		|	Moraxellaceae	|	Moraxellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+909768	|	Acinetobacter calcoaceticus/baumannii complex	|		|	Acinetobacter	|	Moraxellaceae	|	Moraxellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+470	|	Acinetobacter baumannii	|		|	Acinetobacter	|	Moraxellaceae	|	Moraxellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+509173	|	Acinetobacter baumannii AYE	|	Acinetobacter baumannii	|	Acinetobacter	|	Moraxellaceae	|	Moraxellales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+72274	|	Pseudomonadales	|		|		|		|		|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+135621	|	Pseudomonadaceae	|		|		|		|	Pseudomonadales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+286	|	Pseudomonas	|		|		|	Pseudomonadaceae	|	Pseudomonadales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+136841	|	Pseudomonas aeruginosa group	|		|	Pseudomonas	|	Pseudomonadaceae	|	Pseudomonadales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+287	|	Pseudomonas aeruginosa	|		|	Pseudomonas	|	Pseudomonadaceae	|	Pseudomonadales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+208964	|	Pseudomonas aeruginosa PAO1	|	Pseudomonas aeruginosa	|	Pseudomonas	|	Pseudomonadaceae	|	Pseudomonadales	|	Gammaproteobacteria	|	Pseudomonadota	|	Pseudomonadati	|	Bacteria	|
+49928	|	unclassified Bacteria	|		|		|		|		|		|		|		|	Bacteria	|
+663108	|	mixed culture bacterium AX_gF3SD01_15	|		|		|		|		|		|		|		|	Bacteria	|
+2787854	|	other entries	|		|		|		|		|		|		|		|		|
+28384	|	other sequences	|		|		|		|		|		|		|		|		|
+81077	|	artificial sequences	|		|		|		|		|		|		|		|		|
+32630	|	synthetic construct	|		|		|		|		|		|		|		|		|
+36549	|	plasmids	|		|		|		|		|		|		|		|		|
+2503	|	Plasmid RP4	|		|		|		|		|		|		|		|		|
+2387	|	transposons	|		|		|		|		|		|		|		|		|
+2405	|	Transposon Tn4551	|		|		|		|		|		|		|		|		|

@@ -1,0 +1,182 @@
+{
+  "_doc": "CARD 4.0.2 (card-data/card.json as the model authority, card-ontology/aro.obo for names and hierarchy): the ResistanceGene / DrugClass / ResistanceMechanism nodes and the three edges D7 walks. CARD curates no taxon-disease association, so this fragment adds nothing to core.json's taxon_disease.csv; what it adds under Taxon is CARRIES_RESISTANCE_GENE, whose taxid is the *reference sequence's* organism and says so on the edge (sequence_derived, taxon_scope, taxon_specificity). Licence is per edge, not per source: a fact aro.obo also states is CC-BY-4.0, a fact only card.json states is CARD-noncommercial.",
+  "nodes": {
+    "ResistanceGene": {
+      "csv": "resistance_gene.csv",
+      "pk": "aro_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "card_short_name": "string",
+        "description": "string",
+        "gene_family": "string",
+        "gene_family_aro": "string",
+        "model_type": "string",
+        "card_model_id": "string",
+        "curated": "bool",
+        "protein_accession": "string",
+        "dna_accession": "string",
+        "aro_parents": "string",
+        "name_source": "string",
+        "publications": "string",
+        "n_publications": "int",
+        "source": "string",
+        "source_licence": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "CONFERS_RESISTANCE_TO": {
+            "csv": "resistance_gene_drug_class.csv",
+            "source_fk": "aro_id",
+            "target": "DrugClass",
+            "target_fk": "drug_class_id",
+            "properties": [
+              "evidence_level",
+              "pmid",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "card_model_id",
+              "model_type",
+              "curated",
+              "publications",
+              "n_publications"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "pmid": "int",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "card_model_id": "string",
+              "model_type": "string",
+              "curated": "bool",
+              "publications": "string",
+              "n_publications": "int"
+            }
+          },
+          "VIA_MECHANISM": {
+            "csv": "resistance_gene_mechanism.csv",
+            "source_fk": "aro_id",
+            "target": "ResistanceMechanism",
+            "target_fk": "mechanism_id",
+            "properties": [
+              "evidence_level",
+              "pmid",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "card_model_id",
+              "model_type",
+              "curated",
+              "publications",
+              "n_publications"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "pmid": "int",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "card_model_id": "string",
+              "model_type": "string",
+              "curated": "bool",
+              "publications": "string",
+              "n_publications": "int"
+            }
+          }
+        }
+      }
+    },
+    "DrugClass": {
+      "csv": "drug_class.csv",
+      "pk": "drug_class_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "aro_parents": "string",
+        "source": "string",
+        "source_licence": "string"
+      }
+    },
+    "ResistanceMechanism": {
+      "csv": "resistance_mechanism.csv",
+      "pk": "mechanism_id",
+      "title": "label",
+      "properties": {
+        "label": "string",
+        "aro_parents": "string",
+        "source": "string",
+        "source_licence": "string"
+      }
+    },
+    "Taxon": {
+      "connections": {
+        "junction_edges": {
+          "CARRIES_RESISTANCE_GENE": {
+            "csv": "taxon_resistance_gene.csv",
+            "source_fk": "tax_id",
+            "target": "ResistanceGene",
+            "target_fk": "aro_id",
+            "properties": [
+              "evidence_level",
+              "pmid",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "card_model_id",
+              "model_type",
+              "curated",
+              "publications",
+              "n_publications",
+              "sequence_derived",
+              "taxon_scope",
+              "taxon_specificity",
+              "reported_name",
+              "reported_tax_id",
+              "resolution_status",
+              "original_rank"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "pmid": "int",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "card_model_id": "string",
+              "model_type": "string",
+              "curated": "bool",
+              "publications": "string",
+              "n_publications": "int",
+              "sequence_derived": "bool",
+              "taxon_scope": "string",
+              "taxon_specificity": "string",
+              "reported_name": "string",
+              "reported_tax_id": "int",
+              "resolution_status": "string",
+              "original_rank": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

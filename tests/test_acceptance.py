@@ -691,3 +691,203 @@ def test_d15_a_second_source_moved_the_headline_number_and_says_why(graph):
     # And what it *does* carry: every gutMDisorder edge has its citation.
     assert gut["no_pmid"] == 0
     assert census["bugsigdb"]["no_design"] < census["bugsigdb"]["edges"]
+
+
+# --------------------------------------------------------------------------
+# D7 — "Which AMR genes does taxon X carry, to which drug class, by which
+#       mechanism, and at what call confidence?"
+# --------------------------------------------------------------------------
+#
+# Part D filed this `pending-source: CARD`, and wrote its Cypher against the
+# names `docs/research/source-formats.md`'s extraction table proposed. The
+# loader that landed uses three of them differently, and each difference is a
+# fact about the data rather than a preference:
+#
+# * `AROTerm` is `ResistanceGene`, because the node is one CARD *model* and
+#   `model_type` is the thing W6 asks for; `CARRIES_DETERMINANT` is
+#   `CARRIES_RESISTANCE_GENE` for the same reason.
+# * `a.resistance_mechanism` is a `ResistanceMechanism` node behind
+#   `VIA_MECHANISM` rather than a string property. The extraction table filed
+#   the eight mechanisms as a property and the 50 drug classes as nodes;
+#   they are the same shape of fact — an ARO category on a model — and a model
+#   may carry two of them (`MexR` carries `antibiotic efflux` *and*
+#   `antibiotic target alteration`), which a single property cannot hold.
+# * **`c.hit_category` does not exist and cannot.** RGI's Perfect / Strict /
+#   Loose is produced by *running* RGI against a sample; it is in no CARD
+#   download. The column is not written as an empty placeholder, and
+#   `taxon_specificity` carries the call-confidence information CARD does have.
+#
+# Measured 2026-09-03 over CARD 4.0.2 (`_timestamp` 2026-08-11) and NCBI
+# `new_taxdump` 2026-09-02.
+
+D7 = {
+    "resistance_genes": 6451,
+    "drug_classes": 50,
+    "mechanisms": 8,
+    "carriage_edges": 6415,
+    "confers_edges": 13691,
+    "taxa_carrying": 539,
+    # E. coli, the taxon D7's own Cypher names.
+    "ecoli_rows": 1535,
+    "ecoli_determinants": 646,
+    "ecoli_drug_classes": 31,
+    "ecoli_mechanisms": 7,
+    # The caveats, as counts.
+    "bacteria_only": 132,        # models whose whole taxon claim is "a bacterium"
+    "not_an_organism": 18,       # plasmids, a transposon, a synthetic construct
+    "predicted_confers": 104,    # the 36 meta-models' drug-class edges
+    "ccby_confers": 42,          # the slice `aro.obo` also states
+}
+
+
+def card_loaded(graph) -> bool:
+    return bool(rows(graph, "MATCH (g:ResistanceGene) RETURN g LIMIT 1"))
+
+
+def test_d7_the_resistance_layer_is_the_size_card_ships(graph):
+    if not card_loaded(graph):
+        pytest.skip("this build did not load CARD")
+    result = one(
+        graph,
+        """
+        MATCH (g:ResistanceGene) WITH count(g) AS genes
+        MATCH (d:DrugClass) WITH genes, count(d) AS drug_classes
+        MATCH (m:ResistanceMechanism) RETURN genes, drug_classes, count(m) AS mechanisms
+        """,
+    )
+    assert result["genes"] == D7["resistance_genes"]
+    assert result["drug_classes"] == D7["drug_classes"]
+    assert result["mechanisms"] == D7["mechanisms"]
+    edges = {
+        r["rel"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:CARRIES_RESISTANCE_GENE|CONFERS_RESISTANCE_TO]->() "
+            "RETURN type(r) AS rel, count(r) AS n",
+        )
+    }
+    assert edges["CARRIES_RESISTANCE_GENE"] == D7["carriage_edges"]
+    assert edges["CONFERS_RESISTANCE_TO"] == D7["confers_edges"]
+
+
+def test_d7_the_query_answers_for_a_named_taxon(graph):
+    """D7's query, against the names the loader shipped (see the note above).
+    Every row says which drug class, by which mechanism, from which model type
+    — and what the taxon edge actually claims."""
+    if not card_loaded(graph):
+        pytest.skip("this build did not load CARD")
+    result = rows(
+        graph,
+        """
+        MATCH (t:Taxon {id: 562})-[c:CARRIES_RESISTANCE_GENE]->(g:ResistanceGene)
+        OPTIONAL MATCH (g)-[:CONFERS_RESISTANCE_TO]->(dc:DrugClass)
+        OPTIONAL MATCH (g)-[:VIA_MECHANISM]->(m:ResistanceMechanism)
+        RETURN g.title AS determinant, g.id AS aro, m.title AS mechanism,
+               dc.title AS drug_class, c.model_type AS model_type,
+               c.sequence_derived AS from_reference_sequence,
+               c.taxon_specificity AS taxon_specificity,
+               c.evidence_level AS level, c.knowledge_level AS knowledge,
+               c.primary_source AS source, c.source_licence AS licence
+        ORDER BY drug_class, determinant
+        """,
+    )
+    assert len(result) == D7["ecoli_rows"]
+    assert len({r["aro"] for r in result}) == D7["ecoli_determinants"]
+    assert len({r["drug_class"] for r in result}) == D7["ecoli_drug_classes"]
+    assert len({r["mechanism"] for r in result}) == D7["ecoli_mechanisms"]
+    # Every row carries its provenance and its caveat; none is null.
+    assert all(r["from_reference_sequence"] is True for r in result)
+    assert all(r["source"] == "card" for r in result)
+    assert all(r["level"] and r["licence"] and r["model_type"] for r in result)
+    # A variant model means the *mutation* confers resistance, not the gene's
+    # presence — W6's "detection model type" requirement, and it is populated.
+    assert "protein variant model" in {r["model_type"] for r in result}
+
+
+def test_d7_the_taxon_edge_does_not_claim_the_organism_is_resistant(graph):
+    """The condition D7 states in prose, asserted as counts. 132 models are
+    keyed on taxid 2 (Bacteria) alone and 18 on something that is not an
+    organism at all; both are kept, flagged, and excludable."""
+    if not card_loaded(graph):
+        pytest.skip("this build did not load CARD")
+    by_scope = {
+        r["scope"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:CARRIES_RESISTANCE_GENE]->() "
+            "RETURN r.taxon_specificity AS scope, count(r) AS n",
+        )
+    }
+    assert by_scope["above-species"] >= D7["bacteria_only"]
+    assert by_scope["not-an-organism"] == D7["not_an_organism"]
+    assert sum(by_scope.values()) == D7["carriage_edges"]
+    bacteria = one(
+        graph,
+        "MATCH (t:Taxon {id: 2})-[r:CARRIES_RESISTANCE_GENE]->() "
+        "RETURN count(r) AS n, t.title AS name",
+    )
+    assert bacteria["n"] == D7["bacteria_only"]
+    # Never CARD's editorial label for taxid 2.
+    assert bacteria["name"] == "Bacteria"
+    carriers = one(
+        graph,
+        "MATCH (t:Taxon)-[:CARRIES_RESISTANCE_GENE]->() "
+        "RETURN count(DISTINCT t.id) AS taxa",
+    )
+    assert carriers["taxa"] == D7["taxa_carrying"]
+
+
+def test_d7_the_predicted_layer_and_the_licence_are_each_one_where_clause(graph):
+    """Two of D7's stated conditions. A "276k AMR links" figure sourced from
+    CARD Prevalence would be `computational-predicted`; here the predicted
+    layer is the 36 meta-models with no reference sequence, and dropping it is
+    one clause. The licence is per edge because the download carries two, and
+    the CC BY 4.0 slice is *small* — 42 of 13,691 — which is the finding, not
+    a rounding error: `aro.obo` names every term but states only 37 models'
+    drug classes, so D7's answer lives in the non-redistributable half."""
+    if not card_loaded(graph):
+        pytest.skip("this build did not load CARD")
+    levels = {
+        r["level"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:CONFERS_RESISTANCE_TO]->() "
+            "RETURN r.evidence_level AS level, count(r) AS n",
+        )
+    }
+    assert levels["computational-predicted"] == D7["predicted_confers"]
+    assert set(levels) == {"in-vitro", "computational-predicted"}
+    licences = {
+        r["licence"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:CONFERS_RESISTANCE_TO]->() "
+            "RETURN r.source_licence AS licence, count(r) AS n",
+        )
+    }
+    assert licences == {
+        "CARD-noncommercial": D7["confers_edges"] - D7["ccby_confers"],
+        "CC-BY-4.0": D7["ccby_confers"],
+    }
+
+
+def test_d7_and_d2_meet_on_one_taxon(graph):
+    """The reason CARD is in this graph rather than beside it: *E. coli* is one
+    node that carries resistance determinants and is reported in diseases, so
+    "what does this taxon carry, and what is it associated with?" is one query
+    rather than two databases and a join by name."""
+    if not card_loaded(graph):
+        pytest.skip("this build did not load CARD")
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon {id: 562})
+        OPTIONAL MATCH (t)-[a:ASSOCIATED_WITH]->(d:Disease)
+        OPTIONAL MATCH (t)-[c:CARRIES_RESISTANCE_GENE]->(:ResistanceGene)
+        RETURN t.title AS name, count(DISTINCT a) AS associations,
+               count(DISTINCT d.id) AS diseases, count(DISTINCT c) AS determinants
+        """,
+    )
+    assert result["name"] == "Escherichia coli"
+    assert result["determinants"] == D7["ecoli_determinants"]
+    assert result["associations"] > 0 and result["diseases"] > 0
