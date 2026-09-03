@@ -23,7 +23,10 @@ loader is measured against what each trap would silently do:
 
 The second half is what this source is *for*: `ProteinTarget.tax_id` is the
 only field in ChEMBL that touches a microbe, and it is what makes D8's "which
-drugs hit bacterial targets" partially answerable while MASI is still pending.
+drugs hit bacterial targets" answerable at all. It is one leg of that query and
+not the main one — binding a protein an organism has is a different claim from
+stopping that organism growing — and the direct drug↔taxon layer came from the
+two published screens instead.
 """
 
 from __future__ import annotations

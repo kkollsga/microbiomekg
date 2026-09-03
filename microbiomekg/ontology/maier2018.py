@@ -366,8 +366,8 @@ GROWTH_PROPERTY_TYPES: dict[str, str] = {
 #: They are on the *node* only for minted drugs, and that asymmetry is the
 #: model's, not a shortcut: ``drug.csv`` is keyed on ``drug_id`` and the first
 #: row per key wins, so a Prestwick fact about a drug ChEMBL already holds
-#: cannot be written onto its node at all (the same constraint
-#: docs/model.md records for MASI). ``drug_class`` therefore rides on the
+#: cannot be written onto its node at all (docs/model.md §ChEMBL, "one drug,
+#: whatever salt it was curated as"). ``drug_class`` therefore rides on the
 #: **edge**, where it is available for every drug in the screen rather than only
 #: for the third of them this source minted.
 DRUG_PROPERTY_TYPES: dict[str, str] = {

@@ -80,8 +80,10 @@ def test_selftest_passes_against_the_manifest():
     # two candidates for. 932,372 until MiMeDB v2.0 replaced v1.0 as the loaded
     # release and its wider `observed` rule kept 302 more compounds — nodes
     # only; the edge count did not move, because no MiMeDB release carries an
-    # association to write an edge from.
-    assert "932674 node(s)" in output, output
+    # association to write an edge from. MASI then added 1,350 `Substance`
+    # nodes, 122 `UnresolvedTaxon` tombstones, 18 `Disease` nodes, 42 `Paper`
+    # nodes and 22 taxa nothing else cited.
+    assert "934206 node(s)" in output, output
 
 
 def test_server_is_read_only():
@@ -97,7 +99,7 @@ def test_server_is_read_only():
             client.call("cypher_query", {"query": "CREATE (n:Taxon {id: -1, scientific_name: 'x'})"})
         assert "writable" in str(excinfo.value).lower(), excinfo.value
         # And the graph is untouched: the refusal is a refusal, not a rollback.
-        assert "864110" in client.call(
+        assert "864132" in client.call(
             "cypher_query", {"query": "MATCH (t:Taxon) RETURN count(t) AS c"}
         )
 

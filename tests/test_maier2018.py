@@ -415,7 +415,7 @@ def test_the_drug_table_is_one_table_two_sources(graph, csv_dir):
 def test_a_screen_fact_about_a_chembl_drug_rides_on_the_edge(graph):
     """`drug.csv` is keyed on `drug_id` and the first row per key wins, so a
     Prestwick fact about a drug ChEMBL already holds **cannot** be written onto
-    its node — the same constraint docs/model.md records for MASI. `drug_class`
+    its node — docs/model.md §ChEMBL records the constraint. `drug_class`
     therefore rides on the edge, where it is there for all 1,197 screened drugs
     rather than only the 330 this source minted."""
     node = one(graph, f"MATCH (d:Drug {{id: '{VANCOMYCIN}'}}) "

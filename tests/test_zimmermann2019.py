@@ -555,8 +555,10 @@ def test_the_drug_table_is_one_table_three_sources(csv_dir):
 def test_a_screen_fact_about_a_known_drug_rides_on_the_edge(graph):
     """`drug.csv` is keyed on `drug_id` and the first row per key wins, so this
     screen's annotation for a compound ChEMBL already holds **cannot** be
-    written onto its node — the same constraint docs/model.md records for MASI
-    and for Maier's `drug_class`. `therapeutic_indication` therefore rides on
+    written onto its node — the constraint docs/model.md §ChEMBL records, and
+    the one Maier's `drug_class` already answers to. It is also half of why
+    MASI's substances are their own node type rather than rows in `drug.csv`.
+    `therapeutic_indication` therefore rides on
     the edge, where it is there for all 271 screened compounds rather than only
     the 23 minted here."""
     node = one(graph, f"MATCH (d:Drug {{id: '{VANCOMYCIN}'}}) "

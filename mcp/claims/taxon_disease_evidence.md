@@ -61,7 +61,7 @@ hatches.
      WITH t, d, count(DISTINCT r.study_id) AS studies
      WITH count(*) AS pairs, sum(CASE WHEN studies = 1 THEN 1 ELSE 0 END) AS single
      RETURN single, pairs, round(1000.0 * single / pairs) / 10.0 AS pct
-     == 47232, 56306, 83.9 -->
+     == 47262, 56306, 83.9 -->
 
 ## Cross-disease breadth (D3), and why it must not roll conditions up
 

@@ -120,7 +120,7 @@ count; let the caller see the disagreement.
 
 ## Guard 3 — single cohort is the default case, not the exception
 
-**47,232 of 56,306 pairs (83.9%) rest on exactly one distinct `study_id`.**
+**47,262 of 56,306 pairs (83.9%) rest on exactly one distinct `study_id`.**
 `count(DISTINCT r.study_id) >= 2` is therefore the default filter for any
 *ranked* or *recommended* output, and dropping it is a decision to report
 unreplicated findings. Note the count is over `study_id`, not over edges: one

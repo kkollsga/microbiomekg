@@ -2,7 +2,9 @@
 
 This source adds two node types and three relationships, and no association
 edge at all — which is the point worth stating first. **ChEMBL carries no
-drug↔taxon edge**, so W7 and D18 stay `pending-source: MASI`. What it does
+drug↔taxon edge**, and it still does not: that layer came from the two
+published screens (Maier 2018, Zimmermann 2019) and, as a curated third
+opinion, from MASI. What it does
 carry is `target.tax_id` on 98.4% of targets, 124 of them non-human, and 865
 mechanism rows pointing at those: enough to make "which approved drugs act on a
 bacterial protein?" answerable now, one join short of "which gut bacteria does

@@ -55,24 +55,31 @@ GOLDEN = {
     "d2_studies": 21,
     "d2_increased": 39,
     "d2_dissenting_record": "bsdb:41270896/1/2",
-    # D3 — taxa reported in more than one condition (was 3,799 of 7,718)
-    "d3_multi_condition_taxa": 3821,
-    "d3_taxa_with_associations": 7753,
-    # D9 — the 16S share of the evidence (was 57,391 of 103,461)
-    "d9_association_edges": 105097,
+    # D3 — taxa reported in more than one condition (was 3,799 of 7,718, then
+    # 3,821 of 7,753; MASI's 783 associations added one taxon and one pairing)
+    "d3_multi_condition_taxa": 3822,
+    "d3_taxa_with_associations": 7754,
+    # D9 — the 16S share of the evidence (was 57,391 of 103,461). The
+    # denominator moved with MASI and the numerator did not: MASI's disease
+    # export records no sequencing type, so all 783 are `unknown`.
+    "d9_association_edges": 105880,
     "d9_observational_16S": 58595,
     # D15 — the headline audit number (was 14,349 of 103,461 = 13.87%). It rose
     # because every gutMDisorder edge is missing three contract fields: the
     # source records no study design, and its association rows have no link to
     # a sample arm, so there are no per-association group sizes either.
+    # It rose again — 15.20% to 15.80% — when MASI landed, for the third
+    # variant of the same reason: its disease export names no design, host,
+    # sequencing type, statistical test or arm sizes, so all 783 are
+    # violations. 15,985 + 783 = 16,768.
     "d15_rule": "ASSOCIATED_WITH.required_properties",
-    "d15_violations": 15985,
-    "d15_total": 105097,
+    "d15_violations": 16768,
+    "d15_total": 105880,
     # D17 — disagreement and single-cohort support (was 8,114 and 46,809 of
-    # 55,445)
-    "d17_pairs": 56124,
-    "d17_direction_conflict": 8238,
-    "d17_single_cohort": 47232,
+    # 55,445, then 8,238 and 47,232 of 56,124)
+    "d17_pairs": 56306,
+    "d17_direction_conflict": 8257,
+    "d17_single_cohort": 47262,
     # D4 — the four tiers Part D quotes, and the intervention leg that needed
     # gutMDisorder. The tier counts are the golden: "all four are non-empty"
     # passes on a build that lost 90% of one of them.
@@ -443,6 +450,17 @@ def test_d15_the_per_field_census_the_audit_rolls_up(graph):
         # `evidence_level` is never absent — the derivation returns the string
         # "unknown" — so these edges carry a level that means nothing and no
         # required-property check can see them. That is deliberate.
+        #
+        # **MASI is the exception, and it is a whole-source one.** Its disease
+        # export has eleven columns and none of them is a design, a host or an
+        # assay, so Part B's own definition of `unknown` covers all 783: "the
+        # source records no design, host or assay from which a level can be
+        # derived. Never defaulted to observational." Naming it here rather
+        # than relaxing the rule is the point — a second source landing at 100%
+        # `unknown` should turn this red until somebody writes down why.
+        if row["source"] == "masi":
+            assert row["level_unknown"] == row["edges"] == 783, row
+            continue
         assert row["level_unknown"] < row["edges"], row
 
 
@@ -706,13 +724,22 @@ def test_d15_a_second_source_moved_the_headline_number_and_says_why(graph):
             """,
         )
     }
-    assert set(census) == {"bugsigdb", "gutmdisorder"}
+    assert set(census) == {"bugsigdb", "gutmdisorder", "masi"}
     gut = census["gutmdisorder"]
     assert gut["no_design"] == gut["edges"]
     assert gut["no_group0"] == gut["edges"]
     # And what it *does* carry: every gutMDisorder edge has its citation.
     assert gut["no_pmid"] == 0
     assert census["bugsigdb"]["no_design"] < census["bugsigdb"]["edges"]
+    # MASI is the third source and the same shape again — 15.20% to 15.80% —
+    # for a reason the census names rather than a regression: its disease
+    # export is eleven columns and not one of them is a design, a host, a
+    # sequencing type, a statistical test or an arm size. What it does carry is
+    # the citation, on every row.
+    masi = census["masi"]
+    assert masi["no_design"] == masi["edges"] == 783
+    assert masi["no_group0"] == masi["edges"]
+    assert masi["no_pmid"] == 0
 
 
 # --------------------------------------------------------------------------
@@ -919,9 +946,10 @@ def test_d7_and_d2_meet_on_one_taxon(graph):
 # --------------------------------------------------------------------------
 # ChEMBL — "drugs and their targets are reachable from the graph"
 #
-# D8 and D18 stay `pending-source: MASI`: ChEMBL carries no drug↔taxon edge at
-# all, and no query below invents one. What lands here is the half of those two
-# queries that ChEMBL can supply — the `Drug` and `ProteinTarget` nodes, the
+# ChEMBL carries no drug↔taxon edge at all, and no query below invents one —
+# the direct layer came from the two published screens and, as a curated third
+# opinion, from MASI. What lands here is the half of D8 and D18 that ChEMBL can
+# supply — the `Drug` and `ProteinTarget` nodes, the
 # mechanism between them, and the target organisms, which is what makes "which
 # approved drugs act on a bacterial protein?" answerable one join short of
 # "which gut bacteria does this drug inhibit?".
@@ -1874,13 +1902,22 @@ PARTIAL_GOLDEN = {
     # D10 — inflammatory bowel disease (MONDO:0005265), replicated depletions.
     # The AMR and metabolite columns read 0 and [] for every row before CARD
     # and HMDB landed; they are the two numbers that say the legs exist.
-    "d10_candidates": 26,
-    "d10_with_amr": 4,
+    # Was 26 before MASI: its 46 IBD associations over 32 taxa added six
+    # candidates that now clear the two-study clause.
+    "d10_candidates": 32,
+    "d10_with_amr": 5,
     # Was 7 with HMDB alone; NJC19's export half more than doubled it, which is
     # W3's metabolite leg going from a sample to something a candidate list can
-    # be filtered on.
-    "d10_with_metabolites": 18,
-    "d10_candidates_any_support": 118,
+    # be filtered on, and MASI's taxa added two more.
+    "d10_with_metabolites": 20,
+    "d10_candidates_any_support": 119,
+    # **The column D10 is named for, and it did not exist until MASI.** Seven of
+    # the 32 depleted-in-IBD candidates are organisms MASI records as being used
+    # as probiotics, with the stage that use has reached — including
+    # *Akkermansia muciniphila*, the case D10's own narrative walks through, and
+    # *Faecalibacterium prausnitzii*.
+    "d10_probiotic_candidates": 7,
+    "d10_probiotic_named": "Akkermansia muciniphila",
     # D12 — the synonym lookup, and the rank filter that makes it an answer.
     "d12_reuteri": 1598,
     "d12_rhamnosus": 47715,
@@ -1892,6 +1929,14 @@ PARTIAL_GOLDEN = {
     },
     # D18 — metformin as a competing explanation, through gutMDisorder's
     # intervention edge joined to ChEMBL's drug identity by IS_DRUG.
+    #
+    # MASI added a third route and it is the largest: 365 edges over 185 taxa
+    # onto the `Substance` node metformin also has, one `SAME_COMPOUND_AS` hop
+    # from `CHEMBL:CHEMBL1431`. 347 of those 365 are pairs no screen measured.
+    "d18_masi_metformin_edges": 365,
+    "d18_masi_metformin_taxa": 185,
+    "d18_masi_metformin_novel": 347,
+    "d18_masi_t2d_taxa": 48,
     "d18_metformin_edges": 24,
     "d18_metformin_taxa": 21,
     "d18_t2d_rows": 19,
@@ -1991,7 +2036,8 @@ def test_d10_the_amr_and_metabolite_legs_are_populated_not_zero(graph):
     """Part D filed D10 `partial` with the AMR and metabolite columns
     returning `0` and `[]` for every row — "the honest answer, not a bug".
     CARD and HMDB changed that, and the two counts are what the status now
-    rests on: the gap is coverage, not a missing relationship."""
+    rests on: the gap is coverage, not a missing relationship. MASI moved the
+    candidate list itself, 26 -> 32."""
     result = one(
         graph,
         """
@@ -2010,6 +2056,45 @@ def test_d10_the_amr_and_metabolite_legs_are_populated_not_zero(graph):
     assert result["candidates"] == PARTIAL_GOLDEN["d10_candidates"]
     assert result["with_amr"] == PARTIAL_GOLDEN["d10_with_amr"]
     assert result["with_metabolites"] == PARTIAL_GOLDEN["d10_with_metabolites"]
+
+
+def test_d10_now_has_the_column_it_is_named_for(graph):
+    """**D10 asks for "plausible probiotic candidates" and until MASI landed
+    the graph had no column that said which taxa anybody uses as one.** It has
+    one now, on the node: `Taxon.probiotic` with the population it was used in
+    and the stage that use has reached, from MASI's microbe dictionary.
+
+    Seven of the 32 depleted-in-IBD candidates carry it, and the list is not a
+    curiosity — it contains *Akkermansia muciniphila*, whose randomised
+    double-blind pilot D10's own text walks through as the chain the query is a
+    proxy for, and *Faecalibacterium prausnitzii*. The flag is **three-state**:
+    a candidate MASI does not cover is null, never false, so this query never
+    reads "MASI has no row for this organism" as "this organism is not a
+    probiotic"."""
+    named = rows(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005265'})
+        WHERE r.direction = 'decreased' AND t.placeholder = false
+          AND t.probiotic = true
+        WITH t, count(DISTINCT r.study_id) AS n_studies
+        WHERE n_studies >= 2
+        RETURN t.title AS candidate, t.probiotic_use_species AS used_in,
+               t.probiotic_research_stage AS stage
+        ORDER BY candidate
+        """,
+    )
+    assert len(named) == PARTIAL_GOLDEN["d10_probiotic_candidates"]
+    assert PARTIAL_GOLDEN["d10_probiotic_named"] in {r["candidate"] for r in named}
+    assert all(r["used_in"] and r["stage"] for r in named), (
+        "a probiotic flag with no use population and no research stage is a "
+        "boolean, not an answer"
+    )
+    # Three-state, and the third state is what stops the flag being read as a
+    # verdict on the organisms MASI never mentions.
+    assert one(
+        graph, "MATCH (t:Taxon) WHERE t.probiotic IS NULL RETURN count(*) AS n"
+    )["n"] > 0
 
 
 def test_d10_g4_is_the_two_study_clause_not_a_nicety(graph):
@@ -2202,9 +2287,11 @@ def test_d18_is_partial_because_the_named_fixtures_are_the_missing_ones(graph):
     """Forslund et al. name an *Escherichia* increase, an *Intestinibacter*
     decrease and a *Lactobacillus* increase as metformin effects rather than
     T2D signals. gutMDisorder curates a metformin edge for **none** of them —
-    only *Bifidobacterium* of the named set is reachable — so the query answers
-    with the taxa this corpus happens to have, and MASI's 4,001 + 7,770 typed
-    pairs are still what closes it."""
+    only *Bifidobacterium* of the named set is reachable on this route, which
+    is why the intervention leg alone answers with the taxa this corpus happens
+    to have. MASI's route reaches the other three
+    (`test_d18_masi_reaches_the_three_confounders_gutmdisorder_misses`), on
+    curated literature rather than on a measurement."""
     reachable = {
         r["taxon"]
         for r in rows(
@@ -2218,6 +2305,67 @@ def test_d18_is_partial_because_the_named_fixtures_are_the_missing_ones(graph):
     }
     assert PARTIAL_GOLDEN["d18_present_fixture"] in reachable
     assert not (set(PARTIAL_GOLDEN["d18_absent_fixtures"]) & reachable)
+
+
+def test_d18_masi_reaches_the_three_confounders_gutmdisorder_misses(graph):
+    """**The leg D18 was filed `partial` for, and what it turns out to be.**
+    Part D's caveat was that *Intestinibacter* — "the decrease Forslund calls
+    the most consistent of the four" — was not one of Maier's 40 isolates and
+    could get no measurement from that source. MASI reaches it: a curated
+    abundance **decrease** under metformin, in vivo in humans.
+
+    And the citation on that edge is `PMID:26633628`, which is **Forslund et
+    al. itself**. That is worth stating plainly rather than counting as a win:
+    the graph now contains the finding the query is checking a T2D association
+    against, curated by a third party, and a curated restatement of the paper
+    is not independent evidence for or against it. D18 therefore stays
+    `partial`. What did change is the reach — 32 T2D taxa to 48 — and the
+    shape of the gap: it is no longer "no edge exists" but "the edge that
+    exists is the claim, not a test of it", which `primary_source = 'masi'`,
+    `evidence_level` and `publications` all say on the edge itself."""
+    metformin = one(
+        graph,
+        f"MATCH (s:Substance)-[:{'SAME_COMPOUND_AS'}]->"
+        f"(:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}}) RETURN s.id AS id",
+    )["id"]
+    reach = one(
+        graph,
+        f"MATCH (t:Taxon)-[r]->(:Substance {{id: '{metformin}'}}) "
+        f"RETURN count(r) AS edges, count(DISTINCT t) AS taxa, "
+        f"sum(CASE WHEN r.duplicates_primary_source IS NULL THEN 1 ELSE 0 END) "
+        f"AS novel",
+    )
+    assert reach["edges"] == PARTIAL_GOLDEN["d18_masi_metformin_edges"]
+    assert reach["taxa"] == PARTIAL_GOLDEN["d18_masi_metformin_taxa"]
+    assert reach["novel"] == PARTIAL_GOLDEN["d18_masi_metformin_novel"]
+    assert one(
+        graph,
+        f"""
+        MATCH (t:Taxon)-[:ASSOCIATED_WITH]->(:Disease {{id: 'MONDO:0005148'}})
+        MATCH (t)-[:ABUNDANCE_CHANGED_BY_SUBSTANCE|ABUNDANCE_UNCHANGED_BY_SUBSTANCE
+                  |METABOLISES_SUBSTANCE|DOES_NOT_METABOLISE_SUBSTANCE]->
+              (:Substance {{id: '{metformin}'}})
+        RETURN count(DISTINCT t) AS taxa
+        """,
+    )["taxa"] == PARTIAL_GOLDEN["d18_masi_t2d_taxa"]
+
+    named = {
+        (r["taxon"], r["direction"]): r
+        for r in rows(
+            graph,
+            f"MATCH (t:Taxon)-[r]->(:Substance {{id: '{metformin}'}}) "
+            f"WHERE t.title IN "
+            f"{list(PARTIAL_GOLDEN['d18_absent_fixtures'])} "
+            f"RETURN t.title AS taxon, r.direction AS direction, "
+            f"r.publications AS publications, r.evidence_level AS level",
+        )
+    }
+    assert {t for t, _d in named} == set(PARTIAL_GOLDEN["d18_absent_fixtures"])
+    # The one the caveat is named for, and the paper it comes from.
+    intestinibacter = named[("Intestinibacter", "decreased")]
+    assert intestinibacter["publications"] == "PMID:26633628"
+    assert intestinibacter["level"] == "unknown"
+    assert ("Escherichia", "increased") in named
 
 
 def test_d8_leg3_is_the_growth_screen_and_its_negatives(graph):
@@ -2584,32 +2732,139 @@ def test_d8_a_measured_negative_is_bounded_by_its_assay_and_digoxin_proves_it(gr
     )
 
 
-def test_d8_and_d18_no_longer_wait_on_masi(graph):
-    """**What the MASI download turned out to be, and what replaced it.**
-    `data/raw/masi/MASI_v1.0_download_substanceInfo.{txt,xlsx}` is the substance
-    dictionary — 1,350 rows, 18 columns, no organism column, no interaction
-    column, no effect, no direction, no PMID — and the interaction tables the
-    research document sizes MASI by are *not recoverable*: the origin no longer
-    completes a TLS connection and the Wayback Machine never captured them
-    (`data/raw/manifest.json`).
+def test_masi_is_loaded_and_never_onto_a_relationship_a_screen_owns(graph):
+    """**What the MASI download turned out to be, once all of it arrived.** The
+    2026-09-02 record called the interaction tables *unrecoverable*, and that
+    was wrong: `www.aiddlab.com` has an expired TLS certificate rather than
+    being gone, so every programmatic fetch failed at the handshake and the
+    Wayback Machine — which will not archive a host it cannot handshake with —
+    had never captured them either. Two failures with one cause corroborated
+    each other into a false negative. A browser asks and proceeds; all eight
+    files answered on 2026-09-03.
 
-    Nothing is loaded from it, and nothing should be: no prep, no blueprint
-    fragment, no ontology module. The drug↔taxon layer arrived from the
-    published screen MASI aggregates instead, which is a *better* source for
-    D8's inhibition leg than MASI would have been — it is strain-resolved where
-    MASI is genus-resolved, and it carries the negatives MASI would not have."""
-    assert not (ROOT / "scripts" / "prep_masi.py").exists(), (
-        "a MASI prep exists — if the interaction tables landed, D8 and D18's "
-        "goldens and statuses have to be restated rather than left as they are"
-    )
-    assert not (ROOT / "blueprints" / "masi.json").exists()
-    assert (ROOT / "data" / "raw" / "masi" / "PROVENANCE.md").is_file(), (
-        "the profile that says why MASI loaded nothing is the deliverable here"
-    )
-    assert not rows(
+    MASI is the eleventh source, and it is an **aggregator**: 5,419 of its
+    12,512 interaction records cite Maier 2018 and 2,884 cite Zimmermann 2019,
+    both already loaded from the papers themselves, and **7,161 of the 11,456
+    edges it produces restate a (taxon, compound) pair one of those screens
+    already measures**. So it gets its own node type and its own four
+    relationships, and the identity between a MASI substance and a graph `Drug`
+    is a declared `SAME_COMPOUND_AS` edge rather than a merge.
+
+    This test is the guard that used to assert MASI loaded nothing, restated
+    for what it actually protects: **no measured relationship may carry a MASI
+    edge**. If one did, `MATCH (t:Taxon)-[:METABOLISES]->(d:Drug)` — the query
+    D8 is written as — would count a curated restatement and a measured screen
+    cell as two observations, with nothing in the query text to say so."""
+    for relationship in (
+        "INHIBITS_GROWTH_OF", "DOES_NOT_INHIBIT_GROWTH_OF",
+        "METABOLISES", "DOES_NOT_METABOLISE",
+    ):
+        assert not rows(
+            graph,
+            f"MATCH ()-[r:{relationship}]->() WHERE r.primary_source = 'masi' "
+            f"RETURN r LIMIT 1",
+        ), (
+            f"{relationship} carries a MASI edge. That relationship is a "
+            f"published screen's measured population; an aggregator's curation "
+            f"of the same literature belongs on its own."
+        )
+    assert (ROOT / "scripts" / "prep_masi.py").is_file()
+    assert (ROOT / "blueprints" / "masi.json").is_file()
+    assert (ROOT / "data" / "raw" / "masi" / "PROVENANCE.md").is_file()
+    counts = {
+        r["t"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r]->(:Substance) RETURN type(r) AS t, count(*) AS n",
+        )
+    }
+    assert counts == {
+        "METABOLISES_SUBSTANCE": 3356,
+        "DOES_NOT_METABOLISE_SUBSTANCE": 16,
+        "ABUNDANCE_CHANGED_BY_SUBSTANCE": 7579,
+        "ABUNDANCE_UNCHANGED_BY_SUBSTANCE": 505,
+    }
+    overlap = one(
         graph,
-        "MATCH ()-[r]->() WHERE r.primary_source = 'masi' RETURN r LIMIT 1",
+        "MATCH ()-[r]->(:Substance) RETURN count(*) AS edges, "
+        "sum(CASE WHEN r.duplicates_primary_source IS NULL THEN 0 ELSE 1 END) "
+        "AS restated",
     )
+    assert (overlap["edges"], overlap["restated"]) == (11456, 7161)
+
+
+def test_masi_mints_no_drug_node_and_the_identity_is_an_edge(graph):
+    """MASI never writes a `Drug`. Both screens do — they mint one for each
+    screened compound no ChEMBL route reaches — so this is a real difference and
+    not an accident of what happened to join: 278 of MASI's 1,350 substances
+    have no therapeutic category at all (*Cadmium*, *Black tea extract*), and
+    typing those `Drug` is the C14 error in a different column.
+
+    883 of the 1,350 reach an existing `Drug` by an exact or salt-stripped name
+    match, and that identity is an edge a query traverses deliberately."""
+    assert one(graph, "MATCH (s:Substance) RETURN count(*) AS n")["n"] == 1350
+    assert not rows(
+        graph, "MATCH (d:Drug) WHERE d.source = 'masi' RETURN d LIMIT 1"
+    )
+    assert one(
+        graph, "MATCH ()-[r:SAME_COMPOUND_AS]->() RETURN count(*) AS n"
+    )["n"] == 883
+    # And the hop works in the direction D8 and D18 need it.
+    assert one(
+        graph,
+        f"MATCH (t:Taxon)-[m]->(s:Substance)-[:SAME_COMPOUND_AS]->"
+        f"(d:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}}) "
+        f"RETURN count(m) AS edges",
+    )["edges"] == PARTIAL_GOLDEN["d18_masi_metformin_edges"]
+
+
+def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(graph):
+    """Its 784 disease records land as rows in the shared `taxon_disease.csv`,
+    not as a fourth relationship, so D2/D3/D17 span them without knowing MASI
+    arrived. All 783 edges violate the fourteen-property contract, and that is
+    the audit working for the third time: the export has eleven columns and not
+    one of them is a design, a host, a sequencing type, a statistical test or an
+    arm size.
+
+    The disease keys come through MONDO **by name**, because MASI ships no
+    condition identifier at all — 684 of the 783 edges reach a live MONDO term
+    by a label or an exact synonym, and the other 99 keep `MASI:DIS<n>` with
+    `mondo_id` null, the shape BugSigDB's 503 own-CURIE terms already have."""
+    assert one(
+        graph,
+        "MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.primary_source = 'masi' "
+        "RETURN count(*) AS n",
+    )["n"] == 783
+    routes = {
+        r["route"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:ASSOCIATED_WITH]->(:Disease) "
+            "WHERE r.primary_source = 'masi' "
+            "RETURN r.condition_join AS route, count(*) AS n",
+        )
+    }
+    assert routes == {
+        "mondo-name": 358, "mondo-exact-synonym": 326, "unmatched": 99
+    }
+    # **`condition_join` is on the edge and not on the node**, because
+    # `disease.csv` is shared and key-deduped: 631 of the MONDO ids MASI reaches
+    # were written by BugSigDB or gutMDisorder first, so a node column would be
+    # null for exactly the edges it describes. Same constraint as a screen's
+    # `drug_class`, same answer.
+    assert not rows(
+        graph, "MATCH (d:Disease) WHERE d.condition_join IS NOT NULL RETURN d LIMIT 1"
+    )
+    # A name-keyed disease is still a disease with its source string on it, so
+    # the join stays reversible.
+    unmatched = one(
+        graph,
+        "MATCH ()-[r:ASSOCIATED_WITH]->(d:Disease) "
+        "WHERE r.condition_join = 'unmatched' "
+        "AND d.source_condition = 'Rheumatoid arthrits' "
+        "RETURN d.id AS id, d.mondo_id AS mondo",
+    )
+    assert unmatched["id"].startswith("MASI:") and unmatched["mondo"] is None
 
 
 def test_d18_metformin_inhibits_none_of_the_screened_taxa(graph):
