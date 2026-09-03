@@ -31,7 +31,8 @@ Layout:
 - `microbiomekg/tables.py` — the shared flat-CSV writer, and how two sources
   merge rows into one table without either knowing the other's columns.
 - `microbiomekg/embedder.py` — the deterministic character-n-gram embedder the
-  semantic name lookup uses. No model download; see `docs/model.md` §6b.
+  semantic name lookup uses. No model download, and **off by default** —
+  `--with-vectors`; see `docs/model.md` §6b.
 - `mcp/microbiomekg_mcp.yaml` — the MCP manifest: read-only, skills on, the
   evidence rules in `instructions:` and the sticky field reminder in
   `overview_prefix:`.
@@ -58,8 +59,20 @@ Build it:
 
 ```bash
 .venv/bin/python scripts/build.py          # --scope microbial is the default
+.venv/bin/python scripts/build.py --with-kegg      # + the licence-gated source
+.venv/bin/python scripts/build.py --with-vectors   # + the semantic name lane
 .venv/bin/python -m pytest -q
 ```
+
+Two things are **off by default and opt in by a flag**, for different reasons.
+`--with-kegg` is a licence gate (above). `--with-vectors` is a cost gate: the
+character-n-gram vector index buys query-time tolerance for a *misspelt*
+organism name and nothing else — load-time reconciliation matches exactly,
+through synonyms and through authority stripping, and never touches it — while
+costing +82.6 s of build, `.kgl` 46.7 MB → 212.7 MB, load 1.03 s → 2.41 s and
+serving RSS 1.2 GB → 3.7 GB (measured, `docs/model.md` §6b). The five BM25
+indexes are unconditional at 276 ms and 14.3 MB. A default build says in its
+report that the lane was skipped and which flag turns it on.
 
 The build prints node and edge counts, the ontology audit, and G10's expansion
 factor — edges per source record — for every relationship the fragments

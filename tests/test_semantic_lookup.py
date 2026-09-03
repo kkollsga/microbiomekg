@@ -15,6 +15,14 @@ assertion below is about spelling.
 Two stages are tested separately, because each covers exactly what the other
 misses and a single blended score does neither job as well (see
 ``mcp/microbiomekg.skills/reconciliation.md``).
+
+**The lane is opt-in (``--with-vectors``), so this module skips on a default
+build** — a skip naming the flag, never a green run that asserted nothing. The
+check is ``embedding_dim('Taxon', 'scientific_name') is None``; the same check
+is what a hybrid query has to branch on, because ``text_score()`` over a graph
+with no store *raises* rather than scoring zero. That the two builds differ in
+exactly this way is asserted in ``tests/test_build_pipeline.py``, which is the
+gate against the default quietly drifting back to carrying the index.
 """
 
 from __future__ import annotations
@@ -98,8 +106,9 @@ def graph():
     loaded = kglite.load(str(GRAPH))
     if loaded.embedding_dim("Taxon", "scientific_name") is None:
         pytest.skip(
-            "this graph carries no Taxon.scientific_name vectors — rebuild without "
-            "`--no-vectors`"
+            "this graph carries no vector lane — it is opt-in, and this is a "
+            "default build. Rebuild with `.venv/bin/python scripts/build.py "
+            "--scope microbial --with-vectors` to run these (docs/model.md §6b)"
         )
     from microbiomekg.embedder import CharGramEmbedder
 

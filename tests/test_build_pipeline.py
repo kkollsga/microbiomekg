@@ -325,3 +325,103 @@ def test_the_expansion_report_names_every_relationship_it_declared(
     for rel in ("ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "REPORTED_BY",
                 "HAS_PARENT", "PART_OF_STUDY", "PUBLISHED_AS", "AT_BODY_SITE"):
         assert rel in section, f"{rel} is declared and unreported"
+
+
+# --------------------------------------------------------------------------
+# The vector lane is opt-in, and the default build must not carry it
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def both_builds(tmp_path_factory, fixture_csvs) -> dict[str, tuple[Path, str]]:
+    """The same fixture CSVs built twice: the default, and ``--with-vectors``.
+
+    One fixture rather than two tests each running a build, because the point
+    is the *difference* between two graphs built from identical input — the
+    only variable is the flag.
+    """
+    out = tmp_path_factory.mktemp("vector-lane")
+    built: dict[str, tuple[Path, str]] = {}
+    for name, extra in (("default", []), ("with_vectors", ["--with-vectors"])):
+        kgl = out / f"{name}.kgl"
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
+             "--csv", str(fixture_csvs), "--out", str(kgl), *extra],
+            capture_output=True, text=True, cwd=ROOT,
+        )
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        built[name] = (kgl, proc.stdout)
+    return built
+
+
+def test_the_default_build_carries_the_bm25_lane_and_no_vectors(both_builds):
+    """The default is BM25-only, and says so.
+
+    The gate against the default drifting back: the vector lane costs +82.6 s
+    of build, +165.9 MB of `.kgl` and +2.5 GB of serving RSS (2026-09-03
+    capture) to buy query-time tolerance for a misspelt name — nothing the
+    load-time reconciliation in `microbiomekg/reconcile.py` uses. A build that
+    quietly re-acquired it would be paying all of that by accident.
+    """
+    kglite = pytest.importorskip("kglite")
+    path, stdout = both_builds["default"]
+    graph = kglite.load(str(path))
+
+    assert graph.list_embeddings() == []
+    for node_type, prop, _ef in build.VECTOR_INDEXES:
+        assert graph.embedding_dim(node_type, prop) is None, f"{node_type}.{prop}"
+        assert not graph.has_vector_index(node_type, prop), f"{node_type}.{prop}"
+    # The BM25 lane is not gated: five indexes for 276 ms and 14.3 MB.
+    for node_type, prop in build.TEXT_INDEXES:
+        assert graph.has_text_index(node_type, prop), f"{node_type}.{prop}"
+
+    # And the report says which flag turns the missing lane on, because the
+    # absence is otherwise only discoverable by a query that fails.
+    assert "vector indexes: skipped (--with-vectors opts in)" in stdout, stdout
+
+
+def test_the_flagged_build_carries_both_lanes(both_builds):
+    kglite = pytest.importorskip("kglite")
+    path, stdout = both_builds["with_vectors"]
+    graph = kglite.load(str(path))
+
+    stores = {(s["node_type"], s["text_column"]) for s in graph.list_embeddings()}
+    assert stores == {(node_type, prop) for node_type, prop, _ in build.VECTOR_INDEXES}
+    for node_type, prop, _ef in build.VECTOR_INDEXES:
+        assert graph.embedding_dim(node_type, prop) == 256, f"{node_type}.{prop}"
+        assert graph.has_vector_index(node_type, prop), f"{node_type}.{prop}"
+    for node_type, prop in build.TEXT_INDEXES:
+        assert graph.has_text_index(node_type, prop), f"{node_type}.{prop}"
+    assert "vector indexes: skipped" not in stdout, stdout
+
+
+def test_text_score_raises_on_the_default_graph_and_answers_on_the_flagged_one(
+    both_builds,
+):
+    """The consequence a consumer meets, asserted rather than described.
+
+    `text_score()` over a graph with no vector store does **not** score 0.0 —
+    it raises, taking the whole query down, including a `score_fuse()` whose
+    BM25 lane would have answered on its own. So a hybrid lookup has to ask
+    `embedding_dim(...)` and route, not catch; that is what the MCP
+    reconciliation skill must branch on and what `tests/test_semantic_lookup.py`
+    skips on.
+    """
+    kglite = pytest.importorskip("kglite")
+    from microbiomekg.embedder import CharGramEmbedder
+
+    query = (
+        "MATCH (t:Taxon) RETURN t.id AS id, "
+        "text_score(t, 'scientific_name', $q) AS score ORDER BY score DESC LIMIT 1"
+    )
+    graphs = {}
+    for name, (path, _stdout) in both_builds.items():
+        graphs[name] = kglite.load(str(path))
+        graphs[name].set_embedder(CharGramEmbedder())
+
+    with pytest.raises(Exception) as excinfo:
+        list(graphs["default"].cypher(query, params={"q": "Bacteroides frajilis"}))
+    assert "embedding" in str(excinfo.value).lower(), excinfo.value
+
+    rows = list(graphs["with_vectors"].cypher(query, params={"q": "Bacteroides frajilis"}))
+    assert rows and rows[0]["score"] > 0.0, rows

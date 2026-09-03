@@ -25,7 +25,11 @@ Six steps, in this order and for these reasons:
 4. **Load** that copy, with ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` raised
    above the junction row count — see the note on that constant below. Not
    optional.
-5. **Build the BM25 indexes** docs/model.md §6 lists.
+5. **Build the BM25 indexes** docs/model.md §6 lists. Unconditional — five
+   indexes for 276 ms and 14.3 MB. The **vector** lane (§6b) is not: it is
+   opt-in behind ``--with-vectors`` — the same shape of gate as ``--with-kegg``
+   for a different reason, cost rather than licence — and the report says so
+   when it was skipped.
 6. **Report** node and edge counts, the ontology audit, the per-source
    expansion factor (G10), and save.
 
@@ -66,6 +70,9 @@ JUNCTION_CHUNK_SIZE = "1000000"
 
 #: docs/model.md §6. ``(node type, property)`` — the everyday lookup, the
 #: reconciliation-by-old-name index, and the three free-text entry points.
+#: Unconditional, unlike the vector lane below: all five together cost 276 ms
+#: and 14.3 MB of ``.kgl`` (2026-09-03 capture, §4), which is not a cost worth
+#: a flag.
 #: ``Study.title`` is not indexed (identical to ``Paper.title``), nor is
 #: ``BodySite.label`` (237 values: an exact match is better), nor any numeric
 #: or CURIE field.
@@ -85,12 +92,18 @@ TEXT_INDEXES: tuple[tuple[str, str], ...] = (
 #: whole-token lane cannot reach and n-gram cosine can; and because a
 #: downloaded model would make the build depend on the network.
 #:
-#: Measured 2026-09-03 at ``--scope microbial`` over all 864,099 taxon names:
-#: 26.7 s to embed, 50.1 s to build the HNSW index, ``.kgl`` 44.1 MB -> 210.0 MB
-#: (+165.9 MB). Both are inside the budget this project set for the whole-scope
-#: option (2 minutes, 200 MB), which is why the store is the whole scope rather
-#: than the ~7,910 taxa carrying an association edge. The cost the budget did
-#: not name is resident memory: a served graph goes from ~1.4 GB to ~2.4 GB.
+#: **Off by default — ``--with-vectors`` opts in.** What it buys is query-time
+#: tolerance for a *misspelt* name; load-time reconciliation
+#: (``microbiomekg/reconcile.py``) matches exactly, through synonyms, through
+#: authority stripping and through merged-id remapping, and never touches a
+#: vector. Measured 2026-09-03 at ``--scope microbial`` over all 864,110 taxon
+#: names (bench/results/2026-09-03-ten-sources.md §3 and §4): 28.2 s to embed,
+#: 54.4 s to build the HNSW index — 82.6 s in all — and ``.kgl`` 46.7 MB ->
+#: 212.7 MB (+165.9 MB), load 1.03 s -> 2.41 s, serving RSS 1.2 GB -> 3.7 GB.
+#: When the lane *is* built the store covers every taxon rather than the ~7,910
+#: carrying an association edge: an operator who has opted into the cost wants
+#: to resolve the name in front of them, which is routinely a taxon no edge in
+#: this graph mentions.
 #:
 #: The third element is ``ef_search``, and on ``Taxon`` it is **not** the
 #: kglite default. Hashed character n-grams are the "unclustered
@@ -413,12 +426,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--no-save", action="store_true")
     ap.add_argument(
-        "--no-vectors",
+        "--with-vectors",
         action="store_true",
-        help="Skip the character-n-gram vector lane (VECTOR_INDEXES). The BM25 "
-        "lane still builds; a graph saved this way scores 0.0 on every "
-        "text_score() call, so mcp/microbiomekg.skills/reconciliation.md's "
-        "hybrid lookup silently degrades to BM25 alone.",
+        help="Include the character-n-gram vector lane (VECTOR_INDEXES). Off by "
+             "default: it serves query-time misspelling tolerance only, and "
+             "costs +82.6 s of build, +165.9 MB of .kgl and +2.5 GB of "
+             "serving RSS. Reconciliation at load time never uses it.",
     )
     for source, flag in LICENCE_GATED.items():
         ap.add_argument(
@@ -507,7 +520,7 @@ def main(argv: list[str] | None = None) -> int:
             f"{stats.get('terms', 0):>8,} terms, {stats.get('skipped', 0):>5,} skipped"
         )
 
-    if not args.no_vectors:
+    if args.with_vectors:
         # After the BM25 pass, because the two lanes index the same columns and
         # a `score_fuse` query needs both present; before `report`, so the audit
         # and the save see one finished graph.
@@ -527,6 +540,21 @@ def main(argv: list[str] | None = None) -> int:
                 f"embed {t_embed:.1f}s, hnsw {time.time() - t0:.1f}s "
                 f"({index.get('indexed', 0):,} indexed)"
             )
+    else:
+        # Named in the report rather than merely absent from it: on the graph a
+        # default build produces, `text_score()` *raises* — "vector_score(): no
+        # embedding 'scientific_name_emb' found for node type 'Taxon'" — so a
+        # consumer who did not know the lane was skipped meets a failed query
+        # rather than a missing feature. The costs are the 2026-09-03 capture's
+        # (bench/results/2026-09-03-ten-sources.md §3, §4).
+        print("\n--- vector indexes: skipped (--with-vectors opts in)")
+        print("    Query-time misspelling tolerance only — reconciliation at "
+              "load time uses exact names,")
+        print("    synonyms and authority stripping, and never touches vectors. "
+              "Enabling it costs")
+        print("    +82.6 s of build (28.2 s embed + 54.4 s HNSW), .kgl 46.7 MB "
+              "-> 212.7 MB (+165.9 MB),")
+        print("    load 1.03 s -> 2.41 s and serving RSS 1.2 GB -> 3.7 GB.")
 
     report(graph, loaded, fragments, args.csv)
 

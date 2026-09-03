@@ -59,6 +59,15 @@ share one child process and one `from_blueprint`, so asking for any of them
 runs all three; they need a `blueprint.load.json` in the scratch CSV directory,
 which is what the `build` section leaves behind.
 
+**The `build` section no longer includes the vector lane by default** (changed
+after the 2026-09-03 capture): `scripts/build.py` builds it only under
+`--with-vectors`, so a fresh `build` row is now the BM25-only build — about
+82.6 s shorter, writing a 46.7 MB `.kgl` rather than 212.7 MB. Reproduce the
+2026-09-03 capture's build section with `--build-args --with-vectors`. The
+`index` and `saveload` sections are unaffected: they stage every index
+themselves, both lanes, from `build.TEXT_INDEXES` and `build.VECTOR_INDEXES`,
+and are what §3 and §4's default-vs-flagged numbers come from.
+
 ## Where the query cells come from
 
 **The query benchmark is Part D itself, extracted at run time.**
@@ -82,7 +91,9 @@ Consequences worth knowing:
   `mcp/microbiomekg.skills/reconciliation.md`**, not from Part D. D12's own
   fenced block is the *lexical* half of the lookup; the misspelling case —
   BM25 fused with the two vector lanes — is authored in the skill, which
-  `docs/model.md` §6b names as its authority.
+  `docs/model.md` §6b names as its authority. **Those three need a graph built
+  with `--with-vectors`**; against a default graph `text_score()` raises and
+  they land under "Did not run", correctly, with the engine's message.
 - **Two cells are the harness's own** (`point_taxon_by_id`, `lineage_walk`):
   shapes the evaluation asks for by name that Part D has no block for.
 - **A query cell within 3× the noise floor is called out under the table.** The
