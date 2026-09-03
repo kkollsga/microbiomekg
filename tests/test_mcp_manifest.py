@@ -74,9 +74,11 @@ def test_selftest_passes_against_the_manifest():
     # above. These are the capabilities it must have found.
     assert "✓ graph tools registered" in output, output
     assert "✓ graph hydrates" in output, output
-    # 931,992 before Maier 2018 landed; the 355 `Drug` nodes it mints for the
-    # screened compounds no ChEMBL join route reaches are the difference.
-    assert "932347 node(s)" in output, output
+    # 931,992 before the two drug screens landed. Maier mints 355 `Drug` nodes
+    # for the library entries no ChEMBL join route reaches; Zimmermann mints 23
+    # more and two `UnresolvedTaxon` tombstones for the strain names NCBI holds
+    # two candidates for.
+    assert "932372 node(s)" in output, output
 
 
 def test_server_is_read_only():

@@ -45,6 +45,7 @@ from microbiomekg.reconcile import (  # noqa: E402
 #: table and is missing here.
 DEPENDS_ON: list[str] = [
     "bugsigdb", "card", "chembl", "gutmdisorder", "hmdb", "maier2018", "njc19",
+    "zimmermann2019",
 ]
 
 #: Clade roots for ``--scope microbial``: Bacteria, Archaea, Fungi.

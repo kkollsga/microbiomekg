@@ -935,9 +935,10 @@ CHEMBL_GOLDEN = {
     # approved molecule), plus 2,910 molecules a mechanism names and the
     # max_phase-4 file does not carry.
     # 6,030 ChEMBL nodes plus the 355 Prestwick library entries Maier 2018
-    # mints, which is why this number moved: `drug.csv` is a shared table and
-    # the second source's rows are rows, not a second node type.
-    "drugs": 6385,
+    # mints and the 23 screened compounds Zimmermann 2019 does, which is why
+    # this number keeps moving: `drug.csv` is a shared table and a further
+    # source's rows are rows, not a second node type.
+    "drugs": 6408,
     "chembl_drugs": 6030,
     "approved": 3120,
     "withdrawn": 297,
@@ -1057,17 +1058,19 @@ def test_chembl_a_bacterial_target_is_the_half_of_d8_that_exists(chembl_graph):
 def test_chembl_still_has_no_drug_taxon_edge_of_its_own(chembl_graph):
     """The guard, restated rather than deleted. It used to assert that
     `MATCH (d:Drug)-[r]-(t:Taxon)` returns **0**, so D8's gap could not close by
-    accident. Maier 2018 closed it deliberately, so the zero is gone — but the
-    thing the zero was protecting is not: **ChEMBL still has no drug↔taxon edge
-    of its own**, and a graph that quietly grew a `Drug`–`Taxon` shortcut
-    through a shared organism would answer D8 and D18 wrongly.
+    accident. The two published screens closed it deliberately, so the zero is
+    gone — but the thing the zero was protecting is not: **ChEMBL still has no
+    drug↔taxon edge of its own**, and a graph that quietly grew a `Drug`–`Taxon`
+    shortcut through a shared organism would answer D8 and D18 wrongly.
 
     So the assertion moves from "there are none" to "every one of them is a
-    growth measurement somebody made", which is a rule that can still fail:
-    an edge of any other type, or of these types from any other source, means
-    either a new source landed without restating these goldens or something
-    collapsed ChEMBL's two-hop `HAS_MECHANISM` path into a claim it does not
-    make."""
+    measurement somebody published", which is a rule that can still fail: an
+    edge of any other type, or of these four from any other source, means either
+    a new source landed without restating these goldens or something collapsed
+    ChEMBL's two-hop `HAS_MECHANISM` path into a claim it does not make. The
+    pattern is deliberately **undirected** — the two screens point opposite ways
+    and both are in scope here; that they point opposite ways is asserted in
+    D8's own block."""
     kinds = {
         (r["rel"], r["source"]): r["n"]
         for r in rows(
@@ -1079,7 +1082,9 @@ def test_chembl_still_has_no_drug_taxon_edge_of_its_own(chembl_graph):
     assert set(kinds) == {
         ("INHIBITS_GROWTH_OF", "maier2018"),
         ("DOES_NOT_INHIBIT_GROWTH_OF", "maier2018"),
-    }, "a Drug-Taxon edge appeared that is not the Maier growth screen"
+        ("METABOLISES", "zimmermann2019"),
+        ("DOES_NOT_METABOLISE", "zimmermann2019"),
+    }, "a Drug-Taxon edge appeared that is neither published screen"
     # And metformin — D18's drug — is present and reachable, so the query is one
     # source away rather than one model change away.
     metformin = one(
@@ -1908,6 +1913,34 @@ PARTIAL_GOLDEN = {
     # The three join routes and the minted remainder, over 1,197 library
     # entries reaching 1,197 distinct Drug nodes.
     "d8_drug_join": {"name": 455, "atc": 361, "salt-name": 26, "minted": 355},
+    # --- Zimmermann 2019, measured 2026-09-03 on the ten-source build --------
+    # D8 leg 4: the metabolism screen, the direction Maier cannot answer. The
+    # negatives are again the larger half, and they are again a measurement.
+    "d8_metabolises": 2575,
+    "d8_no_metabolism": 17479,
+    "d8_metabolism_taxa": 66,
+    "d8_metabolism_drugs": 271,
+    "d8_drugs_metabolised": 172,
+    "d8_approved_metabolised": 147,
+    # The published headline is 176 of 271. The four the graph does not carry
+    # are metabolised **only** by `Bifidobacterium ruminatum`, one of the two
+    # strain names the loader refuses to guess at — the priced cost of that
+    # refusal, named rather than rounded away.
+    "d8_published_metabolised": 176,
+    "d8_metabolised_only_by_a_refused_strain": (
+        "ALPRENOLOL", "DIPHENYLPYRALINE", "IRSOGLADINE MALEATE", "MEMANTINE",
+    ),
+    "d8_metabolism_drug_join": {
+        "molename": 195, "parent-name": 43, "salt-name": 10, "minted": 23,
+    },
+    # Supplementary table 13's gain-of-function genes, split by the relationship
+    # they landed on: 5 of the 37 pairs are the two experiments disagreeing.
+    "d8_gene_edges": {"METABOLISES": 32, "DOES_NOT_METABOLISE": 5},
+    # The overlap between the two screens, which is what makes "does the gut
+    # destroy this drug, and does this drug destroy the gut" one question.
+    "d8_drugs_in_both_screens": 195,
+    "d8_taxa_in_both_screens": 26,
+    "d8_sulfasalazine": (52, 14),
     # D18 leg 3: metformin against the 40 isolates. **Forty measurements, zero
     # hits** — the competing explanation is now a negative, and a negative is
     # what the confounding argument actually needed.
@@ -2294,29 +2327,245 @@ def test_d8_every_edge_says_which_identifier_space_reached_the_drug(graph):
     assert sum(got.values()) == PARTIAL_GOLDEN["d8_screen_drugs"]
 
 
-def test_d8_metabolism_leg_is_still_open_and_says_so(graph):
+def test_d8_the_metabolism_leg_is_the_other_direction_and_it_is_closed(graph):
     """D8 asks two things — "does drug D inhibit gut bacteria, **or get
-    metabolised by them**". Maier answers the first. The second is
-    Zimmermann et al. 2019 (76 gut bacteria x 271 oral drugs, 176 metabolised),
-    whose supplementary workbook is **fetched and not loaded**, and Part D
-    requires the two to land as different edge types because collapsing them
-    conflates antimicrobial killing with drug metabolism.
+    metabolised by them**" — and Maier only answers the first. Zimmermann et al.
+    2019 measured 271 oral drugs against 76 gut strains, every cell, and it
+    lands as its **own pair of edge types running the other way**: Part D
+    required that before either source was fetched, because collapsing
+    inhibition into metabolism conflates antimicrobial killing with chemical
+    modification, which is MDAD's documented weakness.
 
-    So there must be no relationship claiming a bacterium changes a drug, and
-    the absence has to stay visible rather than being read as "nothing to
-    find"."""
-    types = {
-        r["rel"]
-        for r in rows(graph, "MATCH ()-[r]->() RETURN DISTINCT type(r) AS rel")
+    This test replaces the one that asserted no such relationship existed. The
+    guard it protected has not been dropped, it has been restated: the direction
+    is what keeps `MATCH (d:Drug)-[]->(t:Taxon)` meaning the growth screen and
+    nothing else, and the next test asserts exactly that."""
+    counts = {
+        r["rel"]: r
+        for r in rows(
+            graph,
+            "MATCH (t:Taxon)-[r:METABOLISES|DOES_NOT_METABOLISE]->(d:Drug) "
+            "RETURN type(r) AS rel, count(r) AS edges, count(DISTINCT t) AS taxa",
+        )
     }
-    assert not (types & {"METABOLISES", "ALTERS_SUBSTANCE", "TRANSFORMS_DRUG"}), (
-        "a drug-metabolism relationship appeared — D8's second leg and its "
-        "status have to be restated rather than left as they are"
+    assert counts["METABOLISES"]["edges"] == PARTIAL_GOLDEN["d8_metabolises"]
+    assert counts["DOES_NOT_METABOLISE"]["edges"] == PARTIAL_GOLDEN["d8_no_metabolism"]
+    assert all(
+        c["taxa"] == PARTIAL_GOLDEN["d8_metabolism_taxa"] for c in counts.values()
     )
-    assert not (ROOT / "scripts" / "prep_zimmermann2019.py").exists()
-    assert (ROOT / "data" / "raw" / "drug_screens" / "zimmermann2019").is_dir(), (
-        "the raw file is the deliverable that says the leg is open by choice "
-        "of scope rather than for want of a source"
+    reach = one(
+        graph,
+        "MATCH ()-[:METABOLISES|DOES_NOT_METABOLISE]->(d:Drug) "
+        "RETURN count(DISTINCT d) AS drugs",
+    )
+    assert reach["drugs"] == PARTIAL_GOLDEN["d8_metabolism_drugs"], (
+        "all 271 screened compounds must reach a Drug node: 248 join one that "
+        "already existed and 23 are minted, and a drug that reached none would "
+        "look like a compound the screen never tested"
+    )
+    hits = one(
+        graph,
+        "MATCH ()-[:METABOLISES]->(d:Drug) "
+        "RETURN count(DISTINCT d) AS drugs, "
+        "count(DISTINCT CASE WHEN d.approved THEN d.id END) AS approved",
+    )
+    assert hits["drugs"] == PARTIAL_GOLDEN["d8_drugs_metabolised"]
+    assert hits["approved"] == PARTIAL_GOLDEN["d8_approved_metabolised"]
+
+
+def test_d8_the_two_screens_point_opposite_ways_and_that_is_the_model(graph):
+    """The agent is on the tail of every edge in this layer: the drug acts in
+    one screen, the bacterium acts in the other. That is what makes
+    `(d:Drug)-[]->(t:Taxon)` the growth screen alone — the assertion that used
+    to say "there are no such edges" and now says "there are only these" — and
+    the `effect` vocabularies are disjoint for the same reason a shared
+    `no-effect` token would be wrong: "did not stop it growing" and "did not
+    touch the drug" are different findings about different things."""
+    forward = {r["rel"] for r in rows(
+        graph, "MATCH (d:Drug)-[r]->(t:Taxon) RETURN DISTINCT type(r) AS rel")}
+    assert forward == {"INHIBITS_GROWTH_OF", "DOES_NOT_INHIBIT_GROWTH_OF"}
+    backward = {r["rel"] for r in rows(
+        graph, "MATCH (t:Taxon)-[r]->(d:Drug) RETURN DISTINCT type(r) AS rel")}
+    assert backward == {"METABOLISES", "DOES_NOT_METABOLISE"}
+    effects = {
+        (r["rel"], r["effect"])
+        for r in rows(
+            graph,
+            "MATCH ()-[r:METABOLISES|DOES_NOT_METABOLISE|INHIBITS_GROWTH_OF"
+            "|DOES_NOT_INHIBIT_GROWTH_OF]->() "
+            "RETURN DISTINCT type(r) AS rel, r.effect AS effect",
+        )
+    }
+    assert effects == {
+        ("INHIBITS_GROWTH_OF", "inhibited"),
+        ("DOES_NOT_INHIBIT_GROWTH_OF", "no-effect"),
+        ("METABOLISES", "metabolised"),
+        ("DOES_NOT_METABOLISE", "not-metabolised"),
+    }
+
+
+def test_d8_reproduces_the_metabolism_headline_and_prices_what_it_does_not(graph):
+    """"176 of 271 drugs (65%) were metabolised by at least one strain." The
+    graph says **172**, and the gap is not a loss — it is four drugs metabolised
+    *only* by `Bifidobacterium ruminatum`, one of the two strain names NCBI
+    holds two candidates for and whose row offers nothing to choose with. The
+    loader refuses to guess; this is what the refusal costs, named.
+
+    The call rule behind the 176 is derived — the sheet publishes each drug's
+    depletion threshold and no significance cutoff — so reproducing the headline
+    is the check that it is right, and `scripts/prep_zimmermann2019.py` refuses
+    to write when it stops holding."""
+    # Keyed on what the *screen* called the compound, not on the node's
+    # `pref_name`: 248 of the 271 joined a node ChEMBL or the growth screen had
+    # already named, so `IRSOGLADINE MALEATE` is `IRSOGLADINE` on its node.
+    metabolised = {
+        r["drug"] for r in rows(
+            graph,
+            "MATCH ()-[r:METABOLISES]->() "
+            "RETURN DISTINCT r.reported_drug_name AS drug",
+        )
+    }
+    assert len(metabolised) == PARTIAL_GOLDEN["d8_drugs_metabolised"]
+    missing = set(PARTIAL_GOLDEN["d8_metabolised_only_by_a_refused_strain"])
+    assert not (metabolised & missing)
+    assert len(metabolised) + len(missing) == PARTIAL_GOLDEN["d8_published_metabolised"]
+    # And each of the four is in the graph as a screened drug with edges — it is
+    # the *hit* that the refusal cost, not the compound.
+    for drug in missing:
+        assert rows(
+            graph,
+            "MATCH ()-[r:DOES_NOT_METABOLISE]->() "
+            f"WHERE r.reported_drug_name = '{drug}' RETURN r LIMIT 1",
+        ), f"{drug} lost its measured non-hits too"
+    tombstones = {
+        r["name"]: r["candidates"]
+        for r in rows(
+            graph,
+            "MATCH (u:UnresolvedTaxon) WHERE u.source = 'zimmermann2019' "
+            "RETURN u.raw_name AS name, u.candidates AS candidates",
+        )
+    }
+    assert set(tombstones) == {"Bacteroides WH2", "Bifidobacterium ruminatum"}
+    assert all(len(c.split("|")) == 2 for c in tombstones.values()), (
+        "a refusal has to name what it rejected, or the next reader has a dead end"
+    )
+
+
+def test_d8_every_metabolism_edge_says_which_identifier_space_reached_the_drug(graph):
+    """Three routes, tried verbatim-first, and no ATC route because the sheet
+    has no ATC column. **248 of 271 = 91.5%**, and the route is on the edge so
+    the weakest is countable rather than assumed."""
+    got = {
+        r["route"]: r["drugs"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:METABOLISES|DOES_NOT_METABOLISE]->() "
+            "RETURN r.drug_join AS route, "
+            "count(DISTINCT r.reported_drug_name) AS drugs",
+        )
+    }
+    assert got == PARTIAL_GOLDEN["d8_metabolism_drug_join"]
+    assert sum(got.values()) == PARTIAL_GOLDEN["d8_metabolism_drugs"]
+
+
+def test_d8_the_gene_layer_rides_on_the_edge_and_keeps_its_disagreement(graph):
+    """Part B's W7 asks for "the gene where identified" and the graph answers it
+    in one hop, with no `Gene` node — the recommendation `docs/model.md`
+    records. The genes came from a gain-of-function library expressed in
+    *E. coli*, not from the 76 screened strains, so **5 of the 37 pairs sit on
+    `DOES_NOT_METABOLISE` edges**: the two experiments disagree there, and
+    dropping those or moving them onto the hit edge would be inventing
+    agreement."""
+    got = {
+        r["rel"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:METABOLISES|DOES_NOT_METABOLISE]->() "
+            "WHERE r.gene_locus_tags <> '' "
+            "RETURN type(r) AS rel, count(r) AS n",
+        )
+    }
+    assert got == PARTIAL_GOLDEN["d8_gene_edges"]
+    labels = {
+        label
+        for row in rows(graph, "MATCH (n) RETURN DISTINCT labels(n) AS label")
+        for label in row["label"]
+    }
+    assert "Gene" not in labels, (
+        "a Gene node type appeared — docs/model.md's recommendation against one "
+        "has to be restated rather than left as it is"
+    )
+
+
+def test_d8_the_two_screens_overlap_and_the_overlap_is_the_point(graph):
+    """195 drugs and 26 taxa are in both screens, so for those pairs the graph
+    answers "does the gut destroy this drug **and** does this drug damage the
+    gut" as one question with four measured outcomes, two of them negative.
+    Before the second screen the first two of those four were empty for every
+    drug, and empty was indistinguishable from "tested, nothing happened"."""
+    drugs = one(
+        graph,
+        "MATCH ()-[:METABOLISES|DOES_NOT_METABOLISE]->(d:Drug) "
+        "WITH collect(DISTINCT d.id) AS metabolism "
+        "MATCH (e:Drug)-[:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->() "
+        "WHERE e.id IN metabolism RETURN count(DISTINCT e) AS both",
+    )
+    assert drugs["both"] == PARTIAL_GOLDEN["d8_drugs_in_both_screens"]
+    taxa = one(
+        graph,
+        "MATCH (t:Taxon)-[:METABOLISES|DOES_NOT_METABOLISE]->() "
+        "WITH collect(DISTINCT t.id) AS metabolism "
+        "MATCH (d:Drug)-[:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(u:Taxon) "
+        "WHERE u.id IN metabolism RETURN count(DISTINCT u) AS both",
+    )
+    assert taxa["both"] == PARTIAL_GOLDEN["d8_taxa_in_both_screens"]
+    outcome = one(
+        graph,
+        "MATCH (d:Drug {pref_name: 'SULFASALAZINE'}) "
+        "OPTIONAL MATCH (t:Taxon)-[:METABOLISES]->(d) "
+        "OPTIONAL MATCH (u:Taxon)-[:DOES_NOT_METABOLISE]->(d) "
+        "RETURN count(DISTINCT t) AS metabolised, "
+        "count(DISTINCT u) AS tested_untouched",
+    )
+    assert (outcome["metabolised"], outcome["tested_untouched"]) == (
+        PARTIAL_GOLDEN["d8_sulfasalazine"]
+    )
+
+
+def test_d8_a_measured_negative_is_bounded_by_its_assay_and_digoxin_proves_it(graph):
+    """*Eggerthella lenta* reducing digoxin is the textbook drug-metabolism
+    result, and **this screen measured that pair and scored it a non-hit** —
+    4.0% consumed against the drug's own 20% threshold, FDR p = 0.55. That is
+    not a refutation: digoxin reduction needs the *cgr* operon expressed under
+    arginine-poor conditions and this screen ran one medium for 12 h.
+
+    The edge is kept, with `incubation_hours` and `replicates` on it, precisely
+    so the bound is readable — a `DOES_NOT_METABOLISE` edge means "not in this
+    assay", never "not at all". Twenty-one other taxa do metabolise digoxin
+    here, which is the finding the single-organism story does not carry."""
+    lenta = one(
+        graph,
+        "MATCH (t:Taxon)-[r:DOES_NOT_METABOLISE]->(d:Drug {pref_name: 'DIGOXIN'}) "
+        "WHERE t.title CONTAINS 'Eggerthella' "
+        "RETURN r.percent_consumed AS consumed, "
+        "r.drug_threshold_percent AS threshold, r.fdr_p_value AS p, "
+        "r.incubation_hours AS hours, r.replicates AS n",
+    )
+    assert lenta["consumed"] < lenta["threshold"]
+    assert lenta["p"] > 0.05
+    assert lenta["hours"] == 12.0 and lenta["n"] == 4
+    assert not rows(
+        graph,
+        "MATCH (t:Taxon)-[r:METABOLISES]->(d:Drug {pref_name: 'DIGOXIN'}) "
+        "WHERE t.title CONTAINS 'Eggerthella' RETURN r",
+    )
+    others = one(
+        graph,
+        "MATCH (t:Taxon)-[:METABOLISES]->(d:Drug {pref_name: 'DIGOXIN'}) "
+        "RETURN count(DISTINCT t) AS taxa",
+    )
+    assert others["taxa"] > 1, (
+        "the whole point of the screen over the single-organism result"
     )
 
 
