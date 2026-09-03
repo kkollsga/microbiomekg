@@ -1080,3 +1080,285 @@ def test_chembl_every_mechanism_edge_says_how_it_was_demonstrated(chembl_graph):
         assert audit[rule]["severity"] == "error"
         assert audit[rule]["violations"] == 0
         assert audit[rule]["total"] > 0, f"{rule} audits nothing"
+
+
+# --------------------------------------------------------------------------
+# D5 — "Which metabolites does taxon X produce, and is that measured or
+#       predicted?" (and the reverse: which taxa produce metabolite M?)
+# --------------------------------------------------------------------------
+
+#: Measured 2026-09-03 over HMDB 5.0 (`hmdb_metabolites.xml`, 2021-11-17) +
+#: Reactome (2026-09-02 fetch), `--scope microbial`. KEGG is **not** in these
+#: numbers: it is licence-gated and off unless `scripts/build.py --with-kegg`
+#: is passed, so a default build's pathway layer is Reactome alone.
+METABOLITE_GOLDEN = {
+    # D5 — the whole relationship. 224 microbial-origin metabolites, of which
+    # 67 name no organism at all, over 957 organism terms.
+    "d5_produces_edges": 578,
+    "d5_producing_taxa": 272,
+    "d5_metabolites_produced": 154,
+    "d5_in_vitro": 543,
+    "d5_computational_predicted": 35,
+    # D5's stated required qualifier: the replication count, whose expected
+    # value is 1. It is 1 for every pair, which is the answer, not a shortfall.
+    "d5_max_records_per_pair": 1,
+    # Butyric acid — the canonical "who makes butyrate" question.
+    "d5_butyrate_id": "CHEBI:30772",
+    "d5_butyrate_producers": 6,
+    # The taxon Part D's own D5 query names. HMDB attributes nothing to it.
+    "d5_akkermansia": 239935,
+    # The metabolite slice and its microbial-origin subset.
+    "metabolites": 7773,
+    "microbial_origin": 224,
+    # D13 — the pathway layer, Reactome only in a default build.
+    "d13_pathways": 23604,
+    "d13_hierarchy_edges": 23717,
+    "d13_multi_parent_children": 388,
+    "d13_in_pathway_tas": 4357,
+    "d13_in_pathway_iea": 31773,
+    "d13_reactome_species": 16,
+}
+
+
+@pytest.fixture(scope="session")
+def metabolite_graph(graph):
+    """The real graph, skipped unless the HMDB slice is in it.
+
+    HMDB is fetched by hand — `hmdb.ca` answers every non-browser client with a
+    Cloudflare 403 — so a machine can legitimately have the rest of the build
+    and none of this. A skip that names the command is the honest outcome; a
+    test that quietly passed on an empty `Metabolite` set would be the one to
+    worry about.
+    """
+    if not rows(graph, "MATCH (m:Metabolite) RETURN m LIMIT 1"):
+        pytest.skip(
+            "no Metabolite nodes in data/csv — run "
+            "`.venv/bin/python scripts/build.py --scope microbial` with "
+            "data/raw/hmdb/hmdb_metabolites.xml present"
+        )
+    return graph
+
+
+def test_d5_the_production_relationship_is_224_records_wide_not_thousands(
+    metabolite_graph,
+):
+    """*Status:* still `pending-source: MiMeDB`, and this is what the HMDB half
+    alone delivers. The 224 microbial-origin records are HMDB's entire yield —
+    0.10% of the file — and **67 of them name no organism at all**, so the
+    edge count comes from 157 records over 957 organism terms. Anyone sizing
+    D5 on "HMDB has microbial metabolites" needs these numbers before the
+    query, not after it."""
+    result = one(
+        metabolite_graph,
+        """
+        MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite)
+        RETURN count(p) AS edges, count(DISTINCT t.id) AS taxa,
+               count(DISTINCT m.id) AS metabolites
+        """,
+    )
+    assert result["edges"] == METABOLITE_GOLDEN["d5_produces_edges"]
+    assert result["taxa"] == METABOLITE_GOLDEN["d5_producing_taxa"]
+    assert result["metabolites"] == METABOLITE_GOLDEN["d5_metabolites_produced"]
+    slice_ = one(
+        metabolite_graph,
+        "MATCH (m:Metabolite) WHERE m.source = 'hmdb' RETURN count(m) AS n, "
+        "sum(CASE WHEN m.microbial_origin THEN 1 ELSE 0 END) AS microbial",
+    )
+    assert slice_["n"] == METABOLITE_GOLDEN["metabolites"]
+    assert slice_["microbial"] == METABOLITE_GOLDEN["microbial_origin"]
+
+
+def test_d5_measured_or_predicted_is_the_answers_first_column(metabolite_graph):
+    """A1's whole point, on this relationship: the tier is not a footnote. It
+    comes from the metabolite's `status`, which is 100% filled — `in-vitro`
+    where the compound was detected or quantified, `computational-predicted`
+    where it is only expected."""
+    levels = {
+        r["level"]: r["n"]
+        for r in rows(
+            metabolite_graph,
+            "MATCH ()-[p:PRODUCES]->() RETURN p.evidence_level AS level, count(p) AS n",
+        )
+    }
+    assert levels == {
+        "in-vitro": METABOLITE_GOLDEN["d5_in_vitro"],
+        "computational-predicted": METABOLITE_GOLDEN["d5_computational_predicted"],
+    }
+    # And the companion columns, which are *not* the same question: the
+    # microbial-origin annotation is a curator's on all 224 whatever the
+    # compound's detection status.
+    assert rows(
+        metabolite_graph,
+        "MATCH ()-[p:PRODUCES]->() RETURN DISTINCT p.knowledge_level AS kl, "
+        "p.agent_type AS agent, p.source_licence AS licence",
+    ) == [{"kl": "knowledge_assertion", "agent": "manual_agent",
+           "licence": "HMDB-noncommercial"}]
+
+
+def test_d5_reverse_who_makes_butyrate_and_the_key_part_d_names_is_wrong(
+    metabolite_graph,
+):
+    """**A contract statement the data made untenable.** Part D's D5 reverse
+    query addresses butyrate as `CHEBI:17968`, the conjugate base. HMDB's
+    butyric acid record carries `chebi_id` **30772**, the acid, and ChEBI holds
+    those as two terms — so the query as written returns nothing at all, which
+    looks exactly like "no source has this". Keying `Metabolite` on HMDB's own
+    `chebi_id` preserves the acid/base distinction as two identities, and a
+    consumer has to ask for the one HMDB curated.
+
+    Asked with the right key it answers, and the answer is a real one: six
+    named butyrate producers, every one `in-vitro`."""
+    assert not rows(
+        metabolite_graph, "MATCH (m:Metabolite {id: 'CHEBI:17968'}) RETURN m"
+    ), "CHEBI:17968 now exists — Part D's D5 key can be un-caveated"
+    producers = rows(
+        metabolite_graph,
+        f"""
+        MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite {{id: '{METABOLITE_GOLDEN["d5_butyrate_id"]}'}})
+        WHERE t.placeholder = false
+        RETURN t.title AS producer, t.rank AS rank, p.evidence_level AS level,
+               count(DISTINCT p.source_record_id) AS n_records
+        ORDER BY level, n_records DESC
+        """,
+    )
+    assert len(producers) == METABOLITE_GOLDEN["d5_butyrate_producers"]
+    assert {r["level"] for r in producers} == {"in-vitro"}
+    assert "Faecalibacterium prausnitzii" in {r["producer"] for r in producers}
+
+
+def test_d5_the_taxon_part_d_names_has_no_hmdb_production_at_all(metabolite_graph):
+    """Part D's D5 example is `Taxon {id: 239935}` — *Akkermansia
+    muciniphila*. HMDB attributes **no** metabolite to it, so the query returns
+    zero rows on the source that is supposed to answer half of D5. That is the
+    `pending-source: MiMeDB` status stated as a number rather than a label: the
+    HMDB half is 578 edges over 272 organisms and this is not one of them."""
+    assert not rows(
+        metabolite_graph,
+        f"MATCH (t:Taxon {{id: {METABOLITE_GOLDEN['d5_akkermansia']}}})"
+        "-[p:PRODUCES]->(m:Metabolite) RETURN m",
+    )
+    # The taxon is in the graph — the gap is the source's, not the loader's.
+    assert rows(
+        metabolite_graph,
+        f"MATCH (t:Taxon {{id: {METABOLITE_GOLDEN['d5_akkermansia']}}}) RETURN t",
+    )
+
+
+def test_d5_the_replication_count_is_one_and_that_is_the_answer(metabolite_graph):
+    """D5's *required qualifier*: the answer carries a replication count and
+    the expected value is **1**. HMDB curates one microbial-origin annotation
+    per (organism, metabolite), so every pair has exactly one source record.
+    A pair showing 2 would mean the loader double-counted a term — the ligature
+    typo beside its correctly spelled sibling is the shape that does it."""
+    result = one(
+        metabolite_graph,
+        """
+        MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite)
+        WITH t, m, count(DISTINCT p.source_record_id) AS n
+        RETURN max(n) AS max_records, count(*) AS pairs
+        """,
+    )
+    assert result["max_records"] == METABOLITE_GOLDEN["d5_max_records_per_pair"]
+    assert result["pairs"] == METABOLITE_GOLDEN["d5_produces_edges"]
+
+
+# --------------------------------------------------------------------------
+# D13 — "Which pathway or gene carries the production claim for taxon X →
+#        metabolite M?"
+# --------------------------------------------------------------------------
+
+
+def test_d13_the_path_resolves_and_every_pathway_is_a_model_organisms(
+    metabolite_graph,
+):
+    """*Status:* `pending-source: KEGG / Reactome — and misleading if
+    unqualified`, and the qualifier survives the load intact. The three-hop
+    path resolves, and **every pathway it reaches belongs to one of Reactome's
+    16 model organisms** — there is not a gut commensal among them, so the row
+    says the *metabolite* takes part in a human (or mouse, or zebrafish)
+    pathway and never that the taxon runs it. `capability, not production` is
+    part of the answer, not a caveat attached to it."""
+    result = rows(
+        metabolite_graph,
+        """
+        MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite)-[i:IN_PATHWAY]->(pw:Pathway)
+        WHERE pw.pathway_source = 'reactome'
+        RETURN pw.species AS species, count(*) AS rows
+        ORDER BY rows DESC
+        """,
+    )
+    assert result, "no taxon reaches a pathway at all"
+    assert len(result) == METABOLITE_GOLDEN["d13_reactome_species"]
+    assert result[0]["species"] == "Homo sapiens"
+    # The claim in one query, and it has **one exception the plan did not
+    # name**: of the 272 organisms HMDB attributes a metabolite to, exactly one
+    # is also a species Reactome models — *Mycobacterium tuberculosis*, which
+    # Reactome carries for its infection pathways. So for that single organism
+    # the row is not "capability, not production"; for every other one it is,
+    # and Part D's "not a single gut commensal" survives intact, because a
+    # tuberculosis bacillus is a pathogen and not a gut commensal.
+    overlap = rows(
+        metabolite_graph,
+        """
+        MATCH (t:Taxon)-[:PRODUCES]->()-[:IN_PATHWAY]->(pw:Pathway)
+        WHERE pw.species = t.title
+        RETURN DISTINCT t.id AS tax_id, t.title AS taxon
+        """,
+    )
+    assert overlap == [{"tax_id": 1773, "taxon": "Mycobacterium tuberculosis"}]
+
+
+def test_d13_the_evidence_code_separates_curated_from_projected(metabolite_graph):
+    """87.7% of `ChEBI2Reactome.txt` is `IEA` — an orthology projection from
+    human, not a read paper — and it is the cleanest `knowledge_level` signal
+    in the whole increment. Without it on the edge nothing distinguishes a
+    curated membership from a propagated one, and D13's answer would read as
+    curated throughout."""
+    counts = {
+        (r["code"], r["kl"], r["level"]): r["n"]
+        for r in rows(
+            metabolite_graph,
+            "MATCH ()-[i:IN_PATHWAY]->() WHERE i.primary_source = 'reactome' "
+            "RETURN i.evidence_code AS code, i.knowledge_level AS kl, "
+            "i.evidence_level AS level, count(i) AS n",
+        )
+    }
+    assert counts == {
+        ("TAS", "knowledge_assertion", "unknown"):
+            METABOLITE_GOLDEN["d13_in_pathway_tas"],
+        ("IEA", "logical_entailment", "computational-predicted"):
+            METABOLITE_GOLDEN["d13_in_pathway_iea"],
+    }
+
+
+def test_d13_the_pathway_hierarchy_is_a_dag_not_a_tree(metabolite_graph):
+    """388 children have more than one parent. A loader modelling this as a
+    tree loses those edges silently, and D13's "which pathway carries the
+    claim" then walks a subtree rather than the hierarchy it was asked for."""
+    result = one(
+        metabolite_graph,
+        """
+        MATCH (c:Pathway)-[:PART_OF_PATHWAY]->(p:Pathway)
+        WITH c, count(p) AS parents
+        RETURN sum(parents) AS edges,
+               sum(CASE WHEN parents > 1 THEN 1 ELSE 0 END) AS multi_parent
+        """,
+    )
+    assert result["edges"] == METABOLITE_GOLDEN["d13_hierarchy_edges"]
+    assert result["multi_parent"] == METABOLITE_GOLDEN["d13_multi_parent_children"]
+
+
+def test_d13_a_default_build_carries_no_kegg_pathway(metabolite_graph):
+    """The licence gate, asserted where it matters rather than only in
+    `tests/test_kegg.py`: KEGG is not a public database, so the graph
+    `scripts/build.py` produces without `--with-kegg` must contain none of it.
+    D13's KEGG half is therefore absent by default and that is the design —
+    `--with-kegg` adds 587 `KEGG:map…` pathways and their edges, and changes
+    nothing else."""
+    assert one(
+        metabolite_graph, "MATCH (p:Pathway) RETURN count(p) AS n"
+    )["n"] == METABOLITE_GOLDEN["d13_pathways"]
+    assert not rows(
+        metabolite_graph,
+        "MATCH ()-[r]->() WHERE r.source_licence = 'KEGG-restricted' RETURN r LIMIT 1",
+    )

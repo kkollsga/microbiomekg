@@ -1,0 +1,73 @@
+{
+  "_doc": "Reactome (five headerless TSVs, CC0): the Pathway node, the PART_OF_PATHWAY hierarchy and the Metabolite-[:IN_PATHWAY]->Pathway edge joined to HMDB's chebi_id. The hierarchy is a DAG (388 children have more than one parent), so no cardinality cap is declared on it. IN_PATHWAY is declared under Metabolite as an addition to blueprints/hmdb.json's node, and blueprints/kegg.json declares the same junction because both sources write rows into one CSV — one relationship, one file, two contributors. NCBI2Reactome is NCBI *Gene*, not taxonomy, and is not loaded.",
+  "nodes": {
+    "Pathway": {
+      "csv": "pathway.csv",
+      "pk": "pathway_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "species": "string",
+        "pathway_source": "string",
+        "source_licence": "string",
+        "source_id": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "PART_OF_PATHWAY": {
+            "csv": "pathway_pathway.csv",
+            "source_fk": "pathway_id",
+            "target": "Pathway",
+            "target_fk": "parent_pathway_id",
+            "properties": [
+              "primary_source",
+              "source_licence",
+              "source_relation"
+            ],
+            "property_types": {
+              "primary_source": "string",
+              "source_licence": "string",
+              "source_relation": "string"
+            }
+          }
+        }
+      }
+    },
+    "Metabolite": {
+      "connections": {
+        "junction_edges": {
+          "IN_PATHWAY": {
+            "csv": "metabolite_pathway.csv",
+            "source_fk": "metabolite_id",
+            "target": "Pathway",
+            "target_fk": "pathway_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "evidence_code",
+              "eco_id",
+              "species"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "evidence_code": "string",
+              "eco_id": "string",
+              "species": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

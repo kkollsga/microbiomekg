@@ -1,0 +1,9 @@
+17968	R-HSA-9748787	https://reactome.org/x	Butyrate response	TAS	Homo sapiens
+17968	R-HSA-1430728	https://reactome.org/x	Metabolism	IEA	Homo sapiens
+30089	R-HSA-70326	https://reactome.org/x	Glucose metabolism	TAS	Homo sapiens
+30089	R-MMU-70326	https://reactome.org/x	Glucose metabolism	IEA	Homo sapiens
+15724	R-HSA-71387	https://reactome.org/x	Metabolism of carbohydrates 	IEA	Homo sapiens
+28834	R-HSA-192105	https://reactome.org/x	Synthesis of bile acids and bile salts	TAS	Homo sapiens
+78320	R-HSA-70326	https://reactome.org/x	Glucose metabolism	IEA	Homo sapiens
+16991	R-SCE-9865878	https://reactome.org/x	Complex III assembly	TAS	Saccharomyces cerevisiae
+100241	R-HSA-70326	https://reactome.org/x	Glucose metabolism	TAS	Homo sapiens

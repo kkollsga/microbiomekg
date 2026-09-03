@@ -1,0 +1,820 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hmdb xmlns="http://www.hmdb.ca">
+<metabolite>
+  <!-- microbial + feces + chebi Reactome maps; a genus with a species child (only the species becomes an edge) beside a childless genus -->
+  <accession>HMDB0000011</accession>
+  <status>quantified</status>
+  <secondary_accessions><accession>HMDB00011</accession><accession>HMDB0004935</accession></secondary_accessions>
+  <name>Butyric acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0011-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Faecalibacterium</term><definition/><parent_id/><level>5</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Faecalibacterium prausnitzii</term><definition/><parent_id/><level>6</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant><descendant><term>Roseburia</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen><biospecimen>Feces</biospecimen><biospecimen>Urine</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>264</pubchem_compound_id>
+  <chebi_id>17968</chebi_id>
+  <kegg_id>C00246</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>10362454</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>7762816</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>10362454</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- detected, so still in-vitro; Akkermansia muciniphila is D5's taxon -->
+  <accession>HMDB0000012</accession>
+  <status>detected</status>
+  <name>Acetic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0012-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Bacteroides</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Akkermansia</term><definition/><parent_id/><level>5</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Akkermansia muciniphila</term><definition/><parent_id/><level>6</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>176</pubchem_compound_id>
+  <chebi_id>30089</chebi_id>
+  <kegg_id>C00033</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>11052553</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- expected -&gt; computational-predicted, and no Feces: selected by the microbial rule alone -->
+  <accession>HMDB0000013</accession>
+  <status>expected</status>
+  <name>Trimethylamine N-oxide</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0013-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Escherichia</term><definition/><parent_id/><level>5</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Escherichia coli</term><definition/><parent_id/><level>6</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen><biospecimen>Urine</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>1145</pubchem_compound_id>
+  <chebi_id>15724</chebi_id>
+  <kegg_id>C01104</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>2593832</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- the substring trap: `Antimicrobial agent` is a drug that KILLS microbes and must not be read as microbial origin. No feces, no mapped chebi -&gt; selected by nothing -->
+  <accession>HMDB0000014</accession>
+  <status>predicted</status>
+  <name>Triclosan</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0014-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Synthetic</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root><root><term>Role</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Industrial application</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Household products</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Antimicrobial agent</term><definition/><parent_id/><level>4</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>5564</pubchem_compound_id>
+  <chebi_id>164200</chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- feces-only: no microbial origin, chebi not in the Reactome mini -->
+  <accession>HMDB0000015</accession>
+  <status>expected</status>
+  <name>Skatole</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0015-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>6736</pubchem_compound_id>
+  <chebi_id>9169</chebi_id>
+  <kegg_id>C08313</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- reactome-chebi only: predicted, never in feces, but ChEBI2Reactome maps its id — the third selection rule, on its own -->
+  <accession>HMDB0000016</accession>
+  <status>predicted</status>
+  <name>Deoxycholic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0016-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>222528</pubchem_compound_id>
+  <chebi_id>28834</chebi_id>
+  <kegg_id>C04483</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- the U+FB01 ligature typo: a distinct string from Bifidobacterium that names.dmp cannot match -->
+  <accession>HMDB0000017</accession>
+  <status>quantified</status>
+  <name>Propionic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0017-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Biﬁdobacterium</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Bifidobacterium</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>1032</pubchem_compound_id>
+  <chebi_id>17272</chebi_id>
+  <kegg_id>C00163</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>7061274</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- the rank-mixing row: a phylum, a community, a Gram stain and a string absent from names.dmp, all at HMDB's 'genus' level -->
+  <accession>HMDB0000018</accession>
+  <status>quantified</status>
+  <name>Succinic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0018-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Bacillota</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Firmicutes</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Human gut microbiota</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Gram-negative bacteria</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>1110</pubchem_compound_id>
+  <chebi_id>15741</chebi_id>
+  <kegg_id>C00042</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>11380830</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- a placeholder organism: `Bacteroides sp.` is a real NCBI node (29523) and must resolve and carry the placeholder flag, not be dropped by a name substring (G9) -->
+  <accession>HMDB0000019</accession>
+  <status>detected</status>
+  <name>Indole-3-acetic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0019-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Bacteroides sp.</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>802</pubchem_compound_id>
+  <chebi_id>16411</chebi_id>
+  <kegg_id>C00954</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>11418788</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- a misspelled species under a resolvable genus. A leaf-only rule would lose the claim entirely; the genus edge must survive -->
+  <accession>HMDB0000020</accession>
+  <status>quantified</status>
+  <name>Hippuric acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0020-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Akkermansia</term><definition/><parent_id/><level>5</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Akkermansia muciniphilia</term><definition/><parent_id/><level>6</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen><biospecimen>Urine</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>464</pubchem_compound_id>
+  <chebi_id>18089</chebi_id>
+  <kegg_id>C01586</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>12865413</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- a synonym that is an NCBI placeholder name: `Clostridium symbiosum` is a synonym of `[Clostridium] symbiosum` (1512) -->
+  <accession>HMDB0000021</accession>
+  <status>detected</status>
+  <name>Formic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0021-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Clostridium symbiosum</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>284</pubchem_compound_id>
+  <chebi_id>30751</chebi_id>
+  <kegg_id>C00058</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- first of the ChEBI-key collision pair — one ChEBI id, two HMDB accessions, therefore one Metabolite node -->
+  <accession>HMDB0000022</accession>
+  <status>quantified</status>
+  <name>Lactic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0022-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Lactobacillus</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>612</pubchem_compound_id>
+  <chebi_id>78320</chebi_id>
+  <kegg_id>C00186</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- second of the collision pair: same chebi, different accession -->
+  <accession>HMDB0000023</accession>
+  <status>detected</status>
+  <name>D-Lactic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0023-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>61503</pubchem_compound_id>
+  <chebi_id>78320</chebi_id>
+  <kegg_id>C00256</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- the single lowercase kegg_id in the file (`c0338` in HMDB 5.0): the KEGG join must upper-case or this metabolite silently misses -->
+  <accession>HMDB0000024</accession>
+  <status>quantified</status>
+  <name>Pyruvic acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0024-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>1060</pubchem_compound_id>
+  <chebi_id>32816</chebi_id>
+  <kegg_id>c00022</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- a kegg_id KEGG has withdrawn since HMDB 5.0 — reported, never silently dropped -->
+  <accession>HMDB0000025</accession>
+  <status>expected</status>
+  <name>Withdrawn compound</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0025-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id>C00626</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- the disease layer's dominant name, three times over: counted and not loaded -->
+  <accession>HMDB0000026</accession>
+  <status>quantified</status>
+  <name>Glutaric acid</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0026-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen><biospecimen>Urine</biospecimen></biospecimen_locations></biological_properties>
+  <diseases><disease><name>3-methylglutaconic aciduria type II, X-linked</name><omim_id/><references></references></disease><disease><name>3-methylglutaconic aciduria type II, X-linked</name><omim_id>250950</omim_id><references></references></disease><disease><name>Colorectal cancer</name><omim_id>114500</omim_id><references></references></disease></diseases>
+  <pubchem_compound_id>743</pubchem_compound_id>
+  <chebi_id>17859</chebi_id>
+  <kegg_id>C00489</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- a kegg_id of the `D` (drug) namespace, which cannot join a compound list at all -->
+  <accession>HMDB0000027</accession>
+  <status>expected</status>
+  <name>A drug-namespace compound</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0027-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id>D00109</kegg_id>
+</metabolite>
+<metabolite>
+  <!-- no chebi at all, so the node is keyed on its HMDB accession -->
+  <accession>HMDB0000028</accession>
+  <status>quantified</status>
+  <name>Unmapped microbial metabolite</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0028-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Bacteroides</term><definition/><parent_id/><level>5</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Bacteroides thetaiotaomicron</term><definition/><parent_id/><level>6</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>9607216</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- an empty &lt;chebi_id/&gt; element: `.text` is None, and reading it straight writes the string 'None' into the CSV -->
+  <accession>HMDB0000029</accession>
+  <status>detected</status>
+  <name>Empty-element compound</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0029-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>child</type><synonyms></synonyms></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id/>
+  <chebi_id/>
+  <kegg_id/>
+</metabolite>
+<metabolite>
+  <!-- microbial origin with NO organism named beneath it. 67 of HMDB's 224 microbial records are like this: a real origin claim with nothing to point an edge at, which is why '224 microbial metabolites' is not '224 production edges' -->
+  <accession>HMDB0000031</accession>
+  <status>quantified</status>
+  <name>Origin without an organism</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0031-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- a cross-kingdom homonym: `Bacillus` is a bacterial genus (1386) AND a genus of stick insects (55087). names.dmp cannot choose; the microbial-origin context can, and it is HMDB's single most common organism term (13 metabolites in the real file) -->
+  <accession>HMDB0000032</accession>
+  <status>quantified</status>
+  <name>Homonym compound</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0032-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Bacillus</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- a metabolite with more references than the publication cap, so `n_publications` and the truncated list disagree on purpose -->
+  <accession>HMDB0000030</accession>
+  <status>quantified</status>
+  <name>Well-studied metabolite</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0030-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Endogenous</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant><descendant><term>Biological</term><definition/><parent_id/><level>3</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Microbe</term><definition/><parent_id/><level>4</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Blautia</term><definition/><parent_id/><level>5</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Feces</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id>6083</pubchem_compound_id>
+  <chebi_id>16991</chebi_id>
+  <kegg_id>C00039</kegg_id>
+  <general_references><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000000</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000001</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000002</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000003</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000004</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000005</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000006</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000007</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000008</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000009</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000010</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000011</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000012</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000013</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000014</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000015</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000016</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000017</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000018</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000019</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000020</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000021</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000022</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000023</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000024</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000025</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000026</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000027</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000028</pubmed_id></reference><reference><reference_text>Author A: A title. J. 2001.</reference_text><pubmed_id>20000029</pubmed_id></reference></general_references>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040000</accession>
+  <status>expected</status>
+  <name>Predicted compound 0</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0000-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040001</accession>
+  <status>predicted</status>
+  <name>Predicted compound 1</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0001-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040002</accession>
+  <status>expected</status>
+  <name>Predicted compound 2</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0002-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040003</accession>
+  <status>predicted</status>
+  <name>Predicted compound 3</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0003-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040004</accession>
+  <status>expected</status>
+  <name>Predicted compound 4</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0004-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040005</accession>
+  <status>predicted</status>
+  <name>Predicted compound 5</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0005-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040006</accession>
+  <status>expected</status>
+  <name>Predicted compound 6</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0006-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040007</accession>
+  <status>predicted</status>
+  <name>Predicted compound 7</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0007-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040008</accession>
+  <status>expected</status>
+  <name>Predicted compound 8</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0008-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040009</accession>
+  <status>predicted</status>
+  <name>Predicted compound 9</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0009-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040010</accession>
+  <status>expected</status>
+  <name>Predicted compound 10</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0010-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040011</accession>
+  <status>predicted</status>
+  <name>Predicted compound 11</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0011-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040012</accession>
+  <status>expected</status>
+  <name>Predicted compound 12</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0012-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040013</accession>
+  <status>predicted</status>
+  <name>Predicted compound 13</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0013-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040014</accession>
+  <status>expected</status>
+  <name>Predicted compound 14</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0014-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040015</accession>
+  <status>predicted</status>
+  <name>Predicted compound 15</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0015-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040016</accession>
+  <status>expected</status>
+  <name>Predicted compound 16</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0016-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040017</accession>
+  <status>predicted</status>
+  <name>Predicted compound 17</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0017-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040018</accession>
+  <status>expected</status>
+  <name>Predicted compound 18</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0018-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040019</accession>
+  <status>predicted</status>
+  <name>Predicted compound 19</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0019-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040020</accession>
+  <status>expected</status>
+  <name>Predicted compound 20</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0020-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040021</accession>
+  <status>predicted</status>
+  <name>Predicted compound 21</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0021-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040022</accession>
+  <status>expected</status>
+  <name>Predicted compound 22</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0022-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040023</accession>
+  <status>predicted</status>
+  <name>Predicted compound 23</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0023-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040024</accession>
+  <status>expected</status>
+  <name>Predicted compound 24</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0024-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040025</accession>
+  <status>predicted</status>
+  <name>Predicted compound 25</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0025-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040026</accession>
+  <status>expected</status>
+  <name>Predicted compound 26</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0026-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040027</accession>
+  <status>predicted</status>
+  <name>Predicted compound 27</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0027-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040028</accession>
+  <status>expected</status>
+  <name>Predicted compound 28</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0028-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040029</accession>
+  <status>predicted</status>
+  <name>Predicted compound 29</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0029-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040030</accession>
+  <status>expected</status>
+  <name>Predicted compound 30</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0030-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040031</accession>
+  <status>predicted</status>
+  <name>Predicted compound 31</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0031-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040032</accession>
+  <status>expected</status>
+  <name>Predicted compound 32</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0032-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040033</accession>
+  <status>predicted</status>
+  <name>Predicted compound 33</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0033-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040034</accession>
+  <status>expected</status>
+  <name>Predicted compound 34</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0034-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040035</accession>
+  <status>predicted</status>
+  <name>Predicted compound 35</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0035-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040036</accession>
+  <status>expected</status>
+  <name>Predicted compound 36</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0036-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040037</accession>
+  <status>predicted</status>
+  <name>Predicted compound 37</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0037-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040038</accession>
+  <status>expected</status>
+  <name>Predicted compound 38</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0038-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations><biospecimen>Blood</biospecimen></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+<metabolite>
+  <!-- filler: predicted/expected, no feces, no mapped chebi -->
+  <accession>HMDB0040039</accession>
+  <status>predicted</status>
+  <name>Predicted compound 39</name>
+  <chemical_formula>C4H8O2</chemical_formula>
+  <inchikey>KEY-0039-N</inchikey>
+  <ontology><root><term>Disposition</term><definition/><parent_id/><level>1</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Source</term><definition/><parent_id/><level>2</level><type>parent</type><synonyms></synonyms><descendants><descendant><term>Food</term><definition/><parent_id/><level>3</level><type>child</type><synonyms></synonyms></descendant></descendants></descendant></descendants></root></ontology>
+  <biological_properties><biospecimen_locations></biospecimen_locations></biological_properties>
+  <pubchem_compound_id></pubchem_compound_id>
+  <chebi_id></chebi_id>
+  <kegg_id></kegg_id>
+</metabolite>
+</hmdb>

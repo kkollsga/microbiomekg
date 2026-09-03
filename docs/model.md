@@ -27,8 +27,8 @@ editing a shared one (§8).
 | `Signature` | `bsdb:<study>/<exp>/<sig>` | `description` | BugSigDB BSDB ID | 1 |
 | `Paper` | `pmid` (int) | `title` | PubMed | 1 |
 | `Intervention` | `INTERVENTION:<slug>` | `label` | gutMDisorder `Intervention` (+ `drugbank_id`) | 2 |
-| `Metabolite` | HMDB id | `name` | HMDB; ChEBI/KEGG/PubChem as properties | 2 |
-| `Pathway` | `R-HSA-…` / `mapNNNNN` | `name` | Reactome / KEGG, `source` property | 2 |
+| `Metabolite` | ChEBI CURIE where HMDB carries a `chebi_id`, else `HMDB:<accession>` | `name` | HMDB `hmdb_metabolites.xml`; KEGG/PubChem/InChIKey as properties | 2 |
+| `Pathway` | `REACT:R-HSA-…` / `KEGG:map…` | `name` | Reactome, and KEGG behind `--with-kegg`; `pathway_source` property | 2 |
 | `Drug` | `CHEMBL:<parent molecule id>` | `pref_name` | ChEMBL `max_phase = 4` **and** every molecule a mechanism names | 3 |
 | `ProteinTarget` | `CHEMBL:<target id>` | `pref_name` | ChEMBL; `uniprot`, `tax_id` properties | 3 |
 | `ResistanceGene` | `ARO:3002999` | `name` | CARD `card.json` model, named from `aro.obo` | 3 |
@@ -130,6 +130,39 @@ so hoisting them to a node loses nothing.
 PMID column. Those get no `Paper` node and no `pmid` on the edge, and the raw
 string is kept as `Study.pmid_raw` so the loss is visible.
 
+**`Metabolite` is a selected slice, and the rule is a property on the node.**
+HMDB has 217,920 records and **88.8% of them are `predicted` or `expected`** —
+never observed in any sample. Loading all of them would put a chemistry
+database in a microbiome graph, so a record is kept when it satisfies at least
+one of three rules: it carries the ontology path
+`Disposition/Source/Biological/Microbe` (**224 records**, the only ones that can
+produce a `PRODUCES` edge — and **67 of those name no organism beneath it**, so
+157 records over 957 organism terms are what the 578 edges come from); `Feces`
+is in its `biospecimen_locations` (6,791 —
+the gut slice, and HMDB's second-largest biospecimen class); or its `chebi_id`
+is one Reactome's `ChEBI2Reactome.txt` maps, which is the only way an HMDB
+record can reach a pathway. Which rule kept it is `Metabolite.selection_rule`,
+joined with `|` when several did, so `WHERE m.selection_rule = 'feces'` counts
+the rule rather than trusting this paragraph. `status` rides on the node for
+the same reason: it is what makes "measured or predicted" a filter.
+
+**The key is ChEBI where HMDB has one.** ChEBI is the identity the rest of the
+increment joins on — Reactome's compound file is ChEBI ids and nothing else —
+so a metabolite that has one is keyed on it. The consequence is that HMDB's
+13,701 `chebi_id` values over 13,562 distinct ids merge a handful of record
+pairs onto one node, which is correct (they are one compound) but drops the
+second record's scalar properties; each merge is a row in
+`data/csv/unresolved_production.csv` naming both accessions.
+
+**HMDB's disease layer is not loaded at all.** 20,020 of its 27,670 disease
+rows — 72% — carry the single name `3-methylglutaconic aciduria type II,
+X-linked`, where the next name down has 831. That is a curation accident, and
+loading it produces one `Disease` node with 20,020 metabolite edges that
+dominates every path query in the graph. The rows are counted and reported by
+the prep. The other ~7,650 are probably fine; they are not loaded because the
+layer cannot be loaded in part without inventing a rule for which curation
+accidents count.
+
 ### `Signature` is a node — recommended, and why
 
 The choice was between a flattened `(Taxon)-[:ASSOCIATED_WITH {…20 fields}]->(Disease)`
@@ -202,6 +235,9 @@ per taxon (BugSigDB does not).
 | `CONFERS_RESISTANCE_TO` | `ResistanceGene` → `DrugClass` | **CARD's eight-property contract** |
 | `VIA_MECHANISM` | `ResistanceGene` → `ResistanceMechanism` | **the same eight** |
 | `CARRIES_RESISTANCE_GENE` | `Taxon` → `ResistanceGene` | **the same eight**, plus what the taxid means |
+| `PRODUCES` | `Taxon` → `Metabolite` | **HMDB's nine-property production contract** |
+| `IN_PATHWAY` | `Metabolite` → `Pathway` | **a seven-property pathway contract**, plus `evidence_code` |
+| `PART_OF_PATHWAY` | `Pathway` → `Pathway` | — (sub-pathway pointer, `ancestry`, a **DAG**) |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
 
 **Three association relationships are one relation, split by the engine.** The
@@ -470,6 +506,113 @@ otherwise. And `publications` is a `" | "`-joined string rather than a list,
 because a CSV column cannot carry a list property (§8 item 1); `pmid` holds the
 first of them so the contract's integer column is filled, and it is *a*
 citation for the determinant, not a claim to be the principal one.
+
+---
+
+### HMDB — `PRODUCES`, and the organism strings that carry it
+
+**`PRODUCES` runs from a `Taxon` to a `Metabolite` and there are 224 records
+behind the whole relationship.** HMDB names the organism as free text at two
+levels under `Disposition/Source/Biological/Microbe` with **no taxid anywhere**,
+so every edge is a name resolved through `microbiomekg.reconcile` and the
+source's string survives as `reported_name`. Origin is matched as a **path
+prefix**, never as a term substring: `grep microb|bacter|fung` over the ontology
+returns 519 metabolites and 233 of them are
+`Role/Industrial application/Household products/Antimicrobial agent` — drugs
+that kill microbes, the opposite of the relation being loaded.
+
+**HMDB's "genus" level is not a rank, and one of its strings resolves to
+something false.** It holds genera, phyla, a class, six families, an order, two
+Gram stains, a community (`Human gut microbiota`) and a U+FB01 ligature typo. A
+term resolving broader than a **family** gets no edge — `PRODUCTION_RANK_CEILING`
+— and the reason is not vagueness: NCBI files the exact string `Firmicutes` as a
+**synonym of 1783272 `Bacillati`, a kingdom** (the 2024 nomenclature change),
+while the phylum a reader means, 1239 `Bacillota`, carries `firmicutes` only as
+a blast name, which `NAME_CLASSES` excludes. A verbatim load does not write a
+coarse edge there, it writes a wrong one. G5's split is kept: `reported_rank` is
+HMDB's own level (`genus-level term` / `species-level term`, and the point is
+that neither *is* a rank) and `original_rank` is NCBI's, so the mixing is one
+`WHERE` clause away. Everything refused lands in
+`data/csv/unresolved_production.csv` **with the id and rank it did reach**, so
+the ceiling is reversible rather than a drop.
+
+**A species term suppresses its own genus only when the species resolved.**
+A metabolite listing `Microbe/Escherichia` and
+`Microbe/Escherichia/Escherichia coli` makes one claim at two levels of detail;
+emitting both doubles its evidence. But a plain "keep the leaf" rule loses the
+claim entirely wherever the one species under a genus is one of HMDB's
+misspellings (`Akkermansia muciniphilia`, `Citrobacter frundii`), so the genus
+is kept when its species failed. Two terms of one metabolite that reach the
+*same* taxon are likewise one annotation spelled twice — the ligature typo sits
+beside its correctly spelled sibling and `str.casefold` folds U+FB01 to `fi`, so
+both resolve to 1678 — and the loser is filed with its reason.
+
+**The contract is nine properties, not the shared fourteen**, for CARD's
+reason: `direction`, `sequencing_type` and the two group sizes describe a
+differential-abundance observation and a production claim is not one. What is
+declared is `evidence_level`, `hmdb_status`, `reported_name` and the six
+provenance fields — every one written by this loader rather than read from
+upstream, so the rule sits at zero and *can* move. `knowledge_level` is
+`knowledge_assertion` on all 224 and `agent_type` is `manual_agent`: the
+annotation is a person's entry in a hand-built tree whatever the compound's
+detection status. What the status changes is `evidence_level` — `in-vitro` where
+the metabolite is `detected`/`quantified`, `computational-predicted` otherwise.
+Those answer different questions and Part B keeps them in different columns;
+folding them would make `prediction` mean "nobody has run the assay yet".
+`publications` is a `|`-joined PMID list capped at 25 with `n_publications`
+beside it, and HMDB mints **no `Paper` node**: its references are free-text
+citation strings, so a minted node would have no title, which is what
+`paper.csv` is keyed and BM25-indexed on.
+
+### Reactome and KEGG — a DAG, an evidence code, and a build flag
+
+**`IN_PATHWAY` joins on ChEBI and nothing else.** Reactome's compound file is
+3,260 ChEBI ids; HMDB carries 13,562; 1,114 are in both, and that intersection
+is the bridge. A ChEBI id no HMDB record carries reaches no edge — the mapping
+files carry no compound name, so a minted `Metabolite` would be a bare CURIE —
+and lands in `data/csv/unresolved_pathway_links.csv` instead.
+
+**`evidence_code` is the cleanest `knowledge_level` signal in the increment and
+it is 100% filled.** `TAS` (a curator read a paper) →
+`knowledge_assertion`/`manual_agent`/`ECO:0000304` with `evidence_level`
+**`unknown`**, because Part B's ladder describes an abundance observation and a
+pathway membership is not one. `IEA` (orthology projection from human) →
+`logical_entailment`/`automated_agent`/`ECO:0000501` and
+`computational-predicted`. **87.7% of `ChEBI2Reactome.txt` is `IEA`**, and
+without that on the edge nothing distinguishes a curated membership from a
+propagated one.
+
+**`PART_OF_PATHWAY` is a DAG.** 388 of 23,188 children have more than one
+parent, so no `cardinality` cap is declared; `ancestry`, not `transitive`, for
+the same reason `HAS_PARENT` is. `ChEBI2Reactome_All_Levels.txt` is not loaded —
+it is the same 3,260 compounds propagated up this hierarchy, 307,049 rows
+carrying the information of 113,779. `NCBI2Reactome.txt` is not loaded either:
+those are NCBI **Gene** ids, and reading 73,767 of them as taxids would wire
+that many imaginary organisms into a 16-species pathway set.
+
+**What a pathway hit does not say.** Reactome's 23,603 pathways span 16 species
+and every one is a model organism — not a single gut commensal. So
+`(Taxon)-[:PRODUCES]->(Metabolite)-[:IN_PATHWAY]->(Pathway)` says the
+*metabolite* takes part in a human pathway, never that the taxon runs it. D13
+labels its rows `capability, not production` for that reason.
+
+**KEGG is behind `scripts/build.py --with-kegg`, off by default.** KEGG is not a
+public database, so a graph carrying it cannot be published; every KEGG row
+carries `source_licence = 'KEGG-restricted'` and `evidence_level = 'unknown'`
+(KEGG ships no per-link evidence field, and inventing one would make it
+indistinguishable from Reactome's real code in a query).
+`microbiomekg/ontology/kegg.py` declares **no class and no relationship** —
+KEGG writes rows into Reactome's `Pathway` and `IN_PATHWAY` — which is what
+makes the gate cheap: composing its fragment into a build that did not run the
+prep costs nothing, no node type loaded empty and no audit rule at `0 / 0`. The
+metabolite selection rule deliberately never consults KEGG, so the flag's blast
+radius is exactly the licence boundary: `KEGG:map…` nodes and their edges, and
+nothing else. `conv/compound/pubchem` is not loaded at all — it returns PubChem
+**Substance** ids where HMDB's `pubchem_compound_id` is a **Compound** id, and
+`C00001` (water) → `pubchem:3303` would look entirely plausible next to water's
+real CID of 962. There are no taxon–pathway edges from KEGG and there cannot be:
+`/list/organism` was retired upstream and the roster that replaced it lost the
+lineage column.
 
 ---
 
@@ -766,8 +909,11 @@ from the other side: a 3M-node taxonomy is *data*, not classes.)
 Classes are kept minimal and only `ReportedTaxon` is abstract, because it is
 the only place an abstract class buys a union endpoint that the *blueprint* can
 also load (§2 — the range side wanted the same trick and could not have it).
-`Metabolite`, `Drug` and the rest are **not** declared yet: a concrete class
-naming no live node type is a returned warning, so classes land with their data.
+A concrete class naming no live node type is a returned warning, so **classes
+land with their data**: `Metabolite` and `Pathway` are declared because HMDB
+and Reactome load rows for them, and a source whose raw input is absent is left
+out of the composed document entirely (`ontology_for(sources)`) rather than
+declaring a type the build did not fill.
 
 Materialization (`materialize_ontology()`) is **not** used. It would stamp
 `:ReportedTaxon` on 863k `Taxon` nodes to make one query shape shorter, and

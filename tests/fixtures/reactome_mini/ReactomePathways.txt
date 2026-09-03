@@ -1,0 +1,8 @@
+R-HSA-1430728	Metabolism	Homo sapiens
+R-HSA-71387	Metabolism of carbohydrates	Homo sapiens
+R-HSA-70326	Glucose metabolism	Homo sapiens
+R-HSA-8978868	Fatty acid metabolism	Homo sapiens
+R-HSA-192105	Synthesis of bile acids and bile salts 	Homo sapiens
+R-HSA-9748787	Butyrate response	Homo sapiens
+R-MMU-1430728	Metabolism	Mus musculus
+R-MMU-70326	Glucose metabolism	Mus musculus

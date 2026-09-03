@@ -1,0 +1,53 @@
+{
+  "_doc": "KEGG (six headerless TSVs from rest.kegg.jp, restricted licence): no node type and no relationship of its own \u2014 KEGG writes rows into the Pathway node and the IN_PATHWAY edge blueprints/reactome.json declares, and declares them identically here because that is how a fragment says 'I write rows into this'. The whole slice is gated on `scripts/build.py --with-kegg` and is off by default: KEGG is not a public database, so a graph carrying it cannot be published, and every row it writes carries source_licence='KEGG-restricted'. Because this fragment adds no key of its own, composing it into a build that did not run prep_kegg.py costs nothing \u2014 no empty node type, no audit rule at 0/0. conv_compound_pubchem.tsv is not loaded at all: it returns PubChem Substance ids, not Compound ids, and writing them beside HMDB's pubchem_cid would be wrong and look plausible.",
+  "nodes": {
+    "Pathway": {
+      "csv": "pathway.csv",
+      "pk": "pathway_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "species": "string",
+        "pathway_source": "string",
+        "source_licence": "string",
+        "source_id": "string"
+      }
+    },
+    "Metabolite": {
+      "connections": {
+        "junction_edges": {
+          "IN_PATHWAY": {
+            "csv": "metabolite_pathway.csv",
+            "source_fk": "metabolite_id",
+            "target": "Pathway",
+            "target_fk": "pathway_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "evidence_code",
+              "eco_id",
+              "species"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "evidence_code": "string",
+              "eco_id": "string",
+              "species": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -8,7 +8,8 @@ Six steps, in this order and for these reasons:
    ``disease.csv``, ``taxon_disease.csv``, …) with whoever else writes them —
    see :mod:`microbiomekg.tables`. The directory is emptied first, so the
    output is a function of the raw inputs and this order, not of what a
-   previous run left behind.
+   previous run left behind. A **licence-gated** source (:data:`LICENCE_GATED`)
+   is skipped unless its flag is passed — ``--with-kegg`` today.
 2. **Taxonomy last.** ``prep_taxonomy.py`` reads ``cited_taxa.csv``, which
    every source contributes to, so it cannot run until they all have.
 3. **Compose the blueprint** from ``blueprints/*.json``.
@@ -67,6 +68,15 @@ TEXT_INDEXES: tuple[tuple[str, str], ...] = (
 #: Distinct from a real failure so the build can go on without that source
 #: rather than either dying or silently loading nothing.
 MISSING_INPUT = 3
+
+#: source -> the flag that opts into it. A licence-gated source is **off by
+#: default** and its prep refuses to run without the flag, exiting
+#: ``MISSING_INPUT`` — so it leaves the build by the same path an absent raw
+#: file does, and no extra machinery is needed here. KEGG is the only one: it
+#: is explicitly not a public database, so a graph carrying its content cannot
+#: be published (docs/sources.md, "Redistribution"). The operator opts in; the
+#: build never decides for them.
+LICENCE_GATED: dict[str, str] = {"kegg": "--with-kegg"}
 
 
 def run(script: Path, *args: str) -> int:
@@ -151,6 +161,12 @@ def main(argv: list[str] | None = None) -> int:
         "the ontology without re-reading 3M taxonomy rows.",
     )
     ap.add_argument("--no-save", action="store_true")
+    for source, flag in LICENCE_GATED.items():
+        ap.add_argument(
+            flag, action="store_true",
+            help=f"Include the {source} slice. Off by default: its licence "
+                 f"forbids redistributing a graph that carries it.",
+        )
     args = ap.parse_args(argv)
 
     scripts = ROOT / "scripts"
@@ -164,8 +180,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"cleared {removed} CSV(s) from {args.csv}")
         for prep in preps:
             source = prep.stem.removeprefix("prep_")
-            if run(prep, "--raw", str(args.raw), "--out", str(args.csv)) == MISSING_INPUT:
-                print(f"    ... {source}: raw input absent, skipping this source")
+            flag = LICENCE_GATED.get(source)
+            opted_in = flag is not None and getattr(args, flag[2:].replace("-", "_"))
+            gate = [flag] if opted_in else []
+            if run(prep, "--raw", str(args.raw), "--out", str(args.csv), *gate) == MISSING_INPUT:
+                print(f"    ... {source}: raw input absent or not opted into, "
+                      f"skipping this source")
                 skipped.add(source)
         run(
             scripts / "prep_taxonomy.py",

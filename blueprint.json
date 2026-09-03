@@ -348,6 +348,46 @@
               "resolution_status": "string",
               "duplicate_rows": "int"
             }
+          },
+          "PRODUCES": {
+            "csv": "taxon_metabolite.csv",
+            "source_fk": "tax_id",
+            "target": "Metabolite",
+            "target_fk": "metabolite_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "resolution_status",
+              "hmdb_status",
+              "microbe_path",
+              "publications",
+              "n_publications"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "resolution_status": "string",
+              "hmdb_status": "string",
+              "microbe_path": "string",
+              "publications": "string",
+              "n_publications": "int"
+            }
           }
         }
       }
@@ -676,7 +716,148 @@
         "source_licence": "string"
       }
     },
+    "Drug": {
+      "csv": "drug.csv",
+      "pk": "drug_id",
+      "title": "pref_name",
+      "properties": {
+        "chembl_id": "string",
+        "pref_name": "string",
+        "molecule_type": "string",
+        "max_phase": "int",
+        "first_approval": "int",
+        "atc_codes": "string",
+        "approved": "bool",
+        "withdrawn": "bool",
+        "therapeutic": "bool",
+        "oral": "bool",
+        "parenteral": "bool",
+        "topical": "bool",
+        "smiles": "string",
+        "salt_form": "bool",
+        "salt_ids": "string",
+        "source": "string",
+        "source_licence": "string",
+        "chembl_release": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "HAS_MECHANISM": {
+            "csv": "drug_target.csv",
+            "source_fk": "drug_id",
+            "target": "ProteinTarget",
+            "target_fk": "target_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "action_type",
+              "mechanism_of_action",
+              "publications",
+              "regulatory_refs",
+              "clinical_phase",
+              "direct_interaction",
+              "disease_efficacy",
+              "mechanism_comment",
+              "selectivity_comment",
+              "reported_molecule_chembl_id",
+              "chembl_release"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "action_type": "string",
+              "mechanism_of_action": "string",
+              "publications": "string",
+              "regulatory_refs": "string",
+              "clinical_phase": "int",
+              "direct_interaction": "bool",
+              "disease_efficacy": "bool",
+              "mechanism_comment": "string",
+              "selectivity_comment": "string",
+              "reported_molecule_chembl_id": "string",
+              "chembl_release": "string"
+            }
+          }
+        }
+      }
+    },
+    "ProteinTarget": {
+      "csv": "protein_target.csv",
+      "pk": "target_id",
+      "title": "pref_name",
+      "properties": {
+        "chembl_id": "string",
+        "pref_name": "string",
+        "target_type": "string",
+        "organism": "string",
+        "tax_id": "int",
+        "uniprot": "string",
+        "n_components": "int",
+        "species_group": "bool",
+        "source": "string",
+        "source_licence": "string",
+        "chembl_release": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "OF_ORGANISM": {
+            "csv": "protein_target_taxon.csv",
+            "source_fk": "target_id",
+            "target": "Taxon",
+            "target_fk": "tax_id",
+            "properties": [
+              "reported_tax_id",
+              "resolution_status",
+              "organism",
+              "primary_source",
+              "source_licence"
+            ],
+            "property_types": {
+              "reported_tax_id": "int",
+              "resolution_status": "string",
+              "organism": "string",
+              "primary_source": "string",
+              "source_licence": "string"
+            }
+          }
+        }
+      }
+    },
     "Intervention": {
+      "connections": {
+        "junction_edges": {
+          "IS_DRUG": {
+            "csv": "intervention_drug.csv",
+            "source_fk": "intervention_id",
+            "target": "Drug",
+            "target_fk": "drug_id",
+            "properties": [
+              "match_method",
+              "matched_name",
+              "drugbank_id",
+              "primary_source",
+              "source_licence"
+            ],
+            "property_types": {
+              "match_method": "string",
+              "matched_name": "string",
+              "drugbank_id": "string",
+              "primary_source": "string",
+              "source_licence": "string"
+            }
+          }
+        }
+      },
       "csv": "intervention.csv",
       "pk": "intervention_id",
       "title": "label",
@@ -685,6 +866,93 @@
         "intervention_type": "string",
         "drugbank_id": "string",
         "source": "string"
+      }
+    },
+    "Metabolite": {
+      "csv": "metabolite.csv",
+      "pk": "metabolite_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "hmdb_id": "string",
+        "chebi_id": "string",
+        "kegg_id": "string",
+        "pubchem_cid": "int",
+        "inchikey": "string",
+        "status": "string",
+        "biospecimens": "string",
+        "microbial_origin": "bool",
+        "origin": "string",
+        "chemical_formula": "string",
+        "secondary_accessions": "string",
+        "selection_rule": "string",
+        "source": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "IN_PATHWAY": {
+            "csv": "metabolite_pathway.csv",
+            "source_fk": "metabolite_id",
+            "target": "Pathway",
+            "target_fk": "pathway_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "evidence_code",
+              "eco_id",
+              "species"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "evidence_code": "string",
+              "eco_id": "string",
+              "species": "string"
+            }
+          }
+        }
+      }
+    },
+    "Pathway": {
+      "csv": "pathway.csv",
+      "pk": "pathway_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "species": "string",
+        "pathway_source": "string",
+        "source_licence": "string",
+        "source_id": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "PART_OF_PATHWAY": {
+            "csv": "pathway_pathway.csv",
+            "source_fk": "pathway_id",
+            "target": "Pathway",
+            "target_fk": "parent_pathway_id",
+            "properties": [
+              "primary_source",
+              "source_licence",
+              "source_relation"
+            ],
+            "property_types": {
+              "primary_source": "string",
+              "source_licence": "string",
+              "source_relation": "string"
+            }
+          }
+        }
       }
     }
   }
