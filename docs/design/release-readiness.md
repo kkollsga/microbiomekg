@@ -164,6 +164,13 @@ connection.
 The evidence model and the 61,127 measured negatives are the lede, not a
 footnote: they are the thing no comparable resource ships.
 
+**Done 2026-09-03.** The README opens with the evidence model and the 61,127
+measured negatives, then Install → Python → Cypher → MCP → adding a source →
+layout → building. Every number in it is executed by the claim gate
+(`docs/claims/README.md`, via `DOC_UNITS` in `tests/skill_claims.py`), so the
+README cannot drift from the graph. The one sentence that stays untrue until
+§4 lands is `pip install microbiomekg`, and it says so inline.
+
 **Done when:** a reader who is not an agent can install it, build it, and ask
 it a question from the README alone.
 

@@ -1,113 +1,152 @@
 # MicrobiomeKG
 
-A test build of a microbiome knowledge graph on kglite, modelled on the
-MicroMap post (taxa, diseases, metabolites, pathways, drugs, resistance,
-papers) but with the *evidence model* as the point: every association edge
-carries study design, direction, sample size and the citing paper, and the
-ontology audit reports what fraction of edges lack evidence.
+A microbiome knowledge graph on [kglite](https://github.com/kkollsga/kglite),
+**with the evidence model as the point**. Every association edge carries the
+study design, the direction, both group sizes and the citing paper; nothing is
+stored as a score; direction is per study and never aggregated, so forty
+reports on one pair stay forty reports, dissent included. And the **measured
+negatives are first-class**: 61,127 edges record that somebody looked and found
+nothing — 42,233 drugs that did not inhibit a gut isolate, 17,479 that no
+strain metabolised, 894 metabolites with no exchange, and 521 curated
+non-effects — each as its own relationship, so no query mistakes "never
+tested" for "tested and clean".
 
-Eleven sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome,
-ChEMBL, MiMeDB, NJC19, the two landmark drug screens — Maier 2018 and
-Zimmermann 2019 — and MASI, over NCBI taxonomy. KEGG has a loader and is **off
-by default** — `--with-kegg` — because its licence forbids redistributing a
-graph carrying it.
+Eleven curated sources over NCBI taxonomy: BugSigDB, gutMDisorder, CARD, HMDB,
+Reactome, ChEMBL, MiMeDB, NJC19, the Maier 2018 and Zimmermann 2019 drug
+screens, and MASI. 934,206 nodes and 1,324,684 edges; 105,880
+microbe–disease reports over 56,306 distinct pairs. KEGG has a loader and is
+off by default, because its licence forbids redistributing a graph carrying it.
 
-The drug↔taxon layer is the part worth knowing about. Maier's 1,197 drugs × 40
-gut isolates say which drugs inhibit a bacterium; Zimmermann's 271 drugs × 76
-strains say which bacteria metabolise a drug; **each keeps its measured non-hits
-— 42,233 and 17,479 — as their own relationship** (`docs/sources.md` §15, §16).
-**MASI is the aggregator that curates the same literature, and it is loaded as
-one**: 66.4% of its 12,512 interaction records cite one of those two papers, and
-62.5% of the edges it produces restate a (taxon, compound) pair one of those
-screens already *measures*. So its substances are their own `Substance` node
-type, its four interaction relationships are its own, and the identity between a
-MASI substance and a `Drug` is a declared `SAME_COMPOUND_AS` edge — never a
-merge. A query for what was measured never sees a re-curation of it; a query for
-MASI's curated literature asks for it in one hop, and
-`WHERE r.duplicates_primary_source IS NULL` is the 4,295 edges nothing else here
-carries (§14).
+No data and no built graph ships. What ships is the pipeline: one directory
+is the entire input, a source is discovered rather than listed, and a source
+whose raw files are absent is skipped loudly, never silently.
 
-Layout:
-
-- `microbiomekg/` — the package: everything below that is code or data ships
-  from here. `scripts/build.py`, `fetch.py`, `serve.py` and `build_blueprint.py`
-  are thin callers into it, kept so the commands on this page work from a
-  checkout.
-- `microbiomekg/api.py` — `status` / `fetch` / `build` over one data directory,
-  and `microbiomekg/cli.py` behind the `microbiomekg` command (`make venv`
-  installs it): `microbiomekg status --data data` is the to-do list a fresh
-  clone gets instead of a failed build.
-- `scripts/fetch.py`  — manifest-driven downloads into `data/raw/` (skip if present, resume).
-- `microbiomekg/preps/prep_*.py` — per-source preprocessing into flat CSVs in `data/csv/`.
-  Each declares `DEPENDS_ON`: the preps whose tables it reads.
-- `scripts/build.py`  — the whole build: prep in dependency order, compose,
-  load, index, audit, save.
-- `microbiomekg/blueprints/*.json` — one blueprint fragment per source, composed into
-  `blueprint.json` by `scripts/build_blueprint.py`.
-- `microbiomekg/ontology/` — one module per source, composed into `ONTOLOGY`.
-- `microbiomekg/tables.py` — the shared flat-CSV writer, and how two sources
-  merge rows into one table without either knowing the other's columns.
-- `microbiomekg/embedder.py` — the deterministic character-n-gram embedder the
-  semantic name lookup uses. No model download, and **off by default** —
-  `--with-vectors`; see `docs/model.md` §6b.
-- `microbiomekg/mcp/microbiomekg_mcp.yaml` — the MCP manifest: read-only, skills on, the
-  evidence rules in `instructions:` and the sticky field reminder in
-  `overview_prefix:`.
-- `microbiomekg/mcp/microbiomekg.skills/` — one skill per Part D use-case family. These are
-  injected into the tool descriptions the agent reads, so the methodology
-  travels with the tool.
-- `scripts/serve.py`  — launches that server (`--selftest` for a green/red
-  configuration check). The manifest has no `graph:` key, so this pairing is
-  the only supported way to start it.
-- `docs/model.md`     — the graph model and the evidence-field contract.
-- `docs/sources.md`   — each source: URL, licence, format, fetch status.
-- `docs/usecases-and-pitfalls.md` — the user contract: workflows, the evidence
-  vocabulary, the ten guards, and the twenty acceptance queries.
-
-**Adding a source** means adding files, not editing shared ones:
-`microbiomekg/preps/prep_<source>.py`, `microbiomekg/blueprints/<source>.json`,
-`microbiomekg/ontology/<source>.py`, `tests/test_<source>.py`. The prep
-scripts, the blueprint fragments and the ontology modules are each discovered
-by glob rather than listed anywhere, the prep's `DEPENDS_ON` is what places it
-in the build, and a fragment that contradicts another is a build error rather
-than a silent override.
-
-Build it:
+## Install
 
 ```bash
-.venv/bin/python scripts/build.py          # --scope microbial is the default
-.venv/bin/python scripts/build.py --with-kegg      # + the licence-gated source
-.venv/bin/python scripts/build.py --with-vectors   # + the semantic name lane
-.venv/bin/python -m pytest -q
+pip install microbiomekg           # not yet on PyPI — from a checkout: make venv
+microbiomekg status --data ./data  # the to-do list a fresh clone gets
+microbiomekg fetch  --data ./data  # fills what it can; prints the browser-only steps
+microbiomekg build  --data ./data  # builds from what is present; reports the rest
 ```
 
-`make` wraps the same commands: `make gate` is the fast pre-commit gate
-(~25 s — lint, the accumulation bounds, blueprint composition, and the two
-gates that hold the documented queries and the agent-facing prose to the
-graph), `make test` is the full suite, `make build ARGS='--with-kegg'` builds
-the graph. The conventions an agent works under are `CLAUDE.md`.
+Three origins are browser-only downloads — HMDB and MiMeDB sit behind
+Cloudflare, MASI behind an expired certificate — and `status` says exactly
+which file, from which page, into which directory. A build with fewer sources
+than you expected is never silent: the report names every skipped source.
 
-Two things are **off by default and opt in by a flag**, for different reasons.
-`--with-kegg` is a licence gate (above). `--with-vectors` is a cost gate: the
-character-n-gram vector index buys query-time tolerance for a *misspelt*
-organism name and nothing else — load-time reconciliation matches exactly,
-through synonyms and through authority stripping, and never touches it — while
-costing +82.6 s of build, `.kgl` 46.7 MB → 212.7 MB, load 1.03 s → 2.41 s and
-serving RSS 1.2 GB → 3.7 GB (measured, `docs/model.md` §6b). The five BM25
-indexes are unconditional at 276 ms and 14.3 MB. A default build says in its
-report that the lane was skipped and which flag turns it on.
+## Python
 
-The build prints node and edge counts, the ontology audit, and G10's expansion
-factor — edges per source record — for every relationship the fragments
-declare. It writes the graph to `graph/microbiomekg.kgl` and, beside the CSVs
-it loaded, the `blueprint.load.json` and ontology document that describe *that*
-build. `--csv <dir>` moves all of it somewhere else.
+```python
+import microbiomekg as mkg
 
-Serve it to an agent:
+mkg.status("./data")                     # {source: SourceStatus(state, missing, how_to_get, licence)}
+result = mkg.build("./data")             # a BuildResult; result.graph is a kglite graph
+g = result.graph
+
+g.cypher("""
+MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005575'})
+RETURN r.direction, r.evidence_level, r.study_design, r.group_1_size, r.pmid
+ORDER BY r.evidence_level
+""")
+```
+
+That query — *Fusobacterium nucleatum* in colorectal cancer — returns 40 rows
+from 21 studies, one of them `decreased`. It is never one aggregated row, and
+the dissent is never removed. The twenty documented queries in
+[`docs/usecases-and-pitfalls.md`](docs/usecases-and-pitfalls.md) are the user
+contract; each has a golden the test suite asserts.
+
+## Cypher
+
+The graph is a kglite `.kgl` file: open it in Python, or over Bolt for driver
+tooling. Three of the documented queries, as the shape of what it answers:
+
+```cypher
+// D17 — where do studies disagree, and which pairs rest on a single cohort?
+MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease)
+WITH t, d, collect(DISTINCT r.direction) AS directions,
+     count(DISTINCT r.study_id) AS n_studies, count(r) AS n_edges
+RETURN t.title, d.title, directions, n_studies,
+       size(directions) > 1 AS direction_conflict, n_studies = 1 AS single_cohort
+ORDER BY n_edges DESC LIMIT 50
+```
+
+```cypher
+// D8 — does a drug inhibit gut bacteria, and is it metabolised by them?
+MATCH (d:Drug {pref_name: 'METFORMIN'})-[r]->(t:Taxon)
+RETURN type(r) AS relationship, count(*) AS strains
+```
+
+```cypher
+// D6 — which taxa consume a metabolite, and which produce it? (cross-feeding)
+MATCH (m:Metabolite {title: 'Butyric acid'})
+OPTIONAL MATCH (p:Taxon)-[:PRODUCES]->(m)
+OPTIONAL MATCH (c:Taxon)-[:CONSUMES]->(m)
+RETURN count(DISTINCT p) AS producers, count(DISTINCT c) AS consumers
+```
+
+The model — node types, the evidence-field contract, the reconciliation ledger
+— is [`docs/model.md`](docs/model.md); the per-source licences and provenance
+are [`docs/sources.md`](docs/sources.md); what the graph reproduces and
+against what is [`docs/benchmarks.md`](docs/benchmarks.md).
+
+## MCP
 
 ```bash
-.venv/bin/python scripts/serve.py --selftest   # green/red configuration check
-.venv/bin/python scripts/serve.py              # MCP over stdio, read-only
+microbiomekg serve --selftest    # green/red configuration check
+microbiomekg serve               # kglite's MCP server on stdio, read-only
 ```
 
-Engine: kglite (`../../Rust/KGLite`, source of API truth `kglite/__init__.pyi`).
+The manifest and the skills ship inside the package. One skill per use-case
+family, injected into the tool descriptions an agent reads, so the evidence
+rules travel with the tool; the prose in them is held to the graph by the
+same claim gate that holds this README.
+
+## Adding a source
+
+A source is four files, discovered rather than listed, and adding one never
+edits a shared file:
+
+| file | what it carries |
+|---|---|
+| `microbiomekg/preps/prep_<src>.py` | raw → flat CSV, plus `DEPENDS_ON` and `RAW_INPUTS` |
+| `microbiomekg/blueprints/<src>.json` | the node types and junction edges it writes rows into |
+| `microbiomekg/ontology/<src>.py` | its audit rules, evidence mapping and licence |
+| `tests/test_<src>.py` | its fixture-backed tests, against a real cut of the source |
+
+Fragments merge and never override: declaring the same key with a different
+value is a build error naming both fragments.
+
+## Layout
+
+- `microbiomekg/` — the package: `api.py` (the three verbs), `cli.py`, the
+  preps, the blueprint fragments, the ontology modules, `pipeline.py` (the
+  build), `download.py` (fetch), `sources.py` (status), `serve.py`, and `mcp/`.
+- `scripts/` — thin callers into the package, so `scripts/build.py` and
+  friends work from a checkout; `scripts/check_install.py` is the wheel proof.
+- `docs/` — the guides, the design notes, and the Sphinx build (`make docs`).
+- `tests/` — offline, fixture-backed; the graph-backed suites read the built
+  `graph/microbiomekg.kgl`. `tests/claims/` and `docs/claims/` hold the claims
+  the truth gate executes.
+- `bench/` — the longitudinal cost record.
+
+## Building and testing
+
+```bash
+make venv          # provision .venv and install the package editable
+make build         # the graph (minutes; needs data/raw — see docs/sources.md)
+make gate          # the pre-commit gate: ruff, bounds, blueprint composition, the truth gates
+make test          # the full suite
+make docs          # sphinx -W
+```
+
+Two flags are off by default. `--with-kegg` is a licence gate. `--with-vectors`
+is a cost gate: the character-n-gram vector index buys query-time tolerance for
+a *misspelt* organism name and nothing else, while costing +82.6 s of build,
+`.kgl` 46.7 MB → 212.7 MB, load 1.03 s → 2.41 s and serving RSS 1.2 GB → 3.7 GB
+(the `2026-09-03` capture, `bench/results/`). A default build says in its report
+that the lane was skipped and which flag turns it on.
+
+The conventions an agent works under are `CLAUDE.md`. The code is MIT; the
+sources keep their own licences, on every edge.
