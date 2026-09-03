@@ -181,3 +181,74 @@ def test_the_spine_fragment_is_composed_first():
     paths = fragment_paths(FRAGMENTS)
     assert paths[0].stem == "core"
     assert [p.stem for p in paths[1:]] == sorted(p.stem for p in paths[1:])
+
+
+# --------------------------------------------------------------------------
+# A key the loader does not read
+# --------------------------------------------------------------------------
+
+
+def _load_report(blueprint: dict, root: Path, tmp_path: Path, capfd) -> str:
+    """Load ``blueprint`` against ``root`` and return the build report text.
+
+    ``root`` may be empty: a node spec whose CSV is not there is an *error*
+    line, not a raised exception, and the unknown-key scan runs at parse time
+    regardless. That is what makes this a fast whole-fragment-set gate rather
+    than something only a four-minute build can answer.
+
+    ``capfd``, not ``capsys``: the report is written by the Rust extension
+    straight to the process's file descriptors, so a Python-level redirect
+    sees none of it and the gate would pass on an empty string.
+    """
+    kglite = pytest.importorskip("kglite")
+
+    document = dict(blueprint)
+    settings = {k: v for k, v in (document.get("settings") or {}).items()
+                if k not in ("output", "output_path", "output_file")}
+    settings["root"] = str(root)
+    document["settings"] = settings
+    document.pop("ontology", None)
+    path = tmp_path / "blueprint.json"
+    path.write_text(json.dumps(document))
+    capfd.readouterr()
+    kglite.from_blueprint(path, verbose=True, save=False)
+    out, err = capfd.readouterr()
+    return out + err
+
+
+def test_no_fragment_declares_a_key_the_loader_does_not_read(tmp_path, capfd):
+    """A misspelt key was dropped by the parser and the build reported success.
+
+    kglite 0.16.22 reports it instead, with a near-miss suggestion — a
+    `"lables"` costs every label it carries and used to say nothing. Composing
+    the whole fragment set against an empty CSV root is enough to hear it, so
+    this runs in milliseconds rather than behind a build.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_blueprint import compose
+
+    report = _load_report(compose(FRAGMENTS), tmp_path / "empty", tmp_path, capfd)
+    offending = [line for line in report.splitlines() if "unknown key" in line]
+    assert not offending, (
+        "a blueprint fragment declares a key the loader ignores:\n  "
+        + "\n  ".join(offending)
+    )
+
+
+def test_the_unknown_key_gate_can_fail(tmp_path, capfd):
+    """The same scan, over a fragment set with one typo, must see it.
+
+    Without this the test above is green on any release that stops reporting
+    unknown keys — which is exactly the silence it was added to end.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_blueprint import compose
+
+    document = compose(FRAGMENTS)
+    document["nodes"]["Taxon"]["lables"] = ["Organism"]
+    report = _load_report(document, tmp_path / "empty", tmp_path, capfd)
+    assert any("unknown key" in line and "lables" in line
+               for line in report.splitlines()), (
+        "the loader no longer reports an unknown blueprint key, so the gate "
+        f"above cannot fail:\n{report}"
+    )
