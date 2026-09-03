@@ -370,6 +370,42 @@ def test_same_pair_from_three_signatures_is_three_edges(graph):
     ], "the three signatures were collapsed into one edge"
 
 
+def test_the_condition_union_is_matchable_as_one_label(graph):
+    """`Condition` is abstract in the ontology and a real label on the nodes.
+
+    The blueprint stamps it (`labels: ["Condition"]`), so the union the range
+    check reasons about is also a thing a query can name — without
+    `materialize_ontology()`, which changes query semantics graph-wide, and
+    without re-rooting the `is_a` forest, which has one parent per class.
+
+    The primary label stays first in `labels(n)`, which the build report and
+    every `labels(n)[0]` query depend on.
+    """
+    total = count(graph, "MATCH (c:Condition) RETURN count(c) AS n")
+    parts = sum(
+        count(graph, f"MATCH (c:{kind}) RETURN count(c) AS n")
+        for kind in ("Disease", "Phenotype", "Exposure")
+    )
+    assert total == parts == (
+        NODE_COUNTS["Disease"] + NODE_COUNTS["Phenotype"] + NODE_COUNTS["Exposure"]
+    )
+    primaries = {
+        r["t"]
+        for r in rows(
+            graph,
+            "MATCH (c:Condition) RETURN DISTINCT labels(c)[0] AS t",
+        )
+    }
+    assert primaries == {"Disease", "Phenotype", "Exposure"}, (
+        f"`Condition` displaced the primary label: {primaries}"
+    )
+    # And it reaches a node no CSV supplied — the blueprint owns every node of
+    # the types it declares, including a stub some edge vivified.
+    assert count(
+        graph, "MATCH (:Taxon)-[:ASSOCIATED_WITH]->(c:Condition) RETURN count(c) AS n"
+    ) == ASSOCIATION_EDGES
+
+
 def test_conflicting_directions_survive_as_separate_edges(graph):
     """C12: 1386 is increased on `bsdb:27026576/1/1`, decreased on `/3/2`."""
     got = {

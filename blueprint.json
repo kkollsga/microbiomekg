@@ -1060,6 +1060,9 @@
       "csv": "disease.csv",
       "pk": "condition_id",
       "title": "label",
+      "labels": [
+        "Condition"
+      ],
       "properties": {
         "label": "string",
         "mondo_id": "string",
@@ -1073,6 +1076,9 @@
       "csv": "phenotype.csv",
       "pk": "condition_id",
       "title": "label",
+      "labels": [
+        "Condition"
+      ],
       "properties": {
         "label": "string",
         "mondo_id": "string",
@@ -1086,6 +1092,9 @@
       "csv": "exposure.csv",
       "pk": "condition_id",
       "title": "label",
+      "labels": [
+        "Condition"
+      ],
       "properties": {
         "label": "string",
         "mondo_id": "string",

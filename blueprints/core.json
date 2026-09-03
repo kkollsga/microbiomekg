@@ -1,5 +1,5 @@
 {
-  "_doc": "The shared spine every source writes rows into: the taxon side of the graph (Taxon + HAS_PARENT + the UnresolvedTaxon tombstone), the three condition types the CURIE prefix routes to, Study/Paper, and the one ASSOCIATED_WITH junction edge that spans them. `target` is a list and `target_type_column` names the column holding each row's target type, so one relation is one relationship name over a union range (kglite 0.16.22; docs/model.md section 8). A source fragment adds to this; it only edits this file when it needs a genuinely new shared column.",
+  "_doc": "The shared spine every source writes rows into: the taxon side of the graph (Taxon + HAS_PARENT + the UnresolvedTaxon tombstone), the three condition types the CURIE prefix routes to, Study/Paper, and the one ASSOCIATED_WITH junction edge that spans them. `target` is a list and `target_type_column` names the column holding each row's target type, so one relation is one relationship name over a union range (kglite 0.16.22; docs/model.md section 8). Disease/Phenotype/Exposure carry the secondary label `Condition`, so the ontology's abstract union class is matchable as `(:Condition)` without materialize_ontology() and without re-rooting the is_a forest. A source fragment adds to this; it only edits this file when it needs a genuinely new shared column.",
   "settings": {
     "root": "./data/csv",
     "output": "graph/microbiomekg.kgl"
@@ -155,6 +155,9 @@
       "csv": "disease.csv",
       "pk": "condition_id",
       "title": "label",
+      "labels": [
+        "Condition"
+      ],
       "properties": {
         "label": "string",
         "mondo_id": "string",
@@ -168,6 +171,9 @@
       "csv": "phenotype.csv",
       "pk": "condition_id",
       "title": "label",
+      "labels": [
+        "Condition"
+      ],
       "properties": {
         "label": "string",
         "mondo_id": "string",
@@ -181,6 +187,9 @@
       "csv": "exposure.csv",
       "pk": "condition_id",
       "title": "label",
+      "labels": [
+        "Condition"
+      ],
       "properties": {
         "label": "string",
         "mondo_id": "string",

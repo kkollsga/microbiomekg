@@ -40,6 +40,13 @@ added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
 | `ResistanceMechanism` | `ARO:0001004` | `label` | CARD ARO category `Resistance Mechanism` | 3 |
 | `Substance` | `MASI:PMDBD<n>` | `name` | MASI's own accession — a drug, a medicinal herb or its compound, a dietary compound or an environmental chemical | 4 |
 
+**One secondary label, `Condition`, on `Disease` / `Phenotype` / `Exposure`.**
+It is the abstract class `ASSOCIATED_WITH` and `IN_CONDITION` range over (§4),
+stamped by the blueprint so it is also matchable: `MATCH (c:Condition)` is the
+931 nodes of the three types, and `labels(n)[0]` is still the node's own type.
+Nothing else carries one, and §8 item 3 says why `ReportedTaxon` deliberately
+does not.
+
 Decisions worth the ink:
 
 **The column named "EFO ID" is neither EFO nor, in 7% of its mentions, a
@@ -2111,15 +2118,29 @@ the engine, not into a workaround this repo pretends is a design.**
    would be a junction table whatever FK edges could carry — but the reason it
    is a separate file is now "the relation is many-to-many", not "the engine
    cannot put a property on an FK edge".
-3. **No secondary labels.** `NodeSpec` has no `labels` field, so the ontology
-   guide's advice to model multi-role nodes with secondary labels is not
-   reachable from a blueprint build; the escape hatches are a post-build
-   `SET n:X` or `materialize_ontology()`. This bites because `is_a` is a
-   **forest** — `Taxon` can have exactly one parent class, so it cannot be both
-   `ReportedTaxon` (union of things a signature names) and a future
-   `Associatable` (union of things that associate with a disease). When
-   `Metabolite` and `Drug` arrive with their own association edges, either the
-   forest is re-rooted or the relationships get distinct names.
+3. **No secondary labels.** **Closed by kglite 0.16.22**: a node spec takes a
+   `labels` list, stamped after the node *and* edge phases so a stub some edge
+   vivified carries them too. `Disease`, `Phenotype` and `Exposure` now carry
+   `Condition`, so the abstract union the range check reasons about is a thing
+   a query can name — `MATCH (c:Condition)` — without `materialize_ontology()`,
+   which changes query semantics graph-wide, and without re-rooting the `is_a`
+   forest, which allows one parent per class. `labels(n)[0]` is still the
+   node's own type, which the build report and every type-counting query
+   depend on.
+
+   **`ReportedTaxon` is deliberately *not* stamped**, and the reason is the
+   useful half of this item. It is the domain of `REPORTED_BY` — an abstract
+   class over `Taxon` and `UnresolvedTaxon` — and stamping it would put the
+   label on all 864,132 `Taxon` nodes, of which 8,078 were ever reported by
+   anything. `Condition` is true of every node of its three types; "an organism
+   as some source named it" is true of a hundredth of `Taxon`, so the label
+   would answer `MATCH (n:ReportedTaxon)` with 864,356 and mean nothing. A
+   union label is worth stamping when it is a property of the *type*; where it
+   is a property of the individual, the edge is what says so, and
+   `MATCH (n)-[:REPORTED_BY]->()` is that query. The forest constraint the
+   original note worried about is still real — when `Metabolite` and `Drug`
+   grow their own association edges, `Associatable` is a second union over
+   `Taxon` — and `labels` is now the answer to it.
 4. **The ontology audits edge properties only.** There is no
    `required_properties` for *node* properties, which is the single fact that
    decided §1's edge-vs-node split. And `required_properties` reports per edge,
