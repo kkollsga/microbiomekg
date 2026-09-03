@@ -13,9 +13,9 @@ applies_when:
   graph_has_node_type: [Drug]
 ---
 
-# Drugs and the microbiome: three legs, and the negative that is a result
+# Drugs and the microbiome: four legs, and the negative that is a result
 
-Three different claims reach a `Taxon` from a `Drug`, and they are **not**
+Four different claims connect a `Taxon` and a `Drug`, and they are **not**
 interchangeable. Say which one you used.
 
 | Leg | Path | The claim |
@@ -23,12 +23,23 @@ interchangeable. Say which one you used.
 | 1 | `Drug -> ProteinTarget -> Taxon` | the drug binds a protein this organism has |
 | 2 | `Taxon -> Intervention -> Drug` | the drug changed this taxon's abundance in a host |
 | 3 | `Drug -> Taxon`, direct | the drug did, or did not, stop this isolate growing in culture |
+| 4 | `Taxon -> Drug`, direct | this isolate did, or did not, chemically deplete the drug |
 
-**Leg 3 has two relationship types and you must use both.**
-`INHIBITS_GROWTH_OF` is a hit; `DOES_NOT_INHIBIT_GROWTH_OF` is a pair the screen
-**tested and found nothing** — a measurement, not an absence of curation. A
-query that matches only the first cannot tell "tested, clean" from "never
-tested", and those are the two answers a clinician most needs apart.
+**Legs 3 and 4 point opposite ways on purpose.** The agent is on the tail of
+each: leg 3 is the drug acting, leg 4 is the bacterium acting. `(d:Drug)-[]->(t:Taxon)`
+is the growth screen and nothing else; `(t:Taxon)-[]->(d:Drug)` is the
+metabolism screen and nothing else. Never merge them and never read one as the
+other — "the drug kills the bug" and "the bug eats the drug" are opposite
+findings with opposite clinical readings.
+
+**Each has two relationship types and you must use both.**
+`INHIBITS_GROWTH_OF` / `METABOLISES` are hits; `DOES_NOT_INHIBIT_GROWTH_OF` /
+`DOES_NOT_METABOLISE` are pairs the screen **tested and found nothing** — a
+measurement, not an absence of curation. A query that matches only the first
+cannot tell "tested, clean" from "never tested", and those are the two answers a
+clinician most needs apart. The four `effect` values are distinct
+(`inhibited` / `no-effect` / `metabolised` / `not-metabolised`) so one property
+groups the whole measured population without mixing the two screens.
 
 ## Leg 3 — the growth screen (Maier 2018, D8)
 
@@ -92,8 +103,8 @@ ORDER BY organism, drug
 ```
 
 **95 drugs reach 28 bacterial taxa** through 1,493 `OF_ORGANISM` edges over 94
-target organisms; **65 of the 95 are approved**. The `Drug` node set is 6,385
-(3,120 approved, 297 withdrawn, 355 minted by the screen), with 1,518
+target organisms; **65 of the 95 are approved**. The `Drug` node set is 6,408
+(3,120 approved, 297 withdrawn, 378 minted by the two screens), with 1,518
 `ProteinTarget`s and 6,984 `HAS_MECHANISM` edges split `in-vitro` 3,153 /
 `interventional-rct` 2,059 / `unknown` 1,772.
 
@@ -199,13 +210,88 @@ composition, while **metformin-untreated T2D status itself was not**; of 41 drug
 categories, 19 associated singly with the microbiome and only **6** survived
 multi-drug correction, taking taxonomic associations from 154 to 47.
 
+## Leg 4 — the metabolism screen (Zimmermann 2019, D8)
+
+```cypher
+MATCH (t:Taxon)-[r:METABOLISES]->(d:Drug {pref_name: 'SULFASALAZINE'})
+RETURN t.title AS organism, r.strain AS strain,
+       r.percent_consumed AS percent_consumed,
+       r.drug_threshold_percent AS threshold_for_this_drug,
+       r.fdr_p_value AS fdr_p, r.incubation_hours AS hours, r.replicates AS n,
+       r.gene_locus_tags AS genes, r.source_licence AS licence
+ORDER BY percent_consumed DESC
+```
+
+**2,575 `METABOLISES` edges over 172 drugs and 66 taxa** (147 of the 172
+approved), and **17,479 `DOES_NOT_METABOLISE` edges**. 271 oral drugs x 76 gut
+strains, every cell measured by LC-MS at 12 h over four cultures; **172 of the
+271 are metabolised by at least one taxon** (the paper's 176 counts four more
+that only one refused strain metabolised — see the limits).
+
+The four-outcome question, which is the one to run when a caller names a drug:
+
+```cypher
+MATCH (d:Drug {pref_name: 'SULFASALAZINE'})
+OPTIONAL MATCH (t:Taxon)-[:METABOLISES]->(d)
+OPTIONAL MATCH (u:Taxon)-[:DOES_NOT_METABOLISE]->(d)
+OPTIONAL MATCH (d)-[:INHIBITS_GROWTH_OF]->(v:Taxon)
+OPTIONAL MATCH (d)-[:DOES_NOT_INHIBIT_GROWTH_OF]->(w:Taxon)
+RETURN count(DISTINCT t) AS metabolised_by, count(DISTINCT u) AS tested_untouched,
+       count(DISTINCT v) AS inhibits, count(DISTINCT w) AS tested_no_inhibition,
+       'anything else was never tested, in either screen' AS caveat
+```
+
+**195 drugs and 26 taxa are in both screens**, so for those the four counts are
+one answer. Sulfasalazine: 52 metabolised_by, 14 tested_untouched.
+
+**The gene, where identified — no `Gene` node, it is on the edge.**
+
+```cypher
+MATCH (t:Taxon)-[r:METABOLISES]->(d:Drug)
+WHERE r.gene_locus_tags <> ''
+RETURN d.title AS drug, t.title AS organism, r.strain AS strain,
+       r.gene_locus_tags AS genes, r.gene_products AS products,
+       r.gene_protein_ids AS refseq
+ORDER BY drug, organism
+```
+
+32 `METABOLISES` edges carry it — **and 5 `DOES_NOT_METABOLISE` edges do too**,
+because the genes were found in a gain-of-function library expressed in
+*E. coli* and on those five pairs that experiment and the whole-cell screen
+disagree. Report the disagreement; it is not a data error.
+
+**Four limits to state with any leg-4 answer.**
+
+- **"Not in this assay" is not "not at all", and the flagship example is a
+  negative.** *Eggerthella lenta* reducing digoxin is the textbook result, and
+  this screen scored that pair a **non-hit** (4.0% consumed against a 20%
+  threshold, FDR p = 0.55) because digoxin reduction needs the *cgr* operon
+  under arginine-poor conditions and the screen ran one medium for 12 h. Twenty
+  other taxa *do* metabolise digoxin here. Always quote `incubation_hours` and
+  the drug's own `drug_threshold_percent` beside a negative.
+- **66 taxa, not the gut.** Only those 76 strains were screened, and two strain
+  names were left **deliberately unresolved** (`Bacteroides WH2`,
+  `Bifidobacterium ruminatum`) because NCBI holds two candidates for each — they
+  are `UnresolvedTaxon` nodes carrying both ids, and four drugs are metabolised
+  only by one of them.
+- **Strain collapses to species, so `count(r)` is not a taxon count.**
+  *Bacteroides fragilis* metabolises 116 drugs here and no single isolate
+  metabolised more than 95, because seven isolates are one node. Use
+  `count(DISTINCT r.screen_column)` for strains.
+- **Licence.** Every leg-4 edge is `source_licence = 'Zimmermann2019-unstated'`,
+  a *different* token from leg 3's `Maier2018-unstated`, so the two screens can
+  be excluded independently.
+
 ## What is still not here
 
-**No relationship says a bacterium metabolises a drug.** That is D8's other
-half — Zimmermann et al., 76 gut bacteria x 271 oral drugs, 176 metabolised —
-and it is not loaded. Never answer "which bacteria metabolise this drug" from
-leg 1 or leg 3: binding a protein and being killed by a drug are both the
-opposite direction of causation.
+**No metabolite identity.** The screen detected the products but published them
+as mass features (`Bisacodyl_183.0685`) with no name, ChEBI or HMDB id, so leg 4
+says *that* a drug was depleted and never *into what*. Do not join it to the
+`Metabolite` layer.
+
+**No `Gene` node.** The 30 gene products are edge properties, not entities;
+"which taxa carry gene X" is not answerable, and neither screen measured gene
+presence per strain.
 
 Pair all of this with the confounder columns on the signatures — `matched_on`,
 `confounders`, `antibiotics_exclusion` (see `signature_enrichment`) — which say

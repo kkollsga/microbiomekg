@@ -40,9 +40,9 @@ copy of its JSON API has ever existed (Wayback has never captured one, confirmed
 by a domain-wide CDX query; see `data/raw/disbiome/PROVENANCE.md`).
 
 **"Usable" is not "answers the question it was fetched for", and two of these
-four do not.** Four sources were fetched to close three named gaps
-(`docs/usecases-and-pitfalls.md` Part B), and the outcome is two for four —
-including the one that arrived as the *substitute* for the source that failed:
+five do not.** Five sources were fetched to close three named gaps
+(`docs/usecases-and-pitfalls.md` Part B), and the outcome is three for five —
+including the two that arrived as the *substitute* for the source that failed:
 
 | Source | Fetched to close | What the download turned out to be | Loaded |
 |---|---|---|---|
@@ -50,6 +50,7 @@ including the one that arrived as the *substitute* for the source that failed:
 | NJC19 | **D6**, consumption / cross-feeding | exactly what it says: 9,136 curated directed events, 912 of them negative | 8,905 edges over 820 taxa — D6 answered |
 | MASI | **D8 / D18**, drug↔taxon | the **substance dictionary** — 1,350 rows, no organism column, no interaction column | nothing |
 | Maier 2018 | **D8 / D18**, drug↔taxon — fetched after MASI's interaction tables proved unrecoverable | the whole published screen: 1,197 drugs x 40 gut isolates, one adjusted p-value per cell | **47,825 edges** over 38 taxa and 1,197 drugs — the first direct `Drug`–`Taxon` edge in the graph |
+| Zimmermann 2019 | **D8**, the *other* direction — does the bug change the drug | the whole published screen again: 271 oral drugs x 76 gut strains, with each drug's own depletion threshold | **20,054 edges** over 66 taxa and 271 drugs — the first `Taxon`–`Drug` edge, and what closed D8 |
 
 Each raw directory carries a `PROVENANCE.md` with the file-level profile, the
 column lists, and the measurement behind the middle column. D5 moved anyway —
@@ -559,11 +560,11 @@ answers neither query. Full profile: `data/raw/masi/PROVENANCE.md`.
 aggregates** (§15). That is a better artifact for this leg than MASI would have
 been: MASI resolves "down to genus level" while Maier's screen is strain-level,
 and MASI curates positives while the screen measured every cell of its matrix
-and so carries 42,233 **negatives**. Part D's requirement that the two
-directions land as separate edge types is unchanged and half-discharged — the
-inhibition direction landed as two types of its own (hit and measured non-hit),
-and the metabolism direction is still open, on Zimmermann 2019 (§16) rather than
-on MASI.
+and so carries 42,233 **negatives**. **The metabolism direction went the same
+way** (§16): Zimmermann 2019's own screen, not MASI's curation of it. Part D's
+requirement that the two directions land as separate edge types is discharged in
+full — four relationships now, two per direction, hit and measured non-hit each
+time — and MASI is off the list for good.
 
 ## 15. Maier 2018 — the drug screen, and the source that actually closed D8
 
@@ -675,23 +676,118 @@ threshold rather than as rows; `MOESM14` `2b` and `MOESM15` `3a`/`3b` are
 distribution curves with no entity pair; `MOESM16` `5b` is drug x *E. coli*
 gene, and this graph has no gene node type for a chemical-genomics score.
 
-## 16. Zimmermann 2019 — fetched, not yet loaded
+## 16. Zimmermann 2019 — the metabolism screen, and the source that closed D8
 
 - **URL** —
   `https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-019-1291-3/MediaObjects/41586_2019_1291_MOESM1_ESM.xlsx`.
-  Paper: Zimmermann et al., *Nature* 570:462-467 (2019), PMID 31158845.
-- **Licence** — unstated, on the same terms as Maier 2018.
-- **Status** — **fetched (40 MB); not loaded.** No prep script, no blueprint
-  fragment, no ontology module.
+  Paper: Zimmermann et al., *Nature* 570:462-467 (2019),
+  doi:10.1038/s41586-019-1291-3, **PMID 31158845**.
+- **Licence** — **unstated**, on the same terms as Maier: journal supplementary
+  material of a subscription article, no licence line, no terms URL, no document
+  property. Every edge carries `source_licence = 'Zimmermann2019-unstated'` —
+  a *different* token from Maier's, because two subscription articles are two
+  permissions and a reader excluding one has no reason to lose the other.
+- **Format** — one XLSX workbook, 39,986,145 bytes, sha256 `91dd7962…4a2fe66d`,
+  21 sheets.
+- **Status** — **fetched; loaded**, and it is the source that closed D8's
+  metabolism leg — W7's *other* direction, the one Maier cannot answer.
 
-This is W7's *other* direction — 76 gut bacteria against 271 oral drugs, of
-which 176 (65%) were metabolised by at least one strain. Maier answers "does the
-drug change the bug"; Zimmermann answers "does the bug change the drug", and
-Part D's D8 is explicit that the two must land as **two edge types, never one**,
-because collapsing them conflates antimicrobial killing with drug metabolism.
-Nothing is loaded from it yet, so D8's metabolism leg is still open and says so.
+**What each sheet is, and which four are read.** The full 21-sheet profile is in
+`data/raw/drug_screens/PROVENANCE.md`; the four that matter here:
 
----
+| Sheet | Shape | Loaded |
+|---|---|---|
+| **`Supplementary Table 3`** | **271 drugs x 80 measured columns, five sub-columns each (`% consumed`, its STD, `FC`, its STD, ` p(FDR)`), plus each drug's own `Drug adaptive FC threshold %`. 21,680 cells, none blank** | **yes — every edge comes from here** |
+| `Supplementary Table 1` | 76 screened organisms with a phylum and a collection number, then the mutant background, cloning strains and plasmids | yes — the strain dictionary |
+| `Supplementary Table 2` | 271 drugs x 117 columns: screened name, therapeutic indication, CAS, trade name, SMILES, the **parent drug's** name, and 85 functional-group counts — then a blank row and a block describing its own columns | yes — the drug dictionary |
+| `Supplementary Table 13` | 30 bacterial gene products x 20 parent drugs, binary, with RefSeq locus tag, PATRIC id and protein id | yes — as **edge properties**, not a node type |
+
+The other seventeen are mouse pharmacokinetics, fecal-community slopes,
+metagenomic sample tables, primers, a purchasing list, a BLAST search and the
+metabolite feature matrices. The last of those is the one worth naming:
+**`Supplementary Table 6` is 6,573 mass-to-charge features named
+`Bisacodyl_183.0685`, with no compound identity of any kind** — no name, no
+ChEBI, HMDB, KEGG or PubChem id, no InChIKey — so nothing in it can become a
+`Metabolite` node this graph could join to HMDB, MiMeDB or NJC19. It reads like
+the obvious second layer and it is not one.
+
+**Four of the eighty measured columns are not organisms.** `Control pH 4`
+through `Control pH 7` sit *between* strain columns, carry the same five
+sub-columns, and produce **15, 9, 7 and 7 apparent hits** under the very rule
+that calls a real one — they are the abiotic-degradation controls. Nothing
+structural separates them, so a reader that walked the column blocks would write
+1,084 cells of chemistry as microbial metabolism and would report 80 screened
+"strains" against the paper's 76. They are excluded by label and ledgered, and
+excluding them is what makes the published 76 reproduce from the sheet.
+
+**The call rule is derived, and the file publishes only half of it.** Column B
+gives each drug its own `Drug adaptive FC threshold %` (20 for 124 of the 271,
+higher for the rest), so the depletion cutoff is read rather than guessed. The
+comparison and the significance cutoff are not, and both matter: **`% consumed
+>= the drug's own threshold` with `p(FDR) <= 0.05` reproduces the paper's
+headline exactly — 176 of 271 drugs (65%) metabolised by at least one strain.**
+`p < 0.05` gives 175 (fourteen cells sit at exactly 0.05), `p <= 0.01` gives
+133, and using the 20% floor instead of the per-drug threshold gives 190.
+`scripts/prep_zimmermann2019.py` re-derives the 176 on every run and **refuses
+to write** when it stops holding. A second check from a sheet with no part in
+the derivation: all 20 parent drugs supplementary table 13 names a gene for are
+among the 176 — true at 0.01 as well, false at 0.001, so it rules out an
+over-strict cutoff without separating 0.05 from 0.01, and it is recorded as the
+weaker check it is.
+
+**20,054 edges: `METABOLISES` 2,575, `DOES_NOT_METABOLISE` 17,479**, over 66
+taxa and 271 drugs. Every cell of the matrix was measured — 21,680 in, 1,084 on
+the control columns, 542 on the two strains that reach no taxon, **0 unmeasured**
+— so the negatives are again the larger half and again a *measurement*. They are
+their own relationship for the reason `DOES_NOT_INHIBIT_GROWTH_OF` and
+`NO_EXCHANGE_WITH` are.
+
+**The drug side joins by three routes and 17 of them land on the other screen's
+nodes.** Tried verbatim-first: the screened `MOLENAME` (**195**), the file's own
+parent-drug `name` column (**43**), the screened name with a salt suffix removed
+(**10**). **248 of 271 = 91.5%**; the other **23** become `Drug` nodes keyed
+`ZIMMERMANN2019:<screened name>` with `approved = false`. There is no ATC route
+because supplementary table 2 has no ATC column, and no CAS route because the
+CAS cell is multi-valued with inline annotations (`34381-68-5, 37517-30-9
+[acebutolol]`) and parsing an identifier out of it would be a grammar. Of the
+248 that join, **231 reach a ChEMBL node and 17 reach one Maier 2018 minted** —
+which is why `prep_zimmermann2019.py` declares `DEPENDS_ON = ["chembl",
+"maier2018"]`. Running first would mint a second node for each of those 17 and
+split one drug in two along exactly the seam D8 asks across. Three compounds are
+reached by two routes that disagree (the screened name lands on a ChEMBL salt
+record, the parent name on its parent) and each is a ledger row.
+
+**Two of the 76 strain names stay unresolved on purpose.** 74 reach a taxon (51
+exact, 21 synonym, 2 promoted), collapsing to **66 taxa** — seven *B. fragilis*
+isolates and three *B. thetaiotaomicron* are one taxon each, and each collapse
+is parallel edges told apart by `screen_column` and `strain`. Five names are
+corrected by
+`microbiomekg.ontology.zimmermann2019.SPECIES_OVERRIDES`, and **every correction
+is confirmed by something other than the spelling**: three by the row's own DSM
+number (`Pretovella copri`/DSM18205 → *Prevotella copri*; `Bryantia
+formataxigens`/DSM14469 → *Bryantella formatexigens*; `Eubacterium
+biforme`/DSM3989 → *Holdemanella biformis*, which `names.dmp` still spells at
+strain level), one because *Odoribacter splanchnicus* is the only name in all of
+`names.dmp` at edit distance 1 from `Odoribacter splanchnius`, and one because
+the binomial is a verbatim prefix of `Lactobacillus  reuteri CF48-3A`.
+`Bacteroides WH2` and `Bifidobacterium ruminatum` meet neither test — NCBI holds
+**two** candidates for each (`Bacteroides sp. WH2` 311784 against *B.
+cellulosilyticus* WH2 1268240; *B. ruminantium* 78346 against *B. ruminale*, a
+synonym of *B. thermophilum* 33905) and neither row carries a collection number
+to choose with — so they are `UnresolvedTaxon` tombstones carrying both
+candidate ids, at a cost of 271 measurements each. Guessing would attribute a
+whole row to an organism nobody screened, and no count would show it.
+
+**The gene products are loaded and there is still no `Gene` node.**
+Supplementary table 13's 30 gene products carry real identifiers and cover 37
+(organism, drug) pairs, and they ride on the edge as `gene_locus_tags`,
+`gene_products`, `gene_protein_ids` and `n_gene_products`. They were identified
+in a gain-of-function library expressed in *E. coli*, not in the 76 screened
+strains, and **5 of the 37 pairs disagree with the screen** — a gene metabolised
+the drug in *E. coli* while its donor strain did not deplete it in culture.
+Those five sit on `DOES_NOT_METABOLISE` edges where they are visible rather than
+being dropped or moved. `docs/model.md` records why a node type would not earn
+its place and what would change that.
 
 ## How `scripts/fetch.py` behaves
 

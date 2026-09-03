@@ -103,25 +103,29 @@ Where Part A and the research disagree, the research wins and the disagreement
 is named. Two such places exist and are marked **[A-override]** below.
 
 **The source state this section is written against.** Loaded now: NCBI Taxonomy
-(`new_taxdump` 2026-09-02), BugSigDB (`full_dump` 2026-09-02), **MONDO
-(2026-09-01, as the disease-id hub)** and **gutMDisorder v1 (2020, recovered
-from Wayback — loaded 2026-09-03)**. Fetched and profiled, not yet loaded:
-HMDB 5.0, CARD, Reactome, KEGG, ChEMBL 37
-(`docs/research/source-formats.md`).
+(`new_taxdump` 2026-09-02), BugSigDB (`full_dump` 2026-09-02), MONDO
+(2026-09-01, as the disease-id hub), gutMDisorder v1 (2020, recovered from
+Wayback), CARD, HMDB 5.0, Reactome, ChEMBL 37, MiMeDB, NJC19 and the two
+published drug screens, Maier 2018 and Zimmermann 2019 — ten sources over the
+taxonomy. **KEGG** has a loader and stays off by default on its licence, and
+**MASI** is fetched and unloadable (below). `docs/sources.md` is the per-source
+record.
 
-**The three gap-filling sources have now been fetched and profiled, and the
-outcome is two for four — the fourth being the substitute for the one that
-failed.** **NJC19** is exactly what it was fetched for and closed W5/D6.
+**The gap-filling sources have now been fetched and profiled, and the outcome is
+three for five — the last two being the substitutes for the one that failed.**
+**NJC19** is exactly what it was fetched for and closed W5/D6.
 **MiMeDB**'s published bulk downloads carry **no microbe–metabolite association
 at all** — two MySQL tables with zero cross-references between them
 (`data/raw/mimedb/PROVENANCE.md`) — so it cannot close W4/D5 and contributes
 `Metabolite` nodes only; what moved D5 was NJC19's export half, which was
 fetched for D6. **MASI**'s download is the substance dictionary, 1,350 rows with
 **no organism column**, and its interaction tables are *unrecoverable* rather
-than unfetched — so W7's drug↔taxon layer came from **Maier 2018**, the
-published screen MASI aggregates, loaded directly: 1,197 drugs × 40 gut
-isolates, 5,592 measured inhibitions and 42,233 measured non-hits. Every "no"
-below now names what actually happened rather than what was expected.
+than unfetched — so W7's drug↔taxon layer came from the two published screens
+MASI aggregates, loaded directly and one per direction: **Maier 2018** (1,197
+drugs × 40 gut isolates; 5,592 measured inhibitions, 42,233 measured non-hits)
+and **Zimmermann 2019** (271 drugs × 76 strains; 2,575 measured depletions,
+17,479 measured non-hits). Every "no" below now names what actually happened
+rather than what was expected.
 
 ### W1. Enrichment of a differential-abundance result against curated signatures
 
@@ -345,8 +349,8 @@ drugs, of which 176 (65%) were metabolised by at least one strain (Nature
 49:D776, 2021, PMC7779062), the only drug resource with a directed, typed edge —
 bacteria→substance 4,001 pairs, substance→bacteria 7,770 pairs, genus-level.
 
-**Can this graph answer it? PARTIAL — direction (a) is closed, direction (b)
-is not, and the source that closed (a) is not MASI.**
+**Can this graph answer it? YES — both directions are closed, and neither was
+closed by MASI.**
 
 MASI is dead: the interaction downloads its 4,001 + 7,770 typed pairs live in
 are **not recoverable** — the origin no longer completes a TLS connection and
@@ -365,35 +369,61 @@ This is *better* than MASI would have been for this leg — MASI resolves "down 
 genus level" while the screen is strain-resolved, and MASI curates positives
 while the screen measured every cell. Two earlier legs remain and answer
 different questions: ChEMBL supplies 95 drugs acting on a protein of 28
-bacterial taxa (leg 1), and gutMDisorder's interventions joined to ChEMBL by
-name supply 85 `ABUNDANCE_CHANGED_BY` edges over 15 drugs and 57 taxa (leg 2).
+bacterial taxa, and gutMDisorder's interventions joined to ChEMBL by name supply
+85 `ABUNDANCE_CHANGED_BY` edges over 15 drugs and 57 taxa.
 
-**The negatives are the part of "needed fields" nothing else here supplies.**
-W7's field list asks for "the direction (**inhibits / metabolises / no effect** —
-the negatives matter)", and until this source landed the graph had no drug
-negative of any kind. A screen measures the whole matrix, so "this drug was
-tested against this bacterium and did nothing at 20 µM" is a *measurement*, not
-an absence of curation — and 42,233 of them is the larger half of the source.
-They are their own relationship rather than a flag, so no
-`MATCH (d)-[:INHIBITS_GROWTH_OF]->(t)` counts a refutation as an observation by
-omission. The 55 cells the screen wrote `NA` for become **neither**
-relationship: a pair nobody measured is not a non-hit.
+**The negatives are the part of "needed fields" nothing else here supplies, and
+both screens carry them.** W7's field list asks for "the direction (**inhibits /
+metabolises / no effect** — the negatives matter)", and before these two sources
+landed the graph had no drug negative of any kind. A screen measures the whole
+matrix, so "this drug was tested against this bacterium and did nothing at
+20 µM" and "this strain was given this drug and did not touch it" are
+*measurements*, not absences of curation — **42,233 and 17,479 of them**, the
+larger half of each source. Each is its own relationship rather than a flag, so
+no `MATCH (d)-[:INHIBITS_GROWTH_OF]->(t)` and no
+`MATCH (t)-[:METABOLISES]->(d)` counts a refutation as an observation by
+omission. The 55 cells Maier's screen wrote `NA` for become **neither**
+relationship: a pair nobody measured is not a non-hit. Zimmermann's screen has
+no such cell — all 20,596 carry a number — and the loader still refuses to file
+a missing one as a non-hit, because that is the error that would look harmless.
 
-**Direction (b), bug → drug, is still open, and it is open by scope rather than
-for want of a source.** Zimmermann et al.'s workbook — 76 gut bacteria × 271
-oral drugs, 176 (65%) metabolised by at least one strain — is fetched
-(`data/raw/drug_screens/zimmermann2019/`, `docs/sources.md` §16) and not loaded.
-No relationship in the graph claims a bacterium changes a drug, and D8's status
-stays `partial` on that leg alone. The two must land as **different edge
-types** when it does: collapsing "the drug kills the bug" into "the bug eats the
-drug" is MDAD's documented weakness.
+**Four of Zimmermann's eighty measured columns are not organisms**, and they are
+worth naming here because the mistake is invisible: `Control pH 4` through
+`Control pH 7` sit *between* strain columns with the same five sub-columns each,
+and under the hit rule they produce 15, 9, 7 and 7 apparent hits. Loading them
+would have written 1,084 cells of abiotic chemistry as microbial metabolism, and
+would have reported 80 screened strains against the paper's 76.
 
-**The rank caveat survives, softened.** Both landmark screens are strain-level
-and this graph keys `Taxon` on the species, so the 40 isolates promote to 38
-taxa — the two *B. fragilis* isolates and the two *E. coli* isolates each
-collapse. Nothing is lost: each collapse is **two parallel edges**, and
-`nt_code`, `strain` and `reported_name` carry the isolate on every edge, so
-"which strain?" is answerable from the edge even though the strain is not a
+**Direction (b), bug → drug, is closed by the same move: the other landmark
+screen, loaded directly.** Zimmermann et al. measured 271 orally administered
+drugs against 76 human gut strains by LC-MS, every cell of the matrix, and the
+graph holds **2,575 `METABOLISES` and 17,479 `DOES_NOT_METABOLISE` edges** over
+66 taxa and 271 drugs, reproducing the paper's own headline from the loaded
+edges: **176 of 271 drugs (65%) are metabolised by at least one strain**
+(`docs/sources.md` §16). The two directions are **different edge types running
+opposite ways** — `Drug → Taxon` for inhibition, `Taxon → Drug` for metabolism —
+which is the requirement Part D's D8 recorded before either source was fetched,
+because collapsing them conflates antimicrobial killing with drug metabolism.
+
+**"And the gene where identified" is answered without a `Gene` node.** The
+metabolism screen's second half identifies 30 bacterial gene products for 20 of
+the drugs, and they ride on the edge as `gene_locus_tags`, `gene_products` and
+`gene_protein_ids` for the 37 (organism, drug) pairs they cover. They are not a
+node type because they come from a *different experiment* — a gain-of-function
+library expressed in *E. coli*, not the 76 strains — and **5 of the 37 pairs
+disagree with the whole-cell screen**, which is why those five sit on
+`DOES_NOT_METABOLISE` edges rather than being quietly dropped. `docs/model.md`
+records what would change the recommendation.
+
+**The rank caveat survives, softened, on both screens.** Both are strain-level
+and this graph keys `Taxon` on the species, so Maier's 40 isolates promote to 38
+taxa and Zimmermann's 76 to 66 — the two *B. fragilis* and two *E. coli*
+isolates of the first, the seven *B. fragilis* and three *B. thetaiotaomicron*
+of the second, and two Zimmermann strains that reach no taxon at all because
+NCBI holds two candidates for each name and the sheet has nothing to choose
+with. Nothing else is lost: each collapse is **parallel edges**, and `nt_code` /
+`screen_column`, `strain` and `reported_name` carry the isolate on every edge,
+so "which strain?" is answerable from the edge even though the strain is not a
 node.
 
 ### Evidence grading adopted
@@ -1293,11 +1323,12 @@ document has no table yet (MiMeDB, NJC19, MASI) the names are proposed here and
 are the loader's contract.
 
 Measurements quoted as "measured" were taken on 2026-09-03 from a clean
-`scripts/build.py` run over **eight** sources — BugSigDB (`full_dump`
+`scripts/build.py` run over **ten** sources — BugSigDB (`full_dump`
 2026-09-02), gutMDisorder v1, CARD 4.0.2, HMDB 5.0, Reactome (2026-09-02),
-ChEMBL 37, MiMeDB v1.0 (dumped 2024-03-19) and NJC19 (Sci Data 7:204, 2020) —
-against NCBI `new_taxdump` 2026-09-02 at `--scope microbial`. **931,992 nodes,
-1,243,661 edges.** MASI was fetched and is **not** in any number here: its
+ChEMBL 37, MiMeDB v1.0 (dumped 2024-03-19), NJC19 (Sci Data 7:204, 2020) and
+the two published drug screens, Maier 2018 (Nature 555:623) and Zimmermann 2019
+(Nature 570:462) — against NCBI `new_taxdump` 2026-09-02 at `--scope
+microbial`. **932,372 nodes, 1,311,540 edges.** MASI was fetched and is **not** in any number here: its
 download is the substance dictionary and nothing was loaded from it (D8). KEGG is
 licence-gated and **not** in any number here: a default build carries none of
 it. Where a later source moved a number the earlier value is kept beside it: a
@@ -1480,7 +1511,7 @@ RETURN t.title AS producer, t.rank AS rank, p.evidence_level AS level,
 ORDER BY level, n_records DESC
 ```
 
-*Golden check (measured 2026-09-03, nine sources):* **3,418 `PRODUCES` edges
+*Golden check (measured 2026-09-03, ten sources):* **3,418 `PRODUCES` edges
 over 830 organisms and 226 metabolites**, `in-vitro` 3,383 /
 `computational-predicted` 35 — split **HMDB 578 / 272 organisms / 154
 metabolites** and **NJC19 2,840 / 638 / 99**. `computational-predicted` is
@@ -1716,10 +1747,10 @@ D7's answer lives in the non-redistributable half of the download.
 
 ### D8 — "Does drug D inhibit gut bacteria, or get metabolised by them, and which strains?"
 
-*Status:* **`partial`** — and the halves have swapped. The inhibition half is
-**closed**; the metabolism half is the only thing still open, and its source is
-on disk rather than missing. *Fields:* drug id · taxon · assay and readout ·
-direction, **including no-effect** · the route the claim travelled.
+*Status:* **`answerable-now`** — both halves of the question the query is named
+for, each from the published screen that measured it, each as its own pair of
+edge types. *Fields:* drug id · taxon · assay and readout · direction,
+**including no-effect** · the route the claim travelled.
 
 **Leg 3 — the drug inhibits the bacterium, measured (Maier 2018).** The leg D8
 was written for.
@@ -1793,40 +1824,135 @@ RETURN d.title AS drug, i.title AS intervention, t.title AS taxon,
 ORDER BY drug, taxon
 ```
 
-**Three legs, three different claims, and they are not interchangeable.** Leg 1
+**Four legs, four different claims, and they are not interchangeable.** Leg 1
 says a drug binds a protein this organism has; leg 2 says a drug changed this
 taxon's abundance in a patient or a mouse; leg 3 says a drug did or did not stop
-this isolate growing in a tube. An abundance shift with no growth inhibition is
-an argument for an indirect mechanism, and the graph can now state both halves
-of that for the same taxon.
+this isolate growing in a tube; leg 4 says this isolate did or did not chemically
+destroy the drug. An abundance shift with no growth inhibition is an argument
+for an indirect mechanism, and a drug that is metabolised but does not inhibit
+is an argument about bioavailability rather than about the microbiome's
+composition. The graph can now state all four for the same taxon.
 
-*What is still missing, and why the status is not `answerable-now`:* **the
-metabolism half.** D8's own sentence is "does drug D inhibit gut bacteria, **or
-get metabolised by them**", and no relationship in this graph claims a bacterium
-changes a drug. Zimmermann et al. (Nature 570:462, 2019, PMID 31158845) measured
-76 gut bacteria against 271 oral drugs, 176 (65%) metabolised by at least one
-strain; the supplementary workbook is **fetched and not loaded**
-(`data/raw/drug_screens/zimmermann2019/`, `docs/sources.md` §16). It must land as
-its **own edge type** — the requirement this query recorded when it was written
-as `ALTERS_TAXON` / `ALTERS_SUBSTANCE`, "two edge types, never one", because
-collapsing them conflates antimicrobial killing with drug metabolism, which is
-MDAD's documented weakness. That requirement is now half-discharged: the
-inhibition half landed as two types of its own (hit and measured non-hit) rather
-than one, on the same reasoning.
+**Leg 4 — the bacterium metabolises the drug, measured (Zimmermann 2019).**
+The clause D8 was written with and could not answer until now.
 
-*Rank caveat, softened rather than resolved:* the screen is strain-level and
-this graph keys `Taxon` on the species, so 40 isolates become 38 taxa — the
-non-toxigenic and enterotoxigenic *B. fragilis* collapse, as do *E. coli* IAI1
-and ED1a. Each collapse is **two parallel edges**, and `nt_code`, `strain` and
-`reported_name` are on every edge, so "which strain?" is answerable from the
-edge even though the strain is not a node.
+```cypher
+MATCH (t:Taxon)-[r:METABOLISES]->(d:Drug)
+RETURN t.title AS organism, r.strain AS strain, d.title AS drug,
+       r.percent_consumed AS percent_consumed,
+       r.drug_threshold_percent AS threshold_for_this_drug,
+       r.fdr_p_value AS fdr_p, r.incubation_hours AS hours, r.replicates AS n,
+       r.gene_locus_tags AS genes, r.therapeutic_indication AS indication,
+       r.evidence_level AS level, r.drug_join AS join_route,
+       r.source_licence AS licence
+ORDER BY organism, drug
+```
 
-*Licence caveat, and it is the strictest in the graph:* these are journal
-supplementary tables of a subscription article with no separate data licence, so
-every edge carries `source_licence = 'Maier2018-unstated'` rather than an
-invented permissive token. `WHERE r.source_licence <> 'Maier2018-unstated'` is
-the redistributable cut, and because G3 puts the licence on the edge this one
-token contaminates nothing else.
+*Golden check (measured over the published screen):* **2,575 `METABOLISES`
+edges over 172 drugs and 66 taxa** — 147 of the 172 approved — and **17,479
+`DOES_NOT_METABOLISE` edges**, one per measured non-hit. All 271 screened
+compounds reach the graph, 248 of them by joining a `Drug` node that already
+existed and 23 minted. The screen's own headline reproduces from the loaded
+edges with one documented subtraction: **176 of 271 drugs are metabolised by at
+least one of the 76 strains, and the graph says 172**, because the four missing
+ones — `ALPRENOLOL`, `DIPHENYLPYRALINE`, `IRSOGLADINE MALEATE` and `MEMANTINE`
+— are metabolised **only** by *Bifidobacterium ruminatum*, one of the two strain
+names this loader deliberately refuses to guess at (below). Four drugs is the
+priced cost of that refusal, and it is a number rather than a shrug.
+
+**The direction is the model.** These edges run `Taxon → Drug`; Maier's run
+`Drug → Taxon`. The agent is on the tail of both, which is what keeps
+`MATCH (d:Drug)-[r]->(t:Taxon)` meaning *the growth screen and nothing else* —
+`tests/test_acceptance.py` asserts that, and it is only true because this source
+points the other way. Collapsing the two into one relationship with a flag is
+what Part D forbade in advance, because it conflates antimicrobial killing with
+drug metabolism.
+
+**The two screens overlap, and the overlap is the interesting part:** **195 of
+the drugs and 26 of the taxa are in both**, so for those pairs the graph can say
+whether a drug both fails to kill an organism *and* is destroyed by it — 28
+drugs inhibit at least one taxon and are metabolised by at least one.
+
+```cypher
+// "What does the gut do to this drug, and what does it do to the gut?"
+// Four outcomes, and two of them are measured negatives.
+MATCH (d:Drug {pref_name: 'SULFASALAZINE'})
+OPTIONAL MATCH (t:Taxon)-[:METABOLISES]->(d)
+OPTIONAL MATCH (u:Taxon)-[:DOES_NOT_METABOLISE]->(d)
+OPTIONAL MATCH (d)-[:INHIBITS_GROWTH_OF]->(v:Taxon)
+OPTIONAL MATCH (d)-[:DOES_NOT_INHIBIT_GROWTH_OF]->(w:Taxon)
+RETURN count(DISTINCT t) AS metabolised_by, count(DISTINCT u) AS tested_untouched,
+       count(DISTINCT v) AS inhibits, count(DISTINCT w) AS tested_no_inhibition,
+       'anything else was never tested, in either screen' AS caveat
+```
+
+*Golden check:* sulfasalazine returns **52 metabolised_by and 14
+tested_untouched**. Before this source the first two columns were empty for
+every drug in the graph, and empty was indistinguishable from "tested, nothing
+happened".
+
+**A measured negative is bounded by its assay, and here is the case that proves
+it.** *Eggerthella lenta* reducing digoxin is the textbook drug-metabolism
+result, and **this screen measured that pair and scored it a non-hit** — 4.0%
+consumed against the drug's 20% threshold, FDR p = 0.55, so the graph holds
+`(Eggerthella lenta)-[:DOES_NOT_METABOLISE]->(DIGOXIN)`. That is not a
+refutation of the literature: digoxin reduction needs the *cgr* operon expressed
+under arginine-poor conditions, and this screen ran one medium at 12 h. **Read
+every `DOES_NOT_METABOLISE` edge as "not in this assay", never as "not at
+all"** — `incubation_hours` and `replicates` are on the edge so the bound is
+readable, and 21 other taxa *do* metabolise digoxin here, which is itself the
+finding the classic single-organism story does not carry.
+
+**"And the gene where identified" is answered without a `Gene` node.** The
+paper's second half names 30 bacterial gene products for 20 of the drugs, and
+they ride on the edge: **32 `METABOLISES` edges carry `gene_locus_tags`,
+`gene_products` and `gene_protein_ids`** — and **5 `DOES_NOT_METABOLISE` edges
+carry them too**, because the genes were found in a gain-of-function library
+expressed in *E. coli* and on those five pairs that experiment and the
+whole-cell screen disagree. Keeping the disagreement visible is the point; the
+recommendation against a node type, and what would change it, is in
+`docs/model.md`.
+
+```cypher
+MATCH (t:Taxon)-[r:METABOLISES]->(d:Drug)
+WHERE r.gene_locus_tags <> ''
+RETURN d.title AS drug, t.title AS organism, r.strain AS strain,
+       r.gene_locus_tags AS genes, r.gene_products AS products,
+       r.gene_protein_ids AS refseq
+ORDER BY drug, organism
+```
+
+**Two strain names are deliberately unresolved, and the tombstones say what was
+rejected.** `Bacteroides WH2` and `Bifidobacterium ruminatum` each have **two**
+NCBI candidates — `Bacteroides sp. WH2` (311784) against *B. cellulosilyticus*
+WH2 (1268240); *B. ruminantium* (78346) against *B. ruminale*, a synonym of
+*B. thermophilum* (33905) — and the reference column offers `WH2` and `fecal
+isolate`, which choose nothing. They are `UnresolvedTaxon` nodes carrying both
+candidate ids rather than a guess, at 271 measurements each. Five *other* names
+are corrected, and every correction is confirmed by something that is not the
+spelling: three by the row's own DSM number, one because there is exactly one
+name in all of `names.dmp` at edit distance 1, one because the binomial is a
+verbatim prefix of the string. The rule, not the list, is the contribution.
+
+*Rank caveat, softened rather than resolved, on both screens:* both are
+strain-level and this graph keys `Taxon` on the species, so Maier's 40 isolates
+become 38 taxa (the non-toxigenic and enterotoxigenic *B. fragilis* collapse, as
+do *E. coli* IAI1 and ED1a) and Zimmermann's 76 become 66 (seven *B. fragilis*
+and three *B. thetaiotaomicron* among them). Each collapse is **parallel
+edges**, and `nt_code` / `screen_column`, `strain` and `reported_name` are on
+every edge, so "which strain?" is answerable from the edge even though the
+strain is not a node. **The consequence is a per-taxon count that exceeds any
+per-strain count**: *Bacteroides fragilis* metabolises 116 drugs in the graph
+and no single isolate metabolised more than 95, because seven isolates are one
+node. `count(DISTINCT r.screen_column)` is the strain count; `count(r)` is not.
+
+*Licence caveat, and these are the two strictest in the graph:* both screens are
+journal supplementary tables of subscription articles with no separate data
+licence, so their edges carry `source_licence = 'Maier2018-unstated'` and
+`'Zimmermann2019-unstated'` rather than an invented permissive token. Two
+tokens, not one, because two articles are two permissions and a reader excluding
+one has no reason to lose the other; because G3 puts the licence on the edge,
+either cut is one `WHERE` clause and neither contaminates anything else.
 
 > **What the MASI download turned out to be, and what replaced it
 > (2026-09-03).** `MASI_v1.0_download_substanceInfo.{txt,xlsx}` is the
@@ -1841,9 +1967,10 @@ token contaminates nothing else.
 > (`drug.csv` is keyed on the id, first row per key wins), the licence is
 > unstated, and the one true statement the file supports names no organism.
 > Profile: `data/raw/masi/PROVENANCE.md`. **So the aggregator was replaced by
-> the primary source it aggregates**, which for this leg is the better artifact
-> anyway: strain-resolved where MASI is genus-resolved, and carrying the 42,233
-> measured non-hits a curated positives-only resource never would.
+> the two primary sources it aggregates**, one per direction, and both are
+> better artifacts than MASI would have been: strain-resolved where MASI is
+> genus-resolved, and carrying the 42,233 and 17,479 measured non-hits a curated
+> positives-only resource never would.
 
 ### D9 — "Show me every association for taxon X where the evidence is 16S-only, so I can down-weight it."
 
@@ -2327,40 +2454,43 @@ interactions "naturally unable to predict all organism-specific traits".
 
 | Status | Count | Queries |
 |---|---:|---|
-| `answerable-now` | **11** | D1, D2, D3, D4, D6, D7, D9, D11, D15, D16, D17 |
-| `partial` | **7** | D5, D8, D10, D12, D13, D14, D18 |
+| `answerable-now` | **12** | D1, D2, D3, D4, D6, D7, D8, D9, D11, D15, D16, D17 |
+| `partial` | **6** | D5, D10, D12, D13, D14, D18 |
 | `pending-source` | **0** | — |
 | `descoped` | **2** | D19, D20 |
 | **total** | **20** | |
 
-**The counts did not move, and that is the honest outcome rather than a
-disappointing one.** D8 and D18 were already `partial` and stay `partial` — but
-what makes each of them partial has changed completely, and the remaining gap in
-both is now a *named* one that a reader can act on.
+**D8 moved, and it is the first count to move in three increments.** It had been
+`partial` since ChEMBL landed, for three different reasons in turn — first that
+no `Drug`–`Taxon` edge existed at all, then that only the inhibition half did.
+Both halves are now measured screens with their measured negatives kept, so the
+query answers the question it is named for.
 
-- **D8** was partial because no `Drug`–`Taxon` edge existed anywhere in the
-  graph. Its inhibition half is now **closed**: 5,592 measured hits and 42,233
-  measured non-hits over 1,197 drugs and 38 taxa, reproducing the source paper's
-  own headline. What keeps it `partial` is the *other* clause of its own
-  question — "or get metabolised by them" — for which the source is fetched and
-  not loaded, not missing.
-- **D18** was partial because the competing explanation could only be offered
-  for the 15 interventions ChEMBL knew by name, and for none of the three taxa
-  the confounding literature actually names. It now reaches **32** T2D taxa,
-  three of the four named genera are screened, and the metformin answer is a
-  **measured negative** rather than an absence. What keeps it `partial` is
-  *Intestinibacter*, which was not one of the 40 isolates.
+- **D8** is `answerable-now`: **5,592 `INHIBITS_GROWTH_OF` + 42,233
+  `DOES_NOT_INHIBIT_GROWTH_OF`** over 1,197 drugs and 38 taxa, and **2,575
+  `METABOLISES` + 17,479 `DOES_NOT_METABOLISE`** over 271 drugs and 66 taxa, as
+  four relationship types across two directions. Both screens reproduce their
+  own paper's headline from the loaded edges (24.3% of human-targeted drugs
+  inhibit at least one strain; 172 of 271 drugs are metabolised by at least one
+  taxon, against a published 176 whose four-drug gap is priced and named). The
+  gene layer W7 asks for rides on the edge, and there is still no `Gene` node.
+- **D18** is still `partial`, and for the same reason as before: the competing
+  explanation for a T2D association now reaches 32 screened taxa and a measured
+  metformin negative, but *Intestinibacter* — the most consistent of the four
+  published confounders — was not one of the 40 isolates. Metformin is not in
+  the metabolism screen's 271 either, so the second direction adds nothing to
+  this query.
 
 Which source would close which remaining query: **MiMeDB v2.0's reaction table
 or its per-microbe web export** → D5's enzyme/pathway leg (and D13's), neither
-bulk-downloadable; **Zimmermann 2019**, already on disk at
-`data/raw/drug_screens/zimmermann2019/`, → D8's drug-metabolism leg, as its own
-edge type; **gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's
+bulk-downloadable; **gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's
 healthy-prevalence half; **LPSN** → D12's nomenclatural half. MASI is off this
-list for good: its interaction tables are unrecoverable, and the primary source
-it aggregated is loaded instead.
+list for good: its interaction tables are unrecoverable, and both primary
+sources it aggregated are loaded instead. Nothing on this list would close D18 —
+what that query wants is a screen that ran *Intestinibacter*, and no published
+one did.
 
-Nine sources have landed and moved ten queries. **gutMDisorder** closed D4's
+Ten sources have landed and moved eleven queries. **gutMDisorder** closed D4's
 intervention leg; **CARD** closed D7 outright and D10's AMR leg; **HMDB +
 Reactome** moved D13 from `pending-source` to `partial` and gave D5 its first
 578 edges; **ChEMBL**, joined to gutMDisorder's interventions by `IS_DRUG`,
@@ -2370,17 +2500,22 @@ edges to 3,418, and more than doubled D10's metabolite leg (7 candidates → 18)
 than a contribution — it is what gives NJC19's cross-reference-free compounds an
 identity to point at; **Maier 2018** closed D8's inhibition leg and turned D18's
 metformin question from a 17-taxon correlation into a 32-taxon measured
-negative. Of the original five `partial` queries, **two needed no new source at
-all** — D11 is closed (three column names declared, one more extracted) and
-D14's non-specificity half already worked. Every `partial` above names the leg
-that works and the leg that does not, and each is a measured number rather than
-a label.
+negative; **Zimmermann 2019** closed D8 outright, adding the direction no other
+source in this graph carries — the bacterium changing the drug — and the first
+`Taxon`–`Drug` edge. Of the original five `partial` queries, **two needed no new
+source at all** — D11 is closed (three column names declared, one more
+extracted) and D14's non-specificity half already worked. Every `partial` above
+names the leg that works and the leg that does not, and each is a measured
+number rather than a label.
 
-**One number is worth reading twice: 42,233.** It is the only population in this
-graph of the form "somebody measured this pair and found nothing", for any
-relationship. Every other edge here exists because a result was worth
-publishing, which is the selection bias the whole evidence model is built to
-make visible — and a screen is the one design that escapes it. The 55 cells the
-same screen wrote `NA` for are the control on that claim: they are neither
-relationship, because a pair nobody measured is not a negative, and they are
-ledger rows in `data/csv/unresolved_maier2018.csv` rather than a rounding error.
+**Two numbers are worth reading twice: 42,233 and 17,479.** Together they are
+the only population in this graph of the form "somebody measured this pair and
+found nothing", for any relationship. Every other edge here exists because a
+result was worth publishing, which is the selection bias the whole evidence
+model is built to make visible — and a screen is the one design that escapes it.
+Each screen carries its own control on the claim: the 55 cells Maier wrote `NA`
+for are neither relationship, because a pair nobody measured is not a negative,
+and the four `Control pH` columns Zimmermann interleaved among its strains are
+neither either, because abiotic degradation is not metabolism. Both are ledger
+rows in `data/csv/unresolved_maier2018.csv` and
+`data/csv/unresolved_zimmermann2019.csv` rather than rounding errors.

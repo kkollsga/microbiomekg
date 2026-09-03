@@ -6,9 +6,10 @@ cannot exist without saying how it was demonstrated**, and the ontology
 reports what fraction of them fail that.
 
 Everything below is built and measured, on a clean `scripts/build.py` run of
-2026-09-03 carrying **nine** sources: NCBI taxonomy + BugSigDB (increment 1),
+2026-09-03 carrying **ten** sources: NCBI taxonomy + BugSigDB (increment 1),
 gutMDisorder (increment 2), then CARD, HMDB, Reactome and ChEMBL, then MiMeDB,
-NJC19 and the Maier 2018 drug screen. KEGG is licence-gated and off by default,
+NJC19 and the two published drug screens — Maier 2018 and Zimmermann 2019, one
+per direction. KEGG is licence-gated and off by default,
 so no number here includes it. A source is
 added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
 `microbiomekg/ontology/<source>.py` — never by editing a shared one (§8).
@@ -31,7 +32,7 @@ added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
 | `Intervention` | `INTERVENTION:<slug>` | `label` | gutMDisorder `Intervention` (+ `drugbank_id`) | 2 |
 | `Metabolite` | ChEBI CURIE where HMDB carries a `chebi_id`, else `HMDB:<accession>` | `name` | HMDB `hmdb_metabolites.xml`; KEGG/PubChem/InChIKey as properties | 2 |
 | `Pathway` | `REACT:R-HSA-…` / `KEGG:map…` | `name` | Reactome, and KEGG behind `--with-kegg`; `pathway_source` property | 2 |
-| `Drug` | `CHEMBL:<parent molecule id>`, else `PRESTWICK:<catalogue number>` | `pref_name` | ChEMBL `max_phase = 4` **and** every molecule a mechanism names; plus each screened compound no ChEMBL join route reaches | 3 |
+| `Drug` | `CHEMBL:<parent molecule id>`, else `PRESTWICK:<catalogue number>`, else `ZIMMERMANN2019:<screened name>` | `pref_name` | ChEMBL `max_phase = 4` **and** every molecule a mechanism names; plus each screened compound no join route reaches | 3 |
 | `ProteinTarget` | `CHEMBL:<target id>` | `pref_name` | ChEMBL; `uniprot`, `tax_id` properties | 3 |
 | `ResistanceGene` | `ARO:3002999` | `name` | CARD `card.json` model, named from `aro.obo` | 3 |
 | `DrugClass` | `ARO:0000032` | `label` | CARD ARO category `Drug Class` | 3 |
@@ -253,6 +254,8 @@ per taxon (BugSigDB does not).
 | `NO_EXCHANGE_WITH` | `Taxon` → `Metabolite` | **the same eight** — a curated *refutation* |
 | `INHIBITS_GROWTH_OF` | `Drug` → `Taxon` | **a nine-property growth contract** — Maier 2018's screen hits |
 | `DOES_NOT_INHIBIT_GROWTH_OF` | `Drug` → `Taxon` | **the same nine** — the same screen's *measured* non-hits |
+| `METABOLISES` | `Taxon` → `Drug` | **a nine-property metabolism contract** — Zimmermann 2019's screen hits, the *other* direction |
+| `DOES_NOT_METABOLISE` | `Taxon` → `Drug` | **the same nine** — that screen's *measured* non-hits |
 | `IN_PATHWAY` | `Metabolite` → `Pathway` | **a seven-property pathway contract**, plus `evidence_code` |
 | `PART_OF_PATHWAY` | `Pathway` → `Pathway` | — (sub-pathway pointer, `ancestry`, a **DAG**) |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
@@ -269,17 +272,28 @@ in `microbiomekg.ontology.ASSOCIATION_RELATIONSHIPS`, "any association" is
 the split is recorded in §8 as an engine limitation rather than a preference.
 The same constraint splits `IN_CONDITION`.
 
-**`INHIBITS_GROWTH_OF` and `DOES_NOT_INHIBIT_GROWTH_OF` are two relationships by
-choice, not by engine limitation** — the opposite case, and worth stating beside
-it so the two are not read as the same kind of split. Nothing stopped one
-relationship carrying an `effect` property; what stops it is that a refutation
-stored as a property is counted as an observation by every query that does not
-know to exclude it, and nothing in the query text would say so. That is the rule
-`NO_EXCHANGE_WITH` already applies to the exchange layer and the rule Part D's
-D8 stated in advance for this one (`ALTERS_TAXON` and `ALTERS_SUBSTANCE`, "two
-edge types, never one"). `effect` rides on both edges as well, so a query that
-wants the whole measured population groups on one property instead of unioning
-two labels.
+**The four drug↔taxon relationships are four by choice, not by engine
+limitation** — the opposite case, and worth stating beside it so the two are not
+read as the same kind of split. They split along two independent axes and both
+splits were argued before either source landed.
+
+*Hit against measured non-hit.* Nothing stopped one relationship carrying an
+`effect` property; what stops it is that a refutation stored as a property is
+counted as an observation by every query that does not know to exclude it, and
+nothing in the query text would say so. That is the rule `NO_EXCHANGE_WITH`
+already applies to the exchange layer. `effect` rides on all four edges as well,
+so a query that wants the whole measured population groups on one property
+instead of unioning two labels.
+
+*Inhibition against metabolism.* `Drug → Taxon` and `Taxon → Drug` are opposite
+claims — the drug stops the bacterium growing, the bacterium chemically changes
+the drug — and Part D's D8 required them to be different edge types before
+either screen was fetched (`ALTERS_TAXON` and `ALTERS_SUBSTANCE`, "two edge
+types, never one"), because collapsing them conflates antimicrobial killing with
+drug metabolism, which is MDAD's documented weakness. The *direction* carries it
+as well as the name: the agent is on the tail in both, so
+`MATCH (d:Drug)-[]->(t:Taxon)` is the growth screen and nothing else, and
+`tests/test_acceptance.py` asserts exactly that.
 
 ### The evidence contract on `ASSOCIATED_WITH`
 
@@ -784,9 +798,11 @@ drug↔taxon layer came from the primary source MASI aggregated, not from MASI
 (§Maier 2018 above), and `tests/test_acceptance.py` now asserts the restatement:
 every direct `Drug`–`Taxon` edge in the graph is one of that screen's two types,
 so a shortcut appearing from anywhere else is still a red test. MASI's own
-requirement — two edge types for the two directions, never one — is what
-`INHIBITS_GROWTH_OF` and `DOES_NOT_INHIBIT_GROWTH_OF` follow, and the metabolism
-direction it named is still open (Zimmermann 2019, fetched and not loaded).
+requirement — two edge types for the two directions, never one — is what all
+four of these relationships follow: `INHIBITS_GROWTH_OF` and
+`DOES_NOT_INHIBIT_GROWTH_OF` run `Drug → Taxon`, `METABOLISES` and
+`DOES_NOT_METABOLISE` run `Taxon → Drug` (§Zimmermann 2019 below), and the
+direction is what keeps the `Drug`–`Taxon` assertion true.
 
 ### Reactome and KEGG — a DAG, an evidence code, and a build flag
 
@@ -842,8 +858,9 @@ lineage column.
 
 ### ChEMBL — one drug, whatever salt it was curated as
 
-**6,030 `Drug` nodes of ChEMBL's own — 6,385 in the graph, the other 355 minted
-by the drug screen into the same table — plus 1,518 `ProteinTarget` nodes, 6,984
+**6,030 `Drug` nodes of ChEMBL's own — 6,408 in the graph, the other 378 minted
+by the two drug screens into the same table (355 from Maier, 23 from
+Zimmermann) — plus 1,518 `ProteinTarget` nodes, 6,984
 `HAS_MECHANISM` edges, 1,493 `OF_ORGANISM` edges and 15 `IS_DRUG` edges.** Three JSONL files, CC
 BY-SA 3.0 — the only copyleft source in the graph, which is why
 `source_licence` and `chembl_release` (`ChEMBL 37`) ride on every ChEMBL node
@@ -1078,6 +1095,165 @@ are per-species hit counts, aggregates of `S3a`, and their contribution is that
 they independently confirmed the derived threshold. `MOESM16` `5b` is drug ×
 *E. coli* gene, and there is no gene node type here for a chemical-genomics
 score.
+
+### Zimmermann 2019 — the other direction, and why there is no `Gene` node
+
+**20,054 edges over 66 taxa and 271 drugs: `METABOLISES` 2,575,
+`DOES_NOT_METABOLISE` 17,479.** This is the half of D8 Maier cannot answer —
+*the bacterium changes the drug*, not *the drug changes the bacterium* — from
+Zimmermann et al., *Nature* 570:462-467 (2019), PMID 31158845: 271 orally
+administered drugs against 76 human gut strains, LC-MS at 12 h against t=0 over
+four independent cultures, every cell measured (`docs/sources.md` §16).
+
+**The direction is the model, not a stylistic choice.** The agent is on the tail
+of every edge in this layer: Maier's run `Drug → Taxon` because the drug is
+acting, these run `Taxon → Drug` because the bacterium is. Reversing either to
+make the pair look symmetric would put the agent on the wrong end of half the
+edges and would silently break the assertion `tests/test_acceptance.py` keeps —
+that every `Drug → Taxon` edge in the graph is the growth screen's. Four
+relationships across two directions, and the split reasoning is in §2.
+
+**Four of the eighty measured columns are not organisms, and they read exactly
+like the other seventy-six.** `Control pH 4` through `Control pH 7` sit
+*between* strain columns in the screen, carry the same five sub-columns, and
+produce **15, 9, 7 and 7 apparent hits** under the rule that calls a real one.
+They are the abiotic-degradation controls — drug that disappears with no
+bacterium present. Nothing structural distinguishes them, so a loader that
+walked the block layout would have written 1,084 cells of *chemistry* as
+microbial metabolism, and would have reported 80 screened strains against the
+paper's 76. `microbiomekg.ontology.zimmermann2019.is_control_column` is the only
+place that knows, each excluded column is a ledger row, and excluding them is
+what makes the published 76 reproduce from the sheet. It is the Maier lesson
+(the figure sheet that reads like a hit list and is not) one layer down: what
+looks like a measurement of an organism may not be one.
+
+**The call rule is derived, and the file publishes only half of it.** The screen
+gives each drug its own `Drug adaptive FC threshold %` — 20 for 124 of the 271,
+higher for the rest — so the depletion cutoff is *read*. The comparison and the
+significance cutoff are not stated anywhere, and both change the answer:
+**`% consumed >= the drug's own threshold` with `p(FDR) <= 0.05` reproduces the
+paper's headline exactly, 176 of 271 drugs (65%) metabolised by at least one
+strain**, where `p < 0.05` gives 175 (fourteen cells sit at exactly 0.05),
+`p <= 0.01` gives 133, and swapping the per-drug threshold for its 20% floor
+gives 190. `scripts/prep_zimmermann2019.py` re-derives that headline on every
+run and refuses to write when it stops holding, because the rule decides the
+*type* of every edge here. A second, weaker check comes from a sheet with no
+part in the derivation: all 20 parent drugs the gene table names a metaboliser
+for are among the 176 — which also holds at 0.01 and fails at 0.001, so it rules
+out an over-strict cutoff and does not separate the two plausible ones. Recorded
+as the weaker check it is rather than counted as a second confirmation.
+
+**Seventeen of the 271 compounds have a node only because the *other* screen
+minted one, and that is what `DEPENDS_ON` is for.** The join is three routes
+tried verbatim-first — the screened `MOLENAME` (**195**), supplementary table
+2's own parent-drug `name` column (**43**), the screened name with a salt suffix
+removed (**10**) — for **248 of 271 = 91.5%**; the other **23** are minted as
+`ZIMMERMANN2019:<screened name>` with `approved = false`. There is no ATC route
+(the sheet has no ATC column) and no CAS route (the cell is multi-valued with
+inline annotations, `34381-68-5, 37517-30-9 [acebutolol]`, and parsing an
+identifier out of it would be a grammar rather than a lookup). Of the 248,
+**231 land on ChEMBL nodes and 17 on nodes `prep_maier2018.py` minted** — so
+this prep declares `DEPENDS_ON = ["chembl", "maier2018"]`. Running it first
+would mint a second node for each of those 17, and the split would be invisible:
+both nodes would carry edges, both would look right, and D8's own question —
+"does drug D inhibit gut bacteria, **or get metabolised by them**" — would return
+half an answer for every one of them. The shared machinery is
+`microbiomekg/drugs.py`; what stays per-source is the *order* the routes are
+tried in, because that order is a claim about which of a file's own columns is
+the most trustworthy spelling, and the two screens do not carry the same
+columns.
+
+**Two of the 76 strain names are left unresolved on purpose, and five are
+corrected — the rule is what separates them.** An override is written only when
+something *other than the spelling* confirms it. Three are confirmed by the
+row's own culture-collection number (`Pretovella copri`/DSM18205 →
+*Prevotella copri*; `Bryantia formataxigens`/DSM14469 → *Bryantella
+formatexigens*; `Eubacterium biforme`/DSM3989 → *Holdemanella biformis*, which
+`names.dmp` still spells at strain level), one by exhaustion (*Odoribacter
+splanchnicus* is the **only** name in all of `names.dmp` at edit distance 1 from
+`Odoribacter splanchnius`), and one because the binomial is a verbatim prefix of
+the string (`Lactobacillus  reuteri CF48-3A`, the same shape as Maier's
+*B. fragilis* toxigenicity qualifiers). **`Bacteroides WH2` and `Bifidobacterium
+ruminatum` meet none of those tests**: NCBI holds two live candidates for each —
+`Bacteroides sp. WH2` (311784) against *B. cellulosilyticus* WH2 (1268240), and
+*B. ruminantium* (78346) against *B. ruminale*, a synonym of *B. thermophilum*
+(33905) — and the reference column says `WH2` and `fecal isolate`. They stay
+`UnresolvedTaxon` tombstones **carrying both candidate ids**, at 271
+measurements each. That is a deliberate refusal, not a failure: picking one
+would attribute a whole row to an organism nobody screened and no count in the
+graph would show it, and a tombstone that only said "no name match" would leave
+the next reader nothing to act on.
+
+**76 strains collapse to 66 taxa, and each collapse is parallel edges.** Seven
+*B. fragilis* isolates and three *B. thetaiotaomicron* were screened side by
+side; they are one taxon and independent measurements (C13), told apart by
+`screen_column` and `strain` on every edge. `reported_rank` is `strain-level
+isolate` throughout and `original_rank` keeps NCBI's rank for whatever the name
+first resolved to — G5's two-rank split again.
+
+**The contract is the same nine as the growth screen**, for the same reason: six
+of the fourteen association properties describe a differential-abundance
+observation a monoculture assay does not have. The negative is *bounded* by what
+the sheet states rather than by a concentration — `incubation_hours = 12` and
+`replicates = 4` are on every edge, and there is no `screen_concentration_um`
+because the workbook states none anywhere and inventing one would be a
+measurement nobody made. `evidence_level` is `in-vitro` on all 20,054, and the
+licence is `Zimmermann2019-unstated` — deliberately a *different* token from
+`Maier2018-unstated`, because two subscription articles are two permissions and
+a reader excluding one has no reason to lose the other.
+
+#### No `Gene` node — the recommendation, and what would change it
+
+The paper's second half identifies **30 bacterial gene products** that
+metabolise **20 of the drugs**, with a RefSeq locus tag, a PATRIC id and a
+RefSeq protein id each. That is a real, clean, identifier-bearing table, and it
+is the strongest case this graph has yet had for a gene node type. It still does
+not earn one, on four counts:
+
+1. **It is a different experiment.** The genes were found by expressing a
+   library of them in *E. coli*, not by measuring the 76 strains. "Gene X
+   metabolises drug D" and "strain S metabolises drug D" are separate claims
+   with separate evidence, and a `Gene` node would sit between them implying a
+   path — *taxon has gene, gene metabolises drug* — that the data does not
+   support. **Five of the 37 (organism, drug) pairs the gene table covers
+   disagree with the screen outright**: the gene worked in *E. coli* and the
+   donor strain did not deplete the drug in culture.
+2. **No Part D query asks for a gene.** D8 asks "which strains", D13 asks which
+   *pathway or gene* carries a **metabolite production** claim — a different
+   layer, served by Reactome and HMDB. A node type nothing queries is a type
+   whose contract nothing checks.
+3. **Part B's W7 does ask for "the gene where identified", and an edge property
+   answers it in one hop.** `gene_locus_tags`, `gene_products`,
+   `gene_protein_ids` and `n_gene_products` ride on the `METABOLISES` /
+   `DOES_NOT_METABOLISE` edge for the pairs table 13 covers. The five
+   disagreements land on `DOES_NOT_METABOLISE` edges, where they stay visible —
+   dropping them, or moving them onto the hit edge, would be inventing agreement
+   between two experiments.
+4. **Scale.** 30 nodes over three organisms. Maier declined a gene node for 23
+   *E. coli* chemical-genomics genes on the same reasoning, and the two
+   decisions should not diverge on 30 against 23.
+
+**What would change it**, stated so the next reader does not have to re-derive
+the argument: a source that measures gene presence *per taxon* — a pangenome, a
+gutSMASH cluster call, or CARD's own `CARRIES_RESISTANCE_GENE` shape extended
+past resistance — would make *taxon has gene* a measured edge rather than an
+implication, and at that point the gene becomes the join between two independent
+measurements instead of an ornament on one. `ResistanceGene` is already that
+node in miniature for AMR; a general `Gene` should arrive the same way, with a
+source behind each of its two edges, not from a supplementary table that names
+30 of them.
+
+The join from the gene table to the screen is worth one line because it is the
+only identifier the two sheets share: **a PATRIC feature id's first component is
+an NCBI taxid** (`fig|226186.12.peg.149` → 226186). That is resolved to a
+species and then matched against the screened column *whose own
+culture-collection number appears inside the strain taxon's name* — both halves,
+because three columns are *B. thetaiotaomicron* and a species-only match would
+attribute one isolate's gene to all three. The name alone would not do it
+either: NCBI has since renamed 483217 to `Phocaeicola dorei DSM 17855` while the
+sheet still says *Bacteroides*, so the binomial no longer agrees and the
+collection number still does. Anything that matches zero or more than one column
+is a ledger row.
 
 ---
 
