@@ -49,8 +49,8 @@ design the packaging items implement.
    guides, the reference generated from docstrings, the build a CI gate
    under `-W`.
 6. **README, human-first** — Python API → Cypher → MCP.
-7. **CHANGELOG + versioning rule** — Keep-a-Changelog with `[Unreleased]`,
-   patch by default.
+7. **CHANGELOG + versioning rule** — done 2026-09-03: `CHANGELOG.md` with
+   `[Unreleased]`, the rule in `AGENTS.md`.
 
 Three questions in the design doc are open and are planning-time decisions, not
 release steps: whether `build` on an empty directory produces the NCBI-only

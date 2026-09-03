@@ -366,13 +366,19 @@ Commit format: `type: short description` (`feat`, `fix`, `docs`, `refactor`,
   `refactor/…`, `fix/…`), one commit per bisectable phase. There is no remote,
   so there is no PR and no CI to track: the branch is local, and the
   `phased-plan` skill says what replaces the PR checklist.
-- **Nothing here is published.** No PyPI package, no remote, no tag, no
-  licence chosen yet. `pyproject.toml`'s `version = "0.1.0"` is a placeholder
-  and stays one until the library release happens. The seven things that have
-  to land first are `docs/design/release-readiness.md`; the `release` skill is
-  a **stub** pointing there.
+- **Nothing here is published.** No PyPI package, no remote, no tag. The code
+  is MIT (`LICENSE`); `pyproject.toml`'s `version = "0.1.0"` is a placeholder
+  and stays one until the first tag. What still has to land is
+  `docs/design/release-readiness.md` §1, §2, §4 and the hosting half of §5; the
+  `release` skill is a **stub** pointing there.
+- **`CHANGELOG.md` is Keep-a-Changelog with `[Unreleased]` on top.** A
+  user-visible change lands there in the commit that makes it; a release
+  promotes the section into a version block. Internal refactors, test-only
+  changes and formatting get no entry.
 - **One version bump per push** (`R5`) and **patch by default** — a minor or
-  major only when the release invocation names one — apply from the day a
+  major only when the release invocation names one. A documented breaking
+  change ships in a patch like the rest of the estate: it is written into the
+  entry, never a reason to stop and ask (`R6`). Both apply from the day a
   remote exists, not before.
 - **Publishing is irreversible and needs in-the-moment authorization**
   (`R6`) — and that includes creating a remote, pushing to one, filing an

@@ -1,6 +1,7 @@
 # Release readiness — what stands between this tree and a published package
 
-Status: task list, none of it done (2026-09-03). Companion to
+Status: §3, §6, §7 and the local halves of §2 and §5 done 2026-09-03 on
+`feat/release-train`; §1, §4 and the hosted halves wait on the remote. Companion to
 [library-pipeline.md](library-pipeline.md), which is the *design* — this is the
 *checklist*. Tracked here rather than in `dev-docs/` because `dev-docs/` is
 gitignored and unbacked, and `dev-docs/todos.md` carries one lean backlink per
@@ -187,5 +188,5 @@ ship documented breaking changes in patch bumps like the rest of the estate, so
 a breaking change is not a reason to stop and ask (`R6`, last paragraph) — it
 is a reason to write the break into the entry.
 
-**Done when:** `CHANGELOG.md` exists with `[Unreleased]`, and the rule is in
-`CLAUDE.md` where a release session reads it.
+**Done 2026-09-03:** `CHANGELOG.md` with `[Unreleased]` carrying the release
+train's user-visible changes, and the rule in `CLAUDE.md` *Commits & releases*.
