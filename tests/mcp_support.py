@@ -10,7 +10,7 @@ installed:
   ``tools/call``, and raises on anything it does not understand rather than
   degrading.
 - **No PyYAML.** :func:`read_frontmatter` parses the flat subset the skills in
-  ``mcp/microbiomekg.skills/`` actually use — scalars, inline lists, one level
+  ``microbiomekg/mcp/microbiomekg.skills/`` actually use — scalars, inline lists, one level
   of nested mapping, block scalars — and **raises on anything outside it**. A
   parser that silently ignored a key it could not read would let a broken
   ``applies_when`` pass this suite and go dark on the real server, so the
@@ -30,8 +30,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GRAPH = ROOT / "graph" / "microbiomekg.kgl"
-MANIFEST = ROOT / "mcp" / "microbiomekg_mcp.yaml"
-SKILLS_DIR = ROOT / "mcp" / "microbiomekg.skills"
+MANIFEST = ROOT / "microbiomekg" / "mcp" / "microbiomekg_mcp.yaml"
+SKILLS_DIR = ROOT / "microbiomekg" / "mcp" / "microbiomekg.skills"
 
 #: mcp-methods caps an injected skill body at 16 KB hard, with a 4 KB soft
 #: target. Past the hard cap the body is truncated with a marker, so a skill

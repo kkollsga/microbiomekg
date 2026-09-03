@@ -1,4 +1,4 @@
-"""``scripts/build.py``'s own machinery: prep order, the CSV root, the report.
+"""``microbiomekg/build.py``'s own machinery: prep order, the CSV root, the report.
 
 This is about the *build script*, not about a source. Each thing it tests
 failed silently before it was tested:
@@ -28,14 +28,12 @@ from pathlib import Path
 import pytest
 
 from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
+from microbiomekg import build
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
-FRAGMENTS = ROOT / "blueprints"
-
-sys.path.insert(0, str(SCRIPTS))
-
-build = pytest.importorskip("build", reason="scripts/build.py does not exist yet")
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+FRAGMENTS = ROOT / "microbiomekg" / "blueprints"
 
 
 @pytest.fixture(scope="module")
@@ -43,9 +41,9 @@ def fixture_csvs(tmp_path_factory) -> Path:
     """A CSV directory built from the 43-row fixture, not from ``data/csv``."""
     csv_dir = tmp_path_factory.mktemp("fixture-csv")
     for script, extra in (
-        (SCRIPTS / "prep_bugsigdb.py", ["--mondo", str(MONDO_MINI)]),
+        (PREPS_DIR / "prep_bugsigdb.py", ["--mondo", str(MONDO_MINI)]),
         (
-            SCRIPTS / "prep_taxonomy.py",
+            PREPS_DIR / "prep_taxonomy.py",
             ["--scope", "cited", "--cited-from", str(csv_dir / "cited_taxa.csv")],
         ),
     ):
@@ -92,7 +90,7 @@ def test_every_prep_script_declares_its_dependencies():
     """A prep with no ``DEPENDS_ON`` is a prep whose position in the build is
     an accident of its filename. The declaration is required rather than
     defaulted to empty, so adding a source forces the question to be answered."""
-    for script in sorted(SCRIPTS.glob("prep_*.py")):
+    for script in sorted(PREPS_DIR.glob("prep_*.py")):
         assert isinstance(build.declared_dependencies(script), tuple), script.name
 
 
@@ -100,7 +98,7 @@ def test_chembl_runs_after_the_source_whose_table_it_reads():
     """``prep_chembl`` writes ``IS_DRUG`` by reading gutMDisorder's
     ``intervention.csv``. In name order it ran first, the table was not there,
     and the relationship loaded zero edges."""
-    order = names(build.order_preps(SCRIPTS))
+    order = names(build.order_preps(PREPS_DIR))
     assert order.index("gutmdisorder") < order.index("chembl")
 
 
@@ -110,26 +108,26 @@ def test_the_taxonomy_runs_after_every_source_that_writes_cited_taxa():
     pointing at vivified stubs with no name and no lineage."""
     writers = {
         script.stem.removeprefix("prep_")
-        for script in SCRIPTS.glob("prep_*.py")
+        for script in PREPS_DIR.glob("prep_*.py")
         if "cited_taxa.csv" in script.read_text(encoding="utf-8")
         and script.name != "prep_taxonomy.py"
     }
     assert writers, "no prep writes cited_taxa.csv — this test stopped measuring"
-    declared = set(build.declared_dependencies(SCRIPTS / "prep_taxonomy.py"))
+    declared = set(build.declared_dependencies(PREPS_DIR / "prep_taxonomy.py"))
     assert writers <= declared, (
         f"{sorted(writers - declared)} write cited_taxa.csv but prep_taxonomy "
         f"does not declare them, so the build may run the taxonomy first"
     )
-    order = names(build.order_preps(SCRIPTS))
+    order = names(build.order_preps(PREPS_DIR))
     assert all(order.index(w) < order.index("taxonomy") for w in writers)
 
 
 def test_the_order_respects_every_declared_edge():
-    order = names(build.order_preps(SCRIPTS))
+    order = names(build.order_preps(PREPS_DIR))
     assert sorted(order) == sorted(
-        p.stem.removeprefix("prep_") for p in SCRIPTS.glob("prep_*.py")
+        p.stem.removeprefix("prep_") for p in PREPS_DIR.glob("prep_*.py")
     )
-    for script in SCRIPTS.glob("prep_*.py"):
+    for script in PREPS_DIR.glob("prep_*.py"):
         source = script.stem.removeprefix("prep_")
         for dep in build.declared_dependencies(script):
             assert order.index(dep) < order.index(source), f"{source} before {dep}"
@@ -249,7 +247,7 @@ def test_re_running_a_prep_leaves_the_csv_directory_unchanged(tmp_path):
         proc = subprocess.run(
             [
                 sys.executable,
-                str(SCRIPTS / "prep_bugsigdb.py"),
+                str(PREPS_DIR / "prep_bugsigdb.py"),
                 "--raw",
                 str(BUGSIGDB_MINI),
                 "--taxdump",
@@ -284,7 +282,7 @@ def test_the_cited_taxa_table_says_which_source_claimed_each_taxon(tmp_path):
     proc = subprocess.run(
         [
             sys.executable,
-            str(SCRIPTS / "prep_bugsigdb.py"),
+            str(PREPS_DIR / "prep_bugsigdb.py"),
             "--raw",
             str(BUGSIGDB_MINI),
             "--taxdump",
@@ -619,7 +617,7 @@ def test_text_score_raises_on_the_default_graph_and_answers_on_the_flagged_one(
 # succeeds and says so
 # --------------------------------------------------------------------------
 
-PREPS = sorted(SCRIPTS.glob("prep_*.py"))
+PREPS = sorted(PREPS_DIR.glob("prep_*.py"))
 assert PREPS, "the prep glob found nothing — this parametrisation would be vacuous"
 
 
@@ -661,7 +659,7 @@ def test_a_prep_with_its_own_file_but_no_taxdump_exits_missing_input(tmp_path):
     proc = subprocess.run(
         [
             sys.executable,
-            str(SCRIPTS / "prep_hmdb.py"),
+            str(PREPS_DIR / "prep_hmdb.py"),
             "--raw",
             str(raw),
             "--out",

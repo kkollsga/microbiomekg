@@ -117,7 +117,7 @@ jobs:
             --out /tmp/graph/x.kgl | tee /tmp/build.log
           grep -q "nothing loaded" /tmp/build.log
           grep -q "no graph written" /tmp/build.log
-          for p in scripts/prep_*.py; do
+          for p in microbiomekg/preps/prep_*.py; do
             s=$(basename "$p" .py); s=${s#prep_}
             grep -q "$s: raw input absent" /tmp/build.log || { echo "$s not reported"; exit 1; }
           done

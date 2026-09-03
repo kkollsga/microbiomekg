@@ -24,15 +24,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.tables import as_list  # noqa: E402
-from microbiomekg.reconcile import (  # noqa: E402
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.tables import as_list
+from microbiomekg.reconcile import (
     NAME_CLASSES,
     TaxonomyIndex,
     _dmp_rows,
@@ -65,7 +62,7 @@ DEPENDS_ON: list[str] = [
 #: only place they can be written is here, which is why ``masi`` is in
 #: :data:`DEPENDS_ON` above alongside the sources that write ``cited_taxa.csv``.
 #: The columns are written on **every** row whether or not that table exists, so
-#: the header ``blueprints/core.json`` declares does not depend on which sources
+#: the header ``microbiomekg/blueprints/core.json`` declares does not depend on which sources
 #: a build ran.
 PROBIOTIC_TABLE = "taxon_probiotic.csv"
 PROBIOTIC_COLUMNS = (
@@ -165,7 +162,7 @@ def select_scope(
     if scope == "cited":
         if not cited:
             raise SystemExit(
-                f"--scope cited needs {cited_path}; run scripts/prep_bugsigdb.py first"
+                f"--scope cited needs {cited_path}; run microbiomekg/preps/prep_bugsigdb.py first"
             )
         seeds = set(cited)
     else:  # microbial

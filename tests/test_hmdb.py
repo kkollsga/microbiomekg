@@ -41,9 +41,9 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 HMDB_MINI = FIXTURES / "hmdb_mini" / "hmdb_metabolites.xml"
 REACTOME_MINI = FIXTURES / "reactome_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_hmdb.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_hmdb.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (PREP, HMDB_MINI, REACTOME_MINI / "ChEBI2Reactome.txt"):
     if not _needed.exists():
@@ -124,14 +124,14 @@ def built(tmp_path_factory):
     # Reactome too, because the metabolite selection rule reads its ChEBI set
     # and D13's path needs a Pathway on the far end of IN_PATHWAY.
     run(
-        SCRIPTS / "prep_reactome.py",
+        PREPS_DIR / "prep_reactome.py",
         "--reactome",
         str(REACTOME_MINI),
         "--out",
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -142,12 +142,12 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
     sources = [SOURCE, "reactome"]
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

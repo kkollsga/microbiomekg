@@ -1,4 +1,4 @@
-# Claims checked in `mcp/microbiomekg.skills/signature_enrichment.md`
+# Claims checked in `microbiomekg/mcp/microbiomekg.skills/signature_enrichment.md`
 
 Every heading below names a section of that skill; the claims under it
 are executed against the built graph by `tests/test_skill_claims.py`,

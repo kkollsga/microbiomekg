@@ -39,7 +39,7 @@ g = mkg.build("./data", with_kegg=False, with_vectors=False)   # -> kglite.Knowl
 Rules that make it a contract rather than a convention:
 
 1. **A source is discovered, never listed.** Adding a source is adding
-   `prep_<src>.py` + `blueprints/<src>.json` + `ontology/<src>.py`; the
+   `prep_<src>.py` + `microbiomekg/blueprints/<src>.json` + `ontology/<src>.py`; the
    directory layout `data/raw/<src>/` is derived from the module name. Already
    true today (pkgutil / glob); the contract makes it the documented rule.
 2. **Absent means skipped, loudly.** A source with no raw input is dropped from
@@ -69,7 +69,7 @@ Rules that make it a contract rather than a convention:
 
 | Contract piece | Where it lives today |
 |---|---|
-| Source discovery | `scripts/build.py` (pkgutil over `microbiomekg.ontology`, glob over `blueprints/`) |
+| Source discovery | `scripts/build.py` (pkgutil over `microbiomekg.ontology`, glob over `microbiomekg/blueprints/`) |
 | Absent → skipped, no 0/0 rules | `build_blueprint --sources`, `ontology_for(sources)`, prep exit code 3 |
 | Dependency order | `DEPENDS_ON` in each prep, topologically sorted with cycle detection |
 | Licence / cost flags | `--with-kegg`, `--with-vectors` |

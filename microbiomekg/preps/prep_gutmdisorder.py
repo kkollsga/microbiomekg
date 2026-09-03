@@ -53,10 +53,8 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.conditions import (  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.conditions import (
     MondoIndex,
     condition_node_type,
     curie_vocabulary,
@@ -64,10 +62,10 @@ from microbiomekg.conditions import (  # noqa: E402
     pair_conditions,
     split_curies,
 )
-from microbiomekg.ontology import gutmdisorder as gmd  # noqa: E402
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer, as_list  # noqa: E402
+from microbiomekg.ontology import gutmdisorder as gmd
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.reconcile import TaxonomyIndex
+from microbiomekg.tables import Writer, as_list
 
 SOURCE = gmd.SOURCE
 

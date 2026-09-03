@@ -61,13 +61,11 @@ from collections import Counter, OrderedDict, defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.ontology import chembl as chem  # noqa: E402
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer, as_list  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.ontology import chembl as chem
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.reconcile import TaxonomyIndex
+from microbiomekg.tables import Writer, as_list
 
 SOURCE = chem.SOURCE
 

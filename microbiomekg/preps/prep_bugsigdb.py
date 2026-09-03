@@ -45,19 +45,17 @@ import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.conditions import (  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.conditions import (
     MondoIndex,
     condition_node_type,
     curie_vocabulary,
     pair_conditions,
     split_curies,
 )
-from microbiomekg.rawdata import find_bugsigdb_dump, find_taxdump  # noqa: E402
-from microbiomekg.reconcile import Resolution, TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer, as_list  # noqa: E402
+from microbiomekg.rawdata import find_bugsigdb_dump, find_taxdump
+from microbiomekg.reconcile import Resolution, TaxonomyIndex
+from microbiomekg.tables import Writer, as_list
 
 SOURCE = "bugsigdb"
 

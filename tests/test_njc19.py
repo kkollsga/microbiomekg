@@ -42,9 +42,9 @@ MIMEDB_MINI = FIXTURES / "mimedb_mini"
 HMDB_MINI = FIXTURES / "hmdb_mini" / "hmdb_metabolites.xml"
 REACTOME_MINI = FIXTURES / "reactome_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_njc19.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_njc19.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (PREP, NJC19_MINI, HMDB_MINI, MIMEDB_MINI / "mimedb_metabolites_v1.csv"):
     if not _needed.exists():
@@ -103,7 +103,7 @@ def built(tmp_path_factory):
     # Prep order is the build's: `prep_njc19` declares DEPENDS_ON = [hmdb, mimedb]
     # because its compound join reads every Metabolite node that already exists.
     run(
-        SCRIPTS / "prep_hmdb.py",
+        PREPS_DIR / "prep_hmdb.py",
         "--xml",
         str(HMDB_MINI),
         "--taxdump",
@@ -114,7 +114,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_mimedb.py",
+        PREPS_DIR / "prep_mimedb.py",
         "--metabolites",
         str(MIMEDB_MINI / "mimedb_metabolites_v1.csv"),
         "--microbes",
@@ -136,14 +136,14 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_reactome.py",
+        PREPS_DIR / "prep_reactome.py",
         "--reactome",
         str(REACTOME_MINI),
         "--out",
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -154,12 +154,12 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
     sources = [SOURCE, "hmdb", "mimedb", "reactome"]
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

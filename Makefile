@@ -138,7 +138,7 @@ ruff-fix:
 	$(RUFF) check --fix $(PY_PATHS)
 	$(RUFF) format $(PY_PATHS)
 
-## The tracked blueprint.json is composed from every blueprints/*.json fragment.
+## The tracked blueprint.json is composed from every microbiomekg/blueprints/*.json fragment.
 ## --check fails if composing them would change the file, so a fragment edit
 ## that was never composed cannot reach a commit.
 fragments:

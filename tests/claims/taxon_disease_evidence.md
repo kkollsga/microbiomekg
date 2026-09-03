@@ -1,4 +1,4 @@
-# Claims checked in `mcp/microbiomekg.skills/taxon_disease_evidence.md`
+# Claims checked in `microbiomekg/mcp/microbiomekg.skills/taxon_disease_evidence.md`
 
 Every heading below names a section of that skill; the claims under it
 are executed against the built graph by `tests/test_skill_claims.py`,

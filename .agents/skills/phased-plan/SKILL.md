@@ -92,7 +92,7 @@ this plan — **only with the user's go-ahead.** If they decline, proceed.
   of the affected area, impacted paths and callers, hidden couplings, existing
   test coverage, a rough size estimate.
 - **Know which of the four files a source change touches.** Adding or changing
-  a source means `scripts/prep_<src>.py`, `blueprints/<src>.json`,
+  a source means `microbiomekg/preps/prep_<src>.py`, `microbiomekg/blueprints/<src>.json`,
   `microbiomekg/ontology/<src>.py`, `tests/test_<src>.py` — and nothing shared.
   A plan that edits a shared file to accommodate one source is usually a plan
   that has missed the fragment framework (AGENTS.md).
@@ -110,8 +110,8 @@ this plan — **only with the user's go-ahead.** If they decline, proceed.
 - **Decide the safety net in Phase 0, not after writing the wrong one.** Ask:
   which existing test moves when this change breaks? If none does, the first
   phase writes one. For a source, that is `tests/test_<src>.py` plus the
-  `tests/test_acceptance.py` rows-to-edges family; for prose in `mcp/`, it is
-  `tests/test_skill_claims.py` and a claim in `mcp/claims/`.
+  `tests/test_acceptance.py` rows-to-edges family; for prose in `microbiomekg/mcp/`, it is
+  `tests/test_skill_claims.py` and a claim in `tests/claims/`.
 
 ## Phase 1 — Build the gated phased plan
 
@@ -158,7 +158,7 @@ For every phase, in order:
      `tests/test_<src>.py` **and** `tests/test_acceptance.py`; an ontology or
      evidence change → `tests/test_ontology.py` + `tests/test_build.py`; a
      reconciler change → `tests/test_reconcile.py` + every source test that
-     resolves names; anything in `mcp/` → `test_skill_claims`,
+     resolves names; anything in `microbiomekg/mcp/` → `test_skill_claims`,
      `test_mcp_skills`, `test_mcp_manifest`.
    - **Rebuild the graph only when the phase changed what the graph contains**
      (`make build`, minutes). The truth gates read `graph/microbiomekg.kgl`, so
@@ -188,7 +188,7 @@ For every phase, in order:
    `git stash` (repo-global, and it has clobbered a sibling's work).
 4. **Update the docs the phase falsified, in the same commit** (`R17`). A
    number in `README.md`, `docs/model.md`, `docs/usecases-and-pitfalls.md` or
-   `mcp/` that this phase moved is now a false claim — and in `mcp/` it is a
+   `microbiomekg/mcp/` that this phase moved is now a false claim — and in `microbiomekg/mcp/` it is a
    *failing test*, so this is not optional. Re-measure; never loosen the claim
    gate to make a sentence pass.
 5. **Retire any `todos.md` action this phase completed**, applying

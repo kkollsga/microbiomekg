@@ -40,9 +40,9 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 MAIER_MINI = FIXTURES / "maier2018_mini"
 CHEMBL_MINI = FIXTURES / "chembl_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_maier2018.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_maier2018.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (
     PREP,
@@ -120,7 +120,7 @@ def built(tmp_path_factory):
     # Prep order is the build's: `prep_maier2018` declares DEPENDS_ON = [chembl]
     # because all three of its drug join routes read `drug.csv`.
     run(
-        SCRIPTS / "prep_chembl.py",
+        PREPS_DIR / "prep_chembl.py",
         "--chembl",
         str(CHEMBL_MINI),
         "--taxdump",
@@ -138,7 +138,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -149,12 +149,12 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
     sources = [SOURCE, "chembl"]
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):
@@ -603,8 +603,7 @@ def test_the_threshold_check_refuses_to_write_when_it_stops_holding(tmp_path):
     the threshold does not reproduce is a sheet whose hit calls we cannot
     derive — and writing 47,825 edges of unknown sign is the one failure this
     loader could never notice afterwards."""
-    import build  # noqa: F401  (puts scripts/ on the path for the import below)
-    import prep_maier2018 as prep
+    from microbiomekg.preps import prep_maier2018 as prep
 
     screen = [
         {
@@ -805,7 +804,7 @@ def test_an_atc_code_two_library_entries_claim_identifies_neither():
     already applies to a code two ChEMBL nodes claim, and on the real file it
     is what takes the library from 1,180 distinct `Drug` nodes to 1,197 — one
     per entry, with no false merge."""
-    import prep_maier2018 as prep
+    from microbiomekg.preps import prep_maier2018 as prep
 
     contested = prep.contested_atc_codes(
         {

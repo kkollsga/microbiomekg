@@ -37,15 +37,15 @@ kglite = pytest.importorskip("kglite")
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "gutmdisorder_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_gutmdisorder.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_gutmdisorder.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (PREP, FIXTURE / "human.xlsx", FIXTURE / "mouse.xlsx"):
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
-from prep_gutmdisorder import study_index  # noqa: E402
+from microbiomekg.preps.prep_gutmdisorder import study_index  # noqa: E402
 
 from microbiomekg.ontology import EVIDENCE_LEVEL_VALUES  # noqa: E402
 from microbiomekg.ontology.gutmdisorder import (  # noqa: E402
@@ -98,7 +98,7 @@ def built(tmp_path_factory):
     # — which is the order scripts/build.py uses and the only thing that makes
     # "one paper, two sources" testable.
     run(
-        SCRIPTS / "prep_bugsigdb.py",
+        PREPS_DIR / "prep_bugsigdb.py",
         "--raw",
         str(BUGSIGDB_MINI),
         "--taxdump",
@@ -120,7 +120,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -131,11 +131,11 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
-    blueprint = compose(ROOT / "blueprints", ["bugsigdb", SOURCE])
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", ["bugsigdb", SOURCE])
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

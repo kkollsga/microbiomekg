@@ -22,7 +22,7 @@ import pytest
 from microbiomekg.fragments import FragmentConflict, merge_fragments
 
 ROOT = Path(__file__).resolve().parents[1]
-FRAGMENTS = ROOT / "blueprints"
+FRAGMENTS = ROOT / "microbiomekg" / "blueprints"
 BLUEPRINT = ROOT / "blueprint.json"
 BUILD_BLUEPRINT = ROOT / "scripts" / "build_blueprint.py"
 
@@ -228,7 +228,7 @@ def test_the_checked_in_blueprint_matches_its_fragments():
     describe, and nothing else here would catch it. Regenerate with
     `python scripts/build_blueprint.py`."""
     if not FRAGMENTS.is_dir():
-        pytest.skip("no blueprints/ directory")
+        pytest.skip("no microbiomekg/blueprints/ directory")
     proc = subprocess.run(
         [sys.executable, str(BUILD_BLUEPRINT), "--check"],
         capture_output=True,
@@ -252,8 +252,7 @@ def test_every_fragment_is_a_blueprint_shaped_document():
 def test_the_spine_fragment_is_composed_first():
     """`core.json` is what a source fragment adds *to*, so it is composed
     first — which is also the order the conflict message reads in."""
-    sys.path.insert(0, str(ROOT / "scripts"))
-    from build_blueprint import fragment_paths
+    from microbiomekg.fragments import fragment_paths
 
     paths = fragment_paths(FRAGMENTS)
     assert paths[0].stem == "core"
@@ -304,8 +303,7 @@ def test_no_fragment_declares_a_key_the_loader_does_not_read(tmp_path, capfd):
     the whole fragment set against an empty CSV root is enough to hear it, so
     this runs in milliseconds rather than behind a build.
     """
-    sys.path.insert(0, str(ROOT / "scripts"))
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     report = _load_report(compose(FRAGMENTS), tmp_path / "empty", tmp_path, capfd)
     offending = [line for line in report.splitlines() if "unknown key" in line]
@@ -321,8 +319,7 @@ def test_the_unknown_key_gate_can_fail(tmp_path, capfd):
     Without this the test above is green on any release that stops reporting
     unknown keys — which is exactly the silence it was added to end.
     """
-    sys.path.insert(0, str(ROOT / "scripts"))
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     document = compose(FRAGMENTS)
     document["nodes"]["Taxon"]["lables"] = ["Organism"]

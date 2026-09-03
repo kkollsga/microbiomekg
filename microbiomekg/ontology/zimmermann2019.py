@@ -47,7 +47,7 @@ the paper's **176 of 271 metabolised by at least one strain** exactly, while
 ``p(FDR) < 0.05`` gives 175, ``p(FDR) <= 0.01`` gives 133, and ignoring the
 per-drug threshold in favour of its 20% floor gives 190.
 :data:`METABOLISED_DRUGS` is that headline and
-``scripts/prep_zimmermann2019.py`` re-derives it on every run, refusing to write
+``microbiomekg/preps/prep_zimmermann2019.py`` re-derives it on every run, refusing to write
 when it stops holding — the rule decides the *type* of every edge here.
 
 **Two of the 76 strain names stay unresolved on purpose, and five are

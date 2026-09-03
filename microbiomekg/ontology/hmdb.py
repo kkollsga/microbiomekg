@@ -64,7 +64,7 @@ C2's ``first-wins`` invents facts. HMDB's most common organism term is
 `Paracoccus` are the same shape: 26 organism terms in the real file. The term
 was read from ``Disposition/Source/Biological/Microbe``, so a non-microbial
 candidate is not merely less likely, it is wrong, and
-``scripts/prep_hmdb.py::microbial_candidate`` picks the one candidate under
+``microbiomekg/preps/prep_hmdb.py::microbial_candidate`` picks the one candidate under
 Bacteria/Archaea/Fungi/Viruses. **Exactly one, never the first** — C3's point is
 that a kingdom heuristic cannot separate two *bacteria*, so `Bacteroidetes` and
 `Lactobacillus plantarum` stay ambiguous and reach the ledger.

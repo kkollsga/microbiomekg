@@ -12,7 +12,7 @@ mixed-licence graph shippable in parts instead of not at all (G3).
 **This module declares no class and no relationship, and that is the design.**
 KEGG writes rows into the ``Pathway`` node and the ``IN_PATHWAY`` edge
 :mod:`.reactome` declares; it adds no vocabulary of its own. The consequence is
-what makes the flag safe: a default build composes ``blueprints/kegg.json`` and
+what makes the flag safe: a default build composes ``microbiomekg/blueprints/kegg.json`` and
 this module anyway, and they contribute nothing — no node type loaded empty, no
 audit rule at ``0 / 0``. The flag's whole blast radius is the rows, which is
 exactly the licence boundary and nothing else.

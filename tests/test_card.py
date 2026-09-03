@@ -46,9 +46,9 @@ kglite = pytest.importorskip("kglite")
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "card_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_card.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_card.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (
     PREP,
@@ -58,7 +58,7 @@ for _needed in (
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
-from prep_card import aro_id, split_pmids  # noqa: E402
+from microbiomekg.preps.prep_card import aro_id, split_pmids  # noqa: E402
 
 from microbiomekg.ontology import EVIDENCE_LEVEL_VALUES, SOURCE_LICENCE  # noqa: E402
 from microbiomekg.ontology.card import (  # noqa: E402
@@ -169,7 +169,7 @@ def built(tmp_path_factory, taxdump):
     # order scripts/build.py uses, and the only thing that makes "one taxon,
     # two sources" testable.
     run(
-        SCRIPTS / "prep_bugsigdb.py",
+        PREPS_DIR / "prep_bugsigdb.py",
         "--raw",
         str(BUGSIGDB_MINI),
         "--taxdump",
@@ -189,7 +189,7 @@ def built(tmp_path_factory, taxdump):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(taxdump),
         "--out",
@@ -200,11 +200,11 @@ def built(tmp_path_factory, taxdump):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
-    blueprint = compose(ROOT / "blueprints", ["bugsigdb", SOURCE])
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", ["bugsigdb", SOURCE])
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

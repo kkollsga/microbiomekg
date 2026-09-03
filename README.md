@@ -29,12 +29,16 @@ carries (§14).
 
 Layout:
 
+- `microbiomekg/` — the package: everything below that is code or data ships
+  from here. `scripts/build.py`, `fetch.py`, `serve.py` and `build_blueprint.py`
+  are thin callers into it, kept so the commands on this page work from a
+  checkout.
 - `scripts/fetch.py`  — manifest-driven downloads into `data/raw/` (skip if present, resume).
-- `scripts/prep_*.py` — per-source preprocessing into flat CSVs in `data/csv/`.
+- `microbiomekg/preps/prep_*.py` — per-source preprocessing into flat CSVs in `data/csv/`.
   Each declares `DEPENDS_ON`: the preps whose tables it reads.
 - `scripts/build.py`  — the whole build: prep in dependency order, compose,
   load, index, audit, save.
-- `blueprints/*.json` — one blueprint fragment per source, composed into
+- `microbiomekg/blueprints/*.json` — one blueprint fragment per source, composed into
   `blueprint.json` by `scripts/build_blueprint.py`.
 - `microbiomekg/ontology/` — one module per source, composed into `ONTOLOGY`.
 - `microbiomekg/tables.py` — the shared flat-CSV writer, and how two sources
@@ -42,10 +46,10 @@ Layout:
 - `microbiomekg/embedder.py` — the deterministic character-n-gram embedder the
   semantic name lookup uses. No model download, and **off by default** —
   `--with-vectors`; see `docs/model.md` §6b.
-- `mcp/microbiomekg_mcp.yaml` — the MCP manifest: read-only, skills on, the
+- `microbiomekg/mcp/microbiomekg_mcp.yaml` — the MCP manifest: read-only, skills on, the
   evidence rules in `instructions:` and the sticky field reminder in
   `overview_prefix:`.
-- `mcp/microbiomekg.skills/` — one skill per Part D use-case family. These are
+- `microbiomekg/mcp/microbiomekg.skills/` — one skill per Part D use-case family. These are
   injected into the tool descriptions the agent reads, so the methodology
   travels with the tool.
 - `scripts/serve.py`  — launches that server (`--selftest` for a green/red
@@ -57,7 +61,7 @@ Layout:
   vocabulary, the ten guards, and the twenty acceptance queries.
 
 **Adding a source** means adding files, not editing shared ones:
-`scripts/prep_<source>.py`, `blueprints/<source>.json`,
+`microbiomekg/preps/prep_<source>.py`, `microbiomekg/blueprints/<source>.json`,
 `microbiomekg/ontology/<source>.py`, `tests/test_<source>.py`. The prep
 scripts, the blueprint fragments and the ontology modules are each discovered
 by glob rather than listed anywhere, the prep's `DEPENDS_ON` is what places it

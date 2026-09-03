@@ -35,7 +35,7 @@ as taxids would wire that many imaginary organisms into a 16-species pathway
 set, and 22 of them are not even gene ids but nucleotide accessions.
 
 The ``IN_PATHWAY`` join runs through ``metabolite.csv``, which
-``scripts/prep_hmdb.py`` writes — hence ``DEPENDS_ON = ["hmdb"]``, which is what
+``microbiomekg/preps/prep_hmdb.py`` writes — hence ``DEPENDS_ON = ["hmdb"]``, which is what
 orders the build.
 A ChEBI id Reactome maps and HMDB has no record of reaches no edge — there is
 no compound name anywhere in the mapping files, so a minted ``Metabolite``
@@ -52,11 +52,9 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.ontology import reactome as rx  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.ontology import reactome as rx
+from microbiomekg.tables import Writer
 
 SOURCE = rx.SOURCE
 

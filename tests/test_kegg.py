@@ -42,9 +42,9 @@ HMDB_MINI = FIXTURES / "hmdb_mini" / "hmdb_metabolites.xml"
 REACTOME_MINI = FIXTURES / "reactome_mini"
 KEGG_MINI = FIXTURES / "kegg_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_kegg.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_kegg.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (PREP, KEGG_MINI / "list_pathway.tsv", HMDB_MINI):
     if not _needed.exists():
@@ -77,7 +77,7 @@ def run(script, *args, expect=0):
 def prep_sources(csv_dir: Path, with_kegg: bool) -> str:
     """HMDB, Reactome and (optionally) KEGG, in the order the build runs them."""
     run(
-        SCRIPTS / "prep_hmdb.py",
+        PREPS_DIR / "prep_hmdb.py",
         "--xml",
         str(HMDB_MINI),
         "--taxdump",
@@ -98,14 +98,14 @@ def prep_sources(csv_dir: Path, with_kegg: bool) -> str:
         expect=0 if with_kegg else MISSING_INPUT,
     )
     run(
-        SCRIPTS / "prep_reactome.py",
+        PREPS_DIR / "prep_reactome.py",
         "--reactome",
         str(REACTOME_MINI),
         "--out",
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -119,11 +119,11 @@ def prep_sources(csv_dir: Path, with_kegg: bool) -> str:
 
 
 def load(csv_dir: Path, sources: list[str]):
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

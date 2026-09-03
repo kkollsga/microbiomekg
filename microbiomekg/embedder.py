@@ -16,7 +16,7 @@ over this store answers "spelled like", never "means the same as": it will not
 connect *bowel* to *intestinal*, and a skill that promises it would be lying.
 The vector lane's job here is to be the half of a hybrid lookup that survives a
 typo, with BM25 supplying the half that rewards an exact token — see
-``score_fuse`` in ``mcp/microbiomekg.skills/reconciliation.md``.
+``score_fuse`` in ``microbiomekg/mcp/microbiomekg.skills/reconciliation.md``.
 
 The hash is ``zlib.crc32``, not :func:`hash`, because Python salts string
 hashing per process: a salted hash would embed the same name to a different

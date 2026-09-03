@@ -73,14 +73,12 @@ import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.drugs import DrugIndex, join_drug  # noqa: E402
-from microbiomekg.ontology import zimmermann2019 as zm  # noqa: E402
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer, as_list  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.drugs import DrugIndex, join_drug
+from microbiomekg.ontology import zimmermann2019 as zm
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.reconcile import TaxonomyIndex, rank_depth
+from microbiomekg.tables import Writer, as_list
 
 SOURCE = zm.SOURCE
 
@@ -163,7 +161,7 @@ EDGE_FIELDS = [
 #: The same column set ``prep_maier2018.py`` writes, plus this source's three.
 #: Listed in full rather than appended to whatever is already in the file so that
 #: a build where Maier's raw workbooks are absent still writes a ``drug.csv``
-#: whose columns match what ``blueprints/zimmermann2019.json`` declares.
+#: whose columns match what ``microbiomekg/blueprints/zimmermann2019.json`` declares.
 DRUG_FIELDS = [
     "drug_id",
     "chembl_id",

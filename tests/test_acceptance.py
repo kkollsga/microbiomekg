@@ -2780,7 +2780,7 @@ def test_d8_reproduces_the_metabolism_headline_and_prices_what_it_does_not(graph
 
     The call rule behind the 176 is derived — the sheet publishes each drug's
     depletion threshold and no significance cutoff — so reproducing the headline
-    is the check that it is right, and `scripts/prep_zimmermann2019.py` refuses
+    is the check that it is right, and `microbiomekg/preps/prep_zimmermann2019.py` refuses
     to write when it stops holding."""
     # Keyed on what the *screen* called the compound, not on the node's
     # `pref_name`: 248 of the 271 joined a node ChEMBL or the growth screen had
@@ -2976,8 +2976,8 @@ def test_masi_is_loaded_and_never_onto_a_relationship_a_screen_owns(graph):
             f"published screen's measured population; an aggregator's curation "
             f"of the same literature belongs on its own."
         )
-    assert (ROOT / "scripts" / "prep_masi.py").is_file()
-    assert (ROOT / "blueprints" / "masi.json").is_file()
+    assert (ROOT / "microbiomekg" / "preps" / "prep_masi.py").is_file()
+    assert (ROOT / "microbiomekg" / "blueprints" / "masi.json").is_file()
     assert (ROOT / "data" / "raw" / "masi" / "PROVENANCE.md").is_file()
     counts = {
         r["t"]: r["n"]

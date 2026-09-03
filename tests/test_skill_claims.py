@@ -9,7 +9,7 @@ green, because the stale skill's queries still ran.
 
 This module closes that. Every number and every existential phrase in a skill
 body, in a skill's routing ``description`` and in the manifest's two prose keys
-must be covered by a claim in ``mcp/claims/`` (``tests/skill_claims`` documents
+must be covered by a claim in ``tests/claims/`` (``tests/skill_claims`` documents
 the form and the escape hatches), and every graph claim is executed against the
 built graph. Four failures are possible and all four are wanted:
 
@@ -133,7 +133,7 @@ def test_every_number_in_the_agent_surface_carries_a_claim(unit):
     assert not uncovered, (
         f"{unit.where}: {', '.join(uncovered)} is asserted with no claim to check "
         f"it. Add `<!-- claim: <cypher> == <value> -->` under `## {unit.section}` "
-        f"in the file's sidecar in mcp/claims/, or "
+        f"in the file's sidecar in tests/claims/, or "
         f"`<!-- claim external: <value> — <whose number it is> -->` when the graph "
         f"cannot measure it. See tests/skill_claims.py for the escape hatches.\n\n"
         f"{unit.text[:400]}"
@@ -169,7 +169,7 @@ def test_each_skill_carries_at_least_one_executed_claim(path: Path):
     executed = [c for unit in skill_units(path) for c in unit.claims if not c.external]
     assert executed, (
         f"{path.name} carries no executable claim about the graph; "
-        f"mcp/claims/{path.name} is where they go"
+        f"tests/claims/{path.name} is where they go"
     )
 
 

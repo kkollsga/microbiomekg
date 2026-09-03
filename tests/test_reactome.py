@@ -40,9 +40,9 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 HMDB_MINI = FIXTURES / "hmdb_mini" / "hmdb_metabolites.xml"
 REACTOME_MINI = FIXTURES / "reactome_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_reactome.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_reactome.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (PREP, REACTOME_MINI / "ReactomePathways.txt", HMDB_MINI):
     if not _needed.exists():
@@ -85,7 +85,7 @@ def built(tmp_path_factory):
     # HMDB first: IN_PATHWAY joins through the metabolite table it writes,
     # which is what this prep's DEPENDS_ON declares.
     run(
-        SCRIPTS / "prep_hmdb.py",
+        PREPS_DIR / "prep_hmdb.py",
         "--xml",
         str(HMDB_MINI),
         "--taxdump",
@@ -97,7 +97,7 @@ def built(tmp_path_factory):
     )
     prep = run(PREP, "--reactome", str(REACTOME_MINI), "--out", str(csv_dir))
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -108,12 +108,12 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
     sources = ["hmdb", SOURCE]
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

@@ -1,4 +1,4 @@
-# Claims checked in `mcp/microbiomekg_mcp.yaml`
+# Claims checked in `microbiomekg/mcp/microbiomekg_mcp.yaml`
 
 The two headings below name the manifest's prose keys — the handshake
 `instructions` and the `overview_prefix` that rides every bare

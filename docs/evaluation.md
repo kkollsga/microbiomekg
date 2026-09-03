@@ -456,7 +456,7 @@ graph. 810 tests pass with a skill telling agents the graph cannot do the thing
 a whole source was fetched to make it do.
 
 One smaller instance of the same class: `overview_prefix` in
-`mcp/microbiomekg_mcp.yaml` says `primary_source` is *"which of the **six**
+`microbiomekg/mcp/microbiomekg_mcp.yaml` says `primary_source` is *"which of the **six**
 sources wrote this edge"*. There are ten, and an agent that trusts it will
 under-enumerate when reasoning about coverage.
 
@@ -741,7 +741,7 @@ That is a real thing, and it is smaller than "a microbiome knowledge graph".
 
 ## 7. What we would build next, in order
 
-1. **Fix `mcp/microbiomekg.skills/metabolites_pathways.md`, and add the gate
+1. **Fix `microbiomekg/mcp/microbiomekg.skills/metabolites_pathways.md`, and add the gate
    that would have caught it.** The skill actively misinforms an agent about
    4,784 `CONSUMES` edges, 3,418 `PRODUCES` edges and the 109-producer butyrate
    answer. First because it is hours of work on the product's primary interface;

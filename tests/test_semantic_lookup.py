@@ -14,7 +14,7 @@ assertion below is about spelling.
 
 Two stages are tested separately, because each covers exactly what the other
 misses and a single blended score does neither job as well (see
-``mcp/microbiomekg.skills/reconciliation.md``).
+``microbiomekg/mcp/microbiomekg.skills/reconciliation.md``).
 
 **The lane is opt-in (``--with-vectors``), so this module skips on a default
 build** — a skip naming the flag, never a green run that asserted nothing. The

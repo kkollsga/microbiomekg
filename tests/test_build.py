@@ -40,8 +40,8 @@ from microbiomekg.ontology import (  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINT = ROOT / "blueprint.json"
-PREP_BUGSIGDB = ROOT / "scripts" / "prep_bugsigdb.py"
-PREP_TAXONOMY = ROOT / "scripts" / "prep_taxonomy.py"
+PREP_BUGSIGDB = ROOT / "microbiomekg" / "preps" / "prep_bugsigdb.py"
+PREP_TAXONOMY = ROOT / "microbiomekg" / "preps" / "prep_taxonomy.py"
 
 for _needed in (BLUEPRINT, PREP_BUGSIGDB, PREP_TAXONOMY):
     if not _needed.is_file():
@@ -155,10 +155,9 @@ def built(tmp_path_factory):
     # preps one source, and a blueprint declaring another source's node types
     # would load them as empty — which makes every ontology rule over them a
     # gate that cannot fail (`test_audit_denominators_are_not_zero`).
-    sys.path.insert(0, str(ROOT / "scripts"))
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
-    blueprint = compose(ROOT / "blueprints", ["bugsigdb"])
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", ["bugsigdb"])
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):

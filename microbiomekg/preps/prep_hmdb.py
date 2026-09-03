@@ -62,13 +62,11 @@ from collections import Counter, OrderedDict
 from dataclasses import replace
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.ontology import hmdb as hm  # noqa: E402
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer, as_list  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.ontology import hmdb as hm
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.reconcile import TaxonomyIndex, rank_depth
+from microbiomekg.tables import Writer, as_list
 
 SOURCE = hm.SOURCE
 

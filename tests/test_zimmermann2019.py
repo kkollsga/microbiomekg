@@ -41,10 +41,10 @@ ZIMMERMANN_MINI = FIXTURES / "zimmermann2019_mini"
 MAIER_MINI = FIXTURES / "maier2018_mini"
 CHEMBL_MINI = FIXTURES / "chembl_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_zimmermann2019.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_zimmermann2019.py"
 WORKBOOK = "41586_2019_1291_MOESM1_ESM.xlsx"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (
     PREP,
@@ -140,7 +140,7 @@ def built(tmp_path_factory):
         return proc
 
     run(
-        SCRIPTS / "prep_chembl.py",
+        PREPS_DIR / "prep_chembl.py",
         "--chembl",
         str(CHEMBL_MINI),
         "--taxdump",
@@ -149,7 +149,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_maier2018.py",
+        PREPS_DIR / "prep_maier2018.py",
         "--tables",
         str(MAIER_MINI),
         "--taxdump",
@@ -169,7 +169,7 @@ def built(tmp_path_factory):
         PUBLISHED_MATRIX,
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -180,12 +180,12 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
     sources = [SOURCE, "chembl", "maier2018"]
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):
@@ -846,7 +846,7 @@ def test_there_is_no_gene_node_type(graph):
     by accident: 30 gene products over 3 organisms and 20 drugs, from a
     different experiment, that no Part D query asks for. If a `Gene` node ever
     earns its place, this test is where the decision gets restated."""
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for
 
@@ -856,7 +856,9 @@ def test_there_is_no_gene_node_type(graph):
         for label in row["label"]
     }
     declared = set(
-        compose(ROOT / "blueprints", [SOURCE, "chembl", "maier2018"])["nodes"]
+        compose(ROOT / "microbiomekg" / "blueprints", [SOURCE, "chembl", "maier2018"])[
+            "nodes"
+        ]
     )
     classes = set(ontology_for([SOURCE, "chembl", "maier2018"])["classes"])
     assert loaded, "no node types at all — the assertion below would be vacuous"
@@ -891,8 +893,7 @@ def test_the_headline_check_refuses_to_write_when_it_stops_holding():
     The shape half matters as much as the count half: a gate that quietly
     stopped applying because a re-extraction dropped a column would be worse
     than no gate."""
-    import build  # noqa: F401  (puts scripts/ on the path for the import below)
-    import prep_zimmermann2019 as prep
+    from microbiomekg.preps import prep_zimmermann2019 as prep
 
     screen = [
         {

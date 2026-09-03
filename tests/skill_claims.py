@@ -1,7 +1,7 @@
 """Reading the *prose* of the agent surface as something the graph can falsify.
 
-The skills in ``mcp/microbiomekg.skills/`` and the two block scalars in
-``mcp/microbiomekg_mcp.yaml`` are injected verbatim into what an agent reads,
+The skills in ``microbiomekg/mcp/microbiomekg.skills/`` and the two block scalars in
+``microbiomekg/mcp/microbiomekg_mcp.yaml`` are injected verbatim into what an agent reads,
 so a sentence in them is part of the product in the way a docstring is not.
 ``tests/test_mcp_skills.py`` proves every fenced Cypher block *runs*; nothing
 proved that the sentences around it were *true*, and on 2026-09-03 an
@@ -14,7 +14,7 @@ This module is the missing half.
 **Where the claims live.** Not in the skill: its body *is* the tool description
 an agent reads, it is capped at 16 KB, and a page of assertion Cypher in the
 middle of it is noise the agent pays for. Each gated file has a sidecar in
-``mcp/claims/`` whose ``##`` headings mirror the skill's own sections, and the
+``tests/claims/`` whose ``##`` headings mirror the skill's own sections, and the
 claims for a section sit under its heading there. Section scope is deliberate:
 it survives any rewording, and breaks only when a *number* changes or a
 *section* is renamed — both of which are edits that should be re-measured.
@@ -68,9 +68,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS_DIR = ROOT / "mcp" / "microbiomekg.skills"
-CLAIMS_DIR = ROOT / "mcp" / "claims"
-MANIFEST = ROOT / "mcp" / "microbiomekg_mcp.yaml"
+SKILLS_DIR = ROOT / "microbiomekg" / "mcp" / "microbiomekg.skills"
+CLAIMS_DIR = ROOT / "tests" / "claims"
+MANIFEST = ROOT / "microbiomekg" / "mcp" / "microbiomekg_mcp.yaml"
 MANIFEST_CLAIMS = CLAIMS_DIR / "manifest.md"
 
 #: The manifest keys whose text reaches an agent: `instructions` is the
@@ -346,7 +346,7 @@ def _bind(
     unknown = sorted(set(claims) - names)
     if unknown:
         raise ClaimSyntaxError(
-            f"mcp/claims/{where}: claims filed under {unknown}, which names no "
+            f"tests/claims/{where}: claims filed under {unknown}, which names no "
             f"section of it. A renamed section needs its claims renamed with it; "
             f"the sections are {sorted(names)}"
         )

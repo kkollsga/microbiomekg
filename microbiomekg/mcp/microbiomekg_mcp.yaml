@@ -92,7 +92,7 @@ overview_prefix: |
 # BM25 indexes and no embeddings, and this block is then inert — the server
 # still starts, --selftest still passes, and `text_score()` raises on the first
 # query that reaches for a store that is not there. `CALL db.indexes()` is what
-# tells the two builds apart; mcp/microbiomekg.skills/reconciliation.md carries
+# tells the two builds apart; microbiomekg/mcp/microbiomekg.skills/reconciliation.md carries
 # the degradation path.
 #
 # The embedder itself is this repo's deterministic character-n-gram hasher, not

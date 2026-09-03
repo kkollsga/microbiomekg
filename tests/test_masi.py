@@ -40,9 +40,9 @@ ZIMMERMANN_MINI = FIXTURES / "zimmermann2019_mini"
 MAIER_MINI = FIXTURES / "maier2018_mini"
 CHEMBL_MINI = FIXTURES / "chembl_mini"
 SCRIPTS = ROOT / "scripts"
-PREP = SCRIPTS / "prep_masi.py"
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
+PREP = PREPS_DIR / "prep_masi.py"
 
-sys.path.insert(0, str(SCRIPTS))
 
 for _needed in (
     PREP,
@@ -154,7 +154,7 @@ def built(tmp_path_factory):
         return proc
 
     run(
-        SCRIPTS / "prep_chembl.py",
+        PREPS_DIR / "prep_chembl.py",
         "--chembl",
         str(CHEMBL_MINI),
         "--taxdump",
@@ -163,7 +163,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_maier2018.py",
+        PREPS_DIR / "prep_maier2018.py",
         "--tables",
         str(MAIER_MINI),
         "--taxdump",
@@ -172,7 +172,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_zimmermann2019.py",
+        PREPS_DIR / "prep_zimmermann2019.py",
         "--tables",
         str(ZIMMERMANN_MINI),
         "--taxdump",
@@ -194,7 +194,7 @@ def built(tmp_path_factory):
         str(csv_dir),
     )
     run(
-        SCRIPTS / "prep_taxonomy.py",
+        PREPS_DIR / "prep_taxonomy.py",
         "--taxdump",
         str(TAXDUMP_MINI),
         "--out",
@@ -205,12 +205,12 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from build_blueprint import compose
+    from microbiomekg.fragments import compose
 
     from microbiomekg.ontology import ontology_for, write_json
 
     sources = [SOURCE, "chembl", "maier2018", "zimmermann2019"]
-    blueprint = compose(ROOT / "blueprints", sources)
+    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
     settings = blueprint.setdefault("settings", {})
     settings["root"] = str(csv_dir)
     for key in ("output", "output_path", "output_file"):
@@ -803,7 +803,7 @@ def test_probiotic_is_three_state_and_null_is_not_false(graph):
 
 
 def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
-    """`blueprints/core.json` declares four probiotic columns on `Taxon`, so
+    """`microbiomekg/blueprints/core.json` declares four probiotic columns on `Taxon`, so
     `prep_taxonomy.py` must write them whether or not this source ran — otherwise
     the header a build produces would depend on which raw files are on the
     machine, and a MASI-less build would fail to load."""
@@ -815,7 +815,7 @@ def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
     proc = subprocess.run(
         [
             sys.executable,
-            str(SCRIPTS / "prep_taxonomy.py"),
+            str(PREPS_DIR / "prep_taxonomy.py"),
             "--taxdump",
             str(TAXDUMP_MINI),
             "--out",

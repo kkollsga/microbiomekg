@@ -1,6 +1,6 @@
 """The drug-join routes both published screens share.
 
-``microbiomekg/drugs.py`` was lifted out of ``scripts/prep_maier2018.py`` when a
+``microbiomekg/drugs.py`` was lifted out of ``microbiomekg/preps/prep_maier2018.py`` when a
 second screen needed the same three questions answered — what a level-5 ATC code
 is, which suffixes are counter-ions, and which node one spelling reaches. The
 per-source tests exercise it through a real build; what is asserted here is the

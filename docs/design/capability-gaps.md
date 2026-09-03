@@ -262,7 +262,7 @@ well, and what a published site of ours should match or beat:
 | Copy-pasteable `curl` and MCP JSON config | strong | scattered in `docs/model.md` §7 | one quickstart with runnable Python + Cypher |
 | Node labels and relationship types | present, list only | `docs/model.md` §1–2 with types and required properties | publish it as a reference page, not prose |
 | Assertion field contract with types | strong | our 14-field evidence contract is stronger | publish it as the headline page |
-| MCP tool catalogue with one-line purposes | strong | `mcp/microbiomekg_mcp.yaml` is not documented for a reader | a tool + skill reference page |
+| MCP tool catalogue with one-line purposes | strong | `microbiomekg/mcp/microbiomekg_mcp.yaml` is not documented for a reader | a tool + skill reference page |
 | **Data sources with versions and licences** | **absent** | `docs/sources.md`, 16 sources, per-file sha256 | publish it — this is the page they cannot write |
 | **Evidence / confidence definition** | **absent from the docs**; only in an April blog post | `docs/model.md` §2 `evidence_level`, 12 values | publish it — the second page they cannot write |
 | **Completeness audit of their own data** | **absent** | `ontology_audit()`, D15 | publish the numbers, including the bad ones |
@@ -756,6 +756,6 @@ has decided not to be), and PubChem (§A.3, low value).
   NJC19 46); `docs/evaluation.md` §5 says 8,754 (MiMeDB 935). The bench
   capture's `metabolite.csv` is 8,754 rows for the ten-source build.
   **Resolved 2026-09-03:** the built graph holds 9,056 (`MATCH (m:Metabolite)
-  RETURN count(*)`, by source 7,773 / 1,237 / 46), `mcp/claims/` already
+  RETURN count(*)`, by source 7,773 / 1,237 / 46), `tests/claims/` already
   asserts it, and `docs/evaluation.md` §5 was the stale row — corrected. The
   bench capture's 8,754 is a dated record of that build and stays.

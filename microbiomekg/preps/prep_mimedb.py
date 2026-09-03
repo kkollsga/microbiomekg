@@ -76,13 +76,11 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg.ontology import mimedb as mm  # noqa: E402
-from microbiomekg.ontology import njc19 as nj  # noqa: E402
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
-from microbiomekg.tables import Writer, as_list, from_list  # noqa: E402
+from microbiomekg.ontology import mimedb as mm
+from microbiomekg.ontology import njc19 as nj
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.reconcile import TaxonomyIndex
+from microbiomekg.tables import Writer, as_list, from_list
 
 SOURCE = mm.SOURCE
 

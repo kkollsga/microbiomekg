@@ -498,7 +498,7 @@ The only column in either table that looks like a relation is
 `microbes.activity`, empty on 2,533 of 2,648 rows, `Production (export)` on 113
 and `Consumption (import)` on 2 — **naming no compound**. Deriving an edge from
 it would manufacture exactly the claim D5 asks for out of a field that does not
-make it, so `scripts/prep_mimedb.py` declares no relationship at all, does not
+make it, so `microbiomekg/preps/prep_mimedb.py` declares no relationship at all, does not
 load the column in any other form either (`docs/model.md` §"MiMeDB" gives the
 reason), and the build report prints `PRODUCES edges from MiMeDB: 0`.
 
@@ -605,8 +605,8 @@ guessed. Full profile: `data/raw/njc19/PROVENANCE.md`.
   (`docs/research/researcher-workflows.md` §1.11: "No separate database
   license"). Every MASI edge carries `source_licence = 'MASI-unstated'`.
 - **Format** — four tables, each as tab-separated text and as XLSX.
-- **Status** — **fetched manually; loaded.** `scripts/prep_masi.py`,
-  `blueprints/masi.json`, `microbiomekg/ontology/masi.py`, `tests/test_masi.py`.
+- **Status** — **fetched manually; loaded.** `microbiomekg/preps/prep_masi.py`,
+  `microbiomekg/blueprints/masi.json`, `microbiomekg/ontology/masi.py`, `tests/test_masi.py`.
 - Paper: Zeng et al., *Nucleic Acids Research* 49:D776 (2021), **PMID 33313900**.
 
 | File | Bytes | sha256 |
@@ -754,7 +754,7 @@ abstract (203 of 835 human-targeted drugs hit at least one strain = **24.3%**
 against its "24%"), and `S4`'s independent confusion matrix — its 170 `TP`/`FP`
 rows all land on a hit edge and its 209 `TN`/`FN` rows all on a non-hit edge,
 379 for 379, using a column that had no part in deriving the threshold.
-`scripts/prep_maier2018.py` re-derives the first of those on every run and
+`microbiomekg/preps/prep_maier2018.py` re-derives the first of those on every run and
 **refuses to write** if it stops holding, because the constant decides the type
 of every edge in the source.
 
@@ -857,7 +857,7 @@ comparison and the significance cutoff are not, and both matter: **`% consumed
 headline exactly — 176 of 271 drugs (65%) metabolised by at least one strain.**
 `p < 0.05` gives 175 (fourteen cells sit at exactly 0.05), `p <= 0.01` gives
 133, and using the 20% floor instead of the per-drug threshold gives 190.
-`scripts/prep_zimmermann2019.py` re-derives the 176 on every run and **refuses
+`microbiomekg/preps/prep_zimmermann2019.py` re-derives the 176 on every run and **refuses
 to write** when it stops holding. A second check from a sheet with no part in
 the derivation: all 20 parent drugs supplementary table 13 names a gene for are
 among the 176 — true at 0.01 as well, false at 0.001, so it rules out an

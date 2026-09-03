@@ -81,18 +81,18 @@ construction (231 files, −0.2%; the information test, 104 files, −12.4%).
 enumeration is maintained here; extend it in the same change that adds a
 reader.
 
-- **`mcp/microbiomekg.skills/*`** — the skill bodies and their frontmatter
+- **`microbiomekg/mcp/microbiomekg.skills/*`** — the skill bodies and their frontmatter
   `description` are injected **verbatim** into the tool descriptions an agent
   reads. Published contract. Every number and existential phrase in them is
   checked against the graph by `tests/test_skill_claims.py`, so a reworded
   sentence is a *failing test*, not a style change. Falsehood-fixes only, and
-  the matching claim in `mcp/claims/` moves with it.
-- **`mcp/microbiomekg_mcp.yaml`'s `instructions:` and `overview_prefix:`** —
+  the matching claim in `tests/claims/` moves with it.
+- **`microbiomekg/mcp/microbiomekg_mcp.yaml`'s `instructions:` and `overview_prefix:`** —
   same rule: prose the agent reads, checked by the same gate.
-- **`mcp/claims/*.md`** — the claim annotations are *parsed* by
+- **`tests/claims/*.md`** — the claim annotations are *parsed* by
   `tests/skill_claims.py`. A malformed annotation is a claim nobody can run,
   which the gate treats as worse than no claim.
-- **`_`-prefixed keys in `blueprints/*.json`** — comments the composer strips.
+- **`_`-prefixed keys in `microbiomekg/blueprints/*.json`** — comments the composer strips.
   They are the only place a fragment can explain itself; deleting one loses the
   explanation with no diff anywhere else.
 - **Module docstrings passed to argparse** (`description=__doc__` — e.g.
@@ -153,9 +153,9 @@ alone while two of its compressions were inside one. In this order:
    moves code (a collapsed block, a re-wrapped call). Formatter-introduced
    motion is the only non-comment change allowed in the final diff.
 3. **Re-run the gates that read comments:** `make gate` covers ruff and the
-   blueprint composition; if anything under `mcp/` was touched, run
+   blueprint composition; if anything under `microbiomekg/mcp/` was touched, run
    `.venv/bin/python -m pytest -q tests/test_skill_claims.py
-   tests/test_mcp_skills.py tests/test_mcp_manifest.py`. If a `blueprints/*.json`
+   tests/test_mcp_skills.py tests/test_mcp_manifest.py`. If a `microbiomekg/blueprints/*.json`
    `_` key was touched, `scripts/build_blueprint.py --check` must still be
    clean. An unexplained failure reverts the file that caused it.
 4. **`make test`** once at the end. A comment sweep that leaves the suite red

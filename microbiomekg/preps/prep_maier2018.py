@@ -66,14 +66,12 @@ import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.drugs import DrugIndex, atc_level5, join_drug  # noqa: E402
-from microbiomekg.ontology import maier2018 as mz  # noqa: E402
-from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
-from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
-from microbiomekg.tables import Writer, as_list  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.drugs import DrugIndex, atc_level5, join_drug
+from microbiomekg.ontology import maier2018 as mz
+from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.reconcile import TaxonomyIndex, rank_depth
+from microbiomekg.tables import Writer, as_list
 
 SOURCE = mz.SOURCE
 

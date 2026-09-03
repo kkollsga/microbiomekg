@@ -12,7 +12,7 @@ NJC19, the two published drug screens — Maier 2018 and Zimmermann 2019, one pe
 direction — and MASI, the aggregator that curates the literature both of those
 screens are in. KEGG is licence-gated and off by default,
 so no number here includes it. A source is
-added as files — `scripts/prep_<source>.py`, `blueprints/<source>.json`,
+added as files — `microbiomekg/preps/prep_<source>.py`, `microbiomekg/blueprints/<source>.json`,
 `microbiomekg/ontology/<source>.py` — never by editing a shared one (§8).
 
 ---
@@ -1237,7 +1237,7 @@ abstract — 203 of 835 human-targeted drugs hit at least one strain = **24.3%**
 against its "24% of the drugs with human targets"; and supplementary table 4's
 independent TP/TN/FP/FN column, whose 170 `TP`/`FP` rows all sit on hit edges
 and whose 209 `TN`/`FN` rows all sit on non-hit edges. `HIT_THRESHOLD` decides
-the *type* of every edge in the source, so `scripts/prep_maier2018.py`
+the *type* of every edge in the source, so `microbiomekg/preps/prep_maier2018.py`
 re-derives the first of those on every run and refuses to write when it stops
 holding.
 
@@ -1371,7 +1371,7 @@ significance cutoff are not stated anywhere, and both change the answer:
 paper's headline exactly, 176 of 271 drugs (65%) metabolised by at least one
 strain**, where `p < 0.05` gives 175 (fourteen cells sit at exactly 0.05),
 `p <= 0.01` gives 133, and swapping the per-drug threshold for its 20% floor
-gives 190. `scripts/prep_zimmermann2019.py` re-derives that headline on every
+gives 190. `microbiomekg/preps/prep_zimmermann2019.py` re-derives that headline on every
 run and refuses to write when it stops holding, because the rule decides the
 *type* of every edge here. A second, weaker check comes from a sheet with no
 part in the derivation: all 20 parent drugs the gene table names a metaboliser
@@ -1879,7 +1879,7 @@ ordinary result set.
 (the synonym index resolves an exactly-spelled old binomial), vector on a miss,
 and the vector query fuses *two* lanes — the whole name and the epithet alone —
 because a genus rename destroys the first word and leaves the second.
-`mcp/microbiomekg.skills/reconciliation.md` is the authority; the measured
+`microbiomekg/mcp/microbiomekg.skills/reconciliation.md` is the authority; the measured
 outcomes are in `tests/test_semantic_lookup.py`, which skips wholesale when the
 graph was built without `--with-vectors`.
 
@@ -2036,12 +2036,12 @@ uv venv .venv && uv pip install --python .venv/bin/python pandas openpyxl kglite
 ```
 
 `build.py` is the whole pipeline and the only supported entry point: it empties
-`data/csv/`, runs every `scripts/prep_<source>.py` (discovered, not listed) in
+`data/csv/`, runs every `microbiomekg/preps/prep_<source>.py` (discovered, not listed) in
 **declared dependency order** — each prep names the preps whose tables it reads
 in its own `DEPENDS_ON` and `build.py` topologically sorts them, so
 `prep_taxonomy` runs after everything that writes `cited_taxa.csv` and
 `prep_chembl` after the gutMDisorder table its `IS_DRUG` join reads — composes
-`blueprint.json` from `blueprints/*.json`, writes the ontology document and a
+`blueprint.json` from `microbiomekg/blueprints/*.json`, writes the ontology document and a
 `blueprint.load.json` **into the CSV directory** with every path bound to that
 build, loads it, builds §6's five BM25
 indexes, prints the counts, the audit and G10's expansion factor for every
@@ -2061,7 +2061,7 @@ left out of the *load* blueprint instead, which is the same rule as the
 denominator.
 
 **Adding a source is adding files, never editing shared ones.** A source brings
-`scripts/prep_<source>.py`, `blueprints/<source>.json`,
+`microbiomekg/preps/prep_<source>.py`, `microbiomekg/blueprints/<source>.json`,
 `microbiomekg/ontology/<source>.py` and `tests/test_<source>.py`. The blueprint
 fragments and the ontology modules are composed by
 `microbiomekg.fragments.merge_fragments`, whose rule is the reason for the
@@ -2267,11 +2267,11 @@ goes unchecked while its presence is still required.
    864,099 taxa here) and, on this corpus, ranked *worse* than either fused
    form. A rank- or min-max-normalising lane wrapper would make the hybrid
    query the one-liner the guide presents it as. Recorded in
-   `mcp/microbiomekg.skills/reconciliation.md`, which routes in two stages
+   `microbiomekg/mcp/microbiomekg.skills/reconciliation.md`, which routes in two stages
    instead.
 12. **A skill pack is discovered from the *manifest* basename, not the graph's.**
-   `mcp/microbiomekg_mcp.yaml` auto-loads `mcp/microbiomekg_mcp.skills/`, so a
-   pack named for the graph it documents — `mcp/microbiomekg.skills/` — is
+   `microbiomekg/mcp/microbiomekg_mcp.yaml` auto-loads `mcp/microbiomekg_mcp.skills/`, so a
+   pack named for the graph it documents — `microbiomekg/mcp/microbiomekg.skills/` — is
    found only through the list form, `skills: [true, ./microbiomekg.skills]`.
    That half stands: it is a naming convention, not a defect. **The silence
    around it is closed by kglite 0.16.22.** A `skills:` path that does not

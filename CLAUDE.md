@@ -11,7 +11,9 @@ regenerates them.
 An eleven-source microbiome knowledge graph on [kglite](../../Rust/KGLite),
 **100% Python** — no Rust crate, no compiled extension of our own. kglite does
 the graph work; this repo orchestrates prep, composition, load, audit and
-report. `README.md` is the layout; `docs/model.md` is the graph model;
+report. Everything that ships lives under `microbiomekg/` — the preps, the
+blueprint fragments, the MCP surface, the build — and `scripts/*.py` are thin
+callers kept so the documented commands work from a checkout. `README.md` is the layout; `docs/model.md` is the graph model;
 `docs/usecases-and-pitfalls.md` is the user contract.
 
 The estate's numbered invariants live in `../../Rust/doctrine/rules/RULES.md`
@@ -97,8 +99,8 @@ items are enumerated in `docs/design/release-readiness.md`; none is done.
 
 | file | what it carries |
 |---|---|
-| `scripts/prep_<src>.py` | raw → flat CSV in `data/csv/`, plus `DEPENDS_ON` |
-| `blueprints/<src>.json` | the node types and junction edges it writes rows into |
+| `microbiomekg/preps/prep_<src>.py` | raw → flat CSV in `data/csv/`, plus `DEPENDS_ON` |
+| `microbiomekg/blueprints/<src>.json` | the node types and junction edges it writes rows into |
 | `microbiomekg/ontology/<src>.py` | its audit rules and evidence mapping |
 | `tests/test_<src>.py` | its fixture-backed tests |
 
@@ -107,7 +109,7 @@ Nothing lists them. Preps are globbed, ontology modules are walked with
 half-loaded rather than rejected, and its test file is the thing that notices.
 
 - **`DEPENDS_ON` places a prep in the build**, not alphabetical order.
-  `scripts/build.py` topologically sorts with cycle detection. Name order once
+  `microbiomekg/build.py` topologically sorts with cycle detection. Name order once
   loaded `IS_DRUG` with zero edges (`docs/model.md` §8).
 - **Exit code 3 (`MISSING_INPUT`) means "my raw input is absent"** — a skip
   with a reason, never an error and never a half-load. A dependent of a skipped
@@ -134,10 +136,10 @@ and their goldens are asserted by `tests/test_documented_queries.py` and
 `tests/test_acceptance.py`** — a documented query that stops returning its
 golden is a failing test, not a stale doc.
 
-**`tests/test_skill_claims.py` makes a false sentence in `mcp/` a failing
+**`tests/test_skill_claims.py` makes a false sentence in `microbiomekg/mcp/` a failing
 test.** Every number and every existential phrase in a skill body, in a skill's
 routing `description`, and in the manifest's two prose keys must be covered by
-a claim in `mcp/claims/`, and every graph claim is executed against the built
+a claim in `tests/claims/`, and every graph claim is executed against the built
 graph. It exists because on 2026-09-03 all 810 tests passed while the shipped
 `metabolites_pathways` skill told agents there was no `CONSUMES` edge in a
 graph holding 4,784 of them: the skill tests checked that the *Cypher* ran,
@@ -216,7 +218,7 @@ operator expected is never silent.
 never rebuilt by a gate**. Re-fetching it costs hours and, for three origins,
 cannot be automated at all: **HMDB and MiMeDB are behind Cloudflare and MASI
 behind an expired certificate — those three are browser-only downloads.**
-`scripts/fetch.py` reports them as `manual-present` / absent and prints the
+`microbiomekg/fetch.py` reports them as `manual-present` / absent and prints the
 precise steps; it never pretends to fetch them.
 
 So: no tool in this repo deletes anything under `data/raw/`. `make
@@ -259,7 +261,7 @@ pointing it at a bounded tier — **in the same change** — is not allowed.
 | path | size | bound | owner |
 |---|---|---|---|
 | `data/raw/` | 7.5 GB | **none — never pruned automatically** | the operator; `make check-data-bounds` reports only |
-| `data/csv/` | ~264 MB | regenerated per build; `scripts/build.py` empties it first | the build |
+| `data/csv/` | ~264 MB | regenerated per build; `microbiomekg/build.py` empties it first | the build |
 | `graph/*.kgl` | 47 MB (213 MB with `--with-vectors`) | one file, overwritten per build | the build |
 | `bench/results/` | small, **tracked** | the longitudinal record — never deleted; heavy capture output goes to the scratch dir `bench/README.md` names | `make check-data-bounds` warns past 5 MB |
 | `.venv/`, `.pytest_cache/`, `.ruff_cache/`, `__pycache__/` | 112 MB + caches | regenerable | `make prune-dev` |
@@ -306,10 +308,10 @@ bound checked only at milestones is not a bound (`R4` corollary).
   data-shape traps (`"NA"` is a string, not a NaN), regression rationale in
   tests, and anything under `R18`.
 - **A comment the tooling parses is load-bearing (`R18`).** In this repo:
-  `mcp/microbiomekg.skills/*` bodies and frontmatter `description`s are
+  `microbiomekg/mcp/microbiomekg.skills/*` bodies and frontmatter `description`s are
   injected verbatim into the tool descriptions an agent reads and are checked
-  by `tests/test_skill_claims.py`; `mcp/claims/*.md` annotations are parsed by
-  `tests/skill_claims.py`; `_`-prefixed keys in `blueprints/*.json` are
+  by `tests/test_skill_claims.py`; `tests/claims/*.md` annotations are parsed by
+  `tests/skill_claims.py`; `_`-prefixed keys in `microbiomekg/blueprints/*.json` are
   comments the composer strips; a module docstring passed to argparse
   (`description=__doc__`, e.g. `scripts/build_blueprint.py`) is rendered
   verbatim as `--help`. The `clean-comments` skill carries the maintained

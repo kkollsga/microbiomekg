@@ -43,7 +43,7 @@ Three files are read and three are deliberately not:
   there is no taxon–pathway edge to be had from KEGG at all.
 
 The join runs through ``metabolite.csv``'s ``kegg_id``, and the metabolite
-selection rule in ``scripts/prep_hmdb.py`` deliberately never consults KEGG —
+selection rule in ``microbiomekg/preps/prep_hmdb.py`` deliberately never consults KEGG —
 a metabolite kept *because* KEGG links it would be a KEGG-derived row sitting
 in a graph built without the flag. So a KEGG link whose compound is not already
 a selected metabolite reaches no edge and is counted into
@@ -59,11 +59,9 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from microbiomekg import ontology as ont  # noqa: E402
-from microbiomekg.ontology import kegg as kg  # noqa: E402
-from microbiomekg.tables import Writer  # noqa: E402
+from microbiomekg import ontology as ont
+from microbiomekg.ontology import kegg as kg
+from microbiomekg.tables import Writer
 
 SOURCE = kg.SOURCE
 

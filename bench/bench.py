@@ -47,7 +47,7 @@ The query cells are **not synthetic**. They are extracted from
 and ``partial`` query, as authored — so a new source that edits Part D moves the
 benchmark with it, and a query that stops running is a finding rather than a
 silently dropped row. The three reconciliation cells come from
-``mcp/microbiomekg.skills/reconciliation.md`` for the same reason: that file is
+``microbiomekg/mcp/microbiomekg.skills/reconciliation.md`` for the same reason: that file is
 the authority for the hybrid lookup, and D12's fenced block carries only its
 lexical half.
 """
@@ -74,8 +74,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 USECASES = ROOT / "docs" / "usecases-and-pitfalls.md"
-RECONCILIATION = ROOT / "mcp" / "microbiomekg.skills" / "reconciliation.md"
-MANIFEST = ROOT / "mcp" / "microbiomekg_mcp.yaml"
+RECONCILIATION = (
+    ROOT / "microbiomekg" / "mcp" / "microbiomekg.skills" / "reconciliation.md"
+)
+MANIFEST = ROOT / "microbiomekg" / "mcp" / "microbiomekg_mcp.yaml"
 RESULTS = Path(__file__).resolve().parent / "results"
 
 #: Where the harness writes the graphs it builds. Deliberately **outside the
@@ -149,7 +151,7 @@ EXTRA_QUERIES: tuple[tuple[str, str, dict | None, str], ...] = (
 )
 
 #: The reconciliation lookups, by their block index in
-#: ``mcp/microbiomekg.skills/reconciliation.md``. D12's own fenced block is the
+#: ``microbiomekg/mcp/microbiomekg.skills/reconciliation.md``. D12's own fenced block is the
 #: lexical half only; the misspelling case the evaluation asks for is the fused
 #: one, and it is authored there.
 RECON_CELLS: tuple[tuple[str, int, dict], ...] = (
@@ -676,8 +678,7 @@ def child_build_graph(args: argparse.Namespace) -> None:
     os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
     import kglite
 
-    sys.path.insert(0, str(ROOT / "scripts"))
-    from build import TEXT_INDEXES, VECTOR_INDEXES  # noqa: PLC0415  (the build's own lists)
+    from microbiomekg.build import TEXT_INDEXES, VECTOR_INDEXES  # noqa: PLC0415
     from microbiomekg.embedder import CharGramEmbedder  # noqa: PLC0415
 
     result: dict[str, Any] = {"indexes": [], "saves": []}
@@ -1151,7 +1152,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[query] loading {graph_path} …", file=sys.stderr, flush=True)
         t = time.perf_counter()
         graph = kglite.load(str(graph_path))
-        # The served graph has an embedder — `mcp/microbiomekg_mcp.yaml` names
+        # The served graph has an embedder — `microbiomekg/mcp/microbiomekg_mcp.yaml` names
         # this exact factory under `extensions.embedder`. Without it every
         # `text_score()` cell raises rather than being slow, so the vector lane
         # would leave the capture as two "did not run" rows and the MCP
