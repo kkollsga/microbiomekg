@@ -266,8 +266,8 @@ disagree. Report the disagreement; it is not a data error.
   negative.** *Eggerthella lenta* reducing digoxin is the textbook result, and
   this screen scored that pair a **non-hit** (4.0% consumed against a 20%
   threshold, FDR p = 0.55) because digoxin reduction needs the *cgr* operon
-  under arginine-poor conditions and the screen ran one medium for 12 h. Twenty
-  other taxa *do* metabolise digoxin here. Always quote `incubation_hours` and
+  under arginine-poor conditions and the screen ran one medium for 12 h. **15
+  other taxa** *do* metabolise digoxin here. Always quote `incubation_hours` and
   the drug's own `drug_threshold_percent` beside a negative.
 - **66 taxa, not the gut.** Only those 76 strains were screened, and two strain
   names were left **deliberately unresolved** (`Bacteroides WH2`,

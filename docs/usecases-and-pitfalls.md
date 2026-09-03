@@ -390,7 +390,7 @@ a missing one as a non-hit, because that is the error that would look harmless.
 **Four of Zimmermann's eighty measured columns are not organisms**, and they are
 worth naming here because the mistake is invisible: `Control pH 4` through
 `Control pH 7` sit *between* strain columns with the same five sub-columns each,
-and under the hit rule they produce 15, 9, 7 and 7 apparent hits. Loading them
+and under the hit rule they produce 38 apparent hits between them. Loading them
 would have written 1,084 cells of abiotic chemistry as microbial metabolism, and
 would have reported 80 screened strains against the paper's 76.
 

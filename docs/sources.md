@@ -713,7 +713,7 @@ the obvious second layer and it is not one.
 
 **Four of the eighty measured columns are not organisms.** `Control pH 4`
 through `Control pH 7` sit *between* strain columns, carry the same five
-sub-columns, and produce **15, 9, 7 and 7 apparent hits** under the very rule
+sub-columns, and produce **38 apparent hits between them** under the very rule
 that calls a real one — they are the abiotic-degradation controls. Nothing
 structural separates them, so a reader that walked the column blocks would write
 1,084 cells of chemistry as microbial metabolism and would report 80 screened

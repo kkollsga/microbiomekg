@@ -30,7 +30,7 @@ What comes out:
   ``DOES_NOT_INHIBIT_GROWTH_OF`` and ``NO_EXCHANGE_WITH`` are;
 * the four ``Control pH`` columns -> ledger rows and **no edges**. They sit
   among the strain columns and carry the same five sub-columns, and under the
-  hit rule they produce 15, 9, 7 and 7 apparent hits — abiotic degradation
+  hit rule they produce 38 apparent hits between them — abiotic degradation
   read as microbial metabolism, 1,084 cells of it, if a reader took the block
   structure at face value;
 * a strain no NCBI name reaches -> an ``UnresolvedTaxon`` tombstone and a ledger

@@ -31,7 +31,7 @@ groups on one property instead of unioning two labels.
 
 **Four of the eighty columns in the screen are not organisms.** ``Control pH
 4/5/6/7`` sit among the strain columns, carry the same five sub-columns, and
-produce 15, 9, 7 and 7 apparent hits under the very rule that calls a real hit —
+produce 38 apparent hits between them under the very rule that calls a real hit —
 they are the abiotic-degradation controls, and a loader that read the column
 block structurally would have written 1,084 cells of *chemistry* as microbial
 metabolism. Excluding them is also what makes the paper's own "76 human gut

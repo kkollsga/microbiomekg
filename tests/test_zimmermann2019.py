@@ -239,7 +239,7 @@ def test_the_call_rule_needs_both_halves_and_both_boundaries_are_inclusive():
 def test_a_control_column_is_recognised_by_its_label_and_nothing_else():
     """The four `Control pH` columns sit *between* strain columns and carry the
     same five sub-columns, so nothing structural separates them. Under the hit
-    rule they produce 15, 9, 7 and 7 apparent hits — abiotic degradation read as
+    rule they produce 38 apparent hits between them — abiotic degradation read as
     microbial metabolism — and excluding them is what makes the paper's own 76
     strains reproduce from a sheet with 80 measured columns."""
     assert is_control_column("Control pH 7 ")
@@ -423,7 +423,7 @@ def test_an_abiotic_control_column_becomes_no_edge_and_one_ledger_row(
     """The Maier lesson, in the other file: a column that reads exactly like a
     strain is not one. `Control pH 4` through `Control pH 7` sit among the
     strain columns with the same five sub-columns each, and on the real screen
-    they produce 15, 9, 7 and 7 apparent hits. The fixture's single control is a
+    they produce 38 apparent hits between them. The fixture's single control is a
     hit for the first drug, so a loader that took the block structure at face
     value would write it."""
     assert not rows(

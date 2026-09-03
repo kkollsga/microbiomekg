@@ -1941,6 +1941,9 @@ PARTIAL_GOLDEN = {
     "d8_drugs_in_both_screens": 195,
     "d8_taxa_in_both_screens": 26,
     "d8_sulfasalazine": (52, 14),
+    # Digoxin: 15 taxa over 21 screened isolates metabolise it — and
+    # *Eggerthella lenta*, the textbook one, is a measured non-hit here.
+    "d8_digoxin": (15, 21),
     # D18 leg 3: metformin against the 40 isolates. **Forty measurements, zero
     # hits** — the competing explanation is now a negative, and a negative is
     # what the confounding argument actually needed.
@@ -2541,8 +2544,9 @@ def test_d8_a_measured_negative_is_bounded_by_its_assay_and_digoxin_proves_it(gr
 
     The edge is kept, with `incubation_hours` and `replicates` on it, precisely
     so the bound is readable — a `DOES_NOT_METABOLISE` edge means "not in this
-    assay", never "not at all". Twenty-one other taxa do metabolise digoxin
-    here, which is the finding the single-organism story does not carry."""
+    assay", never "not at all". Fifteen other taxa, across 21 screened isolates,
+    do metabolise digoxin here — which is the finding the single-organism story
+    does not carry."""
     lenta = one(
         graph,
         "MATCH (t:Taxon)-[r:DOES_NOT_METABOLISE]->(d:Drug {pref_name: 'DIGOXIN'}) "
@@ -2561,11 +2565,12 @@ def test_d8_a_measured_negative_is_bounded_by_its_assay_and_digoxin_proves_it(gr
     )
     others = one(
         graph,
-        "MATCH (t:Taxon)-[:METABOLISES]->(d:Drug {pref_name: 'DIGOXIN'}) "
-        "RETURN count(DISTINCT t) AS taxa",
+        "MATCH (t:Taxon)-[r:METABOLISES]->(d:Drug {pref_name: 'DIGOXIN'}) "
+        "RETURN count(DISTINCT t) AS taxa, "
+        "count(DISTINCT r.screen_column) AS isolates",
     )
-    assert others["taxa"] > 1, (
-        "the whole point of the screen over the single-organism result"
+    assert (others["taxa"], others["isolates"]) == PARTIAL_GOLDEN["d8_digoxin"], (
+        "the whole point of a screen over the single-organism result"
     )
 
 

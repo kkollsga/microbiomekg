@@ -1116,7 +1116,7 @@ relationships across two directions, and the split reasoning is in §2.
 **Four of the eighty measured columns are not organisms, and they read exactly
 like the other seventy-six.** `Control pH 4` through `Control pH 7` sit
 *between* strain columns in the screen, carry the same five sub-columns, and
-produce **15, 9, 7 and 7 apparent hits** under the rule that calls a real one.
+produce **38 apparent hits between them** under the rule that calls a real one.
 They are the abiotic-degradation controls — drug that disappears with no
 bacterium present. Nothing structural distinguishes them, so a loader that
 walked the block layout would have written 1,084 cells of *chemistry* as
