@@ -166,6 +166,17 @@ def test_the_server_injects_the_skill_into_exactly_the_tools_it_names(path: Path
             assert not present, f"{frontmatter['name']} leaked into {tool_name}"
 
 
+def has_vector_lane(graph) -> bool:
+    """Whether this build carries the embedding store the misspelling lane needs.
+
+    The same gate ``tests/test_semantic_lookup.py`` uses. ``scripts/build.py``
+    writes it only under ``--with-vectors``, and on a graph without one
+    ``text_score()`` **raises** rather than scoring zero — so a block that calls
+    it is untestable here, not failing.
+    """
+    return graph.embedding_dim("Taxon", "scientific_name") is not None
+
+
 @pytest.mark.parametrize("path", SKILL_FILES, ids=lambda p: p.stem)
 def test_every_cypher_block_executes(path: Path, graph):
     frontmatter, body = read_frontmatter(path)
@@ -174,6 +185,8 @@ def test_every_cypher_block_executes(path: Path, graph):
     params = params_for(frontmatter["name"])
     produced_rows = False
     for index, query in enumerate(blocks):
+        if "text_score(" in query and not has_vector_lane(graph):
+            continue  # the vector lane is opt-in; the test below covers its absence
         try:
             rows = list(graph.cypher(query, params=params))
         except Exception as exc:  # noqa: BLE001 - the message is the whole point
@@ -182,6 +195,46 @@ def test_every_cypher_block_executes(path: Path, graph):
     # Non-vacuity: a block can parse, run and match nothing because a property
     # was renamed. At least one block per skill must reach real data.
     assert produced_rows, f"{path.name}: no block returned a single row"
+
+
+def test_the_vector_lane_is_either_present_or_the_documented_fallback_works(graph):
+    """A default build has no vector lane, and the skill must survive that.
+
+    Three things have to hold together, or an agent following `reconciliation`
+    on a default graph gets a tool error instead of an answer: the probe the
+    skill teaches has to agree with the build, the queries it forbids have to be
+    the ones that actually fail, and the fallback it names has to return rows.
+    """
+    present = has_vector_lane(graph)
+    rows = list(graph.cypher("CALL db.indexes()"))
+    assert any(row["type"] == "FULLTEXT" for row in rows), "no BM25 index at all"
+    assert any(row["type"] == "VECTOR" for row in rows) == present, (
+        "`CALL db.indexes()` is the only probe the skill can offer an agent, and "
+        "it disagrees with `embedding_dim` about whether this build has vectors"
+    )
+    if present:
+        return
+
+    _, body = read_frontmatter(SKILLS_DIR / "reconciliation.md")
+    blocks = cypher_blocks(body)
+    params = {**params_for("reconciliation"), "epithet": "wh2"}
+    vector = [q for q in blocks if "text_score(" in q]
+    assert vector, "reconciliation no longer teaches the vector lane"
+    for query in vector:
+        with pytest.raises(Exception):
+            list(graph.cypher(query, params=params))
+
+    lexical = [q for q in blocks if "text_bm25(" in q and "text_score(" not in q]
+    tombstone = [q for q in blocks if "UnresolvedTaxon" in q]
+    assert lexical and tombstone, (
+        "the skill promises a fallback of the lexical lane plus the tombstone "
+        "query when there is no vector store; one of them is no longer there"
+    )
+    for query in lexical + tombstone:
+        assert list(graph.cypher(query, params=params)), (
+            f"the documented fallback returns nothing on a vectorless graph, so "
+            f"the degradation path the skill promises does not exist:\n{query}"
+        )
 
 
 #: `text_bm25(n, 'p', …)` where `n.p` has no BM25 index normally raises. In one
