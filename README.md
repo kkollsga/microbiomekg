@@ -6,17 +6,26 @@ papers) but with the *evidence model* as the point: every association edge
 carries study design, direction, sample size and the citing paper, and the
 ontology audit reports what fraction of edges lack evidence.
 
-Ten sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome, ChEMBL,
-MiMeDB, NJC19 and the two landmark drug screens — Maier 2018 and Zimmermann
-2019 — over NCBI taxonomy. KEGG has a loader and is **off by default** —
-`--with-kegg` — because its licence forbids redistributing a graph carrying it.
-MASI was fetched and is **not** loaded: its download is the substance dictionary
-and names no organism, so nothing in it can become an edge (`docs/sources.md`
-§14) — the drug↔taxon layer it was fetched for comes from the two published
-screens instead, one per direction. Maier's 1,197 drugs × 40 gut isolates say
-which drugs inhibit a bacterium; Zimmermann's 271 drugs × 76 strains say which
-bacteria metabolise a drug; **each keeps its measured non-hits — 42,233 and
-17,479 — as their own relationship** (§15, §16).
+Eleven sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome,
+ChEMBL, MiMeDB, NJC19, the two landmark drug screens — Maier 2018 and
+Zimmermann 2019 — and MASI, over NCBI taxonomy. KEGG has a loader and is **off
+by default** — `--with-kegg` — because its licence forbids redistributing a
+graph carrying it.
+
+The drug↔taxon layer is the part worth knowing about. Maier's 1,197 drugs × 40
+gut isolates say which drugs inhibit a bacterium; Zimmermann's 271 drugs × 76
+strains say which bacteria metabolise a drug; **each keeps its measured non-hits
+— 42,233 and 17,479 — as their own relationship** (`docs/sources.md` §15, §16).
+**MASI is the aggregator that curates the same literature, and it is loaded as
+one**: 66.4% of its 12,512 interaction records cite one of those two papers, and
+62.5% of the edges it produces restate a (taxon, compound) pair one of those
+screens already *measures*. So its substances are their own `Substance` node
+type, its four interaction relationships are its own, and the identity between a
+MASI substance and a `Drug` is a declared `SAME_COMPOUND_AS` edge — never a
+merge. A query for what was measured never sees a re-curation of it; a query for
+MASI's curated literature asks for it in one hop, and
+`WHERE r.duplicates_primary_source IS NULL` is the 4,295 edges nothing else here
+carries (§14).
 
 Layout:
 

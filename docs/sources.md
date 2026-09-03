@@ -30,35 +30,38 @@ did not answer; the exact error is recorded.
 | 11 | MONDO | fetched | 53 MB | `data/raw/mondo/` |
 | 12 | MiMeDB | fetched manually (user, browser) — v2.0 loaded, v1.0 kept as fallback | 230 MB | `data/raw/mimedb/v2/`, `data/raw/mimedb/` |
 | 13 | NJC19 | fetched manually (user, browser) | 738 KB | `data/raw/njc19/` |
-| 14 | MASI | fetched manually (user, browser) — **substances only** | 1.3 MB | `data/raw/masi/` |
+| 14 | MASI | fetched manually (user, browser) — all four tables | 7.1 MB | `data/raw/masi/` |
 | 15 | Maier 2018 drug screen | fetched | 1.0 MB | `data/raw/drug_screens/maier2018/` |
 | 16 | Zimmermann 2019 drug-metabolism screen | fetched | 40 MB | `data/raw/drug_screens/zimmermann2019/` |
 
-Total on disk: **7.5 GB** across 82 files. **15 of 16 sources usable; only
+Total on disk: **7.5 GB** across 88 files. **15 of 16 sources usable; only
 Disbiome is blocked** — its origin is down and, unlike gutMDisorder, no archived
 copy of its JSON API has ever existed (Wayback has never captured one, confirmed
 by a domain-wide CDX query; see `data/raw/disbiome/PROVENANCE.md`).
 
-**"Usable" is not "answers the question it was fetched for", and two of these
-five do not.** Five sources were fetched to close three named gaps
-(`docs/usecases-and-pitfalls.md` Part B), and the outcome is three for five —
-including the two that arrived as the *substitute* for the source that failed:
+**"Usable" is not "answers the question it was fetched for", and one of these
+five still does not.** Five sources were fetched to close three named gaps
+(`docs/usecases-and-pitfalls.md` Part B), and the outcome is four for five —
+including the two that arrived as the *substitute* for the source that was
+wrongly written off, and which arrived first and answered better:
 
 | Source | Fetched to close | What the download turned out to be | Loaded |
 |---|---|---|---|
 | MiMeDB | **D5**, per-taxon metabolite production | two MySQL tables with **no join between them**, in v1.0 **and** in v2.0 — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the microbes dump, CSV and XML alike. v2.0 added a `microbe_relations` **count** (830,984 pairs) that names none of them | 1,237 `Metabolite` nodes, **no edges** |
 | NJC19 | **D6**, consumption / cross-feeding | exactly what it says: 9,136 curated directed events, 912 of them negative | 8,905 edges over 820 taxa — D6 answered |
-| MASI | **D8 / D18**, drug↔taxon | the **substance dictionary** — 1,350 rows, no organism column, no interaction column | nothing |
-| Maier 2018 | **D8 / D18**, drug↔taxon — fetched after MASI's interaction tables proved unrecoverable | the whole published screen: 1,197 drugs x 40 gut isolates, one adjusted p-value per cell | **47,825 edges** over 38 taxa and 1,197 drugs — the first direct `Drug`–`Taxon` edge in the graph |
+| MASI | **D8 / D18**, drug↔taxon | all four tables, and **an aggregator**: 66.4% of its 12,512 interaction rows cite one of the two screens below, and 62.5% of the edges it produces restate a pair one of them already *measured* | **13,122 edges** over 542 taxa, 1,350 `Substance` nodes and probiotic annotation on 540 taxa — none of it on a relationship a screen owns |
+| Maier 2018 | **D8 / D18**, drug↔taxon — fetched while MASI's interaction tables were believed unrecoverable | the whole published screen: 1,197 drugs x 40 gut isolates, one adjusted p-value per cell | **47,825 edges** over 38 taxa and 1,197 drugs — the first direct `Drug`–`Taxon` edge in the graph |
 | Zimmermann 2019 | **D8**, the *other* direction — does the bug change the drug | the whole published screen again: 271 oral drugs x 76 gut strains, with each drug's own depletion threshold | **20,054 edges** over 66 taxa and 271 drugs — the first `Taxon`–`Drug` edge, and what closed D8 |
 
 Each raw directory carries a `PROVENANCE.md` with the file-level profile, the
 column lists, and the measurement behind the middle column. D5 moved anyway —
 NJC19's export half is nearly five times HMDB's whole yield — but it moved on
-the source fetched for D6, not the one fetched for it. D8 moved on a source
-fetched *because* MASI failed: the aggregator that curates the drug↔taxon
-literature is unrecoverable, and the landmark screen it aggregates is a
-supplementary table anyone can download.
+the source fetched for D6, not the one fetched for it. D8 moved on the two
+sources fetched *because MASI was thought to have failed*, and that turned out
+to be the better order: the aggregator arrived after the primary sources it
+aggregates, so the graph could **measure** the overlap instead of accumulating
+it (§14). Had MASI landed first, 7,161 restatements would have been
+indistinguishable from measurements.
 
 ## Redistribution: what blocks shipping a built graph
 
@@ -94,10 +97,14 @@ and not verifiable in-file**: none of the six dumps across the two releases
 carries a licence header, and the v2.0 downloads page that states it has never
 been fetched — it is behind the same Cloudflare challenge as the files.
 
-**MASI's licence is genuinely unknown** — unstated in the files and unstated by
-the database, which is a second reason nothing from it was loaded: a
-`source_licence` would have to be invented for every row, and guard G3 only
-works because nobody guesses it.
+**MASI's licence is genuinely unknown** — unstated in all eight files and
+unstated by the database. It is a fifth restriction rather than a reason not to
+load: every MASI edge carries `source_licence = 'MASI-unstated'`, a real token
+that says what is known, and because G3 puts the licence on the edge the
+redistributable cut is one `WHERE`. It is deliberately a *third* unstated token
+beside `Maier2018-unstated` and `Zimmermann2019-unstated`, because three
+unstated permissions are three permissions and excluding one is no reason to
+lose the others.
 
 NCBI Taxonomy (public domain), Reactome (CC0), BugSigDB (CC BY 4.0) and **NJC19
 (CC0-1.0)** place no obstacle in the way of redistribution. NJC19 is the only
@@ -588,52 +595,105 @@ guessed. Full profile: `data/raw/njc19/PROVENANCE.md`.
 
 ## 14. MASI
 
-- **URL** — `https://masi.idrblab.net/` (download page). The site has an
-  **expired TLS certificate**; the two files arrived by hand.
+- **URL** — `https://www.aiddlab.com/MASI/downloadFiles/<filename>`, linked from
+  `https://www.aiddlab.com/MASI/download.html`. The host's **TLS certificate is
+  expired**, which is why no programmatic fetch reaches it and why the Wayback
+  Machine holds only one of the eight files; all eight arrived by hand on
+  **2026-09-03**, through the browser's certificate warning.
 - **Licence** — **unknown.** No licence line, copyright notice, terms URL or
-  document property in either file, and the database states none
+  document property in any of the eight files, and the database states none
   (`docs/research/researcher-workflows.md` §1.11: "No separate database
-  license").
-- **Format** — one table, as tab-separated text and as XLSX.
-- **Status** — **fetched manually; NOT loaded.** No prep script, no blueprint
-  fragment, no ontology module.
+  license"). Every MASI edge carries `source_licence = 'MASI-unstated'`.
+- **Format** — four tables, each as tab-separated text and as XLSX.
+- **Status** — **fetched manually; loaded.** `scripts/prep_masi.py`,
+  `blueprints/masi.json`, `microbiomekg/ontology/masi.py`, `tests/test_masi.py`.
+- Paper: Zeng et al., *Nucleic Acids Research* 49:D776 (2021), **PMID 33313900**.
 
 | File | Bytes | sha256 |
 |---|---:|---|
-| `MASI_v1.0_download_substanceInfo.txt` | 872,454 | `d526701f…631e9fa8` |
-| `MASI_v1.0_download_substanceInfo.xlsx` | 438,118 | `ad8aa6f2…0ba2223d` |
+| `..._microbeSubstanceInteractionRecords_ver20200928.xlsx` | 1,433,420 | `d54c255b…5061413566` |
+| `..._microbeDiseaseAssociationRecords.xlsx` | 54,229 | `9d28d7ea…f2e7e1635f` |
+| `..._microbesInfo.xlsx` | 75,513 | `b3b4f8e4…b35d9530ca` |
+| `..._substanceInfo.xlsx` | 438,118 | `ad8aa6f2…0ba2223d` |
 
-**The two are the same table in two encodings** — 1,350 data rows, the same 18
-columns in the same order — and the filename says what it is: `substanceInfo`.
-It is the **substance dictionary**, and it names **no bacterium anywhere**:
-there is no organism column, no interaction column, no effect, no direction and
-no PubMed id. The two edge sets the research document sizes MASI by
-(bacteria→substance **4,001** pairs, substance→bacteria **7,770**) are in
-neither file.
+The `.txt` twins are on disk too and carry the same data; their checksums are in
+`data/raw/masi/PROVENANCE.md`.
 
-**And the interaction downloads are not merely absent, they are
-unrecoverable.** `www.aiddlab.com` no longer completes a TLS connection and a
-domain-wide Wayback CDX query over `aiddlab.com/MASI*` returns only
-`substanceInfo` — the four `microbe*` files have never been captured by anyone
-(`data/raw/manifest.json` records the attempt and the error per file). So this
-is not a fetch to retry.
+### The retraction this section owes
 
-Loading the substances anyway would add 1,350 unconnected nodes; the ones ChEMBL
-already has cannot be enriched, because `drug.csv` is keyed on the ChEMBL id and
-the first row per key wins. The one true statement derivable from the file —
-"MASI curates at least one experimentally determined microbiota interaction for
-this substance", its stated inclusion criterion — names no organism and so
-answers neither query. Full profile: `data/raw/masi/PROVENANCE.md`.
+**The 2026-09-02 version of this section said the interaction tables were
+"unrecoverable". That was wrong, and the mechanism of the error is worth
+keeping.** `www.aiddlab.com` is not a dead host — its certificate expired. Every
+fetch attempt failed at the TLS handshake and was recorded as unreachable; the
+Wayback Machine will not archive a host it cannot handshake with either, so the
+domain-wide CDX query returned only the one file a person had once saved by
+hand, and the two facts corroborated each other into a wrong conclusion. A
+browser asks the user and then proceeds. **A negative reached by two mechanisms
+that share a cause is one observation, not two** — and the cheap experiment that
+would have settled it (`curl -k`) was never run before the claim was committed
+to three documents.
 
-**What closed D8's inhibition leg instead was the primary source MASI
-aggregates** (§15). That is a better artifact for this leg than MASI would have
-been: MASI resolves "down to genus level" while Maier's screen is strain-level,
-and MASI curates positives while the screen measured every cell of its matrix
-and so carries 42,233 **negatives**. **The metabolism direction went the same
-way** (§16): Zimmermann 2019's own screen, not MASI's curation of it. Part D's
-requirement that the two directions land as separate edge types is discharged in
-full — four relationships now, two per direction, hit and measured non-hit each
-time — and MASI is off the list for good.
+### The `.xlsx` is read and the `.txt` is not
+
+Three of the four `.txt` files are honest TSV. **`microbesInfo.txt` is not**: its
+header row contains **zero tab characters**, its columns are space-padded to a
+width, and its values contain single spaces of their own
+(`Bifidobacterium ruminatum`), so no delimiter rule recovers it. All four
+`.xlsx` carry one `Sheet1` with typed cells and the same header, so one reader
+serves all four and the awkward one is not a special case — which matters most
+on the 24-column interaction table, where a mis-split moves a p-value into a
+mechanism field.
+
+### What is in the four tables
+
+| Table | Rows × cols | What it carries |
+|---|---|---|
+| interaction records | **12,512 × 24** | two `Interaction_Category` values — `Substances alter microbe abundance` 8,217 and `Microbes metabolize substances` 4,295 — giving exactly the 7,770 and 4,001 distinct pairs the research document sizes MASI by. So this **is** the complete published interaction set. |
+| disease associations | 784 × 11 | taxon–disease abundance changes with a PMID each, 56 diseases named and **never coded**: no DOID, MONDO or EFO column anywhere. |
+| microbe dictionary | 806 × 14 | NCBI ids at four ranks — which recovers a taxid for 3,007 interaction rows the interaction table leaves at `n.a.` — plus `if_probiotic` on 46 organisms. |
+| substance dictionary | 1,350 × 18 | eight cross-reference columns, **none of which reaches anything**: there is no ChEMBL id, and the fetched ChEMBL molecule JSONL carries no cross-references at all. |
+
+### MASI is an aggregator, and 62.5% of what it says was already measured here
+
+**5,419 of its interaction rows cite PMID 29555994 (Maier 2018) and 2,884 cite
+PMID 31158845 (Zimmermann 2019)** — 66.4% of the file — and both papers are
+already in this graph, loaded from their own supplementary tables with all
+47,825 and 20,054 *measured* cells, negatives included. Resolved to (taxon,
+compound) pairs, **7,161 of the 11,456 edges MASI produces restate a pair one of
+those two screens already measures.**
+
+That number, not a preference about node types, is why MASI's substances are
+`Substance` nodes and its four interaction relationships are its own
+(`docs/model.md` §MASI). Had its metabolism records landed on `METABOLISES`,
+`MATCH (t:Taxon)-[:METABOLISES]->(d:Drug)` — the query D8 is written as — would
+have counted a curated restatement and a measured screen cell as two
+observations, with nothing in the query text to say so.
+`duplicates_primary_source` names the overlapping source on every edge, so
+"what does MASI *add*" is one `WHERE r.duplicates_primary_source IS NULL`.
+
+### What it loaded
+
+**11,456 interaction edges over 542 taxa and 1,350 substances**, as four
+relationships: `METABOLISES_SUBSTANCE` 3,356, `DOES_NOT_METABOLISE_SUBSTANCE`
+16, `ABUNDANCE_CHANGED_BY_SUBSTANCE` 7,579, `ABUNDANCE_UNCHANGED_BY_SUBSTANCE`
+505. Plus **883 `SAME_COMPOUND_AS` edges** onto the `Drug` nodes ChEMBL and the
+two screens own, **783 `ASSOCIATED_WITH` edges** into the shared taxon–disease
+table as its fourth source, and MASI's probiotic annotation on **540 `Taxon`
+nodes** (44 of them `probiotic = true`).
+
+`evidence_level` is derived per row from `Experiment_System` and
+`Experiment_Model_Species` rather than defaulted: **`in-vitro` 8,272, `unknown`
+2,249, `in-vivo-model` 935**. The disease half is `unknown` on all 783, because
+that export has no design, host, sequencing, test or arm-size column — 8 of the
+fourteen contract properties are fillable and the other six describe a study
+this source does not describe.
+
+**What it refuses.** 1,048 interaction records name a microbe that reaches no
+NCBI id — 474 of them `Unclassified gut microbiota` and 311 `Unidentified gut
+microbes`, which is why only 16 of the 404 curated *non*-metabolism statements
+survive; 8 records carry a `Microbe_Change` with no direction this model can
+write; 15 of the 56 diseases reach no MONDO term and keep `MASI:DIS<n>`. All of
+it is in `data/csv/unresolved_masi.csv` and the `UnresolvedTaxon` tombstones.
 
 ## 15. Maier 2018 — the drug screen, and the source that actually closed D8
 

@@ -2073,9 +2073,11 @@ species-level claim resting only on `observational-16S` edges must say so.
 
 ### D10 — "For disease Y, which depleted taxa are plausible probiotic candidates?"
 
-*Status:* **`partial`** — the depletion and AMR legs work, the metabolite leg
-is as wide as HMDB and no wider. This is A5.4's second half. *Fields:* D2 ∪ D5
-∪ D7, joined on taxon.
+*Status:* **`partial`** — the depletion, AMR and metabolite legs work and
+**the query now has the column it is named for**, but the probiotic annotation
+is as wide as MASI's microbe dictionary and no wider (540 taxa of 864,132).
+This is A5.4's second half. *Fields:* D2 ∪ D5 ∪ D7, joined on taxon, plus
+`Taxon.probiotic`.
 
 ```cypher
 MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005265'})
@@ -2087,26 +2089,48 @@ OPTIONAL MATCH (t)-[:CARRIES_RESISTANCE_GENE]->(a:ResistanceGene)
 OPTIONAL MATCH (t)-[p:PRODUCES]->(m:Metabolite)          // HMDB + NJC19; MiMeDB none
 RETURN t.title AS candidate, t.rank AS rank, n_studies, levels,
        count(DISTINCT a) AS amr_determinants,
-       collect(DISTINCT m.title) AS metabolites
+       collect(DISTINCT m.title) AS metabolites,
+       // MASI. `true` = used as a probiotic; `false` = MASI curates the
+       // organism and does not say so; **null = MASI has no row for it**, which
+       // is not the same claim and must not be read as one.
+       t.probiotic AS used_as_probiotic,
+       t.probiotic_use_species AS probiotic_in,
+       t.probiotic_research_stage AS probiotic_stage
 ORDER BY n_studies DESC LIMIT 20
 ```
 
 *Shape:* one row per candidate with its replication count, the strongest tier
-reached, its AMR burden and its claimed metabolites. *Golden check (measured for
-inflammatory bowel disease, `MONDO:0005265`):* **26 candidates at
-`n_studies >= 2`; 4 of them carry an AMR determinant and 7 have at least one
-HMDB metabolite.** Both of those columns read `0` and `[]` for every row before
-CARD and HMDB landed, and the two that are populated are the reason the status
-is `partial` rather than `pending-source`: the remaining gap is coverage —
-HMDB attributes a metabolite to 272 organisms in total — not a missing
-relationship. *The `n_studies >= 2` clause is G4, not a nicety:* 84.2% of
-(taxon, condition) pairs in the current build rest on a single study, and the
-sign of a single-study association flips about one time in three — here the
-clause drops **92 of 118** depleted taxa, leaving the 26. *The chain
-this query is a proxy for* — observational correlation → mouse → a randomised,
-double-blind, placebo-controlled human pilot, as in the *Akkermansia muciniphila*
-case — is not recorded end-to-end by any single database, so the query returns
-candidates, never conclusions.
+reached, its AMR burden, its claimed metabolites and — since MASI — whether
+anyone actually uses it as a probiotic. *Golden check (measured for
+inflammatory bowel disease, `MONDO:0005265`):* **32 candidates at
+`n_studies >= 2`; 5 carry an AMR determinant, 20 have at least one metabolite,
+and 7 are organisms MASI records as being used as probiotics.** The first three
+columns read `0`, `[]` and nothing at all for every row before CARD, HMDB and
+MASI landed, and the fact that all four are populated is the reason the status
+is `partial` rather than `pending-source`: the remaining gap is coverage — MASI
+names 46 probiotics in total — not a missing relationship.
+
+**The probiotic column is the one the query is named for, and it moved the
+answer rather than decorating it.** The seven are *Akkermansia muciniphila*,
+*Bifidobacterium adolescentis*, *B. bifidum*, *B. longum*,
+*B. pseudocatenulatum*, *Butyricicoccus pullicaecorum* and *Faecalibacterium
+prausnitzii*, each with the population it is used in and the stage that use has
+reached (`Research`, `Clinical trial`, `Marketed`) — including the
+*A. muciniphila* case this entry's own last paragraph walks through. **The flag
+is three-state and the third state is load-bearing:** a candidate MASI has no
+row for is `null`, never `false`, so this query never reads "MASI does not cover
+this organism" as "this organism is not a probiotic".
+
+*The `n_studies >= 2` clause is G4, not a nicety:* 84.2% of (taxon, condition)
+pairs in the current build rest on a single study, and the sign of a
+single-study association flips about one time in three — here the clause drops
+**87 of 119** depleted taxa, leaving the 32. *The chain this query is a proxy
+for* — observational correlation → mouse → a randomised, double-blind,
+placebo-controlled human pilot, as in the *Akkermansia muciniphila* case — is
+not recorded end-to-end by any single database, so the query returns
+candidates, never conclusions. MASI's `probiotic_research_stage` is the closest
+this graph gets to naming where on that chain an organism has reached, and it
+is one curator's summary, not a trial record.
 
 ### D11 — "Which studies for disease Y controlled for medication or antibiotics?"
 
@@ -2417,13 +2441,14 @@ published findings for both were nonrobust to model specification.
 
 ### D18 — "Is this T2D association a drug effect?" — the metformin confounding check
 
-*Status:* **`partial`**, and the leg that moved is a **negative**. The competing
-explanation is now offered for **32** T2D taxa instead of 17, and for metformin
-specifically the graph can say something it previously could not say at all:
-metformin **does not inhibit the growth of any of the 38 screened taxa** at
-20 µM. That is a measured constraint on the *mechanism*, not a second
-correlation. *Fields:* D2's, joined to a drug→taxon layer, plus D11's confounder
-columns.
+*Status:* **`partial`**, and it stays `partial` for a reason that changed
+shape rather than went away. Three routes now offer a competing explanation:
+gutMDisorder's abundance shift in a host (17 T2D taxa), Maier's measured
+growth **negative** in a tube (32 T2D taxa, zero hits at 20 µM — a constraint on
+the *mechanism*, not a second correlation), and MASI's curated literature layer,
+which is the largest at **365 metformin edges over 185 taxa, 48 of them
+associated with T2D**. *Fields:* D2's, joined to a drug→taxon layer, plus D11's
+confounder columns.
 
 ```cypher
 // metformin is CHEMBL:CHEMBL1431. Two drug->taxon routes, and they answer
@@ -2473,21 +2498,44 @@ singly with the microbiome and only **6** survived multi-drug correction, and
 taxonomic associations fell 154 → 47 — and it was unaskable here before a
 drug↔taxon layer existed.
 
-*What the partial does not cover, and it is now one named taxon rather than
-three.* From Forslund et al. (Nature 528:262, 2015, PMID 26633628; 784
-metagenomes across three countries): an ***Escherichia*** increase and an
+**The third route, and the reason to read it carefully.** MASI's metformin
+records reach the `Substance` node metformin also has, one `SAME_COMPOUND_AS`
+hop from `CHEMBL:CHEMBL1431`:
+
+```cypher
+MATCH (t:Taxon)-[m]->(s:Substance)-[:SAME_COMPOUND_AS]->
+      (:Drug {id: 'CHEMBL:CHEMBL1431'})
+RETURN t.title AS taxon, type(m) AS claim, m.direction AS direction,
+       m.evidence_level AS level, m.publications AS paper,
+       m.duplicates_primary_source AS also_measured_by
+```
+
+*Golden check (measured):* **365 edges over 185 taxa**, of which **347 are pairs
+no screen in this graph measured** (`duplicates_primary_source IS NULL`); 48 of
+the taxa carry a T2D association, against Maier's 32 and gutMDisorder's 17.
+
+*What the partial does not cover, and the gap changed kind rather than closed.*
+From Forslund et al. (Nature 528:262, 2015, PMID 26633628; 784 metagenomes
+across three countries): an ***Escherichia*** increase and an
 ***Intestinibacter*** decrease are metformin effects rather than T2D signals,
 the latter consistent across all three cohorts; a ***Lactobacillus*** increase
 attributed to unstratified T2D was "eliminated or reversed" when controlling for
-metformin. The screen ran **three of those four genera at species level** —
-*Escherichia coli*, *Lacticaseibacillus paracasei* (NCBI's current name for
-*Lactobacillus paracasei*) and two *Bifidobacterium* — where gutMDisorder
-curated a metformin edge for only *Bifidobacterium*. **The fourth is why the
-status is not `answerable-now`: *Intestinibacter* was not one of the 40
-isolates**, so the decrease Forslund calls the most consistent of the four has
-no growth measurement here and cannot get one from this source. The genus is in
-the taxonomy; the measurement is not, and `tests/test_acceptance.py` asserts
-both halves of that so the gap cannot close by accident.
+metformin. gutMDisorder curated a metformin edge for only *Bifidobacterium* of
+the four, and *Intestinibacter* was not one of Maier's 40 isolates — which is
+what this entry called the reason for `partial`.
+
+**MASI reaches all three of the ones gutMDisorder misses**, including
+*Intestinibacter*, with a curated abundance **decrease** in vivo in humans. And
+the citation on that edge is `PMID:26633628` — **Forslund et al. itself**. That
+is the finding this query is checking a T2D association *against*, curated by a
+third party and loaded back in; a curated restatement of the paper is not
+independent evidence for or against it, so the status does not move. What did
+move is the reach (32 T2D taxa → 48) and the shape of the gap: it is no longer
+"no edge exists for *Intestinibacter*" but "the edge that exists is the claim,
+not a test of it" — which `primary_source = 'masi'`, `evidence_level = 'unknown'`
+and `publications` all say on the edge itself, and which
+`tests/test_acceptance.py` asserts by name so it cannot be read as a measurement
+by accident.
 
 *And the thing the growth screen cannot say at all:* it is a monoculture assay
 at one concentration. A drug that changes a community without killing anything —
@@ -2550,12 +2598,22 @@ query answers the question it is named for.
   inhibit at least one strain; 172 of 271 drugs are metabolised by at least one
   taxon, against a published 176 whose four-drug gap is priced and named). The
   gene layer W7 asks for rides on the edge, and there is still no `Gene` node.
-- **D18** is still `partial`, and for the same reason as before: the competing
-  explanation for a T2D association now reaches 32 screened taxa and a measured
-  metformin negative, but *Intestinibacter* — the most consistent of the four
-  published confounders — was not one of the 40 isolates. Metformin is not in
-  the metabolism screen's 271 either, so the second direction adds nothing to
-  this query.
+- **D18** is still `partial`, and the reason changed shape rather than went
+  away. The competing explanation now reaches 48 T2D taxa across three routes —
+  gutMDisorder's 17, Maier's 32 with a measured metformin negative, and MASI's
+  365 curated metformin edges over 185 taxa. MASI does reach *Intestinibacter*,
+  the confounder Maier's 40 isolates missed, with an abundance decrease — but
+  the citation on that edge is `PMID:26633628`, **Forslund et al. itself**, so
+  what the graph gained is the finding under test rather than a test of it. A
+  curated restatement of the paper does not promote the status; it is why the
+  edge says `primary_source = 'masi'` and `evidence_level = 'unknown'`.
+- **D10** is still `partial` and gained the column it is named for. MASI's
+  microbe dictionary puts `probiotic`, `probiotic_use_species` and
+  `probiotic_research_stage` on 540 `Taxon` nodes, and **7 of D10's 32 IBD
+  candidates carry it** — *Akkermansia muciniphila* and *Faecalibacterium
+  prausnitzii* among them. The gap is coverage: MASI names 46 probiotics in
+  total, and the flag is null rather than false on every taxon it does not
+  cover.
 
 Which source would close which remaining query: **nothing on offer** closes
 D5's enzyme/pathway leg (or D13's) — MiMeDB v2.0 was fetched on 2026-09-03 to do
@@ -2570,7 +2628,7 @@ loaded. Nothing on this list would close D18 —
 what that query wants is a screen that ran *Intestinibacter*, and no published
 one did.
 
-Ten sources have landed and moved eleven queries. **gutMDisorder** closed D4's
+Eleven sources have landed and moved twelve queries. **gutMDisorder** closed D4's
 intervention leg; **CARD** closed D7 outright and D10's AMR leg; **HMDB +
 Reactome** moved D13 from `pending-source` to `partial` and gave D5 its first
 578 edges; **ChEMBL**, joined to gutMDisorder's interventions by `IS_DRUG`,
@@ -2583,15 +2641,20 @@ again, zero edges; **Maier 2018** closed D8's inhibition leg and turned D18's
 metformin question from a 17-taxon correlation into a 32-taxon measured
 negative; **Zimmermann 2019** closed D8 outright, adding the direction no other
 source in this graph carries — the bacterium changing the drug — and the first
-`Taxon`–`Drug` edge. Of the original five `partial` queries, **two needed no new
-source at all** — D11 is closed (three column names declared, one more
+`Taxon`–`Drug` edge; **MASI** moved D10 (26 candidates → 32, and the probiotic
+column the query is named for) and widened D18's reach to 48 taxa, while
+**moving no golden on D8 at all** — by design, because 62.5% of its edges
+restate a pair one of the two screens already measured and none of them is
+allowed onto a screen's relationship. Of the original five `partial` queries,
+**two needed no new source at all** — D11 is closed (three column names declared, one more
 extracted) and D14's non-specificity half already worked. Every `partial` above
 names the leg that works and the leg that does not, and each is a measured
 number rather than a label.
 
-**Two numbers are worth reading twice: 42,233 and 17,479.** Together they are
-the only population in this graph of the form "somebody measured this pair and
-found nothing", for any relationship. Every other edge here exists because a
+**Two numbers are worth reading twice: 42,233 and 17,479.** Together with
+NJC19's 894 `NO_EXCHANGE_WITH` and MASI's 521 curated non-effects they are the
+**61,127 edges** in this graph of the form "somebody looked at this pair and
+found nothing", for any relationship — and the two screens are 98% of it. Every other edge here exists because a
 result was worth publishing, which is the selection bias the whole evidence
 model is built to make visible — and a screen is the one design that escapes it.
 Each screen carries its own control on the claim: the 55 cells Maier wrote `NA`

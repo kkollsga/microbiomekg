@@ -2,10 +2,13 @@
 
 Written 2026-09-03 against a clean `scripts/build.py` run made for this
 evaluation (**932,372 nodes, 1,311,540 edges, 17 node types, 28 relationship
-types**, ten sources, `--scope microbial`, KEGG off). Every number below came
-from a query run in that session, against that build, or from
-`.venv/bin/python -m pytest -q` (**810 passed in 46 s**). Nothing is carried
-over from a report this evaluation did not verify.
+types**, ten sources, `--scope microbial`, KEGG off) and **re-measured the same
+day after MASI landed** (**934,206 nodes, 1,324,684 edges, 18 node types, 33
+relationship types**, eleven sources). Where a number moved, both are given and
+the second is the current one. Every number below came from a query run in one
+of those sessions, or from `.venv/bin/python -m pytest -q` (**810 passed in
+46 s** at writing; **1,166 passed** after MASI and the agent-surface work).
+Nothing is carried over from a report this evaluation did not verify.
 
 The audience for the verdict is a working microbiome bioinformatician. The
 person who commissioned it is not one, so the summary is written for them.
@@ -32,11 +35,12 @@ Three findings, in order of how much they should change your view:
    edges are observational, 4.2% are human RCTs, and the graph says so rather
    than hiding it behind a confidence score.
 
-2. **The most valuable thing here is not the associations. It is the 60,606
+2. **The most valuable thing here is not the associations. It is the 61,127
    measured negatives.** Two published drug screens contribute 42,233 "this drug
    was tested against this bacterium and did nothing" and 17,479 "this bacterium
    was given this drug and did not touch it", plus 894 curated refutations of
-   metabolite exchange. Every other edge in this graph, and in every graph it is
+   metabolite exchange and MASI's 521 curated non-effects — the two screens are
+   98% of the population. Every other edge in this graph, and in every graph it is
    modelled on, exists because a result was worth publishing. This is the only
    population in it that escapes that selection, and no comparable resource
    ships it.
@@ -99,13 +103,13 @@ build. Where an entry carries several queries, each was run separately.
 | D8 metformin three-outcome | answerable-now | yes | 1 | **exact**: 0 inhibited, 38 tested-no-effect |
 | D8 sulfasalazine four-outcome | answerable-now | yes | 1 | **exact**: 52 metabolised_by, 14 tested_untouched |
 | D8 gene layer | answerable-now | yes | 32 | **exact**: 32 `METABOLISES` edges carry locus tags |
-| D9a/D9b 16S share | answerable-now | yes | 20 / 37 | **exact**: 58,595 of 105,097 = 55.8% |
+| D9a/D9b 16S share | answerable-now | yes | 20 / 37 | **exact**: 58,595 of 105,097 = 55.8% (55.3% of 105,880 after MASI, whose 783 associations record no sequencing type) |
 | D10 probiotic candidates | partial | yes | 20 | **exact**: 26 candidates, 4 with AMR, 18 with a metabolite |
 | D11 confounder columns | answerable-now | yes | 180 | **exact**: 14,846 sigs / 2,304 / 1,958 / 6,485; T2D 180 / 58 / 42 |
 | D12a/D12b nomenclature | partial | yes | 3 / 1 | **exact**: 1598 at rank filter, score 14.16; 69 edges, all `exact` |
 | D13 pathway walk | partial | yes | 1,028 | **stale prose, see below** |
 | D14 dysbiosis breadth | partial | yes | 20 | **exact**: Bacteroides 1,150 · Streptococcus 1,123 · Prevotella 1,063 · Lachnospiraceae 1,024 · Lactobacillus 938 · Oscillospiraceae 875 |
-| D15a audit | answerable-now | yes | 104 | **exact**: `ASSOCIATED_WITH` 15,985 / 105,097 = 15.2%, warn |
+| D15a audit | answerable-now | yes | 104 | **exact**: `ASSOCIATED_WITH` 15,985 / 105,097 = 15.2%, warn — 16,768 / 105,880 = 15.8% after MASI |
 | D15b per-source census | answerable-now | yes | 2 | **exact**: bugsigdb 103,461 · gutmdisorder 1,636, all 1,636 missing group sizes |
 | D16a/D16b shortest path | answerable-now | yes | 1 / 3 | **exact**: 1 hop direct, 3-hop evidence walk returns the signatures |
 | D17 disagreement | answerable-now | yes | 50 | **exact**: 8,238 conflicts, 47,232 single-cohort of 56,124 pairs (84.2%) |
@@ -190,25 +194,25 @@ association relationships (112,183 edges):
 | in-vitro | 1,705 | 1.5% |
 | unknown | 17 | 0.02% |
 
-Within `ASSOCIATED_WITH` alone, `observational-16S` is **58,595 of 105,097 =
-55.8%** — a genus-resolution assay carrying the majority of the graph's
+Within `ASSOCIATED_WITH` alone, `observational-16S` is **58,595 of 105,880 =
+55.3%** — a genus-resolution assay carrying the majority of the graph's
 disease claims, and the graph says so on every edge rather than in a footnote.
 
-Across **all 260,658 evidence-bearing edges** (adding the exchange, screen, AMR,
-mechanism and pathway layers) the picture inverts, because the screens are
-enormous and every screen cell is a laboratory measurement:
+Across **all 272,897 evidence-bearing edges** (adding the exchange, screen,
+AMR, mechanism, pathway and MASI layers) the picture inverts, because the
+screens are enormous and every screen cell is a laboratory measurement:
 
 | evidence_level | edges | share |
 |---|---:|---:|
-| in-vitro | 108,664 | 41.7% |
-| observational-16S | 61,793 | 23.7% |
-| computational-predicted | 31,948 | 12.3% |
-| in-vivo-model | 20,107 | 7.7% |
-| observational-shotgun | 18,126 | 7.0% |
-| interventional-rct | 7,360 | 2.8% |
-| unknown | 6,146 | 2.4% |
-| meta-analysis | 4,478 | 1.7% |
-| observational-amplicon / -unspecified / -targeted | 2,036 | 0.8% |
+| in-vitro | 116,936 | 42.8% |
+| observational-16S | 61,793 | 22.6% |
+| computational-predicted | 31,948 | 11.7% |
+| in-vivo-model | 21,042 | 7.7% |
+| observational-shotgun | 18,126 | 6.6% |
+| unknown | 9,178 | 3.4% |
+| interventional-rct | 7,360 | 2.7% |
+| meta-analysis | 4,478 | 1.6% |
+| observational-amplicon / -unspecified / -targeted | 2,036 | 0.7% |
 
 Both tables are true and they answer different questions, which is why the
 graph stores the level per edge instead of a headline. `computational-predicted`
@@ -242,12 +246,13 @@ comparable.** `CALL ontology_audit()` returns 104 rules; the twenty
 | `CARRIES_RESISTANCE_GENE` | warn | 3,717 | 6,415 | 57.9% |
 | `VIA_MECHANISM` | warn | 3,717 | 6,513 | 57.1% |
 | `ASSOCIATED_WITH_EXPOSURE` | warn | 485 | 2,369 | 20.5% |
-| `ASSOCIATED_WITH` | warn | 15,985 | 105,097 | 15.2% |
+| `ASSOCIATED_WITH` | warn | 16,768 | 105,880 | 15.8% |
 | `ASSOCIATED_WITH_PHENOTYPE` | warn | 293 | 4,717 | 6.2% |
 | `PRODUCES` / `CONSUMES` / `DEGRADES` / `NO_EXCHANGE_WITH` | warn | 0 | 9,483 | 0.0% |
 | `IN_PATHWAY` | warn | 0 | 36,130 | 0.0% |
 | `INHIBITS_GROWTH_OF` / `DOES_NOT_INHIBIT_GROWTH_OF` | **error** | 0 | 47,825 | 0.0% |
 | `METABOLISES` / `DOES_NOT_METABOLISE` | **error** | 0 | 20,054 | 0.0% |
+| MASI's four `*_SUBSTANCE` relationships | **error** | 0 | 11,456 | 0.0% |
 | `REPORTED_BY` | **error** | 0 | 114,742 | 0.0% |
 | `HAS_MECHANISM` / `OF_ORGANISM` / `IS_DRUG` | **error** | 0 | 8,492 | 0.0% |
 
@@ -280,7 +285,7 @@ entry point at all. `scripts/serve.py` starts an MCP server over stdio;
 no tabular export, no `.tsv` dump of the association table. A bioinformatician
 who wants the evidence-annotated taxon–disease table has to either write kglite
 Python or run an LLM. The one artefact that is human-shaped —
-`data/csv/taxon_disease.csv`, 105,097 rows with all fourteen contract fields —
+`data/csv/taxon_disease.csv`, 105,880 rows with all fourteen contract fields —
 is a build intermediate that nothing in the README points at as a product.
 
 This is worth stating plainly because it is the difference between the two
@@ -300,13 +305,16 @@ leads with.**
 What an experienced bioinformatician genuinely does not have elsewhere:
 
 - **The measured negatives.** 42,233 `DOES_NOT_INHIBIT_GROWTH_OF` + 17,479
-  `DOES_NOT_METABOLISE` + 894 `NO_EXCHANGE_WITH` = **60,606 edges recording
-  that somebody looked and found nothing**, each as its own relationship so no
-  query counts a refutation as an observation by omission. Asked about
-  metformin, the graph returns `0 inhibited, 38 tested_no_effect` — before this
-  layer, that question returned nothing, and nothing was indistinguishable from
-  "tested and clean". No curated aggregator ships this; MASI, which curates the
-  same literature, keeps positives only.
+  `DOES_NOT_METABOLISE` + 894 `NO_EXCHANGE_WITH` + MASI's 521 curated
+  non-effects = **61,127 edges recording that somebody looked and found
+  nothing**, each as its own relationship so no query counts a refutation as an
+  observation by omission. Asked about metformin, the graph returns `0
+  inhibited, 38 tested_no_effect` — before this layer, that question returned
+  nothing, and nothing was indistinguishable from "tested and clean". **The two
+  screens are 98% of it**, and MASI's contribution is the measurement of why:
+  it curates the same literature and 388 of its 404 "this microbe does not
+  metabolise this drug" statements are about *Unclassified gut microbiota*,
+  which is not an organism.
 - **Confounder control as schema.** 2,304 signatures carry `matched_on`, 1,958
   `confounders`, 6,485 an antibiotics-exclusion window. For type 2 diabetes,
   180 signatures, 58 with confounders, 42 matched, 109 with an exclusion
@@ -669,11 +677,12 @@ is itself the most unusual property of this project.
 
 The case *for*: the evidence model is not a slogan. It survives the build, the
 audit, the save/load round trip and the MCP protocol, and 810 tests hold it
-there. Three things in it exist nowhere else in one place — 60,606 measured
+there. Three things in it exist nowhere else in one place — 61,127 measured
 negatives, confounder control as a queryable field, and a reconciliation trail
 where every unresolved name is a tombstone rather than a silent drop. The
 project's discipline about *not* inventing data is the strongest signal in it:
-MASI's substances were not loaded because they name no organism; MiMeDB
+MASI's 62.5% overlap with the two screens is measured on every edge rather
+than absorbed into them; MiMeDB
 contributes zero production edges and that is recorded as a finding; HMDB's
 disease layer is refused because 72% of it carries one name; two Zimmermann
 strain names are left unresolved rather than guessed, at a priced cost of four
@@ -682,7 +691,7 @@ reports a bigger number.
 
 The case *against*, stated as strongly as it deserves:
 
-- **The core association layer is one source.** 103,461 of 105,097
+- **The core association layer is one source.** 103,461 of 105,880
   taxon–disease edges are BugSigDB, which has an R package, a GMT exporter and
   its own enrichment tool. For W1 and W2 — the two workflows the graph is best
   at — a bioinformatician can already do the job with `bugsigdbr` and no graph
@@ -728,7 +737,7 @@ That is a real thing, and it is smaller than "a microbiome knowledge graph".
    export of the association layer. This is the difference between the artefact
    the critic rejected and the artefact the same thread said it wanted, and it
    costs days. It also converts the licence work already done — per-edge
-   `source_licence` on 260,658 edges — from an invariant into a feature: the
+   `source_licence` on 272,897 edges — from an invariant into a feature: the
    CC0 cut is one `WHERE` and 68,752 edges.
 3. **GMrepo (or `bugphyzz`) for healthy-cohort prevalence.** It is the one
    missing source that changes an *answer* rather than adding a layer: D14's
@@ -744,7 +753,14 @@ That is a real thing, and it is smaller than "a microbiome knowledge graph".
    documents that stated "unrecoverable" have been corrected, and
    `docs/sources.md` §14 carries both the retraction and the mechanism of the
    error: a negative reached by two failures with one shared cause is one
-   observation, not two.
+   observation, not two. **And it is loaded** — 13,122 edges, 1,350 `Substance`
+   nodes, probiotic annotation on 540 taxa — with the result that matters for
+   this list: **62.5% of its interaction edges restate a pair Maier 2018 or
+   Zimmermann 2019 already measured**, so the aggregator's value was never the
+   11,771 pairs. It was the 4,295 edges nothing else here carries, the 278
+   substances that are not drugs, and the probiotic column D10 is named for
+   (26 IBD candidates → 32; 7 of them now flagged). Every D8 golden is
+   unchanged, by design.
 5. **Scope the exchange layer, or say it is unscoped.** D6 is the project's
    best structural argument and its top answers pair swine pathogens with
    deep-sea thermophiles, because NJC19 curates microbial physiology and nothing
