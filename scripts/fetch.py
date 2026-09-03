@@ -77,6 +77,12 @@ SITE_FRONT_PAGE = {
     "ftp.ebi.ac.uk": "https://ftp.ebi.ac.uk/",
     "bio-annotation.cn": "http://bio-annotation.cn/gutMDisorder/",
     "www.bio-annotation.cn": "http://bio-annotation.cn/gutMDisorder/",
+    "mimedb.org": "https://mimedb.org/downloads",
+    "www.aiddlab.com": "http://www.aiddlab.com/MASI/download.html",
+    "web.archive.org": "https://web.archive.org/",
+    "datadryad.org": "https://datadryad.org/",
+    "static-content.springer.com": "https://www.nature.com/",
+    "pmc.ncbi.nlm.nih.gov": "https://pmc.ncbi.nlm.nih.gov/",
 }
 
 SESSION = requests.Session()
@@ -181,7 +187,12 @@ def remote_size(url: str, timeout: float = 60) -> tuple[int | None, bool]:
             return None, False
         size = r.headers.get("Content-Length")
         ranges = r.headers.get("Accept-Ranges", "").lower() == "bytes"
-        return (int(size) if size else None), ranges
+        # Europe PMC answers HEAD on its supplementaryFiles endpoint with
+        # Content-Length: 0 and then streams megabytes on GET. A zero here means
+        # "the server did not size this", never "the file is empty" — taking it
+        # literally rejects every complete download as incomplete.
+        length = int(size) if size else None
+        return (length or None), ranges
     except requests.RequestException:
         return None, False
 
@@ -190,9 +201,11 @@ def download(source: str, url: str, filename: str, *, timeout: float = 120,
              force: bool = False, expect_prefix: bytes | None = None) -> Path | None:
     """Download url into data/raw/<source>/<filename>, resuming where possible."""
     dest_dir = RAW / source
-    dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / filename
     part = dest_dir / (filename + ".part")
+    # filename may carry a subdirectory (drug_screens/maier2018/...), so the
+    # parent is made rather than just the source root.
+    dest.parent.mkdir(parents=True, exist_ok=True)
 
     size, ranges = remote_size(url, timeout=min(timeout, 60))
 
@@ -281,6 +294,44 @@ def stale_members(source: str, out: Path, names: list[str], archive_key: str,
         if force or not target.exists() or entry.get("from_archive_sha256") != archive_sha:
             todo.append(name)
     return todo
+
+
+def wayback_url(timestamp: str, original: str) -> str:
+    """A Wayback playback URL for the *original* bytes.
+
+    The `if_` infix is what suppresses archive.org's rewritten wrapper; without
+    it a captured CSV comes back with a navigation banner spliced into it.
+    """
+    return f"http://web.archive.org/web/{timestamp}if_/{original}"
+
+
+def extract_zip_members(source: str, archive: Path, out: Path, url: str,
+                        wanted: callable, force: bool) -> list[Path]:
+    """Extract the members of `archive` for which wanted(name) is true.
+
+    Same freshness rule as stale_members(): extracted files are tied to the
+    sha256 of the archive they came from, so a re-published archive re-extracts.
+    """
+    import zipfile
+
+    out.mkdir(parents=True, exist_ok=True)
+    arc_key = f"{source}/{archive.relative_to(RAW / source).as_posix()}"
+    arc_sha = MANIFEST_DATA[arc_key]["sha256"]
+    written = []
+    with zipfile.ZipFile(archive) as zf:
+        names = [n for n in zf.namelist() if wanted(Path(n).name)]
+        todo = stale_members(source, out, [Path(n).name for n in names], arc_key, force)
+        for name in names:
+            target = out / Path(name).name
+            if target.name in todo:
+                with zf.open(name) as src, target.open("wb") as dst:
+                    while chunk := src.read(1 << 20):
+                        dst.write(chunk)
+            record_file(source, target, url, "extracted", from_archive_sha256=arc_sha)
+            log(f"  {'extracted' if target.name in todo else 'verified'} "
+                f"{target.relative_to(RAW / source)} ({target.stat().st_size:,} B)")
+            written.append(target)
+    return written
 
 
 # ------------------------------------------------------------------- sources
@@ -682,6 +733,209 @@ def fetch_gutmdisorder(args) -> None:
             record_problem("gutmdisorder", "index.html", url, "unreachable", detail)
 
 
+# mimedb.org is behind the same interactive Cloudflare challenge as hmdb.ca (both
+# are Wishart-lab sites), so the origin cannot be fetched by any client that does
+# not run JavaScript. Unlike HMDB, the bulk files were captured by the Wayback
+# Machine, so the bytes are obtainable without an operator. Genes (216 MB) and
+# genomes (202 MB) are deliberately skipped: the taxon->metabolite edge lives in
+# the metabolite and microbe files.
+MIMEDB_ORIGIN = "https://mimedb.org/system/downloads/1.0/"
+MIMEDB_FILES = [
+    ("mimedb_metabolites_v1.csv", "20240507091752"),
+    ("mimedb_metabolites_v1.xml.zip", "20240507091828"),
+    ("mimedb_microbes_v1.csv", "20240507091821"),
+    ("mimedb_microbes_v1.xml.zip", "20240507091808"),
+]
+MIMEDB_SKIPPED = {
+    "mimedb_genes_v1.csv.zip": "216 MB of gene records; no edge in the model needs them",
+    "mimedb_genomes_v1.csv.zip": "202 MB of genome records; no edge in the model needs them",
+    "mimedb.sdf.zip": "structures only",
+    "mimedb_all_spectra.zip": "2.43 GB of raw spectra",
+}
+
+
+def fetch_mimedb(args) -> None:
+    log("MiMeDB")
+
+    missing = [n for n, _ in MIMEDB_FILES
+               if not (RAW / "mimedb" / n).exists()
+               or not (RAW / "mimedb" / n).stat().st_size]
+    if not missing and not args.force:
+        for name, ts in MIMEDB_FILES:
+            path = RAW / "mimedb" / name
+            log(f"  cached mimedb/{name} ({path.stat().st_size:,} B)")
+            record_file("mimedb", path, wayback_url(ts, MIMEDB_ORIGIN + name), "cached",
+                        note="origin is Cloudflare-challenged; bytes come from a "
+                             "Wayback snapshot")
+        return
+
+    # One origin probe, to record the exact blocker rather than assume it.
+    probe = MIMEDB_ORIGIN + MIMEDB_FILES[0][0]
+    try:
+        r = request("GET", probe, timeout=60, stream=True, allow_redirects=True)
+        blocker = (f"HTTP {r.status_code} from {r.headers.get('server')}"
+                   + (f", cf-mitigated: {r.headers.get('cf-mitigated')}"
+                      if r.headers.get("cf-mitigated") else ""))
+        direct_ok = r.status_code == 200 and "text/html" not in r.headers.get("Content-Type", "")
+        r.close()
+    except requests.RequestException as exc:
+        blocker, direct_ok = f"{type(exc).__name__}: {exc}", False
+    log(f"  origin probe: {blocker}")
+
+    for name, ts in MIMEDB_FILES:
+        if direct_ok:
+            got = download("mimedb", MIMEDB_ORIGIN + name, name, timeout=600,
+                           force=args.force)
+            if got:
+                continue
+        # archive.org rate-limits snapshot playback (HTTP 429); space these out.
+        wb = wayback_url(ts, MIMEDB_ORIGIN + name)
+        if download("mimedb", wb, name, timeout=600, force=args.force) is None:
+            record_problem("mimedb", name, MIMEDB_ORIGIN + name, "manual",
+                           f"origin blocked ({blocker}) and the Wayback snapshot "
+                           f"{wb} did not deliver. Download {name} by hand from "
+                           f"https://mimedb.org/downloads into data/raw/mimedb/.")
+        time.sleep(8)
+
+    for name, why in MIMEDB_SKIPPED.items():
+        record_problem("mimedb", name, MIMEDB_ORIGIN + name, "skipped", why)
+
+
+# NJC19 is deposited on Dryad under CC0, but Dryad now gates file downloads
+# behind a JavaScript "Validating..." interstitial and its v2 API answers
+# 401 ("must have current bearer token") — so the deposit is manual. The same
+# network, in tabular form, is Supplementary Table 1 of the Scientific Data
+# paper, which Europe PMC serves without a challenge; that is the primary file.
+NJC19_PMCID = "PMC7320173"
+NJC19_SUPP_ZIP = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{NJC19_PMCID}/supplementaryFiles"
+NJC19_DRYAD_DOI = "10.5061/dryad.dr7sqv9v8"
+NJC19_DRYAD_FILES = [
+    ("NJC19_network_data_and_code.zip", 342682),
+    ("Microbial_taxonomic_data_for_NJC19_construction.zip", 342683),
+    ("Microbial_taxonomic_data_for_NJC19_validation.zip", 342680),
+    ("Cytoscape_file_for_NJC19_visualization.zip", 342681),
+    ("README.pdf", 342679),
+]
+
+
+def fetch_njc19(args) -> None:
+    log("NJC19")
+    arc = download("njc19", NJC19_SUPP_ZIP, f"{NJC19_PMCID}_supplementaryFiles.zip",
+                   timeout=300, force=args.force)
+    if arc:
+        extract_zip_members("njc19", arc, RAW / "njc19", NJC19_SUPP_ZIP,
+                            lambda n: n.lower().endswith(".xlsx"), args.force)
+
+    # One attempt at the Dryad deposit; it is the richer artefact (JSON network
+    # plus the conversion code) but is not machine-fetchable.
+    for name, fid in NJC19_DRYAD_FILES:
+        url = f"https://datadryad.org/api/v2/files/{fid}/download"
+        dest = RAW / "njc19" / name
+        if dest.exists() and dest.stat().st_size and not args.force:
+            log(f"  operator-supplied njc19/{name} ({dest.stat().st_size:,} B)")
+            record_file("njc19", dest, url, "manual-present",
+                        note="placed by hand; datadryad.org gates downloads")
+            continue
+        record_problem(
+            "njc19", name, url, "manual",
+            "datadryad.org serves a JavaScript 'Validating...' interstitial on "
+            "/downloads/file_stream and its v2 API answers 401 'Unauthorized, "
+            "must have current bearer token'. Download by hand from "
+            f"https://datadryad.org/dataset/doi:{NJC19_DRYAD_DOI} into "
+            "data/raw/njc19/ if the JSON network is wanted; Supplementary Table 1 "
+            "above carries the same 8,224 events in tabular form.")
+    log(f"  Dryad deposit doi:{NJC19_DRYAD_DOI} recorded as manual (JS interstitial)")
+
+
+# aiddlab.com resolves and answers a 301 to https, then the TLS connection never
+# completes — the site is effectively gone. Of the eight files its Download page
+# offered, the Wayback Machine captured only substanceInfo; the interaction and
+# microbe tables were never archived, and no mirror was found.
+MASI_ORIGIN = "http://www.aiddlab.com/MASI/downloadFiles/"
+MASI_WAYBACK = [
+    ("MASI_v1.0_download_substanceInfo.txt", "20240728033042"),
+    ("MASI_v1.0_download_substanceInfo.xlsx", "20240420002051"),
+]
+MASI_UNARCHIVED = [
+    "MASI_v1.0_download_microbeSubstanceInteractionRecords_ver20200928.txt",
+    "MASI_v1.0_download_microbeSubstanceInteractionRecords_ver20200928.xlsx",
+    "MASI_v1.0_download_microbesInfo.txt",
+    "MASI_v1.0_download_microbesInfo.xlsx",
+    "MASI_v1.0_download_microbeDiseaseAssociationRecords.txt",
+    "MASI_v1.0_download_microbeDiseaseAssociationRecords.xlsx",
+]
+
+
+def fetch_masi(args) -> None:
+    log("MASI")
+
+    have = [n for n, _ in MASI_WAYBACK
+            if (RAW / "masi" / n).exists() and (RAW / "masi" / n).stat().st_size]
+    if len(have) == len(MASI_WAYBACK) and not args.force:
+        for name, ts in MASI_WAYBACK:
+            path = RAW / "masi" / name
+            log(f"  cached masi/{name} ({path.stat().st_size:,} B)")
+            record_file("masi", path, wayback_url(ts, MASI_ORIGIN + name), "cached",
+                        note="origin host is gone; bytes come from a Wayback snapshot")
+    else:
+        # One origin probe, then the archive; the host has not completed a TLS
+        # handshake since at least 2024, so there is nothing to retry against.
+        try:
+            r = request("GET", "https://www.aiddlab.com/MASI/download.html", timeout=25)
+            log(f"  origin: HTTP {r.status_code}, {len(r.content):,} B")
+        except requests.RequestException as exc:
+            log(f"  origin: {type(exc).__name__}: {exc}")
+        for name, ts in MASI_WAYBACK:
+            wb = wayback_url(ts, MASI_ORIGIN + name)
+            if download("masi", wb, name, timeout=180, force=args.force) is None:
+                record_problem("masi", name, MASI_ORIGIN + name, "manual",
+                               f"origin gone and Wayback playback {wb} failed")
+            time.sleep(8)
+
+    # The interaction tables are the reason to want MASI at all, and they are
+    # simply not recoverable — recorded so the gap is visible in the manifest
+    # rather than looking like an oversight.
+    for name in MASI_UNARCHIVED:
+        record_problem(
+            "masi", name, MASI_ORIGIN + name, "manual",
+            "not recoverable: the origin (www.aiddlab.com) no longer completes a "
+            "TLS connection and the Wayback Machine never captured this file "
+            "(domain-wide CDX query over aiddlab.com/MASI* returns only "
+            "substanceInfo). The measured drug-microbe evidence in "
+            "data/raw/drug_screens/ is the substitute.")
+
+
+# The measured drug x taxon evidence behind MASI's curated edges. Maier's
+# supplementary comes from Europe PMC (nature.com's static-content host answers
+# 403 for this article's MediaObjects); Zimmermann's comes from nature.com,
+# because Europe PMC has no supplementary package for PMC6597290 and the PMC
+# article's own /bin/ path is behind a reCAPTCHA interstitial.
+MAIER_PMCID = "PMC6108420"
+MAIER_SUPP_ZIP = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{MAIER_PMCID}/supplementaryFiles"
+ZIMMERMANN_SUPP = ("https://static-content.springer.com/esm/"
+                   "art%3A10.1038%2Fs41586-019-1291-3/MediaObjects/"
+                   "41586_2019_1291_MOESM1_ESM.xlsx")
+
+
+def fetch_drug_screens(args) -> None:
+    log("Drug x taxon screens (Maier 2018, Zimmermann 2019)")
+
+    arc = download("drug_screens", MAIER_SUPP_ZIP,
+                   f"maier2018/{MAIER_PMCID}_supplementaryFiles.zip",
+                   timeout=300, force=args.force)
+    if arc:
+        # Only the tables and the guide that names them; the zip also holds the
+        # article's figure renderings, which are not data.
+        extract_zip_members(
+            "drug_screens", arc, RAW / "drug_screens" / "maier2018", MAIER_SUPP_ZIP,
+            lambda n: n.lower().endswith(".xlsx") or "TABLE_INFORMATION_GUIDE" in n,
+            args.force)
+
+    download("drug_screens", ZIMMERMANN_SUPP,
+             "zimmermann2019/41586_2019_1291_MOESM1_ESM.xlsx",
+             timeout=600, force=args.force)
+
+
 def note_pubmed(args) -> None:
     log("PubMed / PubChem: no bulk fetch by design (ids come from the other sources)")
     record("pubmed_pubchem/_decision", url=None, path=None, bytes=None, sha256=None,
@@ -701,6 +955,10 @@ SOURCES = {
     "kegg": fetch_kegg,
     "chembl": fetch_chembl,
     "gutmdisorder": fetch_gutmdisorder,
+    "mimedb": fetch_mimedb,
+    "njc19": fetch_njc19,
+    "masi": fetch_masi,
+    "drug_screens": fetch_drug_screens,
     "pubmed": note_pubmed,
 }
 
