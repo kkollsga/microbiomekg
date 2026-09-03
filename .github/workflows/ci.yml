@@ -1,0 +1,101 @@
+# CI — written, correct, and NOT RUNNING.
+#
+# This repo has no git remote and no GitHub project (docs/design/
+# release-readiness.md item 1). Nothing executes this file; it exists so the
+# day a remote is created, CI is a push away rather than a design exercise.
+# CLAUDE.md says the same thing where a session reads it, because the failure
+# mode of scaffolding early is a future session reading a workflow as evidence
+# that a gate ran.
+#
+# What it covers, and what it deliberately does not:
+#
+#   * `gate` runs the same `make gate` a developer runs, so the local gate and
+#     CI cannot disagree about what "green" means.
+#   * `tests` runs the FULL suite across the supported Python range. It does
+#     NOT have a built graph: graph/microbiomekg.kgl is gitignored, 47 MB, and
+#     derived from 7.5 GB of raw input, three sources of which are browser-only
+#     downloads. The graph-backed suites therefore SELF-SKIP, and a skip is not
+#     a pass (RULES.md R10) — measured 2026-09-03, no graph: 976 passed, 259
+#     skipped, against 1216 passed / 15 skipped locally. The skip accounting is
+#     printed, and the job name says what it does not cover, until item 3's
+#     `status`-driven build gives CI a graph of its own.
+# What is NOT here, and why — the empty-data smoke build. docs/design/
+# library-pipeline.md rule 2 wants a build against an EMPTY data directory to
+# SUCCEED and report every source as absent. It does not, today: probed
+# 2026-09-03, `scripts/build.py --raw <empty>` skips ten sources correctly with
+# their MISSING_INPUT exit and then dies on the eleventh, prep_taxonomy.py,
+# which refuses through argparse — exit 2, a usage dump — and takes the build
+# down with it. Whether an empty directory should produce the NCBI-only
+# taxonomy graph or refuse is an open question in that doc, so this workflow
+# does not encode an answer to it. Writing the job is the second half of
+# release-readiness item 2, once the question is decided.
+#
+# No job carries `continue-on-error` — at the job level it would make the job
+# structurally unable to turn the build red, and any gate inside it decorative
+# (R1). If a genuinely flaky step ever needs tolerating, scope it to that step
+# and record the exemption in .github/workflows/doctrine-allowlist.txt.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer push supersedes an in-flight PR run; never cancel on the default
+# branch, where every run is the record of a distinct commit.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: gate (ruff, adapters, bounds, blueprint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Provision the venv
+        run: make venv
+      # The two truth gates read the built graph, which CI does not have, so
+      # `make gate` would fail at its own check-graph step. Run the data-free
+      # steps by name rather than weakening the gate: a gate that skips when
+      # its input is missing is the thing R10 forbids, and `claims` runs in the
+      # `tests` job's self-skip accounting instead.
+      - name: Adapters, bounds, lint, blueprint composition
+        run: make check-adapters check-dev-docs check-data-bounds lint fragments
+
+  tests:
+    name: pytest (py${{ matrix.python }}, graph-backed suites skipped)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Provision the venv
+        run: make venv
+      # -ra is already in addopts, so the summary lists every skip with its
+      # reason. The per-test 120 s ceiling (pytest-timeout, pyproject.toml) is
+      # the hang detector: a test that hits it is FAILED, and the ceiling is
+      # never raised to make this job green.
+      - name: Full suite
+        run: make test
+      - name: Skip accounting
+        if: always()
+        run: |
+          set -o pipefail
+          .venv/bin/python -m pytest -q --collect-only 2>/dev/null | tail -1
+          echo "Graph-backed suites (acceptance goldens, documented queries,"
+          echo "claim gate) self-skip here: CI has no graph/microbiomekg.kgl."
+          echo "A skip is NOT a pass — see docs/design/release-readiness.md §2."
