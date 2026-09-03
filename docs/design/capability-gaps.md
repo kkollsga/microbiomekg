@@ -754,6 +754,8 @@ has decided not to be), and PubChem (§A.3, low value).
 - **One inconsistency on *our* side, found while writing this.**
   `docs/model.md` §1 says 9,056 `Metabolite` nodes (HMDB 7,773 · MiMeDB 1,237 ·
   NJC19 46); `docs/evaluation.md` §5 says 8,754 (MiMeDB 935). The bench
-  capture's `metabolite.csv` is 8,754 rows for the ten-source build. Most
-  likely the MiMeDB v2.0 refresh moved it and one document was not updated —
-  but it is unresolved here and both numbers are cited above where they occur.
+  capture's `metabolite.csv` is 8,754 rows for the ten-source build.
+  **Resolved 2026-09-03:** the built graph holds 9,056 (`MATCH (m:Metabolite)
+  RETURN count(*)`, by source 7,773 / 1,237 / 46), `mcp/claims/` already
+  asserts it, and `docs/evaluation.md` §5 was the stale row — corrected. The
+  bench capture's 8,754 is a dated record of that build and stays.

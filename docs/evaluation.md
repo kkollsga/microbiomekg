@@ -597,8 +597,9 @@ The MicroMap announcement's own figures against this build. "Ours" is measured;
 | | announced | this graph | reading |
 |---|---:|---:|---|
 | taxa | 1,100,000 | 864,110 nodes / **8,717 with any claim** | theirs counts the taxonomy; so does ours. The honest number is 8,717 |
-| diseases | 1,464 | **808** (MONDO 374, EFO 394, DOID 38, ORPHANET 2) | smaller because 116 non-disease terms were refused a `Disease` type rather than absorbed |
-| metabolites | 6,534 | **8,754** (HMDB 7,773 · MiMeDB 935 · NJC19 46) | larger — but only 224 carry a microbial-origin claim |
+| diseases | 1,464 nodes; **243 in the association layer** | **826** nodes (MONDO 410, EFO 394, MASI 15, DOID 5, ORPHANET 2); **813 in the association layer** | node-to-node ours is smaller, because non-disease terms were refused a `Disease` type rather than absorbed; layer-to-layer — the shape they publish on their homepage — ours is 3.3× larger |
+| microbe–disease associations | 63,316 over 2,981 microbes | **105,880** reports over **56,306** distinct (taxon, disease) pairs, 7,754 taxa | fewer distinct pairs, 2.6× the microbes, and more reports per pair: direction is per study here and never aggregated (`docs/model.md` §3). Whether 63,316 counts pairs or reports is not published |
+| metabolites | 6,534 | **9,056** (HMDB 7,773 · MiMeDB 1,237 · NJC19 46) | larger — but only 226 have a producer edge (§3) |
 | pathways | 1,710 | **23,604** | larger, and worth less: 16 model organisms, no gut commensal |
 | drugs | 6,220 | **6,408** | comparable |
 | production links | 231,556 | **3,418** | **68× smaller, and this is the real gap** |
@@ -617,7 +618,7 @@ AMR gap is the same shape and is checkable: 276,169 is Prevalence's size, and
 CARD says in its own documentation that Prevalence is in-silico.
 
 **Where the shape is better, with the query that proves it.** The announcement
-lists five query types. All five run here; two of them return something the
+lists five query types. All five run here; one of them returns something the
 announced schema structurally cannot.
 
 - **A5.1 associations with provenance** → D2, above. Forty rows, not one.
@@ -628,7 +629,8 @@ announced schema structurally cannot.
 - **A5.4 biomarkers and probiotic candidates** → D1 + D10. 26 IBD candidates at
   `n_studies ≥ 2` (from 118 depleted taxa — the replication clause drops 92),
   4 carrying an AMR determinant, 18 with a metabolite.
-- **A5.5 cross-feeding** → D6, and this is the structural win:
+- **A5.5 cross-feeding** → D6, and this is where the comparison is about
+  measured volume and provenance, not existence:
 
   ```cypher
   MATCH (m:Metabolite)
@@ -647,12 +649,16 @@ announced schema structurally cannot.
   | formate | 145 | 61 | 85.9 |
   | Butyric acid | 109 | 26 | 42.0 |
 
-  MES is **identically zero without consumption edges**, so this table is the
-  binary difference between having the relationship and not having it. A
-  production-only graph — which is what the announcement's 231,556 links
-  describe — returns 0.0 on every row of this query no matter how large it is.
+  MES is **identically zero without consumption edges**. Their published schema
+  has `UTILIZES` and `PROCESSES` and their API documents a cross-feeding
+  endpoint (`docs/design/capability-gaps.md` §F), so the relationship exists
+  on both sides and this table is not a binary win. What it shows and theirs
+  cannot be checked for is *measured* consumption: 4,784 `CONSUMES` edges,
+  each carrying `primary_source` and `source_record_id`, against a
+  consumption layer whose size and provenance are unpublished. Without a key
+  the comparison stops there.
 
-The other structural win is **`Signature` as a node**. D1's overlap query is
+The structural win is **`Signature` as a node**. D1's overlap query is
 answerable because the taxon *set* survives; a flattened
 `(Taxon)-[:ASSOCIATED_WITH]->(Disease)` model destroys it and makes enrichment
 impossible. Measured: 14,846 signature nodes, 114,742 membership edges, and

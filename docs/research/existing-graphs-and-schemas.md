@@ -304,10 +304,10 @@ Read from the public site only.
 | MicroMap counts | 1.7M+ entities: 1.1M+ taxa, 1,400+ diseases, 6,500+ metabolites, 6,200+ drugs, 2,028 proteins, 1,710 pathways; **63,316 microbe–disease associations**; 276k AMR links; 10k papers |
 | Components | **MapForge** (builds the graph — "ingests sources, links entities, **scores confidence on every connection**"), **Workbench** (50+ pipeline steps, multi-tenant RBAC), **Nexus** (agent that reasons over the graph) |
 | Access | 60+ API endpoints; MCP; managed / self-hosted / licensed |
-| Provenance claim | "Every answer writes back to the graph — with its provenance" |
-| Schema | **Not published.** No node/edge type list, no identifier convention, no evidence model is publicly documented |
+| Provenance claim | "Every answer writes back to the graph — with its provenance"; `/docs/provenance` publishes an assertion contract (read 2026-09-03) |
+| Schema | **Published in part** (2026-09-03): `/docs/api/schemas` lists 15 node labels and 21 relationship types, `/docs/api/rest-endpoints` ~63 endpoints. **Not published:** the property-level schema, the identifier convention, and any evidence model — the sharper form of the same finding |
 | Licence / pricing | Not public; contact required |
-| Build claim | "built MicroMap … from raw sources in days, no manual curation pipeline" |
+| Build claim | Homepage: "built MicroMap … from raw sources in days, no manual curation pipeline". Their ingest-engine page documents an `approve` stage with a reviewer and timestamp before an entity link enters the graph. The two disagree; **this document quotes the documented pipeline**, and the homepage line is the outlier |
 
 **Two observations that matter for positioning.** First, the public surface
 advertises a *confidence score per connection* — the MicroPhenoDB anti-pattern
