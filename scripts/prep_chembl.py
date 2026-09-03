@@ -43,16 +43,12 @@ whose only name is their own id. Every target taxid is resolved through
 :mod:`microbiomekg.reconcile` first, and only resolved ones are written.
 
 **``IS_DRUG`` needs a table another source writes.** ``intervention.csv`` is
-gutMDisorder's, and ``scripts/build.py`` runs the prep scripts in *name* order,
-which puts this one first — so in a single-pass build the table is not there
-yet and the link is empty, reported as such. Run this script again after a
-build (``python scripts/prep_chembl.py``) and it merges the links in; the
-proper fix is an ordering hook in ``build.py``, the same one ``prep_taxonomy``
-already has, and it belongs there rather than in a workaround here. One caveat
-on that second run: ``cited_taxa.csv`` has no owner column, so re-running adds
-this source's mention counts to its own previous ones — the *set* of taxa is
-unchanged, which is all ``prep_taxonomy`` reads, but ``n_signatures`` doubles
-for ChEMBL's 94 target organisms until the next clean build.
+gutMDisorder's, so this script declares ``DEPENDS_ON = ["gutmdisorder"]`` and
+``scripts/build.py`` runs the preps in declared order. It used to run them in
+*name* order, which puts this one first: the table was not there, the link was
+empty, and the relationship reached the graph with zero edges and an ontology
+rule auditing nothing. Run standalone against a directory that has no
+``intervention.csv`` the link is still empty — and still reported as such.
 """
 
 from __future__ import annotations
@@ -74,6 +70,12 @@ from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
 from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = chem.SOURCE
+
+#: ``IS_DRUG`` joins ``intervention.csv`` — gutMDisorder's table — to this
+#: source's drugs, so that prep has to have run. Declared rather than
+#: implied by the filename: in name order this script sorts *first*, the
+#: table was absent, and the relationship loaded zero edges.
+DEPENDS_ON: list[str] = ["gutmdisorder"]
 
 #: The three files ``scripts/fetch.py`` pulls from the ChEMBL REST API.
 MECHANISM_FILE = "mechanism.jsonl"
@@ -557,8 +559,8 @@ def link_interventions(
     """
     if not path.is_file():
         print(f"\nno intervention table at {path} — no Intervention nodes to link "
-              f"(scripts/build.py runs prep scripts in name order, so gutMDisorder "
-              f"has not written it yet; re-run this script after a build)",
+              f"(gutMDisorder has not written it; scripts/build.py orders the "
+              f"preps so that it has, so this is a standalone run)",
               file=sys.stderr, flush=True)
         return 0, 0
 

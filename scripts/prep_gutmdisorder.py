@@ -71,6 +71,10 @@ from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = gmd.SOURCE
 
+#: Reads no other prep's table. ``prep_chembl`` reads *this* one's
+#: ``intervention.csv`` and declares it.
+DEPENDS_ON: list[str] = []
+
 #: Workbook → the host every one of its rows is about. gutMDisorder's own
 #: `Human/Mouse` column agrees with the file it is in, so the file is the fact.
 HOST_SPECIES = {"human": "Homo sapiens", "mouse": "Mus musculus"}

@@ -66,6 +66,10 @@ from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = card.SOURCE
 
+#: Reads no other prep's table. It contributes to ``cited_taxa.csv``, which
+#: is why ``prep_taxonomy`` declares *this* script rather than the reverse.
+DEPENDS_ON: list[str] = []
+
 #: ARO category class names, and the table each one lands in. ``AMR Gene
 #: Family`` has no table: it is a classification *of* the determinant that
 #: nothing joins to, so it stays a property (docs/model.md §1).

@@ -62,6 +62,9 @@ from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = "bugsigdb"
 
+#: Reads no other prep's table: BugSigDB is the spine and runs first.
+DEPENDS_ON: list[str] = []
+
 #: MetaPhlAn rank prefix -> NCBI rank name.
 RANK_PREFIX = {
     "k__": "kingdom",

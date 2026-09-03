@@ -77,8 +77,8 @@ def built(tmp_path_factory):
         assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
         return proc
 
-    # HMDB first: the build runs preps in name order, and IN_PATHWAY joins
-    # through the metabolite table it writes.
+    # HMDB first: IN_PATHWAY joins through the metabolite table it writes,
+    # which is what this prep's DEPENDS_ON declares.
     run(
         SCRIPTS / "prep_hmdb.py",
         "--xml", str(HMDB_MINI),

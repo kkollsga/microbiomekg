@@ -67,6 +67,11 @@ from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = kg.SOURCE
 
+#: ``IN_PATHWAY`` joins through ``metabolite.csv``'s ``kegg_id``, which
+#: ``prep_hmdb`` writes. (HMDB's selection rule deliberately never consults
+#: KEGG, so the dependency runs one way only.)
+DEPENDS_ON: list[str] = ["hmdb"]
+
 #: A KEGG compound id is `C` and exactly five digits. HMDB's one lowercase
 #: `kegg_id` is `c0338`, which upper-cases to `C0338` — **four** digits, so it
 #: is not merely miscased, it is not a KEGG identifier at all. Counting it as

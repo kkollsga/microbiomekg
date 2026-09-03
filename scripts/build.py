@@ -10,8 +10,13 @@ Six steps, in this order and for these reasons:
    output is a function of the raw inputs and this order, not of what a
    previous run left behind. A **licence-gated** source (:data:`LICENCE_GATED`)
    is skipped unless its flag is passed — ``--with-kegg`` today.
-2. **Taxonomy last.** ``prep_taxonomy.py`` reads ``cited_taxa.csv``, which
-   every source contributes to, so it cannot run until they all have.
+2. **In declared dependency order.** A prep that reads a table another prep
+   writes says so in its own ``DEPENDS_ON``, and :func:`order_preps`
+   topologically sorts them (independent preps keep name order; a cycle is an
+   error). Name order got this wrong twice over: ``prep_taxonomy`` reads the
+   ``cited_taxa.csv`` every source contributes to, and ``prep_chembl`` reads
+   gutMDisorder's ``intervention.csv`` — which sorts *after* it, so ``IS_DRUG``
+   loaded zero edges and its ontology rule audited nothing.
 3. **Compose the blueprint** from ``blueprints/*.json``.
 4. **Load**, with ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` raised above the
    junction row count — see the note on that constant below. Not optional.
@@ -27,6 +32,7 @@ Run it with the repo's venv from the repo root::
 from __future__ import annotations
 
 import argparse
+import ast
 import os
 import subprocess
 import sys
@@ -87,13 +93,79 @@ def run(script: Path, *args: str) -> int:
     return proc.returncode
 
 
-def source_preps(scripts: Path) -> list[Path]:
-    """Every ``prep_<source>.py`` except the taxonomy, in name order.
+def declared_dependencies(script: Path) -> tuple[str, ...]:
+    """The ``DEPENDS_ON`` list a prep module declares, read off its source.
+
+    Parsed rather than imported: asking eight prep modules about their order
+    by importing them would run pandas, the taxdump reader and each module's
+    argument parser before the build has done anything. The declaration is
+    **required** — a prep with none would be positioned by its filename, which
+    is the accident this replaced.
+    """
+    tree = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
+    for node in tree.body:
+        targets = (
+            node.targets if isinstance(node, ast.Assign)
+            else [node.target] if isinstance(node, ast.AnnAssign) and node.value
+            else []
+        )
+        if any(isinstance(t, ast.Name) and t.id == "DEPENDS_ON" for t in targets):
+            return tuple(ast.literal_eval(node.value))
+    raise SystemExit(
+        f"{script.name} declares no module-level DEPENDS_ON — every prep says "
+        f"which other preps' tables it reads, even when the answer is []"
+    )
+
+
+def order_preps(scripts: Path) -> list[Path]:
+    """Every ``prep_<source>.py``, ordered so a prep runs after what it reads.
 
     Discovered rather than listed: adding a source is adding a file, which is
-    the same rule the blueprint fragments and the ontology package follow.
+    the same rule the blueprint fragments and the ontology package follow. What
+    a file cannot say is *when* it has to run, and name order got that wrong in
+    the one place it mattered — ``prep_chembl`` reads gutMDisorder's
+    ``intervention.csv`` and sorts before it, so ``IS_DRUG`` loaded zero edges
+    and its ontology rule audited nothing.
+
+    Independent preps keep name order, so the build is reproducible; a cycle is
+    a :class:`SystemExit`, because picking a winner produces a build that
+    half-works and never says which half.
     """
-    return sorted(p for p in scripts.glob("prep_*.py") if p.name != "prep_taxonomy.py")
+    preps = {p.stem.removeprefix("prep_"): p for p in scripts.glob("prep_*.py")}
+    deps = {name: set(declared_dependencies(p)) for name, p in preps.items()}
+    unknown = sorted({d for ds in deps.values() for d in ds} - set(preps))
+    if unknown:
+        raise SystemExit(
+            f"prep dependency on {', '.join(unknown)}, for which {scripts} has "
+            f"no prep script"
+        )
+
+    ordered: list[Path] = []
+    while deps:
+        ready = sorted(name for name, need in deps.items() if not need & set(deps))
+        if not ready:
+            raise SystemExit(
+                f"prep dependency cycle among {', '.join(sorted(deps))}"
+            )
+        for name in ready:
+            ordered.append(preps[name])
+            del deps[name]
+    return ordered
+
+
+def prep_arguments(source: str, args: argparse.Namespace) -> list[str]:
+    """What a prep needs beyond ``--raw`` and ``--out``.
+
+    Only the taxonomy has any: it emits a *scope* of the 3M-row dump rather
+    than a source's rows, and the ``cited`` scope is read from the file every
+    other prep contributes to.
+    """
+    if source != "taxonomy":
+        return []
+    return [
+        "--scope", args.scope,
+        "--cited-from", str(args.csv / "cited_taxa.csv"),
+    ]
 
 
 def clear_csv(csv_dir: Path) -> int:
@@ -170,8 +242,10 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     scripts = ROOT / "scripts"
-    preps = source_preps(scripts)
-    sources = [p.stem.removeprefix("prep_") for p in preps]
+    preps = order_preps(scripts)
+    sources = [
+        p.stem.removeprefix("prep_") for p in preps if p.name != "prep_taxonomy.py"
+    ]
     skipped: set[str] = set()
 
     if not args.skip_prep:
@@ -183,17 +257,14 @@ def main(argv: list[str] | None = None) -> int:
             flag = LICENCE_GATED.get(source)
             opted_in = flag is not None and getattr(args, flag[2:].replace("-", "_"))
             gate = [flag] if opted_in else []
-            if run(prep, "--raw", str(args.raw), "--out", str(args.csv), *gate) == MISSING_INPUT:
+            code = run(
+                prep, "--raw", str(args.raw), "--out", str(args.csv),
+                *prep_arguments(source, args), *gate,
+            )
+            if code == MISSING_INPUT:
                 print(f"    ... {source}: raw input absent or not opted into, "
                       f"skipping this source")
                 skipped.add(source)
-        run(
-            scripts / "prep_taxonomy.py",
-            "--raw", str(args.raw),
-            "--out", str(args.csv),
-            "--scope", args.scope,
-            "--cited-from", str(args.csv / "cited_taxa.csv"),
-        )
 
     # A skipped source is left out of both declarations. A blueprint naming a
     # CSV that is not there loads that node type as empty, and an ontology rule

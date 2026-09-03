@@ -72,6 +72,10 @@ from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = hm.SOURCE
 
+#: Reads no other prep's table. It writes ``metabolite.csv``, which the two
+#: pathway sources join through and therefore declare.
+DEPENDS_ON: list[str] = []
+
 #: Every element in the file carries it, so every ``find`` needs it.
 NS = "{http://www.hmdb.ca}"
 
