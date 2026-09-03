@@ -17,9 +17,14 @@ Six steps, in this order and for these reasons:
    ``cited_taxa.csv`` every source contributes to, and ``prep_chembl`` reads
    gutMDisorder's ``intervention.csv`` — which sorts *after* it, so ``IS_DRUG``
    loaded zero edges and its ontology rule audited nothing.
-3. **Compose the blueprint** from ``blueprints/*.json``.
-4. **Load**, with ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` raised above the
-   junction row count — see the note on that constant below. Not optional.
+3. **Compose the blueprint** from ``blueprints/*.json`` into ``blueprint.json``
+   — the checked-in declaration, whose ``settings.root`` is the default
+   ``./data/csv``. A ``blueprint.load.json`` beside the CSVs carries the same
+   document with every path bound to *this* build's directories, so ``--csv``
+   is what gets loaded rather than what gets ignored.
+4. **Load** that copy, with ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` raised
+   above the junction row count — see the note on that constant below. Not
+   optional.
 5. **Build the BM25 indexes** docs/model.md §6 lists.
 6. **Report** node and edge counts, the ontology audit, the per-source
    expansion factor (G10), and save.
@@ -33,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import os
 import subprocess
 import sys
@@ -41,6 +47,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 #: kglite's blueprint junction loader streams each junction CSV in 100,000-row
 #: chunks and calls the connect path once per chunk; parallel edges are written
@@ -177,6 +184,60 @@ def clear_csv(csv_dir: Path) -> int:
     return len(stale)
 
 
+def fragment_csvs(fragments: Path, source: str) -> set[str]:
+    """Every CSV filename ``blueprints/<source>.json`` names, at any depth."""
+    def walk(value) -> set[str]:
+        if isinstance(value, dict):
+            found = {value["csv"]} if isinstance(value.get("csv"), str) else set()
+            return found.union(*(walk(v) for v in value.values()), set())
+        if isinstance(value, list):
+            return set().union(*(walk(v) for v in value), set())
+        return set()
+
+    return walk(json.loads((fragments / f"{source}.json").read_text(encoding="utf-8")))
+
+
+def sources_with_tables(fragments: Path, sources: list[str], csv_dir: Path) -> list[str]:
+    """The sources whose declared CSVs are all in ``csv_dir``.
+
+    The same rule the prep loop's ``MISSING_INPUT`` branch applies, asked of
+    the directory instead of the exit code — because ``--skip-prep`` runs no
+    prep and so hears no exit code at all. A blueprint naming a CSV that is not
+    there loads that node type as empty, and an ontology rule over an empty
+    type reports 0 / 0: a gate that cannot fail, which this project treats as
+    worse than no gate.
+    """
+    return [s for s in sources
+            if all((csv_dir / name).is_file() for name in fragment_csvs(fragments, s))]
+
+
+def write_load_blueprint(
+    blueprint: dict, csv_dir: Path, ontology: Path, out: Path
+) -> Path:
+    """The composed blueprint, bound to the directories *this* build uses.
+
+    ``blueprint.json`` is the declaration the fragments compose to, and its
+    paths are written relative to the repo root: ``settings.root`` is
+    ``./data/csv``. A build given ``--csv`` somewhere else used to load that
+    file unchanged and silently report the **default** directory's graph, so a
+    temp-directory build was indistinguishable from the real one until someone
+    read its numbers. The copy this writes sits beside the CSVs it names and
+    every path in it is absolute.
+
+    ``settings.output`` is dropped rather than rewritten: the build saves
+    through ``graph.save(--out)``, and a relative output here would resolve
+    against the CSV directory and write the graph in among its inputs.
+    """
+    document = dict(blueprint)
+    settings = {k: v for k, v in document.get("settings", {}).items()
+                if k not in ("output", "output_path", "output_file")}
+    settings["root"] = str(csv_dir)
+    document["settings"] = settings
+    document["ontology"] = str(ontology)
+    out.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+    return out
+
+
 def report(graph, sources: list[str]) -> None:
     def rows(query):
         return list(graph.cypher(query))
@@ -266,27 +327,50 @@ def main(argv: list[str] | None = None) -> int:
                       f"skipping this source")
                 skipped.add(source)
 
-    # A skipped source is left out of both declarations. A blueprint naming a
-    # CSV that is not there loads that node type as empty, and an ontology rule
-    # over an empty type reports 0 / 0 — a gate that cannot fail, which this
-    # project treats as worse than no gate.
-    loaded = [s for s in sources if s not in skipped]
-    partial = ["--sources", *loaded] if skipped else []
-    run(scripts / "build_blueprint.py", *partial)
+    # A source that did not run, and a source whose tables are not in --csv,
+    # are left out of both declarations for the same reason: a blueprint naming
+    # a CSV that is not there loads that node type as empty, and an ontology
+    # rule over an empty type reports 0 / 0 — a gate that cannot fail, which
+    # this project treats as worse than no gate.
+    fragments = ROOT / "blueprints"
+    loaded = sources_with_tables(
+        fragments, [s for s in sources if s not in skipped], args.csv
+    )
 
-    # Written where the blueprint's `ontology` key points, so the declarations
-    # are a build-time gate rather than a document.
+    from build_blueprint import compose
+
+    # The checked-in artifact is the *whole* fragment set, always: it is a
+    # function of `blueprints/` alone, `tests/test_fragments.py` gates it
+    # against drift, and a build that happened to skip a source must not
+    # rewrite it into a partial one. What varies per build is the copy loaded
+    # below, which is not checked in.
+    full = compose(fragments)
+    (ROOT / "blueprint.json").write_text(
+        json.dumps(full, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"\n=== blueprint.json <- blueprints/ ({len(full.get('nodes', {}))} node types)")
+
+    # Written where the load blueprint's `ontology` key points, so the
+    # declarations are a build-time gate rather than a document — and written
+    # into --csv for the same reason the blueprint copy is: a partial build
+    # writing a partial ontology over the shared path would leave every later
+    # full build gated on a subset of its own rules.
     from microbiomekg.ontology import ontology_for, write_json
 
-    document = ontology_for(loaded) if skipped else None
-    print(f"\n=== ontology -> {write_json(ROOT / 'ontology.json', document)}")
+    ontology = write_json(args.csv / "ontology.json", ontology_for(loaded))
+    print(f"=== ontology -> {ontology}")
 
     os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
     import kglite
 
+    blueprint = write_load_blueprint(
+        compose(fragments, loaded) if loaded != sources else full,
+        args.csv, ontology, args.csv / "blueprint.load.json",
+    )
     print(f"\n=== from_blueprint (chunk size {JUNCTION_CHUNK_SIZE})", flush=True)
+    print(f"    {blueprint} (root {args.csv})")
     t0 = time.time()
-    graph = kglite.from_blueprint(ROOT / "blueprint.json", verbose=True, save=False)
+    graph = kglite.from_blueprint(blueprint, verbose=True, save=False)
     print(f"loaded in {time.time() - t0:.1f}s")
 
     print("\n--- text indexes")

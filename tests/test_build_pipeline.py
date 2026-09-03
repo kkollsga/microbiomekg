@@ -1,19 +1,27 @@
-"""``scripts/build.py``'s own machinery: the order the prep scripts run in.
+"""``scripts/build.py``'s own machinery: prep order and the CSV root.
 
-This is about the *build script*, not about a source. Prep scripts ran in
-**name** order, so ``prep_chembl`` read gutMDisorder's ``intervention.csv``
-before ``prep_gutmdisorder`` wrote it and the ``IS_DRUG`` relationship loaded
-zero edges — with its ontology rule reporting 0 / 0, the gate-that-cannot-fail
-this project treats as worse than no gate. The order is declared per prep and
-sorted here instead.
+This is about the *build script*, not about a source. Both things it tests
+failed silently before they were tested:
+
+* prep scripts ran in **name** order, so ``prep_chembl`` read gutMDisorder's
+  ``intervention.csv`` before ``prep_gutmdisorder`` wrote it and the ``IS_DRUG``
+  relationship loaded zero edges — with its ontology rule reporting 0 / 0, the
+  gate-that-cannot-fail this project treats as worse than no gate;
+* ``--csv`` was accepted and then ignored, because the composed blueprint's
+  ``settings.root`` still said ``./data/csv`` — so a build into a temp
+  directory loaded the default one and reported *its* numbers.
 """
 
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -21,6 +29,24 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 build = pytest.importorskip("build", reason="scripts/build.py does not exist yet")
+
+
+@pytest.fixture(scope="module")
+def fixture_csvs(tmp_path_factory) -> Path:
+    """A CSV directory built from the 43-row fixture, not from ``data/csv``."""
+    csv_dir = tmp_path_factory.mktemp("fixture-csv")
+    for script, extra in (
+        (SCRIPTS / "prep_bugsigdb.py", ["--mondo", str(MONDO_MINI)]),
+        (SCRIPTS / "prep_taxonomy.py", ["--scope", "cited",
+                                        "--cited-from", str(csv_dir / "cited_taxa.csv")]),
+    ):
+        proc = subprocess.run(
+            [sys.executable, str(script), "--raw", str(BUGSIGDB_MINI),
+             "--taxdump", str(TAXDUMP_MINI), "--out", str(csv_dir), *extra],
+            capture_output=True, text=True, cwd=ROOT,
+        )
+        assert proc.returncode == 0, f"{script.name}:\n{proc.stdout}\n{proc.stderr}"
+    return csv_dir
 
 
 def names(preps: list[Path]) -> list[str]:
@@ -130,3 +156,48 @@ def test_reading_the_declaration_does_not_import_the_module(tmp_path):
         "DEPENDS_ON = ['a']\nraise RuntimeError('imported')\n", encoding="utf-8"
     )
     assert build.declared_dependencies(tmp_path / "prep_explosive.py") == ("a",)
+
+
+# --------------------------------------------------------------------------
+# --csv: the directory the build loads from
+# --------------------------------------------------------------------------
+
+
+def test_the_load_blueprint_binds_its_paths_to_this_builds_directories(tmp_path):
+    """``--csv`` was accepted and ignored: the composed blueprint's
+    ``settings.root`` stayed ``./data/csv``, so a build into a temp directory
+    loaded the default one and reported the default build's numbers as if they
+    were the temp build's."""
+    composed = {
+        "settings": {"root": "./data/csv", "output": "graph/x.kgl"},
+        "ontology": "ontology.json",
+        "nodes": {},
+    }
+    csv_dir = tmp_path / "elsewhere"
+    csv_dir.mkdir()
+    out = build.write_load_blueprint(
+        composed, csv_dir, csv_dir / "ontology.json", tmp_path / "load.json"
+    )
+    loaded = json.loads(out.read_text())
+    assert loaded["settings"]["root"] == str(csv_dir)
+    assert loaded["ontology"] == str(csv_dir / "ontology.json")
+    # Dropped, not rewritten: the build saves through `graph.save(--out)`, and a
+    # relative output would resolve against the CSV directory.
+    assert "output" not in loaded["settings"]
+    # The composed document is not mutated: it is also what gets written to the
+    # checked-in blueprint.json, where `./data/csv` is correct.
+    assert composed["settings"]["root"] == "./data/csv"
+
+
+def test_a_build_into_a_temp_csv_directory_loads_that_directory(tmp_path, fixture_csvs):
+    """The end-to-end form, and the one that would have caught the bug: a build
+    pointed at a 43-row fixture must report 43 signatures. Pointed at the
+    default directory it reports 14,846, so the assertion cannot pass by
+    accident on a machine that has the real CSVs."""
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
+         "--csv", str(fixture_csvs), "--no-save"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "  Signature                    43" in proc.stdout, proc.stdout
