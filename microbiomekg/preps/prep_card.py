@@ -66,6 +66,15 @@ SOURCE = card.SOURCE
 
 #: Reads no other prep's table. It contributes to ``cited_taxa.csv``, which
 #: is why ``prep_taxonomy`` declares *this* script rather than the reverse.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "card/card-data/card.json",
+    "card/card-data/aro_index.tsv",
+    "card/card-data/PMID.tsv",
+    "card/card-ontology/aro.obo",
+]
+
 DEPENDS_ON: list[str] = []
 
 #: ARO category class names, and the table each one lands in. ``AMR Gene

@@ -74,6 +74,7 @@ Rules that make it a contract rather than a convention:
 | Dependency order | `DEPENDS_ON` in each prep, topologically sorted with cycle detection |
 | Licence / cost flags | `--with-kegg`, `--with-vectors` |
 | Manual-source detection | `fetch.py`'s `manual-present` status (HMDB, MiMeDB v2, MASI) |
+| `status` as data | `microbiomekg.sources.status(data_dir)` → `{source: SourceStatus(state, path, inputs, missing, how_to_get, licence, gated_by)}`; each prep declares `RAW_INPUTS`, `fetch.FETCHES`/`fetch.MANUAL` say how to get them |
 | Per-source provenance | `data/raw/<src>/PROVENANCE.md` (gitignored) + `docs/sources.md` (tracked) |
 | Truth gates | `tests/test_skill_claims.py`, `tests/test_documented_queries.py`, the junction rows-to-edges pin |
 
@@ -82,9 +83,10 @@ Rules that make it a contract rather than a convention:
 1. A `microbiomekg/api.py` exposing `fetch` / `status` / `build` as the three
    functions above, wrapping what `scripts/*.py` already do. The scripts become
    thin callers of the API, not the other way round.
-2. `status` as a real object: `SourceStatus(state ∈ {absent, present, stale,
-   manual}, path, how_to_get, licence)` — `how_to_get` is the text `fetch.py`
-   already prints for manual sources, moved into data.
+2. ~~`status` as a real object~~ **Done 2026-09-03**: `microbiomekg/sources.py`,
+   `SourceStatus(state ∈ {absent, present, stale, manual}, path, inputs,
+   missing, how_to_get, licence, gated_by)`; the manual-source text lives in
+   `fetch.MANUAL` and the fetchers print the same strings.
 3. A console entry point (`microbiomekg = microbiomekg.cli:main`) so the three
    verbs work from a shell without `python scripts/...`.
 4. The README rewritten for a **human reader first** (Python API, then Cypher,

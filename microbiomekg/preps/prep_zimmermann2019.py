@@ -87,6 +87,10 @@ SOURCE = zm.SOURCE
 #: because 17 of this screen's 271 compounds reach a node **only** because the
 #: other screen minted one for them. Running first would mint a second node for
 #: each, splitting one drug in two along exactly the seam D8 asks across.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = ["drug_screens/zimmermann2019/41586_2019_1291_MOESM1_ESM.xlsx"]
+
 DEPENDS_ON: list[str] = ["chembl", "maier2018"]
 
 #: The one workbook, and the sheets read from it. Named rather than positional

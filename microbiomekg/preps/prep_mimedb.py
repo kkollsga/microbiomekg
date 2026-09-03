@@ -95,6 +95,15 @@ RELEASE_DIRS: tuple[tuple[str, str], ...] = (("v2", "v2"), ("", "v1"))
 #: spreadsheet* for the ``njc19-compound`` selection rule, which is not a prep
 #: dependency — the dependency runs the other way, and ``prep_njc19`` declares
 #: it.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+#: v2.0 is the release the loader reads; the v1.0 files beside `v2/` are a
+#: documented fallback the prep still accepts, not the state `status` asks for.
+RAW_INPUTS: list[str] = [
+    "mimedb/v2/mimedb_metabolites_v2.csv",
+    "mimedb/v2/mimedb_microbes_v2.csv",
+]
+
 DEPENDS_ON: list[str] = ["hmdb"]
 
 #: The MySQL dump writes an absent value as the four characters ``NULL``. Read

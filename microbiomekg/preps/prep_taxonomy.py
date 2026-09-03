@@ -41,6 +41,18 @@ from microbiomekg.reconcile import (
 #: after it would have its edges pointing at vivified stubs with no name and
 #: no lineage. ``tests/test_build_pipeline.py`` fails if a prep writes the
 #: table and is missing here.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+#: Every prep resolves names against this dump; it is declared here, once,
+#: because this is the prep that reads all five files.
+RAW_INPUTS: list[str] = [
+    "ncbi_taxonomy/nodes.dmp",
+    "ncbi_taxonomy/names.dmp",
+    "ncbi_taxonomy/rankedlineage.dmp",
+    "ncbi_taxonomy/merged.dmp",
+    "ncbi_taxonomy/delnodes.dmp",
+]
+
 DEPENDS_ON: list[str] = [
     "bugsigdb",
     "card",

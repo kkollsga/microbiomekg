@@ -588,10 +588,8 @@ def fetch_hmdb(args) -> None:
     detail = (
         f"HTTP {r.status_code} from {r.headers.get('server')}"
         + (f", cf-mitigated: {mitigation}" if mitigation else "")
-        + " — sent with the full browser header set; this is an interactive "
-        "Cloudflare challenge, which no header set can satisfy. Download "
-        "hmdb_metabolites.zip by hand from https://hmdb.ca/downloads into "
-        "data/raw/hmdb/."
+        + " — sent with the full browser header set. "
+        + MANUAL["hmdb"]
     )
     r.close()
     log(f"  MANUAL: {detail}")
@@ -968,14 +966,9 @@ def fetch_mimedb_v2(args) -> bool:
             f"{MIMEDB_V2_DIR}/{name}",
             MIMEDB_V2_PAGE,
             "manual",
-            f"MiMeDB v2.0 has no automated route: mimedb.org serves an interactive "
-            f"Cloudflare challenge, and unlike v1.0 these files were never captured "
-            f"by the Wayback Machine. Download all four of "
-            f"{', '.join(MIMEDB_V2_FILES)} from {MIMEDB_V2_PAGE} in a browser and "
-            f"put them in data/raw/mimedb/{MIMEDB_V2_DIR}/. "
-            f"Until then the loader falls back to the v1.0 files beside that "
-            f"directory. Provenance and checksums: "
-            f"data/raw/mimedb/{MIMEDB_V2_DIR}/PROVENANCE.md",
+            MANUAL["mimedb"]
+            + " Until then the loader falls back to the v1.0 files beside that "
+            "directory.",
         )
     if absent:
         log(
@@ -1270,6 +1263,61 @@ def note_pubmed(args) -> None:
         "BugSigDB/Disbiome/CARD rows and compound ids via KEGG "
         "/conv/compound/pubchem; per-id lookups happen at build time if at all.",
     )
+
+
+#: prep source → the fetcher that fills its ``RAW_INPUTS``. Two screens share
+#: one bundle and the taxonomy prep reads NCBI's dump, so this is not identity.
+FETCHES: dict[str, str] = {
+    "bugsigdb": "bugsigdb",
+    "card": "card",
+    "chembl": "chembl",
+    "gutmdisorder": "gutmdisorder",
+    "hmdb": "hmdb",
+    "kegg": "kegg",
+    "maier2018": "drug_screens",
+    "masi": "masi",
+    "mimedb": "mimedb",
+    "njc19": "njc19",
+    "reactome": "reactome",
+    "taxonomy": "ncbi",
+    "zimmermann2019": "drug_screens",
+}
+
+#: The three browser-only origins, and the exact steps — which file, from which
+#: page, into which directory. Data, so `status` can print it without a network
+#: round trip; the fetchers above print the same text when they hit the wall.
+MANUAL: dict[str, str] = {
+    "hmdb": (
+        "hmdb.ca sits behind an interactive Cloudflare challenge that no header "
+        "set can satisfy. Download hmdb_metabolites.zip by hand from "
+        "https://hmdb.ca/downloads, and unzip it (or place the zip) in "
+        "data/raw/hmdb/."
+    ),
+    "mimedb": (
+        "MiMeDB v2.0 has no automated route: mimedb.org serves an interactive "
+        "Cloudflare challenge, and unlike v1.0 these files were never captured "
+        f"by the Wayback Machine. Download all four of {', '.join(MIMEDB_V2_FILES)} "
+        f"from {MIMEDB_V2_PAGE} in a browser and put them in "
+        f"data/raw/mimedb/{MIMEDB_V2_DIR}/. Provenance and checksums: "
+        f"data/raw/mimedb/{MIMEDB_V2_DIR}/PROVENANCE.md"
+    ),
+    "masi": (
+        "www.aiddlab.com serves the MASI files but its TLS certificate has "
+        "expired, and the Wayback Machine never captured the interaction tables. "
+        "Fetch each deliberately, accepting the expired certificate:  "
+        f"curl -k -A 'Mozilla/5.0' -o data/raw/masi/<name> '{MASI_ORIGIN}<name>'  "
+        "— or download them in a browser from "
+        "https://www.aiddlab.com/MASI/download.html after accepting the "
+        "certificate warning. The four .xlsx files are the ones the prep reads."
+    ),
+}
+
+
+def how_to_get(source: str) -> str:
+    """The fix for an absent source, as one line an operator can act on."""
+    if source in MANUAL:
+        return MANUAL[source]
+    return f"python -m microbiomekg.fetch --only {FETCHES[source]}"
 
 
 SOURCES = {

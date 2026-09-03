@@ -78,6 +78,15 @@ SOURCE = mz.SOURCE
 #: Reads ``drug.csv``, which ChEMBL writes: the three join routes each need to
 #: see every ``Drug`` node that already exists before this source decides to
 #: mint one, and ChEMBL is the only other source that writes that table.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "drug_screens/maier2018/NIHMS76168-supplement-Supplementary_table_1.xlsx",
+    "drug_screens/maier2018/NIHMS76168-supplement-Supplementary_table_2.xlsx",
+    "drug_screens/maier2018/NIHMS76168-supplement-Supplementary_table_3.xlsx",
+    "drug_screens/maier2018/NIHMS76168-supplement-Supplementary_table_4.xlsx",
+]
+
 DEPENDS_ON: list[str] = ["chembl"]
 
 #: ``<table number>: (filename, sheet)``. Named rather than "the first sheet" so

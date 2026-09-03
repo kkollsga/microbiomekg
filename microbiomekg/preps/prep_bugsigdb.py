@@ -60,6 +60,10 @@ from microbiomekg.tables import Writer, as_list
 SOURCE = "bugsigdb"
 
 #: Reads no other prep's table: BugSigDB is the spine and runs first.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = ["bugsigdb/full_dump_main.csv"]
+
 DEPENDS_ON: list[str] = []
 
 #: MetaPhlAn rank prefix -> NCBI rank name.

@@ -99,7 +99,7 @@ items are enumerated in `docs/design/release-readiness.md`; none is done.
 
 | file | what it carries |
 |---|---|
-| `microbiomekg/preps/prep_<src>.py` | raw → flat CSV in `data/csv/`, plus `DEPENDS_ON` |
+| `microbiomekg/preps/prep_<src>.py` | raw → flat CSV in `data/csv/`, plus `DEPENDS_ON` and `RAW_INPUTS` |
 | `microbiomekg/blueprints/<src>.json` | the node types and junction edges it writes rows into |
 | `microbiomekg/ontology/<src>.py` | its audit rules and evidence mapping |
 | `tests/test_<src>.py` | its fixture-backed tests |
@@ -108,6 +108,10 @@ Nothing lists them. Preps are globbed, ontology modules are walked with
 `pkgutil`, fragments are globbed — so a source that forgets one of the four is
 half-loaded rather than rejected, and its test file is the thing that notices.
 
+- **`RAW_INPUTS` is what `status` reports on** — the raw files the prep reads,
+  relative to `--raw`, in the layout `fetch` writes. `tests/test_sources.py`
+  withholds each declared file and expects the prep to refuse by name, so the
+  declaration cannot drift from the check.
 - **`DEPENDS_ON` places a prep in the build**, not alphabetical order.
   `microbiomekg/build.py` topologically sorts with cycle detection. Name order once
   loaded `IS_DRUG` with zero edges (`docs/model.md` §8).

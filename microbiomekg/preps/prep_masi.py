@@ -66,6 +66,15 @@ SOURCE = ms.SOURCE
 #: them here is not a convenience: the whole point of this source's shape is that
 #: it never silently restates a measurement, and the only way to know which of
 #: its rows *are* restatements is to have the measurements on disk first.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "masi/MASI_v1.0_download_microbeSubstanceInteractionRecords_ver20200928.xlsx",
+    "masi/MASI_v1.0_download_microbeDiseaseAssociationRecords.xlsx",
+    "masi/MASI_v1.0_download_microbesInfo.xlsx",
+    "masi/MASI_v1.0_download_substanceInfo.xlsx",
+]
+
 DEPENDS_ON: list[str] = ["chembl", "maier2018", "zimmermann2019"]
 
 RAW_SUBDIR = "masi"

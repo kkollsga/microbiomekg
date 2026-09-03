@@ -71,6 +71,10 @@ SOURCE = nj.SOURCE
 #: see every ``Metabolite`` node that exists before it decides to mint one, and
 #: MiMeDB's names are what carry 32 of NJC19's compounds that HMDB has no record
 #: of.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = ["njc19/41597_2020_516_MOESM1_ESM.xlsx"]
+
 DEPENDS_ON: list[str] = ["hmdb", "mimedb"]
 
 #: The sheet the paper ships. Named rather than "the first sheet" so a future

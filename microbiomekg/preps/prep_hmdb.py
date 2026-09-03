@@ -72,6 +72,10 @@ SOURCE = hm.SOURCE
 
 #: Reads no other prep's table. It writes ``metabolite.csv``, which the two
 #: pathway sources join through and therefore declare.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = ["hmdb/hmdb_metabolites.xml"]
+
 DEPENDS_ON: list[str] = []
 
 #: Every element in the file carries it, so every ``find`` needs it.

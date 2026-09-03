@@ -71,6 +71,13 @@ SOURCE = gmd.SOURCE
 
 #: Reads no other prep's table. ``prep_chembl`` reads *this* one's
 #: ``intervention.csv`` and declares it.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "gutmdisorder/human.xlsx",
+    "gutmdisorder/mouse.xlsx",
+]
+
 DEPENDS_ON: list[str] = []
 
 #: Workbook → the host every one of its rows is about. gutMDisorder's own

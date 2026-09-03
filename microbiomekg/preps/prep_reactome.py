@@ -60,6 +60,14 @@ SOURCE = rx.SOURCE
 
 #: ``IN_PATHWAY`` joins through ``metabolite.csv``, which ``prep_hmdb``
 #: writes; a ChEBI id no loaded metabolite carries reaches no edge.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "reactome/ReactomePathways.txt",
+    "reactome/ReactomePathwaysRelation.txt",
+    "reactome/ChEBI2Reactome.txt",
+]
+
 DEPENDS_ON: list[str] = ["hmdb"]
 
 #: `R-HSA-1234`: the three-letter infix is the species. 16 of them, all model

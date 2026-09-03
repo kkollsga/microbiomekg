@@ -73,6 +73,14 @@ SOURCE = chem.SOURCE
 #: source's drugs, so that prep has to have run. Declared rather than
 #: implied by the filename: in name order this script sorts *first*, the
 #: table was absent, and the relationship loaded zero edges.
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "chembl/mechanism.jsonl",
+    "chembl/molecule_max_phase4.jsonl",
+    "chembl/target.jsonl",
+]
+
 DEPENDS_ON: list[str] = ["gutmdisorder"]
 
 #: The three files ``scripts/fetch.py`` pulls from the ChEMBL REST API.

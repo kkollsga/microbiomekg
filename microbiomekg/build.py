@@ -158,14 +158,13 @@ def run(script: Path, *args: str) -> int:
     return proc.returncode
 
 
-def declared_dependencies(script: Path) -> tuple[str, ...]:
-    """The ``DEPENDS_ON`` list a prep module declares, read off its source.
+def declared(script: Path, name: str) -> tuple[str, ...] | None:
+    """A module-level ``name = [...]`` a prep declares, read off its source.
 
-    Parsed rather than imported: asking eight prep modules about their order
+    Parsed rather than imported: asking twelve prep modules about themselves
     by importing them would run pandas, the taxdump reader and each module's
-    argument parser before the build has done anything. The declaration is
-    **required** — a prep with none would be positioned by its filename, which
-    is the accident this replaced.
+    argument parser before the build has done anything. ``None`` when the
+    module has no such assignment.
     """
     tree = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
     for node in tree.body:
@@ -176,12 +175,36 @@ def declared_dependencies(script: Path) -> tuple[str, ...]:
             if isinstance(node, ast.AnnAssign) and node.value
             else []
         )
-        if any(isinstance(t, ast.Name) and t.id == "DEPENDS_ON" for t in targets):
+        if any(isinstance(t, ast.Name) and t.id == name for t in targets):
             return tuple(ast.literal_eval(node.value))
-    raise SystemExit(
-        f"{script.name} declares no module-level DEPENDS_ON — every prep says "
-        f"which other preps' tables it reads, even when the answer is []"
-    )
+    return None
+
+
+def declared_dependencies(script: Path) -> tuple[str, ...]:
+    """The ``DEPENDS_ON`` list a prep declares. **Required** — a prep with
+    none would be positioned by its filename, which is the accident this
+    replaced."""
+    deps = declared(script, "DEPENDS_ON")
+    if deps is None:
+        raise SystemExit(
+            f"{script.name} declares no module-level DEPENDS_ON — every prep says "
+            f"which other preps' tables it reads, even when the answer is []"
+        )
+    return deps
+
+
+def declared_inputs(script: Path) -> tuple[str, ...]:
+    """The ``RAW_INPUTS`` a prep declares: the files it reads under ``--raw``,
+    as raw-relative paths, in the layout ``fetch`` writes. **Required** — it
+    is what ``status`` reports on, so a prep without one is a source the
+    operator cannot be told how to complete."""
+    inputs = declared(script, "RAW_INPUTS")
+    if inputs is None:
+        raise SystemExit(
+            f"{script.name} declares no module-level RAW_INPUTS — every prep names "
+            f"the raw files it reads so `status` can say which are missing"
+        )
+    return inputs
 
 
 def order_preps(scripts: Path) -> list[Path]:

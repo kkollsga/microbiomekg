@@ -68,6 +68,14 @@ SOURCE = kg.SOURCE
 #: ``IN_PATHWAY`` joins through ``metabolite.csv``'s ``kegg_id``, which
 #: ``prep_hmdb`` writes. (HMDB's selection rule deliberately never consults
 #: KEGG, so the dependency runs one way only.)
+#: The raw files this prep reads, relative to ``--raw``, in the layout
+#: ``fetch`` writes. `status` reports on exactly these.
+RAW_INPUTS: list[str] = [
+    "kegg/list_pathway.tsv",
+    "kegg/link_compound_pathway.tsv",
+    "kegg/list_compound.tsv",
+]
+
 DEPENDS_ON: list[str] = ["hmdb"]
 
 #: A KEGG compound id is `C` and exactly five digits. HMDB's one lowercase

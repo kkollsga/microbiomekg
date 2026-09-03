@@ -57,7 +57,7 @@ def find_bugsigdb_dump(raw: Path) -> Path:
     if hits:
         return hits[0]
     raise FileNotFoundError(
-        f"no full_dump*.csv under {raw} (looked in bugsigdb/ and the root)"
+        f"no {' or '.join(_DUMP_NAMES)} under {raw} (looked in bugsigdb/ and the root)"
     )
 
 
