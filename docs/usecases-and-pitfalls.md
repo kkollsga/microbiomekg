@@ -107,10 +107,17 @@ is named. Two such places exist and are marked **[A-override]** below.
 (2026-09-01, as the disease-id hub)** and **gutMDisorder v1 (2020, recovered
 from Wayback — loaded 2026-09-03)**. Fetched and profiled, not yet loaded:
 HMDB 5.0, CARD, Reactome, KEGG, ChEMBL 37
-(`docs/research/source-formats.md`). Being fetched to close the
-three named gaps: **MiMeDB** (per-taxon metabolite production), **NJC19**
-(consumption / cross-feeding), **MASI** (drug↔taxon). Every "no" below names
-which of those fills it.
+(`docs/research/source-formats.md`).
+
+**The three gap-filling sources have now been fetched and profiled, and the
+outcome is one for three.** **NJC19** is exactly what it was fetched for and
+closed W5/D6. **MiMeDB**'s published bulk downloads carry **no
+microbe–metabolite association at all** — two MySQL tables with zero
+cross-references between them (`data/raw/mimedb/PROVENANCE.md`) — so it cannot
+close W4/D5 and contributes `Metabolite` nodes only; what moved D5 was NJC19's
+export half, which was fetched for D6. **MASI**'s download is the substance
+dictionary, 1,350 rows with **no organism column**, so W7/D8/D18 are unchanged.
+Every "no" below now names what actually happened rather than what was expected.
 
 ### W1. Enrichment of a differential-abundance result against curated signatures
 
@@ -192,10 +199,13 @@ gutMDisorder v2.0, NAR 51:D717 (2023); CARD, Alcock et al., NAR 48:D517 (2020).
 depletion with an evidence tier is answerable now (D10's first leg). The AMR leg
 **is loaded**: CARD contributes 6,415 `CARRIES_RESISTANCE_GENE` edges, and 4 of
 the 26 replicated IBD depletion candidates carry a determinant (D7, D10). The
-metabolite leg is loaded **as wide as HMDB and no wider** — 578 `PRODUCES` edges
-over 272 organisms, from 224 microbial-origin metabolites keyed on free-text
-organism names (§"HMDB" in `source-formats.md`); 7 of those 26 candidates have
-one, and `pending: MiMeDB` is what makes it a leg rather than a sample. The
+metabolite leg **is loaded, and it is no longer HMDB-wide**: 3,418 `PRODUCES`
+edges over 830 organisms — HMDB's 578 from 224 microbial-origin metabolites
+keyed on free-text organism names (§"HMDB" in `source-formats.md`), plus
+**NJC19's 2,840 export events over 638 species**. **18** of those 26 candidates
+now carry a metabolite, against 7 before. Note which source did it: `pending:
+MiMeDB` is what this sentence used to say, and MiMeDB contributed **zero**
+production edges (D5). The
 interventional-evidence leg **is loaded** —
 gutMDisorder contributes 1,380
 `(Taxon)-[:ABUNDANCE_CHANGED_BY]->(Intervention)` edges over 220 interventions,
@@ -223,20 +233,28 @@ load-bearing number: gutSMASH, on 1,135 individuals with matched plasma and
 faecal metabolomics, found metabolite levels "almost completely uncorrelated"
 with the metagenomic abundance of the corresponding genes (r ≈ −0.04 to 0.24).
 
-**Can this graph answer it? PARTIAL — at HMDB's size.** The taxon–metabolite
-edge exists: **578 `PRODUCES` edges over 272 organisms and 154 metabolites**,
-`in-vitro` 543 / `computational-predicted` 35, with a replication count of 1 for
-every pair (D5). That is HMDB's whole microbial branch — **224 records, 0.10% of
-the file**, keyed on uncontrolled, misspelled, mixed-rank organism strings with
-no taxid, of which 158 are `quantified`/`detected`, and 67 of which name no
-organism at all. **`pending: MiMeDB`** is what makes the question
-answerable at scale (Microbial Sources + Metabolic Reactions carrying Precursor,
-Product, Enzyme, Enzyme's source organism, Reaction type, References; v2.0:
-29,295 metabolites, 3,725 microbes, 25,276 curated reactions). Its 23.1M
-BLAST-propagated pathways are a different evidence class and land as
-`computational-predicted`, never merged with the curated reactions. The gutSMASH
-result is *why* genome-inferred production is a distinct and low tier rather
-than a synonym for production.
+**Can this graph answer it? PARTIAL — six times wider than it was, and not
+because of the source named for it.** The taxon–metabolite edge is **3,418
+`PRODUCES` edges over 830 organisms and 226 metabolites**, `in-vitro` 3,383 /
+`computational-predicted` 35 (D5). HMDB's half is unchanged and still small:
+**224 records, 0.10% of the file**, keyed on uncontrolled, misspelled,
+mixed-rank organism strings with no taxid, of which 158 are
+`quantified`/`detected`, and 67 of which name no organism at all. The other
+2,840 edges are **NJC19's export half** — species-level, literature-curated.
+
+**`pending: MiMeDB` did not resolve the way this section assumed.** The
+published bulk downloads are two MySQL tables with **no association between
+them** — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the
+microbes dump, and no Microbial Sources or Metabolic Reactions columns at all
+(`data/raw/mimedb/PROVENANCE.md`). The 23.1M BLAST-propagated pathways this
+paragraph warned about are not in the download either, so there is no predicted
+layer here to segregate. What MiMeDB contributes is compound identity for
+NJC19's free-text names. Closing D5 at MiMeDB's published scale still needs its
+v2.0 reaction table or its per-microbe web export, neither of which is
+bulk-downloadable. The gutSMASH result is *why* genome-inferred production is a
+distinct and low tier rather than a synonym for production — and it is why
+NJC19's `in-vitro` (an experimentally verified transport event) and a future
+genome-inferred layer must not share a value.
 
 ### W5. Cross-feeding network inference
 
@@ -258,8 +276,11 @@ Sci Data 7:204, 2020, PMC7320173): 8,224 directed import/export/degrade events
 plus 912 negative associations across 838 species, curated from 769 sources,
 CC0.
 
-**Can this graph answer it? NO — and this is Part A's use case 5.**
-**`pending: NJC19`** for the curated class. **[A-override]** Part A5 says HMDB
+**Can this graph answer it? YES for the curated class — NJC19 landed
+2026-09-03.** **4,784 `CONSUMES` edges over 714 taxa and 205 metabolites**, plus
+387 `DEGRADES` and 894 `NO_EXCHANGE_WITH`, and **96 metabolites carry both a
+producer and a consumer**, so MES is non-zero for the first time (D6). The
+computed class (MICOM/SMETANA) stays out of scope and separate (D20). **[A-override]** Part A5 says HMDB
 "alone does not carry consumption" and asks Part B to name a source "or the use
 case is descoped explicitly". The answer is NJC19, so it is *not* descoped — but
 Part A understates the problem: **no source in the entire seven-source profiled
@@ -328,7 +349,11 @@ drug↔taxon edge exists in ChEMBL itself**, and 15 of 222 interventions is the
 width of the join. That is enough to offer "metformin" as a competing
 explanation for **17** T2D taxa (D18) and not enough for the three taxa Forslund
 et al. actually named, none of which gutMDisorder curates a metformin edge for.
-MASI's 4,001 + 7,770 typed pairs are still what closes it.
+MASI's 4,001 + 7,770 typed pairs are still what closes it — **and the MASI
+download on disk is not them.** `MASI_v1.0_download_substanceInfo.{txt,xlsx}` is
+the substance dictionary: 1,350 rows, 18 columns, no organism column, no
+interaction, no direction, no PMID. Nothing was loaded from it
+(`data/raw/masi/PROVENANCE.md`).
 
 ### Evidence grading adopted
 
@@ -1227,9 +1252,12 @@ document has no table yet (MiMeDB, NJC19, MASI) the names are proposed here and
 are the loader's contract.
 
 Measurements quoted as "measured" were taken on 2026-09-03 from a clean
-`scripts/build.py` run over **six** sources — BugSigDB (`full_dump` 2026-09-02),
-gutMDisorder v1, CARD 4.0.2, HMDB 5.0, Reactome (2026-09-02) and ChEMBL 37 —
-against NCBI `new_taxdump` 2026-09-02 at `--scope microbial`. KEGG is
+`scripts/build.py` run over **eight** sources — BugSigDB (`full_dump`
+2026-09-02), gutMDisorder v1, CARD 4.0.2, HMDB 5.0, Reactome (2026-09-02),
+ChEMBL 37, MiMeDB v1.0 (dumped 2024-03-19) and NJC19 (Sci Data 7:204, 2020) —
+against NCBI `new_taxdump` 2026-09-02 at `--scope microbial`. **931,992 nodes,
+1,243,661 edges.** MASI was fetched and is **not** in any number here: its
+download is the substance dictionary and nothing was loaded from it (D8). KEGG is
 licence-gated and **not** in any number here: a default build carries none of
 it. Where a later source moved a number the earlier value is kept beside it: a
 golden that moves when a source lands is the expected outcome, and the pair is
@@ -1384,13 +1412,16 @@ neither and sit in `unresolved_associations.csv` with that reason.
 
 ### D5 — "Which metabolites does taxon X produce, and is that measured or predicted?" (and the reverse: which taxa produce metabolite M?)
 
-*Status:* **`pending-source`** — HMDB gives 224 edges, MiMeDB gives the rest.
+*Status:* **`partial`** (was `pending-source: MiMeDB`), and **not because
+MiMeDB landed.** MiMeDB's published bulk downloads carry no microbe–metabolite
+association at all, so the source fetched to close this query contributes
+**zero** edges to it; what moved it is **NJC19's export half**, fetched for D6.
 This is A5.2. *Fields:* production direction · evidence tier · pathway/gene ·
 rank at which the claim holds · citation · replication count.
 
 ```cypher
-// HMDB is loaded (578 edges from 224 microbial-origin records); MiMeDB —
-// per-taxon, with the enzyme — is what the status below is still waiting on.
+// Two sources in one table: HMDB's 578 ontology annotations and NJC19's 2,840
+// curated export events. `primary_source` is what tells them apart.
 MATCH (t:Taxon {id: 239935})-[p:PRODUCES]->(m:Metabolite)
 RETURN m.title AS metabolite, m.chebi_id AS chebi, m.hmdb_status AS hmdb_status,
        p.evidence_level AS level, p.knowledge_level AS knowledge_level,
@@ -1408,14 +1439,37 @@ RETURN t.title AS producer, t.rank AS rank, p.evidence_level AS level,
 ORDER BY level, n_records DESC
 ```
 
-*Golden check (measured), and it is the HMDB half of a query whose status is
-still `pending-source`:* **578 `PRODUCES` edges over 272 organisms and 154
-metabolites**, `in-vitro` 543 / `computational-predicted` 35, and the
-replication count is **1** for every (taxon, metabolite) pair — which is the
-required qualifier below answered, not a shortfall. The reverse query returns
-**six butyrate producers, all `in-vitro`**: *Roseburia*, *Eubacterium*,
-*Anaerostipes*, *Coprococcus eutactus*, *Allocoprococcus comes* and
-*Faecalibacterium prausnitzii*.
+*Golden check (measured 2026-09-03, eight sources):* **3,418 `PRODUCES` edges
+over 830 organisms and 226 metabolites**, `in-vitro` 3,383 /
+`computational-predicted` 35 — split **HMDB 578 / 272 organisms / 154
+metabolites** and **NJC19 2,840 / 638 / 99**. `computational-predicted` is
+HMDB's and only HMDB's: NJC19's inclusion criterion is an experimentally
+verified event, so a predicted NJC19 edge would be a value nothing in that
+source could justify. The reverse query returns **109 butyrate producers, all
+`in-vitro`** (was six, all HMDB's), and it returns them on **one node** only
+because NJC19's `Butyrate` reaches HMDB's `Butyric acid` through the conjugate
+route — had it not, 103 producers would sit on a `NJC19:Butyrate` node nobody
+queries.
+
+**Two statements in this entry the data has now overturned, both recorded rather
+than quietly edited.**
+
+*(a) "Akkermansia muciniphila has no answer."* This entry said the taxon its own
+forward query names had **zero** rows, "this query's `pending-source` status as a
+number rather than a label". It has **four** now — acetic acid, ethanol,
+propionic acid, sulfate — and every one is NJC19's. HMDB still attributes
+nothing to it. The label was right about the gap and wrong about which source
+would close it.
+
+*(b) "The replication count is 1 for every pair."* It reaches **3**, on 43
+pairs, and both causes are correct behaviour rather than double-counting: HMDB
+and NJC19 independently curate the same production (29 pairs — the first
+cross-source corroboration this relationship has ever had), and several NJC19
+species strings promote onto one NCBI species (*Thermoanaerobacter
+thermohydrosulfuricus*, *T. indiensis* and *T. ethanolicus* are three curated
+rows under one node, with all three strings kept in `reported_name`). What
+*would* be double-counting — a pair carrying more records than distinct (source,
+organism string, compound string) triples — is asserted absent.
 
 **The key in the reverse query is a contract statement the data made
 untenable.** It addressed butyrate as `CHEBI:17968`, the conjugate base; HMDB's
@@ -1429,32 +1483,45 @@ muciniphila* (239935) is in the graph and HMDB attributes **no** metabolite to
 it: zero rows, on the source that is supposed to answer half of D5. That is
 this query's `pending-source` status as a number rather than a label.
 
-*Shape:* one row per (taxon, metabolite, source record). *Expected size, stated
-so nobody plans on a bigger number:* HMDB's microbial branch is **224
-metabolites, 0.10% of the file**, keyed on free-text, misspelled, mixed-rank
-organism names with **no taxid** — 169 "genus"-level terms that include phyla, a
-class, six families, two Gram stains and a U+FB01 ligature typo; the misspellings
-(`Citrobacter frundii`, `Akkermansia muciniphilia`) are expected to land in
-`UnresolvedTaxon`, which is the correct outcome, not a loss. MiMeDB v2.0 (29,295
-metabolites, 3,725 microbes, 25,276 curated reactions) is what makes this
-answerable at scale; its 23.1M BLAST-propagated pathways are
-`computational-predicted` and must stay in a separate layer. *Required
-qualifier:* the answer carries a replication count and the expected value is
-**1** — even robustly predicted metabolites are predicted by markedly different
-sets of taxa across datasets. *Why the tier is not optional:* gutSMASH measured
-metabolite levels to be "almost completely uncorrelated" with the abundance of
-the corresponding genes across 1,135 individuals.
+*Shape:* one row per (taxon, metabolite, source record). *Expected size:*
+HMDB's microbial branch is **224 metabolites, 0.10% of the file**, keyed on
+free-text, misspelled, mixed-rank organism names with **no taxid** — 169
+"genus"-level terms that include phyla, a class, six families, two Gram stains
+and a U+FB01 ligature typo; the misspellings (`Citrobacter frundii`,
+`Akkermansia muciniphilia`) land in `UnresolvedTaxon`, which is the correct
+outcome, not a loss. NJC19's export half is species-level and five times larger,
+and its own losses are 15 renamed organisms and 6 host cell types, all
+countable.
+
+*What is still missing, and why the status is `partial` rather than
+`answerable-now`.* Neither source carries the **pathway or gene** the claim runs
+through (that is D13's leg, and it is `partial` for the same reason), and
+MiMeDB's v2.0 reaction table — Precursor, Product, Enzyme, Enzyme's source
+organism, Reaction type, References — is the thing that would supply it. It is
+**not in any bulk download**: the two published dumps are one MySQL table each
+with no join between them (`data/raw/mimedb/PROVENANCE.md`), and the per-microbe
+"download all related metabolites" route the research document named is a web
+action on a site that 403s automated clients. If that layer ever arrives, its
+23.1M BLAST-propagated pathways are `computational-predicted` and must stay in a
+separate layer from the 25,276 curated reactions.
+
+*Required qualifier:* the answer carries a replication count. Its expected value
+was **1** and is now up to **3** — see (b) above; the reasons are cross-source
+corroboration and species promotion, not double-counting. *Why the tier is not
+optional:* gutSMASH measured metabolite levels to be "almost completely
+uncorrelated" with the abundance of the corresponding genes across 1,135
+individuals.
 
 ### D6 — "Which taxa consume metabolite M?" — the cross-feeding query
 
-*Status:* **`pending-source`: NJC19**. This is Part A's use case 5, and it is
-**not** descoped — but Part A understates the gap: no source in the profiled
-seven carries consumption, not just HMDB, and MiMeDB keys origin on compounds
-appearing as a *product*, so it does not fill it either. *Fields:* a `CONSUMES`
-edge with an evidence tier and a rank.
+*Status:* **`answerable-now`** (was `pending-source: NJC19`; the source landed
+2026-09-03). This is Part A's use case 5, and it was **not** descoped — Part A
+understated the gap (no source in the profiled seven carries consumption, not
+just HMDB, and MiMeDB keys origin on compounds appearing as a *product*, so it
+would not have filled it even had its association table been downloadable).
+*Fields:* a `CONSUMES` edge with an evidence tier and a rank.
 
 ```cypher
-// pending: NJC19 (8,224 directed import/export/degrade events, 838 species, CC0)
 MATCH (m:Metabolite)
 OPTIONAL MATCH (p:Taxon)-[:PRODUCES]->(m) WHERE p.placeholder = false
 OPTIONAL MATCH (c:Taxon)-[:CONSUMES]->(m) WHERE c.placeholder = false
@@ -1464,23 +1531,77 @@ RETURN m.title AS metabolite, producers, consumers,
             ELSE 2.0 * producers * consumers / (producers + consumers)
        END AS mes
 ORDER BY mes DESC LIMIT 20
+
+// the degradation half, which is a different claim and a different edge type
+MATCH (t:Taxon)-[d:DEGRADES]->(m:Metabolite)
+RETURN m.title AS macromolecule, count(DISTINCT t) AS degraders
+ORDER BY degraders DESC
+
+// and the refutations, which are countable rather than absent
+MATCH (t:Taxon)-[n:NO_EXCHANGE_WITH]->(m:Metabolite)
+RETURN n.source_relation AS refuted, count(n) AS n ORDER BY n DESC
 ```
 
 **Metabolite Exchange Score: MES = 2·P·C / (P + C)** — the harmonic mean of the
 number of potential producers P and consumers C, and **MES = 0 when a metabolite
 is only produced or only consumed** (Marcelino et al., Nat Commun 14:6546,
-2023). That identity is the whole argument: without a `CONSUMES` edge every row
-of this query returns 0.0 and the use case is dead. *Proposed loader contract
-for NJC19:* `(Taxon)-[:PRODUCES|CONSUMES]->(Metabolite)` with
-`source_relation ∈ {export, import, degrade}`, `primary_source = "njc19"`,
-`source_licence = "CC0-1.0"`, `knowledge_level = "knowledge_assertion"`,
-`agent_type = "manual_agent"`, `evidence_level = "in-vitro"` (NJC19's curation
-basis is experimentally verified transport or degradation), and the **912
-negative associations as their own edge type**
-`(Taxon)-[:NO_EXCHANGE_WITH]->(Metabolite)` — explicit negatives are rare enough
-in this field to be worth their own shape. *Golden check when it lands:*
-acetate, the most frequently exported product (44.3% of NJC19's species), must
-have both a non-zero producer and a non-zero consumer count.
+2023). That identity was the whole argument, and it is why the before/after is a
+binary rather than a ratio: every row of this query returned 0.0 until NJC19
+landed.
+
+*Golden check (measured 2026-09-03):* **4,784 `CONSUMES` edges over 714 taxa and
+205 metabolites**, plus **387 `DEGRADES`** over 212 taxa and 17 macromolecules
+and **894 `NO_EXCHANGE_WITH`**. **96 metabolites carry both a producer and a
+consumer**, so 96 rows have a non-zero MES. The stated golden — "acetate, the
+most frequently exported product (44.3% of NJC19's species), must have both a
+non-zero producer and a non-zero consumer count" — holds: **441 producers, 72
+consumers**, MES 123.8, second only to CO2. The top of the ranking is what a gut
+cross-feeding network is supposed to look like: CO2, acetate, hydrogen, lactate,
+formate, ammonia, ethanol, succinate, butyrate, propionate.
+
+**The golden held only because of a join, and the join is the fragile part.**
+HMDB records `Acetic acid` (CHEBI:15366) and `Butyric acid` (CHEBI:30772); NJC19
+says `Acetate` and `Butyrate`, and carries **no ChEBI, HMDB, KEGG or PubChem id
+for any of its 283 compounds**. Without the `-ate` ↔ `-ic acid` conjugate step
+the consumers land on freshly minted nodes, the producers stay on HMDB's, and
+MES is 0 for both halves of every short-chain fatty acid — the same trap D5's
+"key note" recorded for CHEBI:17968 vs CHEBI:30772, arriving from the other
+side. `metabolite_join` on every edge records which spelling matched, so a
+conjugate match is countable rather than assumed.
+
+**And where the graph genuinely holds a conjugate pair as two nodes, it still
+does.** `Formate` reaches CHEBI:15740 because a node is spelled exactly that,
+while HMDB's 10 formate producers sit on `Formic acid` (CHEBI:30751), so each
+node carries a partial picture. The source's own spelling is tried before any
+derivation on purpose: ChEBI holds the acid and the base as two terms, this
+graph keys `Metabolite` on ChEBI, and silently merging them would be an identity
+claim the project has not made. A consumer computing MES over a conjugate pair
+has to say which term they mean, exactly as D5's reverse query does.
+
+*The loader contract as it actually landed*, against what this entry proposed:
+`(Taxon)-[:PRODUCES|CONSUMES]->(Metabolite)` was proposed with `source_relation
+∈ {export, import, degrade}`; degradation became its own relationship
+`DEGRADES`, because a blueprint junction entry names one relationship per CSV
+per target type (docs/model.md §8) and because extracellular breakdown of a
+polymer is a different claim about a community from uptake of a small molecule.
+`source_relation` carries the source's own word on every edge regardless, so the
+proposed filter still works. `primary_source = "njc19"`, `source_licence =
+"CC0-1.0"`, `knowledge_level = "knowledge_assertion"`, `agent_type =
+"manual_agent"`, `evidence_level = "in-vitro"` all landed as proposed. The **912
+negatives as their own edge type** landed as `NO_EXCHANGE_WITH` as proposed —
+**894 of the 912**, with `source_relation` naming the refuted activity
+(`import-negative` 720, `degrade-negative` 87, `export-negative` 87); the other
+18 sit on rows whose organism is one of NJC19's six host cell types or a taxon
+NCBI has renamed, and each is a ledger row in `unresolved_exchange.csv` rather
+than a loss.
+
+**One field this entry did not ask for and the data forced.** 2,426 of NJC19's
+9,136 rows (26.6%) stand on nothing but `(G)`-marked references — a species-filed
+row whose entire literature basis was read at genus level, per the sheet's own
+legend. Loading those verbatim presents a genus-level observation as a
+species-level fact, which is what guard **G5** exists to stop, so
+`genus_level_evidence` is a boolean on every NJC19 edge and one `WHERE` clause
+separates the 2,432 genus-backed edges from the 6,473 that are not.
 
 ### D7 — "Which AMR genes does taxon X carry, to which drug class, by which mechanism, and at what call confidence?"
 
@@ -1554,9 +1675,9 @@ D7's answer lives in the non-redistributable half of the download.
 
 ### D8 — "Does drug D inhibit gut bacteria, or get metabolised by them, and which strains?"
 
-*Status:* **`partial`** (was `pending-source: MASI`). Two legs exist and
-neither is the one MASI would bring. *Fields:* drug id · taxon · assay and
-readout · direction · the route the claim travelled.
+*Status:* **`partial`**, unchanged — and now unchanged *after* MASI was fetched.
+Two legs exist and neither is the one MASI would bring. *Fields:* drug id ·
+taxon · assay and readout · direction · the route the claim travelled.
 
 **Leg 1 — the drug acts on a bacterial protein (ChEMBL).**
 
@@ -1613,6 +1734,24 @@ landmark screens are strain-level, so the strain half is only available from the
 Maier/Zimmermann supplementary matrices directly. *Liveness caveat recorded in
 the research:* MASI's site has an expired TLS certificate and declares no
 separate database licence.
+
+> **What the MASI download turned out to be (2026-09-03).** The file on disk,
+> `MASI_v1.0_download_substanceInfo.{txt,xlsx}`, is the **substance
+> dictionary**, not the interaction tables: 1,350 rows, 18 columns, and **no
+> organism column, no interaction column, no effect, no direction and no
+> PMID**. The 4,001 bacteria→substance and 7,770 substance→bacteria pairs are in
+> neither file. Nothing was loaded — no prep script, no blueprint fragment, no
+> ontology module — so this query's status and both goldens above are exactly
+> what they were, and `MATCH (d:Drug)-[r]-(t:Taxon)` still returns **0**, which
+> `tests/test_acceptance.py` asserts. Loading the substances anyway would add
+> 1,350 unconnected nodes; the ones ChEMBL already has cannot be enriched
+> (`drug.csv` is keyed on the ChEMBL id, first row per key wins); MASI's licence
+> is unstated, so `source_licence` would have to be invented on every row; and
+> the one true statement the file supports — MASI's own inclusion criterion,
+> "this substance has at least one experimentally determined microbiota
+> interaction" — names no organism and therefore answers neither D8 nor D18.
+> Profile: `data/raw/masi/PROVENANCE.md`. The two-edge-type requirement above
+> stands for whenever the interaction tables arrive.
 
 ### D9 — "Show me every association for taxon X where the evidence is 16S-only, so I can down-weight it."
 
@@ -1983,9 +2122,11 @@ published findings for both were nonrobust to model specification.
 
 ### D18 — "Is this T2D association a drug effect?" — the metformin confounding check
 
-*Status:* **`partial`** (was `pending-source: MASI`). The competing explanation
-can be *offered* now, for the drugs gutMDisorder curates as interventions and
-ChEMBL knows by name; it cannot be offered for a drug outside those 15.
+*Status:* **`partial`**, unchanged, and unchanged *after* MASI was fetched — the
+download is the substance dictionary and carries no organism at all (D8's note).
+The competing explanation can be *offered* for the drugs gutMDisorder curates as
+interventions and ChEMBL knows by name; it cannot be offered for a drug outside
+those 15.
 *Fields:* D2's, joined to a drug→taxon layer, plus D11's confounder columns.
 
 ```cypher
@@ -2025,7 +2166,8 @@ appears (increased, PMID 27999002) — so the query answers with the taxa this
 corpus happens to have rather than with the ones the confounding literature
 names. That is the second independent argument for MASI (4,001 bacteria→substance
 and 7,770 substance→bacteria pairs, against 24 edges here), and it is why the
-status is `partial` and not `answerable-now`. Verbatim, and unchanged by any of
+status is `partial` and not `answerable-now` — and it is still the argument
+after MASI was fetched, because the download does not contain those pairs. Verbatim, and unchanged by any of
 this: "metformin treatment status could be reliably recovered from microbial
 composition using SVMs, **metformin-untreated T2D status itself could not**".
 Generalised: of 41 drug categories, 19 associated singly with the microbiome and
@@ -2063,23 +2205,36 @@ interactions "naturally unable to predict all organism-specific traits".
 
 | Status | Count | Queries |
 |---|---:|---|
-| `answerable-now` | **10** | D1, D2, D3, D4, D7, D9, D11, D15, D16, D17 |
-| `partial` | **6** | D8, D10, D12, D13, D14, D18 |
-| `pending-source` | **2** | D5, D6 |
+| `answerable-now` | **11** | D1, D2, D3, D4, D6, D7, D9, D11, D15, D16, D17 |
+| `partial` | **7** | D5, D8, D10, D12, D13, D14, D18 |
+| `pending-source` | **0** | — |
 | `descoped` | **2** | D19, D20 |
 | **total** | **20** | |
 
-Which source closes which remaining query: **MiMeDB** → D5 (and D10's and
-D13's metabolite legs); **NJC19** → D6; **MASI** → D8's and D18's drug↔taxon
-layer; **gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's
+**No query is `pending-source` any more, and the reason is not that every
+pending source delivered.** D6 is closed outright by NJC19. D5 moved to
+`partial` — but on NJC19's export half, not on MiMeDB, whose published bulk
+downloads carry no microbe–metabolite association at all; there is no longer a
+*named, fetchable* source that would close it, which is what `pending-source`
+meant, so the honest status is `partial` with the missing leg named.
+
+Which source would close which remaining query: **MiMeDB v2.0's reaction table
+or its per-microbe web export** → D5's enzyme/pathway leg (and D13's), neither
+bulk-downloadable; **MASI's interaction tables** → D8's and D18's drug↔taxon
+layer, and the download on disk is the substance dictionary, not those;
+**gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's
 healthy-prevalence half; **LPSN** → D12's nomenclatural half.
 
-Six sources have landed and moved eight queries. **gutMDisorder** closed D4's
+Eight sources have landed and moved ten queries. **gutMDisorder** closed D4's
 intervention leg; **CARD** closed D7 outright and D10's AMR leg; **HMDB +
 Reactome** moved D13 from `pending-source` to `partial` and gave D5 its first
 578 edges; **ChEMBL**, joined to gutMDisorder's interventions by `IS_DRUG`,
-moved D8 and D18 off `pending-source`. Of the original five `partial` queries,
-**two needed no new source at all** — D11 is closed (three column names
-declared, one more extracted) and D14's non-specificity half already worked.
-Every `partial` above now names the leg that works and the leg that does not,
-and each is a measured number rather than a label.
+moved D8 and D18 off `pending-source`; **NJC19** closed D6, took D5 from 578
+edges to 3,418, and more than doubled D10's metabolite leg (7 candidates → 18);
+**MiMeDB** wrote 935 `Metabolite` nodes and no edges, which is a finding rather
+than a contribution — it is what gives NJC19's cross-reference-free compounds an
+identity to point at. Of the original five `partial` queries, **two needed no
+new source at all** — D11 is closed (three column names declared, one more
+extracted) and D14's non-specificity half already worked. Every `partial` above
+names the leg that works and the leg that does not, and each is a measured
+number rather than a label.

@@ -23,8 +23,8 @@ skills:
 # overview_prefix (re-read on every bare graph_overview).
 instructions: |
   MicrobiomeKG: microbe-disease-metabolite-drug-resistance associations over
-  NCBI taxonomy, from six curated sources (BugSigDB, gutMDisorder, CARD, HMDB,
-  Reactome, ChEMBL). 930,985 nodes, 1,234,745 edges. Read-only.
+  NCBI taxonomy, from eight curated sources (BugSigDB, gutMDisorder, CARD,
+  HMDB, Reactome, ChEMBL, MiMeDB, NJC19). 931,992 nodes, 1,243,661 edges. Read-only.
 
   What makes this graph different from the microbiome KGs it resembles: an
   association edge cannot exist without saying how it was demonstrated. Three

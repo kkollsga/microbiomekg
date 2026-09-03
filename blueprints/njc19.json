@@ -1,0 +1,200 @@
+{
+  "_doc": "NJC19 (Lim et al., Sci Data 7:204, 2020; Dryad doi:10.5061/dryad.dr7sqv9v8, CC0-1.0): the curated transport network. 9,136 rows of Online-only Table 5 become CONSUMES, DEGRADES and NO_EXCHANGE_WITH, plus export events written into the PRODUCES table HMDB declared. CONSUMES is the edge D6's Metabolite Exchange Score MES = 2PC/(P+C) is identically zero without, and the 912 negatives are their own relationship rather than a flag, so no query counts a refutation as an observation by omission. The Metabolite node is declared here as well as in hmdb.json because this source mints nodes for the compounds HMDB has no record of \u2014 macromolecules, mostly, which a metabolome database has no reason to hold.",
+  "nodes": {
+    "Metabolite": {
+      "csv": "metabolite.csv",
+      "pk": "metabolite_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "hmdb_id": "string",
+        "chebi_id": "string",
+        "kegg_id": "string",
+        "pubchem_cid": "int",
+        "inchikey": "string",
+        "status": "string",
+        "biospecimens": "string",
+        "microbial_origin": "bool",
+        "origin": "string",
+        "chemical_formula": "string",
+        "secondary_accessions": "string",
+        "selection_rule": "string",
+        "source": "string"
+      }
+    },
+    "Taxon": {
+      "connections": {
+        "junction_edges": {
+          "PRODUCES": {
+            "csv": "taxon_metabolite.csv",
+            "source_fk": "tax_id",
+            "target": "Metabolite",
+            "target_fk": "metabolite_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "resolution_status",
+              "reported_compound",
+              "metabolite_join",
+              "genus_level_evidence",
+              "reference_ids",
+              "n_references"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "resolution_status": "string",
+              "reported_compound": "string",
+              "metabolite_join": "string",
+              "genus_level_evidence": "bool",
+              "reference_ids": "string",
+              "n_references": "int"
+            }
+          },
+          "CONSUMES": {
+            "csv": "taxon_metabolite_consumed.csv",
+            "source_fk": "tax_id",
+            "target": "Metabolite",
+            "target_fk": "metabolite_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "resolution_status",
+              "reported_compound",
+              "metabolite_join",
+              "genus_level_evidence",
+              "reference_ids",
+              "n_references"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "resolution_status": "string",
+              "reported_compound": "string",
+              "metabolite_join": "string",
+              "genus_level_evidence": "bool",
+              "reference_ids": "string",
+              "n_references": "int"
+            }
+          },
+          "DEGRADES": {
+            "csv": "taxon_metabolite_degraded.csv",
+            "source_fk": "tax_id",
+            "target": "Metabolite",
+            "target_fk": "metabolite_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "resolution_status",
+              "reported_compound",
+              "metabolite_join",
+              "genus_level_evidence",
+              "reference_ids",
+              "n_references"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "resolution_status": "string",
+              "reported_compound": "string",
+              "metabolite_join": "string",
+              "genus_level_evidence": "bool",
+              "reference_ids": "string",
+              "n_references": "int"
+            }
+          },
+          "NO_EXCHANGE_WITH": {
+            "csv": "taxon_metabolite_absent.csv",
+            "source_fk": "tax_id",
+            "target": "Metabolite",
+            "target_fk": "metabolite_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "reported_name",
+              "reported_rank",
+              "original_rank",
+              "resolution_status",
+              "reported_compound",
+              "metabolite_join",
+              "genus_level_evidence",
+              "reference_ids",
+              "n_references"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "reported_name": "string",
+              "reported_rank": "string",
+              "original_rank": "string",
+              "resolution_status": "string",
+              "reported_compound": "string",
+              "metabolite_join": "string",
+              "genus_level_evidence": "bool",
+              "reference_ids": "string",
+              "n_references": "int"
+            }
+          }
+        }
+      }
+    }
+  }
+}

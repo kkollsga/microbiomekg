@@ -28,11 +28,29 @@ did not answer; the exact error is recorded.
 | 9 | gutMDisorder | fetched (Wayback 2020 snapshot) | 2.4 MB | `data/raw/gutmdisorder/` |
 | 10 | PubMed / PubChem | not fetched (by design) | — | — |
 | 11 | MONDO | fetched | 53 MB | `data/raw/mondo/` |
+| 12 | MiMeDB | fetched manually (user, browser) | 53 MB | `data/raw/mimedb/` |
+| 13 | NJC19 | fetched manually (user, browser) | 738 KB | `data/raw/njc19/` |
+| 14 | MASI | fetched manually (user, browser) — **substances only** | 1.3 MB | `data/raw/masi/` |
 
-Total on disk: **7.4 GB** across 65 files. **10 of 11 sources usable; only
+Total on disk: **7.5 GB** across 73 files. **13 of 14 sources usable; only
 Disbiome is blocked** — its origin is down and, unlike gutMDisorder, no archived
 copy of its JSON API has ever existed (Wayback has never captured one, confirmed
 by a domain-wide CDX query; see `data/raw/disbiome/PROVENANCE.md`).
+
+**"Usable" is not "answers the question it was fetched for", and two of the last
+three do not.** The three were fetched to close three named gaps
+(`docs/usecases-and-pitfalls.md` Part B), and the outcome is one for three:
+
+| Source | Fetched to close | What the download turned out to be | Loaded |
+|---|---|---|---|
+| MiMeDB | **D5**, per-taxon metabolite production | two MySQL tables with **no join between them** — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the microbes dump | 935 `Metabolite` nodes, **no edges** |
+| NJC19 | **D6**, consumption / cross-feeding | exactly what it says: 9,136 curated directed events, 912 of them negative | 8,905 edges over 820 taxa — D6 answered |
+| MASI | **D8 / D18**, drug↔taxon | the **substance dictionary** — 1,350 rows, no organism column, no interaction column | nothing |
+
+Each raw directory carries a `PROVENANCE.md` with the file-level profile, the
+column lists, and the measurement behind the middle column. D5 moved anyway —
+NJC19's export half is nearly five times HMDB's whole yield — but it moved on
+the source fetched for D6, not the one fetched for it.
 
 ## Redistribution: what blocks shipping a built graph
 
@@ -60,8 +78,22 @@ Three sources restrict onward distribution. This matters the moment the built
   (`aro.obo` and friends) carry an explicit CC BY 4.0 exception and are safe;
   prefer the ontology bundle over `card.json` wherever both would serve.
 
-NCBI Taxonomy (public domain), Reactome (CC0) and BugSigDB (CC BY 4.0) place no
-obstacle in the way of redistribution.
+**MiMeDB is a fourth restriction: CC BY-NC 4.0**, non-commercial, the same shape
+as HMDB's. It reaches only `Metabolite` nodes (935 of the 8,754), so a
+commercially redistributable cut is one `WHERE m.source <> 'mimedb'` — which is
+only true because `source` is on the node. The licence is **documented upstream
+and not verifiable in-file**: neither dump carries a licence header.
+
+**MASI's licence is genuinely unknown** — unstated in the files and unstated by
+the database, which is a second reason nothing from it was loaded: a
+`source_licence` would have to be invented for every row, and guard G3 only
+works because nobody guesses it.
+
+NCBI Taxonomy (public domain), Reactome (CC0), BugSigDB (CC BY 4.0) and **NJC19
+(CC0-1.0)** place no obstacle in the way of redistribution. NJC19 is the only
+fully unrestricted *association* source in the graph, which is what makes a
+CC0-only subgraph — 8,905 exchange edges over 820 taxa — cuttable on its own
+terms.
 
 ---
 
@@ -363,6 +395,159 @@ identifiers the graph already has.
 If paper *metadata* (title, journal, year) is wanted beyond what BugSigDB already
 carries, fetch it per-PMID from NCBI E-utilities at build time rather than in
 bulk. Both resources are public domain, so nothing here is a licence decision.
+
+## 12. MiMeDB
+
+- **URL** — `https://mimedb.org/downloads` (the CSV and XML dumps). The site
+  answers automated clients with **403**, the same Cloudflare posture HMDB has,
+  so the four files arrived by hand.
+- **Licence** — **CC BY-NC 4.0**, non-commercial. Stated on `mimedb.org` and in
+  the NAR papers; **no licence header, copyright line or terms URL appears in
+  any of the four files**, so it is documented-upstream and unverified-in-file.
+  Treated as binding regardless, and carried per node as `source_licence`.
+- **Format** — two MySQL table dumps, each as CSV and as zipped XML.
+- **Status** — **fetched manually**; profiled in
+  `data/raw/mimedb/PROVENANCE.md`; **loaded as `Metabolite` nodes only.**
+
+| File | Bytes | sha256 | Rows |
+|---|---:|---|---:|
+| `mimedb_metabolites_v1.csv` | 47,064,986 | `38646178…39d7f3c8` | 27,641 |
+| `mimedb_metabolites_v1.xml.zip` | 5,529,818 | `8de2bfa7…6eef32d5` | same rows |
+| `mimedb_microbes_v1.csv` | 861,977 | `fa7c4756…6a9e8ab9` | 2,174 |
+| `mimedb_microbes_v1.xml.zip` | 166,824 | `d4bd4228…4fb58314` | same rows |
+
+The XML headers are the only version statement anywhere in the download, and
+they are precise: a Sequel Ace dump of database `mimedb` taken **2024-03-19**,
+whose queries are `SELECT * FROM metabolites WHERE export = 1` and `SELECT *
+FROM microbes WHERE export = 1`. So this is **v1.0**, not the v2.0 the 2026 NAR
+paper describes.
+
+**The finding: there is no association between the two tables, so this source
+cannot answer D5.** The research document (§1.7) sizes MiMeDB by its *Microbial
+Sources* and *Metabolic Reactions* categories — precursor, product, enzyme,
+enzyme's source organism, reaction type. Neither is in these files. Measured on
+the bytes: the metabolites dump contains the string `MMDBm` **0 times**, the
+microbes dump contains `MMDBc` **0 times** and `metabolite` **0 times**, and
+neither has a precursor, product, enzyme or reaction column. The only column in
+either that looks like a relation is `microbes.activity` — `NULL` on 2,129 of
+2,174 rows, `Production (export)` on 43 — **which names no compound**. Deriving
+an edge from it would manufacture exactly the claim D5 asks for out of a field
+that does not make it, so `scripts/prep_mimedb.py` declares no relationship at
+all and the build report prints `PRODUCES edges from MiMeDB: 0`.
+
+**What it does contribute is compound identity, and it is measurable.** NJC19
+carries no ChEBI, HMDB, KEGG or PubChem id for any of its 283 compounds, so its
+join to the graph is by name; MiMeDB's names are what give some of those
+compounds a node with an InChIKey and a formula instead of a minted stub. 935
+nodes are loaded under a three-rule selection — `observed` (`detected` or
+`quantified` = 1), `origin-classified` (`metabolite_type` filled), and
+`njc19-compound` (a spelling NJC19 uses that **nothing in the graph already
+answers**) — and `Metabolite.selection_rule` records which.
+
+Two identity traps in the `hmdb_id` column, both of which merge distinct
+compounds if taken literally: it holds **both** the padded (`HMDB0003402`) and
+the legacy five-digit (`HMDB03402`) spelling, and after normalising that,
+**149 accessions are claimed by two MiMeDB records each** — `HMDB0000158` by
+both `L-Tyrosine` and `D-Tyrosine`, `HMDB0000598` by `Sulfide` and `Sulfur`. A
+contested accession is not used as a join key. Full details, column lists and
+distributions: `data/raw/mimedb/PROVENANCE.md`.
+
+## 13. NJC19
+
+- **URL** — the Scientific Data article's supplementary file,
+  `https://static-content.springer.com/esm/art%3A10.1038%2Fs41597-020-0516-5/MediaObjects/41597_2020_516_MOESM1_ESM.xlsx`,
+  plus PMC's supplementary bundle for PMC7320173. Data deposit:
+  Dryad doi:10.5061/dryad.dr7sqv9v8.
+- **Licence** — **CC0-1.0**, verified via the Dryad API (recorded in
+  `docs/research/researcher-workflows.md` §1.10). Not verifiable from the files:
+  the xlsx carries no licence sheet or document property. The only fully
+  unrestricted association source in the graph.
+- **Format** — one XLSX worksheet.
+- **Status** — **fetched manually; loaded**, and it is the source that closed
+  D6.
+
+| File | Bytes | sha256 |
+|---|---:|---|
+| `41597_2020_516_MOESM1_ESM.xlsx` | 238,565 | `8ed11149…cd9c2abe` |
+| `PMC7320173_supplementaryFiles.zip` | 516,630 | `e4d349dc…1b1eeec1` |
+
+The zip holds seven entries — the three figures at two resolutions each, and
+`41597_2020_516_MOESM1_ESM.xlsx` **byte-identical to the loose copy**. One
+spreadsheet, not two; the loader reads the loose one.
+
+**`Online-only Table 5`**: 9,141 rows — three legend lines, a blank, a header,
+and **9,136 curated metabolic associations**. Five columns, of which column A is
+empty on every data row (it is the legend's indent). `Species` holds 844
+free-text names with **no taxid**; `Small-molecule metabolite or macromolecule`
+holds 283 names in a `Head (synonym, synonym)` grammar with **no cross-reference
+of any kind**; `Metabolic activity` is a closed seven-value vocabulary; `Ref. #`
+indexes the paper's own Online-only Table 2 and is **not PMIDs**, so no `Paper`
+node is minted.
+
+Three shapes a straight read gets wrong, all three defined by the sheet's own
+legend:
+
+- **912 rows carry a `(-)` marker** — the literature says the activity does
+  *not* occur. Matching the published count exactly. They load as their own
+  relationship, `NO_EXCHANGE_WITH`, rather than a flag on the positive edge.
+- **180 rows carry two activities**, `Consumption (import), Production
+  (export)`, and every one of them also carries a *scoped* reference cell
+  (`import:415, 418;export:417`) so the two literatures stay separable.
+- **`(G)` lives in the reference column, not the species column**, and marks a
+  reference read at genus level. 3,018 rows carry at least one; **2,426 (26.6%)
+  carry nothing else** — a species-filed row whose entire basis is genus-level
+  literature. Every edge carries `genus_level_evidence` (guard G5).
+
+Six `Species` values are **host cell types**, not organisms (`human colonocyte`,
+`human goblet cell`, `human hepatocyte`, `mouse goblet cell`, `mouse
+hepatocyte`, `mouse intestinal cell`) — matching the paper's "838 microbial
+species + 6 host cell types" exactly. They are excluded by name rather than left
+to fail reconciliation, which would file six cell types as six taxa NCBI lost.
+Of the 838 species names, **823 resolve and every one lands at rank `species`**
+(670 exact, 151 synonym, 2 promoted); the 15 that do not are nomenclatural churn
+— eight *Mycoplasma* species from the 2018 split, three *Lactobacillus* species
+from the 2020 one, and two names two taxa share, which are refused rather than
+guessed. Full profile: `data/raw/njc19/PROVENANCE.md`.
+
+## 14. MASI
+
+- **URL** — `https://masi.idrblab.net/` (download page). The site has an
+  **expired TLS certificate**; the two files arrived by hand.
+- **Licence** — **unknown.** No licence line, copyright notice, terms URL or
+  document property in either file, and the database states none
+  (`docs/research/researcher-workflows.md` §1.11: "No separate database
+  license").
+- **Format** — one table, as tab-separated text and as XLSX.
+- **Status** — **fetched manually; NOT loaded.** No prep script, no blueprint
+  fragment, no ontology module.
+
+| File | Bytes | sha256 |
+|---|---:|---|
+| `MASI_v1.0_download_substanceInfo.txt` | 872,454 | `d526701f…631e9fa8` |
+| `MASI_v1.0_download_substanceInfo.xlsx` | 438,118 | `ad8aa6f2…0ba2223d` |
+
+**The two are the same table in two encodings** — 1,350 data rows, the same 18
+columns in the same order — and the filename says what it is: `substanceInfo`.
+It is the **substance dictionary**, and it names **no bacterium anywhere**:
+there is no organism column, no interaction column, no effect, no direction and
+no PubMed id. The two edge sets the research document sizes MASI by
+(bacteria→substance **4,001** pairs, substance→bacteria **7,770**) are in
+neither file.
+
+So **D8 and D18 stay `partial` on exactly the two legs they already had** —
+ChEMBL's drug→bacterial-protein mechanism and gutMDisorder's intervention edge
+joined to ChEMBL by name — and `tests/test_acceptance.py` asserts that, including
+that `MATCH (d:Drug)-[r]-(t:Taxon)` still returns **0**. Loading the substances
+anyway would add 1,350 unconnected nodes; the ones ChEMBL already has cannot be
+enriched, because `drug.csv` is keyed on the ChEMBL id and the first row per key
+wins. The one true statement derivable from the file — "MASI curates at least
+one experimentally determined microbiota interaction for this substance", its
+stated inclusion criterion — names no organism and so answers neither query.
+
+What would close them is MASI's separate interaction downloads, and Part D
+already specifies how they must land: **two edge types, `ALTERS_TAXON` and
+`ALTERS_SUBSTANCE`, never one**, because collapsing them conflates antimicrobial
+killing with drug metabolism. Full profile: `data/raw/masi/PROVENANCE.md`.
 
 ---
 

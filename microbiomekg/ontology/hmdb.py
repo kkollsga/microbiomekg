@@ -72,7 +72,12 @@ that a kingdom heuristic cannot separate two *bacteria*, so `Bacteroidetes` and
 
 from __future__ import annotations
 
-from .vocabulary import register_source
+from .vocabulary import (
+    EXCHANGE_CONTRACT,
+    PRODUCTION_DESCRIPTION,
+    exchange_declaration,
+    register_source,
+)
 
 __all__ = [
     "ASSOCIATION_RELATIONSHIPS",
@@ -165,20 +170,17 @@ def evidence_level(status: str | None) -> str:
 #: What a ``PRODUCES`` edge must carry. Not :data:`EVIDENCE_CONTRACT`: eight of
 #: its fourteen fields describe a differential-abundance observation and would
 #: be structurally empty here, which would move the audit's headline percentage
-#: without anything having gone wrong. Every field below is one this loader
-#: writes itself, so a violation is a bug in the prep and not a gap upstream —
-#: which is what makes the rule able to fail.
-PRODUCTION_CONTRACT: list[str] = [
-    "evidence_level",
-    "knowledge_level",
-    "agent_type",
-    "primary_source",
-    "source_record_id",
-    "source_licence",
-    "source_relation",
-    "reported_name",
-    "hmdb_status",
-]
+#: without anything having gone wrong.
+#:
+#: It is :data:`~microbiomekg.ontology.vocabulary.EXCHANGE_CONTRACT` and not a
+#: list of its own, because ``PRODUCES`` is no longer HMDB's alone: NJC19 writes
+#: export events into the same table, so the required set is the one both
+#: sources can fill. ``hmdb_status`` was the ninth field here and is now a
+#: declared, type-checked, *optional* property — see the note on
+#: ``EXCHANGE_CONTRACT``, and
+#: ``tests/test_hmdb.py::test_every_hmdb_produces_edge_still_carries_its_status``
+#: for the assertion that keeps HMDB writing it.
+PRODUCTION_CONTRACT: list[str] = list(EXCHANGE_CONTRACT)
 
 PRODUCTION_PROPERTY_TYPES: dict[str, str] = {
     "evidence_level": "string",
@@ -206,20 +208,15 @@ CLASSES: dict[str, dict] = {
     },
 }
 
+#: ``PRODUCES`` is declared through the shared builder rather than written out
+#: here, because NJC19 writes export events into the same table and a fragment
+#: whose ``description`` differed from the other author's would be a
+#: :class:`~microbiomekg.fragments.FragmentConflict`. What this source adds is
+#: the six columns only it can fill.
 RELATIONSHIPS: dict[str, dict] = {
-    "PRODUCES": {
-        "domain": "Taxon",
-        "range": "Metabolite",
-        "required_properties": PRODUCTION_CONTRACT,
-        "property_types": PRODUCTION_PROPERTY_TYPES,
-        # `warn` for the same reason the association contract uses it — the
-        # build report is where a completeness number belongs — but unlike that
-        # one this rule *should* sit at zero, because every field is written
-        # here rather than read from upstream. tests/test_hmdb.py asserts it.
-        "enforcement": {"required_properties": "warn", "property_types": "error"},
-        "description": "An organism HMDB names as a source of this metabolite. "
-        "One edge per (metabolite, organism term); the organism is free text in "
-        "the source and carries no taxid, so `reported_name` is what was said "
-        "and the edge's endpoint is what it resolved to.",
-    },
+    "PRODUCES": exchange_declaration(
+        PRODUCTION_DESCRIPTION,
+        {k: v for k, v in PRODUCTION_PROPERTY_TYPES.items()
+         if k not in EXCHANGE_CONTRACT},
+    ),
 }

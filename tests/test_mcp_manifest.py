@@ -74,7 +74,7 @@ def test_selftest_passes_against_the_manifest():
     # above. These are the capabilities it must have found.
     assert "✓ graph tools registered" in output, output
     assert "✓ graph hydrates" in output, output
-    assert "930985 node(s)" in output, output
+    assert "931992 node(s)" in output, output
 
 
 def test_server_is_read_only():
@@ -90,7 +90,7 @@ def test_server_is_read_only():
             client.call("cypher_query", {"query": "CREATE (n:Taxon {id: -1, scientific_name: 'x'})"})
         assert "writable" in str(excinfo.value).lower(), excinfo.value
         # And the graph is untouched: the refusal is a refusal, not a rollback.
-        assert "864099" in client.call(
+        assert "864110" in client.call(
             "cypher_query", {"query": "MATCH (t:Taxon) RETURN count(t) AS c"}
         )
 

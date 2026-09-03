@@ -1,0 +1,30 @@
+{
+  "_doc": "MiMeDB v1.0 (mimedb_metabolites_v1.csv / mimedb_microbes_v1.csv, dumped 2024-03-19; CC BY-NC 4.0): Metabolite nodes and NOTHING ELSE. The two bulk downloads are one MySQL table each and the join between them is in neither - zero MMDBm ids in the metabolites dump, zero MMDBc ids in the microbes dump - so this source cannot write the Taxon-[:PRODUCES]->Metabolite edge D5 is waiting for, and it declares no relationship rather than deriving one from the microbes table's compound-less `activity` column. What it contributes is compound identity: the names that let 32 of NJC19's 90 otherwise-unidentified exchange compounds reach a real node. See microbiomekg/ontology/mimedb.py for the measurement and the two identity traps in the hmdb_id column.",
+  "nodes": {
+    "Metabolite": {
+      "csv": "metabolite.csv",
+      "pk": "metabolite_id",
+      "title": "name",
+      "properties": {
+        "name": "string",
+        "hmdb_id": "string",
+        "chebi_id": "string",
+        "kegg_id": "string",
+        "pubchem_cid": "int",
+        "inchikey": "string",
+        "status": "string",
+        "biospecimens": "string",
+        "microbial_origin": "bool",
+        "origin": "string",
+        "chemical_formula": "string",
+        "secondary_accessions": "string",
+        "selection_rule": "string",
+        "source": "string",
+        "mimedb_id": "string",
+        "mimedb_origin": "string",
+        "cas": "string",
+        "average_mass": "float"
+      }
+    }
+  }
+}

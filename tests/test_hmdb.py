@@ -637,6 +637,27 @@ def test_the_production_contract_is_a_rule_that_can_fail(graph):
     assert "evidence_level" in PRODUCTION_CONTRACT
 
 
+def test_every_hmdb_produces_edge_still_carries_its_status(graph):
+    """`hmdb_status` left `PRODUCTION_CONTRACT` when NJC19 became the second
+    author of the `PRODUCES` table — a required property only one of two
+    sources can write turns the other's every edge into a violation of a rule
+    meant to read zero. The guarantee did not go anywhere, it moved here, which
+    is where a source-specific field's guarantee belongs: the contract is what
+    both authors owe, and this is what *this* author owes."""
+    assert "hmdb_status" not in PRODUCTION_CONTRACT
+    statuses = [
+        r["status"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:PRODUCES]->() WHERE r.primary_source = 'hmdb' "
+            "RETURN r.hmdb_status AS status",
+        )
+    ]
+    assert len(statuses) == PRODUCES_EDGES
+    assert all(statuses), "an HMDB production edge with no detection status"
+    assert set(statuses) <= {"expected", "predicted", "detected", "quantified"}
+
+
 def test_no_rule_this_source_declares_audits_nothing(graph):
     """A rule with a zero denominator is a gate that cannot fail.
 

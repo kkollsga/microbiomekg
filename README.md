@@ -6,9 +6,12 @@ papers) but with the *evidence model* as the point: every association edge
 carries study design, direction, sample size and the citing paper, and the
 ontology audit reports what fraction of edges lack evidence.
 
-Six sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome and
-ChEMBL, over NCBI taxonomy. KEGG has a loader and is **off by default** —
-`--with-kegg` — because its licence forbids redistributing a graph carrying it.
+Eight sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome, ChEMBL,
+MiMeDB and NJC19, over NCBI taxonomy. KEGG has a loader and is **off by
+default** — `--with-kegg` — because its licence forbids redistributing a graph
+carrying it. MASI was fetched and is **not** loaded: its download is the
+substance dictionary and names no organism, so nothing in it can become an edge
+(`docs/sources.md` §14).
 
 Layout:
 

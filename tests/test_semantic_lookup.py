@@ -116,7 +116,7 @@ def test_the_stores_are_the_two_the_build_declares(graph):
         (store["node_type"], store["text_column"]): store for store in graph.list_embeddings()
     }
     assert set(stores) == {("Taxon", "scientific_name"), ("Disease", "label")}
-    assert stores[("Taxon", "scientific_name")]["count"] == 864099
+    assert stores[("Taxon", "scientific_name")]["count"] == 864110
     assert stores[("Disease", "label")]["count"] == 808
     for store in stores.values():
         assert store["dimension"] == 256

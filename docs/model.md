@@ -147,6 +147,16 @@ joined with `|` when several did, so `WHERE m.selection_rule = 'feces'` counts
 the rule rather than trusting this paragraph. `status` rides on the node for
 the same reason: it is what makes "measured or predicted" a filter.
 
+**Three sources write `Metabolite` nodes, and `source` says which.** 8,754 in
+total: HMDB 7,773, MiMeDB 935, NJC19 46. MiMeDB's are compounds no HMDB record
+holds, under their own selection rule (§"MiMeDB" below); NJC19's are the 46 of
+its 283 compounds nothing else holds at all — mostly macromolecules
+(`Mucin`, `Xylan`, `Arabinogalactan`) and ions and gases, which a *human
+metabolome* database has no reason to carry. `microbial_origin` stays HMDB's
+claim and only HMDB's: "an organism exchanges this compound" is a different
+assertion from "this compound is of microbial origin", and pectin is a plant
+polymer.
+
 **The key is ChEBI where HMDB has one.** ChEBI is the identity the rest of the
 increment joins on — Reactome's compound file is ChEBI ids and nothing else —
 so a metabolite that has one is keyed on it. The consequence is that HMDB's
@@ -236,7 +246,10 @@ per taxon (BugSigDB does not).
 | `CONFERS_RESISTANCE_TO` | `ResistanceGene` → `DrugClass` | **CARD's eight-property contract** |
 | `VIA_MECHANISM` | `ResistanceGene` → `ResistanceMechanism` | **the same eight** |
 | `CARRIES_RESISTANCE_GENE` | `Taxon` → `ResistanceGene` | **the same eight**, plus what the taxid means |
-| `PRODUCES` | `Taxon` → `Metabolite` | **HMDB's nine-property production contract** |
+| `PRODUCES` | `Taxon` → `Metabolite` | **the eight-property exchange contract** (HMDB and NJC19 share it) |
+| `CONSUMES` | `Taxon` → `Metabolite` | **the same eight** |
+| `DEGRADES` | `Taxon` → `Metabolite` | **the same eight** |
+| `NO_EXCHANGE_WITH` | `Taxon` → `Metabolite` | **the same eight** — a curated *refutation* |
 | `IN_PATHWAY` | `Metabolite` → `Pathway` | **a seven-property pathway contract**, plus `evidence_code` |
 | `PART_OF_PATHWAY` | `Pathway` → `Pathway` | — (sub-pathway pointer, `ancestry`, a **DAG**) |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
@@ -548,12 +561,18 @@ is kept when its species failed. Two terms of one metabolite that reach the
 beside its correctly spelled sibling and `str.casefold` folds U+FB01 to `fi`, so
 both resolve to 1678 — and the loser is filed with its reason.
 
-**The contract is nine properties, not the shared fourteen**, for CARD's
+**The contract is eight properties, not the shared fourteen**, for CARD's
 reason: `direction`, `sequencing_type` and the two group sizes describe a
 differential-abundance observation and a production claim is not one. What is
-declared is `evidence_level`, `hmdb_status`, `reported_name` and the six
-provenance fields — every one written by this loader rather than read from
-upstream, so the rule sits at zero and *can* move. `knowledge_level` is
+declared is `evidence_level`, `reported_name` and the six provenance fields —
+every one written by a loader rather than read from upstream, so the rule sits
+at zero and *can* move. It was **nine** until NJC19 started writing rows into
+the same table: `hmdb_status` is HMDB's detection status, NJC19 has no column
+that could fill it, and a required field only one author can write turns the
+other author's every edge into a violation of a rule meant to read zero. It is
+still declared, still type-checked, and still written on all 578 HMDB edges —
+`tests/test_hmdb.py` asserts that separately, which is where a
+source-specific field's guarantee belongs. `knowledge_level` is
 `knowledge_assertion` on all 224 and `agent_type` is `manual_agent`: the
 annotation is a person's entry in a hand-built tree whatever the compound's
 detection status. What the status changes is `evidence_level` — `in-vitro` where
@@ -564,6 +583,186 @@ folding them would make `prediction` mean "nobody has run the assay yet".
 beside it, and HMDB mints **no `Paper` node**: its references are free-text
 citation strings, so a minted node would have no title, which is what
 `paper.csv` is keyed and BM25-indexed on.
+
+### NJC19 — the consumption edge, and the conjugate join that makes it count
+
+**8,905 edges over 820 taxa and 241 compounds: `CONSUMES` 4,784, `PRODUCES`
+2,840, `NO_EXCHANGE_WITH` 894, `DEGRADES` 387.** This is the only source in the
+graph that says an organism *takes a compound up*, and D6's Metabolite Exchange
+Score — **MES = 2·P·C / (P + C)** — is identically zero for every metabolite
+while the consumer count is. 96 metabolites now carry both halves.
+
+**`PRODUCES` is one relationship with two authors.** NJC19's export events go
+into `taxon_metabolite.csv`, the file HMDB wrote, because a blueprint junction
+entry names one relationship, one CSV and one target type (§8) — so a second
+source's production claim is a *row*, not a second relationship
+(`microbiomekg.tables`). `primary_source` is what tells them apart and it is on
+every edge. The one thing that had to change to allow it: **`hmdb_status` left
+the required contract.** It was the ninth property of `PRODUCTION_CONTRACT`,
+NJC19 has no column that could fill it, and leaving it required would have made
+every NJC19 edge a violation of a rule designed to read zero — an audit number
+meaning "a second source landed" rather than "evidence is missing". The
+remaining eight are
+`microbiomekg.ontology.vocabulary.EXCHANGE_CONTRACT`, every one written by a
+prep rather than read from upstream, so the rule still sits at zero and still
+*can* move. `hmdb_status` stays declared and type-checked as an optional
+property, and `tests/test_hmdb.py` asserts HMDB still writes it on all 578 of
+its own.
+
+**The compound side is free text with no cross-reference of any kind** — no
+ChEBI, HMDB, KEGG, PubChem or InChIKey on any of the 283 compounds — so every
+one is joined to an existing `Metabolite` by name, and `metabolite_join` records
+the route: `exact` (131 compounds), `conjugate` (33), `synonym` (13), `stereo`
+(8), `synonym-conjugate` (5), `stereo-conjugate` (4), `synonym-stereo` (1), and
+`minted` (46) for what nothing holds.
+
+**The conjugate route is the whole reason D6 has a non-zero answer.** HMDB
+records `Acetic acid` and `Butyric acid`; NJC19 says `Acetate` and `Butyrate`.
+Without the `-ate` ↔ `-ic acid` step the consumers land on minted nodes, the
+producers stay on HMDB's, and MES is 0 for both halves of every short-chain
+fatty acid in the graph — which is precisely the trap D5's "key note" already
+recorded for CHEBI:17968 vs CHEBI:30772, arriving a second time from the other
+side. Butyrate's producer count went from 6 to **109** because the join reaches
+CHEBI:30772; had it not, 103 producers would sit on a node nobody queries.
+
+**But the source's own spelling is tried first, so a real conjugate split
+survives as two nodes.** `Formate` reaches CHEBI:15740 because the graph holds a
+node with that exact name, while HMDB's 10 formate producers sit on
+`Formic acid` (CHEBI:30751). Both nodes therefore carry a partial picture. That
+is deliberate: ChEBI holds the acid and the base as two terms, this graph keys
+`Metabolite` on ChEBI, and silently merging them would be an identity claim the
+project has not made. `metabolite_join = 'exact'` is what says it happened, and
+it is countable.
+
+**912 negatives, kept as their own relationship.** `NO_EXCHANGE_WITH` rather
+than a flag on the positive edge, because a refutation stored as a property is
+counted as an observation by every query that does not know to exclude it — and
+nothing in the query text would say so. `source_relation` names which activity
+was refuted (`import-negative` 720, `degrade-negative` 87, `export-negative` 87);
+894 of the 912 survive, and the 18 that do not sit on rows whose organism is a
+host cell type or a taxon NCBI renamed, each a ledger row in
+`unresolved_exchange.csv`.
+
+**Three shapes the sheet's own legend defines, and all three are load-bearing.**
+180 rows carry two activities and a *scoped* reference cell
+(`import:415, 418;export:417`), so each direction keeps its own literature.
+2,426 rows (26.6%) stand on nothing but `(G)`-marked references — a species-filed
+row whose entire basis was read at genus level — and `genus_level_evidence` is
+the boolean guard G5 needs. Six `Species` values are **host cell types**, not
+organisms, and are excluded by name: letting them fail reconciliation writes six
+`UnresolvedTaxon` tombstones, each asserting NCBI has lost a taxon, which is a
+false statement about the taxonomy arrived at by doing nothing.
+
+**The organism column is the cleanest of any source here.** 823 of 838 species
+names resolve and **every one lands at rank `species`** — unlike HMDB's
+mixed-rank organism strings, which is why `EXCHANGE_RANK_CEILING` (`genus`) is a
+guard against a promotion surprise rather than a working filter. The 15 that do
+not are nomenclatural churn, and they become tombstones.
+
+> **The replication count is no longer 1, and both reasons are correct
+> behaviour.** D5's stated required qualifier was that
+> `count(DISTINCT p.source_record_id)` per (taxon, metabolite) pair is 1. It
+> reaches **3** now: 43 pairs carry more than one record, because HMDB and NJC19
+> independently curate the same production (29 pairs — the cross-source
+> corroboration this relationship has never had before), and because several
+> NJC19 species strings promote onto one NCBI species (*Thermoanaerobacter
+> thermohydrosulfuricus*, *T. indiensis* and *T. ethanolicus* are three curated
+> rows under one node). `reported_name` keeps every source string, so the
+> collapse is inspectable; a pair carrying more records than distinct
+> (source, organism string, compound string) triples *would* be double-counting,
+> and `tests/test_acceptance.py` asserts none does.
+
+### MiMeDB — a source that writes no edge, and why that is the finding
+
+**935 `Metabolite` nodes and nothing else. No `PRODUCES`, no relationship of any
+kind.** MiMeDB was fetched to close D5 — per-taxon metabolite production — and
+the published bulk downloads cannot: they are one MySQL table each (`SELECT *
+FROM metabolites`, 27,641 rows; `SELECT * FROM microbes`, 2,174 rows) and the
+join between them is in neither. Measured on the bytes: **zero `MMDBm` ids in
+the metabolites dump, zero `MMDBc` ids in the microbes dump**, and no precursor,
+product, enzyme, reaction or source-organism column anywhere. The only column
+that looks like a relation is `microbes.activity`, `Production (export)` on 43
+rows, **naming no compound**. `microbiomekg.ontology.mimedb.RELATIONSHIPS` is
+`{}` and `tests/test_mimedb.py` asserts the zero, so an edge appearing here
+later is a deliberate change rather than an accident.
+
+The microbes table is read anyway and reported, never loaded: **all 2,174 rows
+carry an NCBI taxid** and resolve 1,267 exact / 899 promoted / 8 merged / 0
+unresolved — the cleanest organism column of any source profiled for this
+project, attached to nothing. Quoting it is what separates "MiMeDB does not
+close D5" from "MiMeDB has nothing"; loading it would add 2,174 unconnected
+`Taxon` nodes.
+
+**What it contributes is compound identity for a source that has none.** NJC19's
+compounds carry no cross-reference, so a compound HMDB does not hold becomes a
+minted `NJC19:` stub with no InChIKey and no formula. MiMeDB's names close some
+of those: `Pectin`, `Chitin`, `Inulin`, `Stachyose`, `Menaquinone` and others
+reach a node with a structure. 25 of the metabolites NJC19's edges land on are
+MiMeDB's, over 279 edges. That is the measurable contribution, and it is the
+reason `SELECTION_RULES` has an `njc19-compound` rule at all.
+
+**The selection rule, because 44% of the file is glycerophospholipids.** A
+record is loaded when it is `observed` (`detected` or `quantified` = 1),
+`origin-classified` (`metabolite_type` filled — `Co-metabolite` 660, `Primary`
+47, MiMeDB's only evidence-graded axis), or `njc19-compound`. `predicted` is
+effectively empty in this dump (`NULL` on 27,567 rows), so the 23.1M
+BLAST-propagated pathways the research document warns about are **not here**;
+there is no predicted layer to keep separate.
+
+**The `njc19-compound` rule carries a second condition that is not tidiness.**
+A record qualifies only if **no spelling of that compound already reaches a
+node**. Without it, MiMeDB mints a node for a compound the graph holds under a
+different name and NJC19 then prefers the new one: measured, on `Propanoate
+(Propionate)`, which HMDB holds as `Propionic acid` (CHEBI:30768) and MiMeDB
+names `propanoic acid`. The head name's conjugate is tried before any synonym,
+so the MiMeDB node won, and **97 NJC19 propionate producers landed on a node
+HMDB's 12 were not on** — one compound, two nodes, and D6's MES computed over
+half its evidence each side. That is the exact failure the conjugate rule exists
+to prevent, re-introduced by the source meant to help.
+
+**Two identity traps in `hmdb_id`, both of which merge distinct compounds.** It
+holds *both* the padded (`HMDB0003402`) and the legacy five-digit (`HMDB03402`)
+spelling, so a literal join misses every legacy id silently — which reads as
+"MiMeDB has no HMDB id for this". And after normalising the padding, **149
+accessions are claimed by two MiMeDB records each**: `HMDB0000158` by both
+`L-Tyrosine` and `D-Tyrosine`, `HMDB0000598` by `Sulfide` and `Sulfur`,
+`HMDB0000208` by `Oxoglutaric acid` and `alpha-Ketoglutarate`. A contested
+accession is **not a join key** — both records keep their own `MIMEDB:`
+identity, and the ledger says why. That is the rule `reconcile` already applies
+to an ambiguous organism name, applied to a compound.
+
+A record whose compound the graph already holds is **not written at all**, and
+"already holds" is tested three ways in order: the normalised accession, the
+**full** InChIKey (never its first block — block 2 is stereochemistry, isotopes
+and protonation, so a skeleton match folds `D-` onto `L-`), then the casefolded
+name. `Writer` keys `metabolite.csv` on `metabolite_id` and the first row per
+key wins, so a merged row's properties would be discarded silently — an outcome
+that reads like a successful join in the row count and is not one. Each skip is
+a row in `data/csv/unresolved_mimedb.csv` naming the node that won.
+
+**Licence: CC BY-NC 4.0**, on the node rather than the graph, so a commercially
+redistributable cut is one `WHERE m.source <> 'mimedb'`.
+
+### MASI — profiled, and deliberately not loaded
+
+**Nothing from MASI is in the graph.** The download
+(`MASI_v1.0_download_substanceInfo.{txt,xlsx}`, the same 1,350-row table twice)
+is the **substance dictionary**: 18 columns, no organism column, no interaction
+column, no effect, no direction, no PMID. The 4,001 bacteria→substance and 7,770
+substance→bacteria pairs the research document sizes MASI by are in neither
+file. So there is no prep script, no blueprint fragment and no ontology module,
+and D8 and D18 stay `partial` on the two legs they already had.
+
+The guard written when MASI was still `pending-source` still holds and is still
+asserted: `MATCH (d:Drug)-[r]-(t:Taxon)` returns **0**. Loading the substances
+regardless would add 1,350 unconnected nodes, the ones ChEMBL already has cannot
+be enriched (`drug.csv` is keyed on the ChEMBL id, first row per key wins), the
+licence is unstated so `source_licence` would have to be invented, and the one
+true statement the file supports — "MASI curates at least one experimentally
+determined interaction for this substance" — names no organism and therefore
+answers neither query. `data/raw/masi/PROVENANCE.md` carries the column-level
+profile; Part D's D8 records how the interaction tables must land if they ever
+arrive (**`ALTERS_TAXON` and `ALTERS_SUBSTANCE`, two types, never one**).
 
 ### Reactome and KEGG — a DAG, an evidence code, and a build flag
 

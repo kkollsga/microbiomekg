@@ -23,6 +23,9 @@ __all__ = [
     "EVIDENCE_LEVELS",
     "EVIDENCE_LEVEL_VALUES",
     "EVIDENCE_PROPERTY_TYPES",
+    "EXCHANGE_CONTRACT",
+    "EXCHANGE_PROPERTY_TYPES",
+    "PRODUCTION_DESCRIPTION",
     "KNOWLEDGE_LEVELS",
     "NON_HOST_SPECIES",
     "OBSERVATIONAL_BY_SEQUENCING",
@@ -31,6 +34,7 @@ __all__ = [
     "agent_type",
     "association_declaration",
     "evidence_level",
+    "exchange_declaration",
     "knowledge_level",
     "split_study_designs",
 ]
@@ -287,6 +291,77 @@ EVIDENCE_PROPERTY_TYPES: dict[str, str] = {
     "source_licence": "string",
     "source_relation": "string",
 }
+
+#: What a `Taxon` -> `Metabolite` **exchange** edge must carry, whichever source
+#: wrote it. `PRODUCES` is the shared table two sources now write rows into —
+#: HMDB's ontology annotation and NJC19's curated export events — so the
+#: required set has to be the set *both* can fill. It is the schema survey's
+#: §5(b) provenance block plus `evidence_level` and the organism string the
+#: source actually said, and every one of the eight is written by a prep rather
+#: than read from upstream, so the rule sits at zero and a violation is a bug
+#: here (which is what makes it able to fail).
+#:
+#: **`hmdb_status` used to be the ninth and is not any more.** It is HMDB's
+#: detection status and NJC19 has no column that could fill it; leaving it
+#: required would have made every NJC19 `PRODUCES` edge a violation of a rule
+#: that was meant to read zero, i.e. an audit number that means "a second
+#: source landed" rather than "evidence is missing". It stays a declared,
+#: type-checked property, and `tests/test_hmdb.py` asserts HMDB still writes it
+#: on every edge of its own.
+EXCHANGE_CONTRACT: list[str] = [
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
+    "reported_name",
+]
+
+#: Declared types for :data:`EXCHANGE_CONTRACT`. All strings: the eight are
+#: identifiers and vocabulary values, never counts.
+EXCHANGE_PROPERTY_TYPES: dict[str, str] = {field: "string" for field in EXCHANGE_CONTRACT}
+
+
+def exchange_declaration(description: str, extra_property_types: dict | None = None) -> dict:
+    """One ``Taxon`` -> ``Metabolite`` exchange relationship declaration.
+
+    Here rather than in a source module because ``PRODUCES`` has two authors:
+    HMDB's ontology annotation and NJC19's curated export events land in one
+    table, so both fragments have to declare the *same* relationship. Fragment
+    merging unions a property-type dict and raises on a contradicting scalar
+    (``description`` is the scalar that would contradict), so the shape both
+    sources agree on is built once here and each passes only what it adds.
+    """
+    return {
+        "domain": "Taxon",
+        "range": "Metabolite",
+        "required_properties": list(EXCHANGE_CONTRACT),
+        "property_types": {**EXCHANGE_PROPERTY_TYPES, **(extra_property_types or {})},
+        # The same split the association contract uses and for the same reason:
+        # a completeness number belongs in the build report, so
+        # `required_properties` warns; `property_types` is ours to write, so a
+        # violation there is a bug here and errors. Unlike the association rule
+        # this one *should* read zero — every field is written by a prep — and
+        # each source's test asserts that it does.
+        "enforcement": {"required_properties": "warn", "property_types": "error"},
+        "description": description,
+    }
+
+
+#: The description ``PRODUCES`` carries, written for both its authors. HMDB's
+#: half is an organism named in a hand-built origin ontology; NJC19's is an
+#: export event read out of a paper. `primary_source` is what separates them,
+#: and it is on every edge.
+PRODUCTION_DESCRIPTION: str = (
+    "An organism a source names as making this metabolite: HMDB's "
+    "microbial-origin annotation, or NJC19's curated export event. One edge per "
+    "(metabolite, organism, source record); the organism is free text in both "
+    "sources and carries no taxid, so `reported_name` is what was said and the "
+    "edge's endpoint is what it resolved to."
+)
+
 
 #: The relationships that carry the evidence contract, **named** rather than
 #: inferred. `tests/test_ontology.py` used to work out which relationships were
