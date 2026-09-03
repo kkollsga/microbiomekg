@@ -26,12 +26,13 @@ liability. The scratch holds ~1.7 GB (a 240 MB CSV set, and one `.kgl` per
 index stage — eleven of them, the last three at 212 MB); nothing prunes it, so
 `rm -rf` it when you are done.
 
-The one repo file a capture does rewrite is `blueprint.json`, because
-`scripts/build.py` always composes it from `blueprints/*.json`. It is a pure
-function of those fragments, so a capture on a clean tree leaves it byte
-identical — but check `git status` after a capture: one taken while someone is
-editing a fragment will materialise *their* in-flight edit into
-`blueprint.json`. That happened during the 2026-09-03 capture.
+A capture rewrites nothing in the repo. It used to rewrite `blueprint.json`
+— the build composed it on every run, and a capture taken while someone was
+editing a fragment materialised their in-flight edit into it (that happened
+during the 2026-09-03 capture) — but since the package relocation the build
+composes only the load copy beside the CSVs, and `make gate` is what checks
+the tracked file. Still read `git status` back after a capture: the habit is
+cheaper than the one time it is not clean.
 
 **Do not run a capture while another build is running.** Two builds on one
 machine measure the contention, not the build. The harness cannot detect this
@@ -65,7 +66,7 @@ after the 2026-09-03 capture): `scripts/build.py` builds it only under
 82.6 s shorter, writing a 46.7 MB `.kgl` rather than 212.7 MB. Reproduce the
 2026-09-03 capture's build section with `--build-args --with-vectors`. The
 `index` and `saveload` sections are unaffected: they stage every index
-themselves, both lanes, from `build.TEXT_INDEXES` and `build.VECTOR_INDEXES`,
+themselves, both lanes, from `pipeline.TEXT_INDEXES` and `pipeline.VECTOR_INDEXES`,
 and are what §3 and §4's default-vs-flagged numbers come from.
 
 ## Where the query cells come from
@@ -88,7 +89,7 @@ Consequences worth knowing:
   with the engine's message. A silently missing cell would be the one thing
   worse than a slow one.
 - **Three reconciliation cells come from
-  `mcp/microbiomekg.skills/reconciliation.md`**, not from Part D. D12's own
+  `microbiomekg/mcp/microbiomekg.skills/reconciliation.md`**, not from Part D. D12's own
   fenced block is the *lexical* half of the lookup; the misspelling case —
   BM25 fused with the two vector lanes — is authored in the skill, which
   `docs/model.md` §6b names as its authority. **Those three need a graph built
@@ -100,7 +101,7 @@ Consequences worth knowing:
   2× rule that keeps a control honest applies to a query too: a point lookup at
   1.8 µs against a 1.0 µs floor is reporting the cost of *asking*, and quoting
   it as the lookup's cost would claim more than the instrument can support.
-- **The graph gets an embedder before any query runs.** `mcp/microbiomekg_mcp.yaml`
+- **The graph gets an embedder before any query runs.** `microbiomekg/mcp/microbiomekg_mcp.yaml`
   registers `microbiomekg.embedder:build` under `extensions.embedder`, so the
   served graph has one; without it every `text_score()` cell raises instead of
   being measured.

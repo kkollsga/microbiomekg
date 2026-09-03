@@ -1,0 +1,383 @@
+{
+  "meta": {
+    "captured": "2026-09-03 21:58:13+0200",
+    "source_set": "release-train",
+    "machine": "Mac16,10",
+    "cpu": "Apple M4",
+    "memory_gb": 16.0,
+    "os": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.3",
+    "kglite": {
+      "version": "0.16.22",
+      "wheel_tag": "cp310-abi3-macosx_11_0_arm64",
+      "path": "/Volumes/EksternalHome/Koding/Python/MicrobiomeKG/.venv/lib/python3.14/site-packages/kglite"
+    },
+    "git_head": "a5fe6d8 docs: queries by task \u2014 one Cypher statement per endpoint group, gated twice",
+    "git_dirty_paths": 2,
+    "loadavg_start": [
+      11.67724609375,
+      11.1728515625,
+      10.6923828125
+    ],
+    "note": "Release-train cost gate (feat/release-train, after the package relocation: preps run as -m microbiomekg.preps.<name>, blueprint no longer rewritten by the build). Taken under a heavy unrelated background load (1-minute load average ~11 on 10 cores at start, from processes outside this repo); the control cells price it. Build with --with-vectors to compare like-for-like with the 2026-09-03 ten-sources capture; this graph has eleven sources (MASI added).",
+    "query_graph": {
+      "path": "/Volumes/EksternalHome/Koding/Python/MicrobiomeKG/graph/microbiomekg.kgl",
+      "bytes": 49286732,
+      "mtime": "2026-09-03 21:35:09",
+      "load_seconds": 1.3334902079950552,
+      "nodes": 934206,
+      "edges": 1324684,
+      "primary_sources": [
+        "bugsigdb",
+        "card",
+        "chembl",
+        "gutmdisorder",
+        "hmdb",
+        "maier2018",
+        "masi",
+        "njc19",
+        "reactome",
+        "zimmermann2019"
+      ]
+    },
+    "loadavg_end": [
+      20.15087890625,
+      14.39453125,
+      12.09521484375
+    ],
+    "harness_seconds": 368.2699184999947
+  },
+  "sections": {
+    "build": {
+      "returncode": 0,
+      "sources_loaded": "bugsigdb, card, gutmdisorder, hmdb, chembl, mimedb, reactome, maier2018, njc19, zimmermann2019, masi",
+      "wall_seconds": 365.1039176669874,
+      "segments": [
+        {
+          "segment": "startup",
+          "start_s": 0.0,
+          "seconds": 0.07686362499953248
+        },
+        {
+          "segment": "prep_bugsigdb.py",
+          "start_s": 0.07686362499953248,
+          "seconds": 10.58520391699858
+        },
+        {
+          "segment": "prep_card.py",
+          "start_s": 10.662067541998113,
+          "seconds": 7.976174208000884
+        },
+        {
+          "segment": "prep_gutmdisorder.py",
+          "start_s": 18.638241749998997,
+          "seconds": 10.656341291993158
+        },
+        {
+          "segment": "prep_hmdb.py",
+          "start_s": 29.294583041992155,
+          "seconds": 81.41728295800567
+        },
+        {
+          "segment": "prep_chembl.py",
+          "start_s": 110.71186599999783,
+          "seconds": 9.415723708996666
+        },
+        {
+          "segment": "prep_kegg.py",
+          "start_s": 120.12758970899449,
+          "seconds": 0.05728845800331328
+        },
+        {
+          "segment": "prep_mimedb.py",
+          "start_s": 120.1848781669978,
+          "seconds": 8.301550207994296
+        },
+        {
+          "segment": "prep_reactome.py",
+          "start_s": 128.4864283749921,
+          "seconds": 12.479341124999337
+        },
+        {
+          "segment": "prep_maier2018.py",
+          "start_s": 140.96576949999144,
+          "seconds": 8.300703542001429
+        },
+        {
+          "segment": "prep_njc19.py",
+          "start_s": 149.26647304199287,
+          "seconds": 8.001013667002553
+        },
+        {
+          "segment": "prep_zimmermann2019.py",
+          "start_s": 157.26748670899542,
+          "seconds": 65.5466170830041
+        },
+        {
+          "segment": "prep_masi.py",
+          "start_s": 222.81410379199951,
+          "seconds": 10.38214233299368
+        },
+        {
+          "segment": "prep_taxonomy.py",
+          "start_s": 233.1962461249932,
+          "seconds": 15.873448875005124
+        },
+        {
+          "segment": "blueprint",
+          "start_s": 249.06969499999832,
+          "seconds": 0.00559975000214763
+        },
+        {
+          "segment": "ontology",
+          "start_s": 249.07529475000047,
+          "seconds": 0.0048127499903785065
+        },
+        {
+          "segment": "from_blueprint",
+          "start_s": 249.08010749999085,
+          "seconds": 3.109086791999289
+        },
+        {
+          "segment": "bm25_indexes",
+          "start_s": 252.18919429199013,
+          "seconds": 0.31244312500348315
+        },
+        {
+          "segment": "vector_indexes",
+          "start_s": 252.50163741699362,
+          "seconds": 109.50252554200415
+        },
+        {
+          "segment": "report",
+          "start_s": 362.00416295899777,
+          "seconds": 2.916158790991176
+        },
+        {
+          "segment": "save",
+          "start_s": 364.92032174998894,
+          "seconds": 0.18359591699845623
+        }
+      ],
+      "peak_rss_root_mb": 4541.8125,
+      "peak_rss_tree_mb": 4541.8125,
+      "peak_rss_by_segment_mb": {
+        "startup": 5.625,
+        "prep_bugsigdb.py": 2850.078125,
+        "prep_card.py": 2913.0,
+        "prep_gutmdisorder.py": 3158.0,
+        "prep_hmdb.py": 2779.109375,
+        "prep_chembl.py": 2619.015625,
+        "prep_mimedb.py": 2908.703125,
+        "prep_reactome.py": 160.796875,
+        "prep_maier2018.py": 2834.203125,
+        "prep_njc19.py": 2739.40625,
+        "prep_zimmermann2019.py": 4240.0,
+        "prep_masi.py": 3126.5,
+        "prep_taxonomy.py": 3453.359375,
+        "from_blueprint": 1576.234375,
+        "bm25_indexes": 1617.671875,
+        "vector_indexes": 3654.203125,
+        "report": 4541.8125,
+        "save": 3703.71875
+      },
+      "peak_rss_root_by_segment_mb": {
+        "startup": 5.625,
+        "prep_bugsigdb.py": 29.9375,
+        "prep_card.py": 29.890625,
+        "prep_gutmdisorder.py": 16.1875,
+        "prep_hmdb.py": 16.1875,
+        "prep_chembl.py": 14.9375,
+        "prep_mimedb.py": 14.96875,
+        "prep_reactome.py": 14.96875,
+        "prep_maier2018.py": 14.96875,
+        "prep_njc19.py": 14.96875,
+        "prep_zimmermann2019.py": 14.96875,
+        "prep_masi.py": 14.96875,
+        "prep_taxonomy.py": 15.09375,
+        "from_blueprint": 1576.234375,
+        "bm25_indexes": 1617.671875,
+        "vector_indexes": 3654.203125,
+        "report": 4541.8125,
+        "save": 3703.71875
+      },
+      "getrusage_children_peak_mb": 4849.00864,
+      "getrusage_children_peak_before_mb": 8.76544,
+      "csv_dir": "/Volumes/EksternalHome/coding-cache/microbiomekg-bench/csv",
+      "graph": "/Volumes/EksternalHome/coding-cache/microbiomekg-bench/build.kgl",
+      "graph_bytes": 215078912,
+      "csv_rows": {
+        "total_rows": 1395866,
+        "files": 57,
+        "per_file": {
+          "bodysite.csv": 237,
+          "card_model_disagreements.csv": 84,
+          "cited_taxa.csv": 11071,
+          "disease.csv": 826,
+          "drug.csv": 6408,
+          "drug_class.csv": 50,
+          "drug_target.csv": 7018,
+          "drug_taxon_inhibited.csv": 5592,
+          "drug_taxon_no_effect.csv": 42233,
+          "exposure.csv": 43,
+          "intervention.csv": 222,
+          "intervention_drug.csv": 15,
+          "metabolite.csv": 9056,
+          "metabolite_pathway.csv": 36130,
+          "paper.csv": 2529,
+          "pathway.csv": 23604,
+          "pathway_pathway.csv": 23717,
+          "phenotype.csv": 62,
+          "protein_target.csv": 1518,
+          "protein_target_taxon.csv": 1493,
+          "resistance_gene.csv": 6451,
+          "resistance_gene_drug_class.csv": 13691,
+          "resistance_gene_mechanism.csv": 6513,
+          "resistance_mechanism.csv": 8,
+          "signature.csv": 15820,
+          "signature_bodysite.csv": 15376,
+          "signature_condition.csv": 13959,
+          "study.csv": 2733,
+          "substance.csv": 1350,
+          "taxon.csv": 864132,
+          "taxon_condition.csv": 113015,
+          "taxon_drug_metabolised.csv": 2575,
+          "taxon_drug_not_metabolised.csv": 17479,
+          "taxon_intervention.csv": 1415,
+          "taxon_metabolite.csv": 3418,
+          "taxon_metabolite_absent.csv": 894,
+          "taxon_metabolite_consumed.csv": 4784,
+          "taxon_metabolite_degraded.csv": 387,
+          "taxon_probiotic.csv": 540,
+          "taxon_resistance_gene.csv": 6415,
+          "taxon_signature.csv": 114726,
+          "taxon_substance_abundance.csv": 7579,
+          "taxon_substance_abundance_unchanged.csv": 505,
+          "taxon_substance_metabolised.csv": 3356,
+          "taxon_substance_not_metabolised.csv": 16,
+          "unresolved_associations.csv": 515,
+          "unresolved_chembl.csv": 809,
+          "unresolved_conditions.csv": 1091,
+          "unresolved_exchange.csv": 397,
+          "unresolved_maier2018.csv": 138,
+          "unresolved_masi.csv": 95,
+          "unresolved_mimedb.csv": 1289,
+          "unresolved_pathway_links.csv": 2146,
+          "unresolved_production.csv": 92,
+          "unresolved_taxa.csv": 224,
+          "unresolved_taxon_signature.csv": 16,
+          "unresolved_zimmermann2019.csv": 9
+        }
+      },
+      "log": "/Volumes/EksternalHome/coding-cache/microbiomekg-bench/build.log"
+    },
+    "control": {
+      "floor": {
+        "name": "noise_floor",
+        "n": 200,
+        "unit": "s",
+        "rows": 1,
+        "note": "cheapest possible cypher round trip: dispatch + materialisation",
+        "statistic": "min",
+        "statistic_reason": "repeatable cell; min is the best-case rate",
+        "value": 9.57996235229075e-07,
+        "min": 9.57996235229075e-07,
+        "median": 1.0410003596916795e-06,
+        "mean": 1.0345853661419823e-06,
+        "p95": 1.0840012691915035e-06,
+        "max": 1.2089876690879464e-06,
+        "stdev": 3.762499337544864e-08,
+        "max_over_median": 1.1613710387631575,
+        "rare_branch": false,
+        "heavy_tailed": false
+      },
+      "cells": [
+        {
+          "name": "ctrl_unwind_200k",
+          "n": 20,
+          "unit": "s",
+          "rows": 1,
+          "note": "pure executor: touches no node, edge or index",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.011630292006884702,
+          "min": 0.011630292006884702,
+          "median": 0.01194156250130618,
+          "mean": 0.011964914650161518,
+          "p95": 0.012118667000322603,
+          "max": 0.01267745898803696,
+          "stdev": 0.0002199997213995952,
+          "max_over_median": 1.0616248071933876,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 11471.237632274207,
+          "passes_2x_floor": true
+        },
+        {
+          "name": "ctrl_unwind_20k",
+          "n": 100,
+          "unit": "s",
+          "rows": 1,
+          "note": "pure executor: touches no node, edge or index",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.000990750006167218,
+          "min": 0.000990750006167218,
+          "median": 0.0009977709923987277,
+          "mean": 0.001001024970173603,
+          "p95": 0.001004791003651917,
+          "max": 0.001333791995421052,
+          "stdev": 3.3837084966055704e-05,
+          "max_over_median": 1.3367716696338312,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 958.473244614675,
+          "passes_2x_floor": true
+        },
+        {
+          "name": "ctrl_unwind_case_20k",
+          "n": 100,
+          "unit": "s",
+          "rows": 1,
+          "note": "pure executor: touches no node, edge or index",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.0016573339962633327,
+          "min": 0.0016573339962633327,
+          "median": 0.0016791875023045577,
+          "mean": 0.0016766433001612314,
+          "p95": 0.0016877499874681234,
+          "max": 0.0018950829980894923,
+          "stdev": 2.4451768446871003e-05,
+          "max_over_median": 1.128571404616003,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 1613.0517983700743,
+          "passes_2x_floor": true
+        },
+        {
+          "name": "ctrl_sha256_16mib",
+          "n": 100,
+          "unit": "s",
+          "rows": null,
+          "note": "not kglite at all \u2014 the CPU/thermal cross-check",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.005528667010366917,
+          "min": 0.005528667010366917,
+          "median": 0.005530521499167662,
+          "mean": 0.00553083919963683,
+          "p95": 0.005534291994990781,
+          "max": 0.005546417000005022,
+          "stdev": 2.433780352261093e-06,
+          "max_over_median": 1.002874141405969,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 5312.6989320211915,
+          "passes_2x_floor": true
+        }
+      ],
+      "contract_holds": true
+    }
+  }
+}

@@ -523,7 +523,7 @@ class RSSSampler(threading.Thread):
 #: re-running each prep separately and paying for the build twice.
 BUILD_MARKERS = (
     (re.compile(r"^=== (prep_\w+\.py)"), "prep"),
-    (re.compile(r"^=== blueprint\.json"), "blueprint"),
+    (re.compile(r"^=== blueprint <-"), "blueprint"),
     (re.compile(r"^=== ontology ->"), "ontology"),
     (re.compile(r"^=== from_blueprint"), "from_blueprint"),
     (re.compile(r"^--- text indexes"), "bm25_indexes"),
