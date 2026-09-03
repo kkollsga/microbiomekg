@@ -619,15 +619,25 @@ def test_a_taxon_cited_by_both_sources_is_one_node(graph):
     assert result, "no taxon is cited by both sources — the join is not happening"
 
 
-def test_the_cited_taxa_table_sums_both_sources_counts(csv_dir):
+def test_the_cited_taxa_table_carries_both_sources_counts(csv_dir):
     """`cited_taxa.csv` drives which taxa the taxonomy build keeps, so a source
     that overwrote another's rows instead of merging would silently shrink the
-    graph to whichever source ran last."""
-    counts = {r["tax_id"]: int(r["n_signatures"]) for r in table(csv_dir, "cited_taxa.csv")}
-    assert counts, "cited_taxa.csv is empty"
-    # 1678 (Bifidobacterium) is named by gutMDisorder three times over; a taxon
-    # both sources cite must show more than either alone.
-    assert counts["853"] >= 2
+    graph to whichever source ran last.
+
+    One row per (taxon, source), not one row carrying a sum: the ``source``
+    column is what lets a prep re-run replace its own contribution, and a taxon
+    both sources cite is then two attributable counts rather than a total
+    nobody can take apart."""
+    rows_ = table(csv_dir, "cited_taxa.csv")
+    assert rows_, "cited_taxa.csv is empty"
+    counts: dict[str, dict[str, int]] = {}
+    for row in rows_:
+        counts.setdefault(row["tax_id"], {})[row["source"]] = int(row["n_signatures"])
+    assert {"bugsigdb", SOURCE} <= {r["source"] for r in rows_}
+    # 853 (Faecalibacterium prausnitzii) is cited by both sources, so its total
+    # is more than either alone and both halves are still readable.
+    assert set(counts["853"]) == {"bugsigdb", SOURCE}
+    assert sum(counts["853"].values()) >= 2
 
 
 # --------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-"""``scripts/build.py``'s own machinery: prep order and the CSV root.
+"""``scripts/build.py``'s own machinery: prep order, the CSV root, re-runs.
 
-This is about the *build script*, not about a source. Both things it tests
+This is about the *build script*, not about a source. The three things it tests each
 failed silently before they were tested:
 
 * prep scripts ran in **name** order, so ``prep_chembl`` read gutMDisorder's
@@ -9,11 +9,14 @@ failed silently before they were tested:
   gate-that-cannot-fail this project treats as worse than no gate;
 * ``--csv`` was accepted and then ignored, because the composed blueprint's
   ``settings.root`` still said ``./data/csv`` — so a build into a temp
-  directory loaded the default one and reported *its* numbers.
+  directory loaded the default one and reported *its* numbers;
+* ``cited_taxa.csv`` had no column saying which source wrote a row, so a prep
+  re-run added its mention counts to its own previous ones.
 """
 
 from __future__ import annotations
 
+import csv
 import json
 import subprocess
 import sys
@@ -201,3 +204,56 @@ def test_a_build_into_a_temp_csv_directory_loads_that_directory(tmp_path, fixtur
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "  Signature                    43" in proc.stdout, proc.stdout
+
+
+# --------------------------------------------------------------------------
+# Re-running one prep replaces its own rows
+# --------------------------------------------------------------------------
+
+
+def test_re_running_a_prep_leaves_the_csv_directory_unchanged(tmp_path):
+    """The shared tables are *merged into*, so a prep run twice must replace
+    its own contribution rather than add to it. Every table but one did, by
+    deduping on a key or on the whole row; ``cited_taxa.csv`` accumulated
+    ``n_signatures`` across runs instead, because it had no column saying which
+    source wrote a row. A doubled count is invisible — the *set* of taxa is
+    what the taxonomy build reads — so nothing downstream fails and the number
+    is simply wrong."""
+    def prep_once() -> dict[str, str]:
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPTS / "prep_bugsigdb.py"),
+             "--raw", str(BUGSIGDB_MINI), "--taxdump", str(TAXDUMP_MINI),
+             "--mondo", str(MONDO_MINI), "--out", str(tmp_path)],
+            capture_output=True, text=True, cwd=ROOT,
+        )
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        return {p.name: p.read_text(encoding="utf-8")
+                for p in sorted(tmp_path.glob("*.csv"))}
+
+    first = prep_once()
+    assert "cited_taxa.csv" in first
+    second = prep_once()
+    assert sorted(second) == sorted(first)
+    differing = sorted(name for name in first if first[name] != second[name])
+    assert differing == [], f"a re-run changed {differing}"
+
+
+def test_the_cited_taxa_table_says_which_source_claimed_each_taxon(tmp_path):
+    """The column that makes the re-run safe is also the one that makes the
+    table readable: a taxon two sources cite is two rows with two counts, not
+    one row carrying a sum nobody can attribute."""
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "prep_bugsigdb.py"),
+         "--raw", str(BUGSIGDB_MINI), "--taxdump", str(TAXDUMP_MINI),
+         "--mondo", str(MONDO_MINI), "--out", str(tmp_path)],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    with (tmp_path / "cited_taxa.csv").open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    assert rows, "cited_taxa.csv is empty"
+    assert {"tax_id", "source", "n_signatures"} <= set(rows[0])
+    assert {row["source"] for row in rows} == {"bugsigdb"}
+    # One row per (taxon, source): the key the owner column completes.
+    keys = [(row["tax_id"], row["source"]) for row in rows]
+    assert len(set(keys)) == len(keys)

@@ -611,11 +611,11 @@ def main(argv: list[str] | None = None) -> int:
         r["n_signatures"] = str(unresolved_hits.get(r["unresolved_id"], 0))
 
     cited_writer = Writer(
-        out / "cited_taxa.csv", ["tax_id", "n_signatures"],
-        key="tax_id", merge=True, sum_fields=("n_signatures",),
+        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
     )
     for tid, n in sorted(cited.items()):
-        cited_writer.add({"tax_id": str(tid), "n_signatures": str(n)})
+        cited_writer.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     counts = {w.path.name: w.flush() for w in (
         studies, papers, *conditions.values(), bodysites, signatures,

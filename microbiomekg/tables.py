@@ -29,7 +29,10 @@ __all__ = ["Writer"]
 class Writer:
     """Deduplicating CSV writer: first row per key wins, header fixed up front.
 
-    ``key`` dedupes node tables on their primary key. ``dedupe_full`` dedupes
+    ``key`` dedupes node tables on their primary key, which may be several
+    columns: ``cited_taxa.csv`` is keyed on ``(tax_id, source)`` because one
+    taxon cited by two sources is two counts, not a sum with no attribution.
+    ``dedupe_full`` dedupes
     edge tables on the *whole* row: a signature that names both a strain and
     its species resolves both to one tax_id, and the second is a duplicate
     fact, not a second observation. Genuinely parallel edges — the same taxon
@@ -45,20 +48,22 @@ class Writer:
 
     ``owner`` is what makes a *re-run* safe. Merging into a file this source
     already wrote would otherwise either freeze its old rows (a key-deduped
-    node table) or double them (a row-deduped edge table, where one added
-    column changes the dedupe tuple and both copies survive). Given
-    ``owner=("primary_source", "bugsigdb")`` the reader drops the rows that
-    column says this source wrote, so a re-run replaces its own contribution
-    and leaves everyone else's alone. Tables with no such column rely on
-    ``scripts/build.py`` emptying the directory first, which is the supported
-    way to rebuild.
+    node table), double them (a row-deduped edge table, where one added column
+    changes the dedupe tuple and both copies survive) or — the case that was
+    live in ``cited_taxa.csv`` — sum this run's ``sum_fields`` onto the last
+    run's. Given ``owner=("primary_source", "bugsigdb")`` the reader drops the
+    rows that column says this source wrote, so a re-run replaces its own
+    contribution and leaves everyone else's alone. **An ``owner`` column that
+    is not part of ``key`` is not enough**: the other source's row for the same
+    key wins the dedupe, this source's is dropped, and the attribution the
+    column was added for is gone.
     """
 
     def __init__(
         self,
         path: Path,
         fields: list[str],
-        key: str | None = None,
+        key: str | tuple[str, ...] | None = None,
         dedupe_full: bool = False,
         merge: bool = False,
         sum_fields: tuple[str, ...] = (),
@@ -66,7 +71,7 @@ class Writer:
     ):
         self.path = Path(path)
         self.fields = list(fields)
-        self.key = key
+        self.key = (key,) if isinstance(key, str) else key
         self.dedupe_full = dedupe_full
         self.sum_fields = sum_fields
         self.owner = owner
@@ -97,8 +102,8 @@ class Writer:
 
     def add(self, row: dict[str, str]) -> bool:
         if self.key is not None:
-            k = row[self.key]
-            if not k:
+            k = tuple(row[f] for f in self.key)
+            if not all(k):
                 return False
             if k in self.seen:
                 self._accumulate(k, row)
@@ -112,17 +117,17 @@ class Writer:
         self.rows.append(row)
         return True
 
-    def _accumulate(self, key: str, row: dict[str, str]) -> None:
+    def _accumulate(self, key: tuple[str, ...], row: dict[str, str]) -> None:
         """Add ``sum_fields`` of a duplicate-key row onto the row that won.
 
-        Only ``cited_taxa.csv`` uses it: its ``n_signatures`` is a count of
-        mentions across every source, so a taxon cited by two sources must show
-        the total rather than whichever source ran first.
+        ``unresolved_pathway_links.csv`` is what uses it: Reactome and KEGG
+        both count how many mapping rows one unmatched compound cost, and the
+        ledger states the total rather than whichever source ran first.
         """
         if not self.sum_fields:
             return
         for held in self.rows:
-            if held[self.key] == key:
+            if tuple(held[f] for f in self.key) == key:
                 for field in self.sum_fields:
                     a, b = held.get(field, ""), row.get(field, "")
                     if a.isdigit() and b.isdigit():

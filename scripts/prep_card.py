@@ -342,8 +342,8 @@ def main(argv: list[str] | None = None) -> int:
         dedupe_full=True,
     )
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "n_signatures"],
-        key="tax_id", merge=True, sum_fields=("n_signatures",),
+        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -557,7 +557,7 @@ def main(argv: list[str] | None = None) -> int:
         if row["source"] == SOURCE:
             row["n_signatures"] = str(unresolved_hits.get(row["unresolved_id"], 0))
     for tid, n in sorted(taxa_seen.items()):
-        cited.add({"tax_id": str(tid), "n_signatures": str(n)})
+        cited.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     tables = (genes, drug_classes, mechanisms, confers, via, carries,
               unresolved_nodes, unresolved_assoc, disagreements, cited)

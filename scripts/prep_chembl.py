@@ -288,8 +288,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     ledger = Writer(out / "unresolved_chembl.csv", LEDGER_FIELDS)
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "n_signatures"],
-        key="tax_id", merge=True, sum_fields=("n_signatures",),
+        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -476,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     for tax_id, n in sorted(taxa_seen.items()):
-        cited.add({"tax_id": str(tax_id), "n_signatures": str(n)})
+        cited.add({"tax_id": str(tax_id), "source": SOURCE, "n_signatures": str(n)})
 
     tables = (drugs, protein_targets, mechanism_edges, organism_edges, drug_links,
               ledger, cited)
