@@ -1,0 +1,90 @@
+# MicrobiomeKG MCP manifest.
+#
+# Serve it with `.venv/bin/python scripts/serve.py`, which supplies the
+# --graph the manifest cannot: kglite's manifest has no graph key, so the
+# graph path is argv and this file is only the tool surface.
+#
+# Read-only by design. `extensions.writable` is absent and no `--writable`
+# is passed, so `cypher_query` refuses every mutation: this graph is a
+# published measurement (docs/model.md), and an agent editing an evidence
+# edge would silently invalidate every golden in tests/test_acceptance.py.
+name: MicrobiomeKG
+
+# `true` keeps kglite's bundled cypher_query / graph_overview skills; the path
+# adds this repo's pack. The pack lives at `microbiomekg.skills/` rather than
+# the auto-detected `microbiomekg_mcp.skills/` because it is named for the
+# graph, not for this file — the list form is what makes that spelling load.
+skills:
+  - true
+  - ./microbiomekg.skills
+
+# Seen once, at the MCP initialize handshake. Orientation only: anything that
+# must survive a long session is a skill (re-read on every tools/list) or the
+# overview_prefix (re-read on every bare graph_overview).
+instructions: |
+  MicrobiomeKG: microbe-disease-metabolite-drug-resistance associations over
+  NCBI taxonomy, from six curated sources (BugSigDB, gutMDisorder, CARD, HMDB,
+  Reactome, ChEMBL). 930,985 nodes, 1,234,745 edges. Read-only.
+
+  What makes this graph different from the microbiome KGs it resembles: an
+  association edge cannot exist without saying how it was demonstrated. Three
+  rules follow, and they are not style preferences — each exists because
+  ignoring it produces a confidently wrong answer:
+
+  1. Always filter or group by `evidence_level`. 55.8% of association edges are
+     `observational-16S`, which resolves genus at best; `in-vivo-model` is a
+     discounted tier, never causal support. An answer that pools the tiers is
+     reporting mouse studies and 16S surveys as if they were trials.
+  2. Never aggregate direction across studies. A (taxon, disease) pair is many
+     parallel edges on purpose — 8,238 pairs carry both `increased` and
+     `decreased`, and 84.2% rest on a single cohort. Report the disagreement
+     and the study count; the graph applies no majority rule and neither should
+     you.
+  3. Check the audit before trusting a relationship. `CALL ontology_audit()`
+     reports what fraction of each relationship's edges fail its declared
+     required-property set — 15.2% for `ASSOCIATED_WITH`, 100% for
+     `ABUNDANCE_CHANGED_BY`. A relationship you have not audited may be
+     answering from a source that records none of the fields you are reading.
+
+# Prepended to every bare graph_overview() call, so it re-surfaces with the
+# schema instead of ageing out of context the way `instructions` does.
+overview_prefix: |
+  Evidence fields ride the EDGE, not the node. Every association edge
+  (ASSOCIATED_WITH, ASSOCIATED_WITH_PHENOTYPE, ASSOCIATED_WITH_EXPOSURE,
+  ABUNDANCE_CHANGED_BY, PRODUCES, CARRIES_RESISTANCE_GENE, CONFERS_RESISTANCE_TO,
+  HAS_MECHANISM, IN_PATHWAY) carries at least:
+
+    evidence_level    how it was measured — one of 12 values, `unknown` is a
+                      real value and never defaulted to observational
+    knowledge_level   Biolink: knowledge_assertion | logical_entailment |
+                      prediction | statistical_association | observation | ...
+    primary_source    which of the six sources wrote this edge
+    publications      / `pmid` — the citing paper, where the source has one
+
+  Two things exist that a naive query silently misses:
+
+  - UnresolvedTaxon nodes are tombstones — a name no NCBI tax_id resolved, or a
+    deleted id kept wired to its signatures. They are NOT Taxon nodes, so
+    `MATCH (t:Taxon)` under-counts what a source actually named. Check them
+    before concluding a source has no data for an organism.
+  - Ledger CSVs beside the build (unresolved_taxa, unresolved_conditions,
+    unresolved_associations, unresolved_production) record every input row that
+    reached no edge, with the reason. Nothing is dropped silently, so "the
+    graph has no edge for X" is a question the ledgers answer, not the graph.
+
+  Placeholder taxa (`t.placeholder = true` — `uncultured bacterium`,
+  `Bacteroides sp.`, Candidatus names) are real nodes and must be excluded by
+  that boolean in any ranked output, never by a name substring.
+
+# Semantic name lookup. The embedder is this repo's deterministic
+# character-n-gram hasher, not a downloaded model — see microbiomekg/embedder.py
+# for why, and mcp/microbiomekg.skills/reconciliation.md for what it can and
+# cannot answer. `factory:` is the documented escape for a custom builder;
+# `model:` names the width the graph's vectors were written at, so a manifest
+# that drifts from the build fails loudly instead of scoring nothing.
+trust:
+  allow_embedder: true
+extensions:
+  embedder:
+    factory: microbiomekg.embedder:build
+    model: microbiomekg-chargram-256d-345
