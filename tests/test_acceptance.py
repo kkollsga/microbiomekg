@@ -1193,8 +1193,10 @@ METABOLITE_GOLDEN = {
     # The metabolite slice, its microbial-origin subset, and who wrote which
     # node. `microbial_origin` stays HMDB's claim and only HMDB's.
     "metabolites": 7773,
-    "metabolites_total": 8754,
-    "metabolites_by_source": {"hmdb": 7773, "mimedb": 935, "njc19": 46},
+    # 8,754 while MiMeDB v1.0 was the loaded release; v2.0 (2026-09-03) adds 302
+    # nodes and, as v1.0 did, no edges at all.
+    "metabolites_total": 9056,
+    "metabolites_by_source": {"hmdb": 7773, "mimedb": 1237, "njc19": 46},
     "microbial_origin": 224,
     # D6 — the cross-feeding query, answerable since NJC19 landed.
     "d6_consumes_edges": 4784,
@@ -1321,9 +1323,17 @@ def test_d5_mimedb_contributes_metabolite_identity_and_no_production_claim(
 
     What it does contribute is compound identity for a source that has none —
     NJC19 carries no ChEBI, HMDB, KEGG or PubChem id for any of its 283
-    compounds — and that is countable: 935 `Metabolite` nodes, none of them
+    compounds — and that is countable: 1,237 `Metabolite` nodes, none of them
     claiming microbial origin, none of them an endpoint of anything MiMeDB
-    wrote."""
+    wrote.
+
+    **v2.0 was fetched on 2026-09-03 and does not change the finding.** It adds
+    1,654 records, 302 of which become nodes, three cross-reference columns and
+    a `microbe_relations` integer that *counts* related microbes without naming
+    one — 830,984 pairs tallied over the file, zero enumerated. The zero below
+    is the same zero it was under v1.0, which is why this test asserts it
+    against the release the node property names rather than against a
+    filename."""
     by_source = {
         r["source"]: r["n"]
         for r in rows(

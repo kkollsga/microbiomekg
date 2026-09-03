@@ -115,10 +115,12 @@ record.
 three for five — the last two being the substitutes for the one that failed.**
 **NJC19** is exactly what it was fetched for and closed W5/D6.
 **MiMeDB**'s published bulk downloads carry **no microbe–metabolite association
-at all** — two MySQL tables with zero cross-references between them
-(`data/raw/mimedb/PROVENANCE.md`) — so it cannot close W4/D5 and contributes
-`Metabolite` nodes only; what moved D5 was NJC19's export half, which was
-fetched for D6. **MASI**'s download is the substance dictionary, 1,350 rows with
+at all, in v1.0 or in v2.0** — two MySQL tables with zero cross-references
+between them (`data/raw/mimedb/v2/PROVENANCE.md`) — so it cannot close W4/D5 and
+contributes `Metabolite` nodes only; what moved D5 was NJC19's export half, which
+was fetched for D6. v2.0 was fetched on 2026-09-03 specifically to test whether
+the newer release published the pairs. It does not: it publishes a *count* of
+them. **MASI**'s download is the substance dictionary, 1,350 rows with
 **no organism column**, and its interaction tables are *unrecoverable* rather
 than unfetched — so W7's drug↔taxon layer came from the two published screens
 MASI aggregates, loaded directly and one per direction: **Maier 2018** (1,197
@@ -250,16 +252,25 @@ mixed-rank organism strings with no taxid, of which 158 are
 `quantified`/`detected`, and 67 of which name no organism at all. The other
 2,840 edges are **NJC19's export half** — species-level, literature-curated.
 
-**`pending: MiMeDB` did not resolve the way this section assumed.** The
-published bulk downloads are two MySQL tables with **no association between
-them** — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the
-microbes dump, and no Microbial Sources or Metabolic Reactions columns at all
-(`data/raw/mimedb/PROVENANCE.md`). The 23.1M BLAST-propagated pathways this
-paragraph warned about are not in the download either, so there is no predicted
-layer here to segregate. What MiMeDB contributes is compound identity for
-NJC19's free-text names. Closing D5 at MiMeDB's published scale still needs its
-v2.0 reaction table or its per-microbe web export, neither of which is
-bulk-downloadable. The gutSMASH result is *why* genome-inferred production is a
+**`pending: MiMeDB` did not resolve the way this section assumed, and the
+question is now closed rather than open.** The published bulk downloads are two
+MySQL tables with **no association between them** — zero `MMDBm` ids in the
+metabolites dump, zero `MMDBc` ids in the microbes dump, and no Microbial
+Sources or Metabolic Reactions columns at all. That was measured on v1.0, and
+**v2.0 was then fetched and measured the same way, with the same result**
+(`data/raw/mimedb/v2/PROVENANCE.md`). The 23.1M BLAST-propagated pathways this
+paragraph warned about are in neither download, so there is no predicted layer
+here to segregate. What MiMeDB contributes is compound identity for NJC19's
+free-text names.
+
+**What v2.0 added is a count of the pairs it withholds.** Its `microbe_relations`
+column is an integer per metabolite — MiMeDB's own tally of related microbes,
+830,984 summed over the file — with no microbe id anywhere to say which. So the
+pairs demonstrably exist in their database and are published nowhere: they are
+reachable only from the site's per-metabolite web pages, and this project does
+not scrape. **No bulk source publishes per-taxon production pairs at scale.**
+That is a different statement from "the right file has not been fetched yet",
+and it is the one the evidence supports. The gutSMASH result is *why* genome-inferred production is a
 distinct and low tier rather than a synonym for production — and it is why
 NJC19's `in-vitro` (an experimentally verified transport event) and a future
 genome-inferred layer must not share a value.
@@ -1325,10 +1336,10 @@ are the loader's contract.
 Measurements quoted as "measured" were taken on 2026-09-03 from a clean
 `scripts/build.py` run over **ten** sources — BugSigDB (`full_dump`
 2026-09-02), gutMDisorder v1, CARD 4.0.2, HMDB 5.0, Reactome (2026-09-02),
-ChEMBL 37, MiMeDB v1.0 (dumped 2024-03-19), NJC19 (Sci Data 7:204, 2020) and
+ChEMBL 37, MiMeDB v2.0 (dumped 2025-10-08), NJC19 (Sci Data 7:204, 2020) and
 the two published drug screens, Maier 2018 (Nature 555:623) and Zimmermann 2019
 (Nature 570:462) — against NCBI `new_taxdump` 2026-09-02 at `--scope
-microbial`. **932,372 nodes, 1,311,540 edges.** MASI was fetched and is **not** in any number here: its
+microbial`. **932,674 nodes, 1,311,540 edges.** MASI was fetched and is **not** in any number here: its
 download is the substance dictionary and nothing was loaded from it (D8). KEGG is
 licence-gated and **not** in any number here: a default build carries none of
 it. Where a later source moved a number the earlier value is kept beside it: a
@@ -1485,9 +1496,10 @@ neither and sit in `unresolved_associations.csv` with that reason.
 ### D5 — "Which metabolites does taxon X produce, and is that measured or predicted?" (and the reverse: which taxa produce metabolite M?)
 
 *Status:* **`partial`** (was `pending-source: MiMeDB`), and **not because
-MiMeDB landed.** MiMeDB's published bulk downloads carry no microbe–metabolite
-association at all, so the source fetched to close this query contributes
-**zero** edges to it; what moved it is **NJC19's export half**, fetched for D6.
+MiMeDB landed.** No MiMeDB bulk download carries a microbe–metabolite
+association — v1.0 and v2.0 alike — so the source fetched to close this query
+contributes **zero** edges to it; what moved it is **NJC19's export half**,
+fetched for D6.
 This is A5.2. *Fields:* production direction · evidence tier · pathway/gene ·
 rank at which the claim holds · citation · replication count.
 
@@ -1567,14 +1579,26 @@ countable.
 
 *What is still missing, and why the status is `partial` rather than
 `answerable-now`.* Neither source carries the **pathway or gene** the claim runs
-through (that is D13's leg, and it is `partial` for the same reason), and
-MiMeDB's v2.0 reaction table — Precursor, Product, Enzyme, Enzyme's source
-organism, Reaction type, References — is the thing that would supply it. It is
-**not in any bulk download**: the two published dumps are one MySQL table each
-with no join between them (`data/raw/mimedb/PROVENANCE.md`), and the per-microbe
-"download all related metabolites" route the research document named is a web
-action on a site that 403s automated clients. If that layer ever arrives, its
-23.1M BLAST-propagated pathways are `computational-predicted` and must stay in a
+through — that is D13's leg, and it is `partial` for the same reason.
+
+**The blocker is no longer a pending fetch.** This entry used to name MiMeDB's
+v2.0 reaction table — Precursor, Product, Enzyme, Enzyme's source organism,
+Reaction type, References — as the thing that would supply it. **v2.0 has since
+been fetched, on 2026-09-03, and does not contain it.** Both of its bulk files
+are one MySQL table with no join to the other, exactly as v1.0's were, measured
+the same way and recorded in `data/raw/mimedb/v2/PROVENANCE.md`. What v2.0 added
+is a `microbe_relations` **count** — 830,984 pairs tallied, none named — so the
+association provably exists upstream and is published in no file. The remaining
+routes are the site's per-metabolite and per-microbe web exports, which are
+interactive pages behind a Cloudflare challenge, and this project does not
+scrape.
+
+So the honest statement of D5's gap is: **no bulk source publishes per-taxon
+production pairs at scale, and NJC19's export half is what this graph has.**
+That is not a smaller gap than before — it is the same gap with the candidate
+that was supposed to fill it eliminated. The status stays `partial` and does not
+improve. If a curated reaction layer ever does arrive, its 23.1M
+BLAST-propagated pathways are `computational-predicted` and must stay in a
 separate layer from the 25,276 curated reactions.
 
 *Required qualifier:* the answer carries a replication count. Its expected value
@@ -2016,7 +2040,7 @@ WITH t, count(DISTINCT r.study_id) AS n_studies,
      collect(DISTINCT r.evidence_level) AS levels
 WHERE n_studies >= 2
 OPTIONAL MATCH (t)-[:CARRIES_RESISTANCE_GENE]->(a:ResistanceGene)
-OPTIONAL MATCH (t)-[p:PRODUCES]->(m:Metabolite)          // HMDB; MiMeDB pending
+OPTIONAL MATCH (t)-[p:PRODUCES]->(m:Metabolite)          // HMDB + NJC19; MiMeDB none
 RETURN t.title AS candidate, t.rank AS rank, n_studies, levels,
        count(DISTINCT a) AS amr_determinants,
        collect(DISTINCT m.title) AS metabolites
@@ -2481,10 +2505,12 @@ query answers the question it is named for.
   the metabolism screen's 271 either, so the second direction adds nothing to
   this query.
 
-Which source would close which remaining query: **MiMeDB v2.0's reaction table
-or its per-microbe web export** → D5's enzyme/pathway leg (and D13's), neither
-bulk-downloadable; **gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's
-healthy-prevalence half; **LPSN** → D12's nomenclatural half. MASI is off this
+Which source would close which remaining query: **nothing on offer** closes
+D5's enzyme/pathway leg (or D13's) — MiMeDB v2.0 was fetched on 2026-09-03 to do
+exactly that and carries no reaction table and no pair list, only a count of the
+pairs it withholds, so that candidate is eliminated rather than pending;
+**gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's healthy-prevalence
+half; **LPSN** → D12's nomenclatural half. MASI is off this
 list for good: its interaction tables are unrecoverable, and both primary
 sources it aggregated are loaded instead. Nothing on this list would close D18 —
 what that query wants is a screen that ran *Intestinibacter*, and no published
@@ -2496,9 +2522,10 @@ Reactome** moved D13 from `pending-source` to `partial` and gave D5 its first
 578 edges; **ChEMBL**, joined to gutMDisorder's interventions by `IS_DRUG`,
 moved D8 and D18 off `pending-source`; **NJC19** closed D6, took D5 from 578
 edges to 3,418, and more than doubled D10's metabolite leg (7 candidates → 18);
-**MiMeDB** wrote 935 `Metabolite` nodes and no edges, which is a finding rather
-than a contribution — it is what gives NJC19's cross-reference-free compounds an
-identity to point at; **Maier 2018** closed D8's inhibition leg and turned D18's
+**MiMeDB** wrote 1,237 `Metabolite` nodes and no edges, which is a finding
+rather than a contribution — it is what gives NJC19's cross-reference-free
+compounds an identity to point at, and its v2.0 refresh added 302 nodes and,
+again, zero edges; **Maier 2018** closed D8's inhibition leg and turned D18's
 metformin question from a 17-taxon correlation into a 32-taxon measured
 negative; **Zimmermann 2019** closed D8 outright, adding the direction no other
 source in this graph carries — the bacterium changing the drug — and the first

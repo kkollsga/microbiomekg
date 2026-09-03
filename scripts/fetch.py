@@ -735,10 +735,31 @@ def fetch_gutmdisorder(args) -> None:
 
 # mimedb.org is behind the same interactive Cloudflare challenge as hmdb.ca (both
 # are Wishart-lab sites), so the origin cannot be fetched by any client that does
-# not run JavaScript. Unlike HMDB, the bulk files were captured by the Wayback
-# Machine, so the bytes are obtainable without an operator. Genes (216 MB) and
-# genomes (202 MB) are deliberately skipped: the taxon->metabolite edge lives in
-# the metabolite and microbe files.
+# not run JavaScript. Genes (216 MB) and genomes (202 MB) are deliberately
+# skipped: whatever taxon->metabolite evidence MiMeDB publishes would be in the
+# metabolite and microbe files, and it turns out neither carries any (see
+# data/raw/mimedb/v2/PROVENANCE.md).
+#
+# The two releases need opposite handling, which is why there are two lists.
+#
+# **v2.0 is the release the loader reads and there is no automated route to it.**
+# Its downloads were never captured by the Wayback Machine, so an operator has to
+# place the four files by hand. This script therefore only ever *detects* them —
+# the `manual-present` pattern `fetch_hmdb` uses — and prints the exact filenames
+# and destination when they are absent. It does not re-probe the origin for them:
+# the blocker is an interactive challenge, a request cannot pass it, and a probe
+# whose answer is known is a request spent to print a line we could print anyway.
+#
+# **v1.0 is the fallback and *is* obtainable**, because its bulk files were
+# archived. That is the only reason the Wayback logic below still exists.
+MIMEDB_V2_DIR = "v2"
+MIMEDB_V2_FILES = [
+    "mimedb_metabolites_v2.csv",
+    "mimedb_metabolites_v2.xml",
+    "mimedb_microbes_v2.csv",
+    "mimedb_microbes_v2.xml",
+]
+MIMEDB_V2_PAGE = "https://mimedb.org/downloads"
 MIMEDB_ORIGIN = "https://mimedb.org/system/downloads/1.0/"
 MIMEDB_FILES = [
     ("mimedb_metabolites_v1.csv", "20240507091752"),
@@ -754,8 +775,51 @@ MIMEDB_SKIPPED = {
 }
 
 
+def fetch_mimedb_v2(args) -> bool:
+    """Record the hand-placed v2.0 files, or say exactly which are missing.
+
+    Returns whether all four are here. Never fetches: see the comment above
+    ``MIMEDB_V2_DIR``. ``args`` is unused and named for symmetry with the other
+    fetchers — ``--force`` cannot re-download a file no client can reach, and
+    honouring it here would delete the operator's only copy.
+    """
+    here, absent = [], []
+    for name in MIMEDB_V2_FILES:
+        path = RAW / "mimedb" / MIMEDB_V2_DIR / name
+        (here if path.exists() and path.stat().st_size else absent).append((name, path))
+
+    for name, path in here:
+        log(f"  operator-supplied mimedb/{MIMEDB_V2_DIR}/{name} "
+            f"({path.stat().st_size:,} B)")
+        record_file("mimedb", path, MIMEDB_V2_PAGE, "manual-present",
+                    note="placed by hand; mimedb.org is behind an interactive "
+                         "Cloudflare challenge and v2.0 was never archived by the "
+                         "Wayback Machine, so no client can fetch this")
+    for name, path in absent:
+        record_problem(
+            "mimedb", f"{MIMEDB_V2_DIR}/{name}", MIMEDB_V2_PAGE, "manual",
+            f"MiMeDB v2.0 has no automated route: mimedb.org serves an interactive "
+            f"Cloudflare challenge, and unlike v1.0 these files were never captured "
+            f"by the Wayback Machine. Download all four of "
+            f"{', '.join(MIMEDB_V2_FILES)} from {MIMEDB_V2_PAGE} in a browser and "
+            f"put them in data/raw/mimedb/{MIMEDB_V2_DIR}/. "
+            f"Until then the loader falls back to the v1.0 files beside that "
+            f"directory. Provenance and checksums: "
+            f"data/raw/mimedb/{MIMEDB_V2_DIR}/PROVENANCE.md")
+    if absent:
+        log(f"  MANUAL: {len(absent)} of {len(MIMEDB_V2_FILES)} v2.0 files absent — "
+            f"place them in data/raw/mimedb/{MIMEDB_V2_DIR}/ from {MIMEDB_V2_PAGE}")
+    return not absent
+
+
 def fetch_mimedb(args) -> None:
     log("MiMeDB")
+
+    # v2.0 first: it is the release the loader reads, and it is operator-placed.
+    # v1.0 is still recorded either way — it is the documented fallback, and on a
+    # fresh clone it is the only release any client can actually obtain.
+    if fetch_mimedb_v2(args):
+        log("  v2.0 complete; v1.0 below is the loader's fallback")
 
     missing = [n for n, _ in MIMEDB_FILES
                if not (RAW / "mimedb" / n).exists()
@@ -763,10 +827,10 @@ def fetch_mimedb(args) -> None:
     if not missing and not args.force:
         for name, ts in MIMEDB_FILES:
             path = RAW / "mimedb" / name
-            log(f"  cached mimedb/{name} ({path.stat().st_size:,} B)")
+            log(f"  cached mimedb/{name} (v1.0 fallback, {path.stat().st_size:,} B)")
             record_file("mimedb", path, wayback_url(ts, MIMEDB_ORIGIN + name), "cached",
-                        note="origin is Cloudflare-challenged; bytes come from a "
-                             "Wayback snapshot")
+                        note="v1.0 fallback; origin is Cloudflare-challenged, so the "
+                             "bytes come from a Wayback snapshot")
         return
 
     # One origin probe, to record the exact blocker rather than assume it.
@@ -794,7 +858,9 @@ def fetch_mimedb(args) -> None:
             record_problem("mimedb", name, MIMEDB_ORIGIN + name, "manual",
                            f"origin blocked ({blocker}) and the Wayback snapshot "
                            f"{wb} did not deliver. Download {name} by hand from "
-                           f"https://mimedb.org/downloads into data/raw/mimedb/.")
+                           f"{MIMEDB_V2_PAGE} into data/raw/mimedb/. This is the "
+                           f"v1.0 fallback; prefer placing the v2.0 files in "
+                           f"data/raw/mimedb/{MIMEDB_V2_DIR}/ instead.")
         time.sleep(8)
 
     for name, why in MIMEDB_SKIPPED.items():

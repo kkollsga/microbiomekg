@@ -395,6 +395,20 @@ microbe→metabolite **edge count is not published** in either paper.
 metabolites as CSV" button — the most direct route to an edge list. `mimedb.org`
 returns 403 to automated fetching.
 
+> **[measured 2026-09-03 — the two categories above are not in the bulk
+> download, in either release.]** Both v1.0 and v2.0 were obtained by hand (the
+> block is an interactive Cloudflare challenge, not a plain 403) and profiled
+> byte-wise. Each release is two Sequel Ace dumps of one MySQL table — `SELECT *
+> FROM metabolites` and `SELECT * FROM microbes` — with **no join between
+> them**: zero `MMDBm` ids in the metabolites files and zero `MMDBc` ids in the
+> microbes files, against 29,295 and 2,648 self-ids as the control. There is no
+> Microbial Sources and no Metabolic Reactions table, and so no precursor,
+> product, enzyme or source-organism field anywhere. v2.0 adds a
+> `microbe_relations` **count** — 830,984 pairs tallied over the file, none
+> named. The 25,276 curated reactions and the pair list are real and are
+> published only through the site's per-metabolite/per-microbe web pages. See
+> `data/raw/mimedb/v2/PROVENANCE.md`.
+
 **Caveats.** Predicted content is to be kept "in a separate data layer"; the
 23.1 M pathways are **homology-propagated via BLAST against UniProt** —
 **[inference]** orders of magnitude larger than the 25,276 curated reactions and
@@ -2826,6 +2840,9 @@ citation.
 **boolean flag on the metabolite with no organism slot** (§1.8) — it cannot
 answer "which taxon". **Missing: MiMeDB** (Microbial Sources + Metabolic
 Reactions with Precursor/Product/Enzyme source organism). **GAP #1.**
+*[measured 2026-09-03: MiMeDB does not fill this. Neither published release
+carries the pair table — see the note in §1.7 — so GAP #1 has no candidate on
+this list rather than a pending fetch.]*
 *And the answer must carry a replication count.* Muller et al. 2021 found that
 even robustly predicted metabolites were "**predicted by markedly different sets
 of taxa across datasets**" (§4.23) — the metabolite-level prediction replicates
@@ -2879,6 +2896,8 @@ replicated depletion, no transferable AMR, a known beneficial metabolite?"**
 *Fields:* Q2 ∪ Q5 ∪ Q7, joined on taxon.
 *Coverage:* **PARTIAL — fails on the Q5 leg.** The AMR and depletion legs work;
 the metabolite leg has no per-taxon evidence tier without MiMeDB.
+*[measured 2026-09-03: MiMeDB cannot supply one — see §1.7. The leg was widened
+by NJC19 instead, and stays `partial`.]*
 
 **Q11. "Which studies for disease Y controlled for medication or antibiotics?"**
 (the metformin trap — Forslund et al. showed a published T2D signature was
@@ -2949,10 +2968,14 @@ catches a correctly-extracted bad paper.
 **Gap 1 — no per-taxon metabolite production with an evidence tier.**
 HMDB's microbial annotation is a **boolean origin flag on the metabolite with no
 organism slot**; it cannot answer "which taxon makes this". Fills Q5, Q10, Q13.
-*Candidate:* **MiMeDB** (CC BY-NC; Microbial Sources + Metabolic Reactions
+*Candidate:* ~~**MiMeDB** (CC BY-NC; Microbial Sources + Metabolic Reactions
 carrying Precursor, Product, Enzyme, Enzyme's source organism, Reaction type and
-References). Secondary: **BacDive** (CC BY 4.0, cleanly separates measured from
->90%-confidence genome predictions, but sparse on SCFAs).
+References)~~ — **eliminated, measured 2026-09-03.** Both releases were fetched
+and neither bulk download contains either category or any microbe-metabolite
+pair (§1.7). What the graph has instead is **NJC19**'s export half, which was
+fetched for Gap 2 and moved this query without closing it. Secondary:
+**BacDive** (CC BY 4.0, cleanly separates measured from >90%-confidence genome
+predictions, but sparse on SCFAs).
 
 **Gap 2 — no consumption edges, so cross-feeding (Part A use case 5) is
 unanswerable.** MES = 2PC/(P+C) is zero without consumers. Fills Q6.

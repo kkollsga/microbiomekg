@@ -77,8 +77,11 @@ def test_selftest_passes_against_the_manifest():
     # 931,992 before the two drug screens landed. Maier mints 355 `Drug` nodes
     # for the library entries no ChEMBL join route reaches; Zimmermann mints 23
     # more and two `UnresolvedTaxon` tombstones for the strain names NCBI holds
-    # two candidates for.
-    assert "932372 node(s)" in output, output
+    # two candidates for. 932,372 until MiMeDB v2.0 replaced v1.0 as the loaded
+    # release and its wider `observed` rule kept 302 more compounds — nodes
+    # only; the edge count did not move, because no MiMeDB release carries an
+    # association to write an edge from.
+    assert "932674 node(s)" in output, output
 
 
 def test_server_is_read_only():

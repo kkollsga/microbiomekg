@@ -31,9 +31,18 @@ Two consequences to state in any answer:
 - ***Akkermansia muciniphila* (239935) has zero metabolites here.** A
   headline gut commensal, on the source that is supposed to answer this half of
   the question. That is coverage, not biology.
-- **MiMeDB is the source that closes this** (29,295 metabolites, 3,725
-  microbes, 25,276 curated reactions) and it is **not loaded**. When a caller
-  needs per-taxon production with the enzyme, say that.
+- **MiMeDB does not close this, and it is not the missing source.** It *is*
+  loaded — 1,237 `Metabolite` nodes — and it contributes **zero** production
+  edges, because no MiMeDB bulk download carries a microbe-metabolite pair at
+  all: v1.0 and v2.0 are one MySQL table each with no join between them. v2.0
+  publishes a per-metabolite *count* of related microbes and names none of
+  them; those pairs are on the website's per-metabolite pages, which this
+  project does not scrape. So when a caller needs per-taxon production with the
+  enzyme, say that **no bulk source publishes it at scale** — not that a fetch
+  is pending. `docs/sources.md` §12 has the measurement.
+
+<!-- claim: MATCH (m:Metabolite) WHERE m.source = 'mimedb' RETURN count(m) == 1237 -->
+<!-- claim: MATCH ()-[r]->() WHERE r.primary_source = 'mimedb' RETURN count(r) == 0 -->
 
 ## The forward query (D5)
 

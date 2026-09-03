@@ -28,7 +28,7 @@ did not answer; the exact error is recorded.
 | 9 | gutMDisorder | fetched (Wayback 2020 snapshot) | 2.4 MB | `data/raw/gutmdisorder/` |
 | 10 | PubMed / PubChem | not fetched (by design) | — | — |
 | 11 | MONDO | fetched | 53 MB | `data/raw/mondo/` |
-| 12 | MiMeDB | fetched manually (user, browser) | 53 MB | `data/raw/mimedb/` |
+| 12 | MiMeDB | fetched manually (user, browser) — v2.0 loaded, v1.0 kept as fallback | 230 MB | `data/raw/mimedb/v2/`, `data/raw/mimedb/` |
 | 13 | NJC19 | fetched manually (user, browser) | 738 KB | `data/raw/njc19/` |
 | 14 | MASI | fetched manually (user, browser) — **substances only** | 1.3 MB | `data/raw/masi/` |
 | 15 | Maier 2018 drug screen | fetched | 1.0 MB | `data/raw/drug_screens/maier2018/` |
@@ -46,7 +46,7 @@ including the two that arrived as the *substitute* for the source that failed:
 
 | Source | Fetched to close | What the download turned out to be | Loaded |
 |---|---|---|---|
-| MiMeDB | **D5**, per-taxon metabolite production | two MySQL tables with **no join between them** — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the microbes dump | 935 `Metabolite` nodes, **no edges** |
+| MiMeDB | **D5**, per-taxon metabolite production | two MySQL tables with **no join between them**, in v1.0 **and** in v2.0 — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the microbes dump, CSV and XML alike. v2.0 added a `microbe_relations` **count** (830,984 pairs) that names none of them | 1,237 `Metabolite` nodes, **no edges** |
 | NJC19 | **D6**, consumption / cross-feeding | exactly what it says: 9,136 curated directed events, 912 of them negative | 8,905 edges over 820 taxa — D6 answered |
 | MASI | **D8 / D18**, drug↔taxon | the **substance dictionary** — 1,350 rows, no organism column, no interaction column | nothing |
 | Maier 2018 | **D8 / D18**, drug↔taxon — fetched after MASI's interaction tables proved unrecoverable | the whole published screen: 1,197 drugs x 40 gut isolates, one adjusted p-value per cell | **47,825 edges** over 38 taxa and 1,197 drugs — the first direct `Drug`–`Taxon` edge in the graph |
@@ -87,10 +87,12 @@ Three sources restrict onward distribution. This matters the moment the built
   prefer the ontology bundle over `card.json` wherever both would serve.
 
 **MiMeDB is a fourth restriction: CC BY-NC 4.0**, non-commercial, the same shape
-as HMDB's. It reaches only `Metabolite` nodes (935 of the 8,754), so a
+as HMDB's. It reaches only `Metabolite` nodes (1,237 of the 9,056), so a
 commercially redistributable cut is one `WHERE m.source <> 'mimedb'` — which is
 only true because `source` is on the node. The licence is **documented upstream
-and not verifiable in-file**: neither dump carries a licence header.
+and not verifiable in-file**: none of the six dumps across the two releases
+carries a licence header, and the v2.0 downloads page that states it has never
+been fetched — it is behind the same Cloudflare challenge as the files.
 
 **MASI's licence is genuinely unknown** — unstated in the files and unstated by
 the database, which is a second reason nothing from it was loaded: a
@@ -406,59 +408,126 @@ bulk. Both resources are public domain, so nothing here is a licence decision.
 
 ## 12. MiMeDB
 
-- **URL** — `https://mimedb.org/downloads` (the CSV and XML dumps). The site
-  answers automated clients with **403**, the same Cloudflare posture HMDB has,
-  so the four files arrived by hand.
-- **Licence** — **CC BY-NC 4.0**, non-commercial. Stated on `mimedb.org` and in
-  the NAR papers; **no licence header, copyright line or terms URL appears in
-  any of the four files**, so it is documented-upstream and unverified-in-file.
+- **URL** — `https://mimedb.org/downloads` (the CSV and XML dumps). The site is
+  behind an **interactive Cloudflare challenge**, the same posture HMDB has, so
+  no client that does not run JavaScript can reach it and every file arrived by
+  hand.
+- **Licence** — **CC BY-NC 4.0**, non-commercial, and **not verified**. None of
+  the files across either release carries a licence header, copyright line or
+  terms URL, and the downloads page that states it has never been fetched
+  either — it is behind the same challenge. The statement is from `mimedb.org`
+  and the NAR papers, recorded in `docs/research/researcher-workflows.md` §1.7.
   Treated as binding regardless, and carried per node as `source_licence`.
-- **Format** — two MySQL table dumps, each as CSV and as zipped XML.
-- **Status** — **fetched manually**; profiled in
-  `data/raw/mimedb/PROVENANCE.md`; **loaded as `Metabolite` nodes only.**
+- **Format** — two MySQL table dumps, each as CSV and as XML.
+- **Status** — **fetched manually**; **v2.0 is the release loaded**, with v1.0
+  kept beside it as the fallback. Profiled in
+  `data/raw/mimedb/v2/PROVENANCE.md` (v1.0: `data/raw/mimedb/PROVENANCE.md`);
+  **loaded as `Metabolite` nodes only.**
+
+### v2.0 — the loaded release
 
 | File | Bytes | sha256 | Rows |
 |---|---:|---|---:|
-| `mimedb_metabolites_v1.csv` | 47,064,986 | `38646178…39d7f3c8` | 27,641 |
-| `mimedb_metabolites_v1.xml.zip` | 5,529,818 | `8de2bfa7…6eef32d5` | same rows |
-| `mimedb_microbes_v1.csv` | 861,977 | `fa7c4756…6a9e8ab9` | 2,174 |
-| `mimedb_microbes_v1.xml.zip` | 166,824 | `d4bd4228…4fb58314` | same rows |
+| `mimedb_metabolites_v2.csv` | 53,541,177 | `97d2d0cc…8fe16ba3` | 29,295 |
+| `mimedb_metabolites_v2.xml` | 109,403,982 | `6781aced…9648fe02` | same rows |
+| `mimedb_microbes_v2.csv` | 5,277,049 | `152bd573…354d1671` | 2,648 |
+| `mimedb_microbes_v2.xml` | 9,539,893 | `7c6c8714…7de07734` | same rows |
 
-The XML headers are the only version statement anywhere in the download, and
-they are precise: a Sequel Ace dump of database `mimedb` taken **2024-03-19**,
-whose queries are `SELECT * FROM metabolites WHERE export = 1` and `SELECT *
-FROM microbes WHERE export = 1`. So this is **v1.0**, not the v2.0 the 2026 NAR
-paper describes.
+Downloaded by the user in a browser on **2026-09-03**. The XML headers are the
+only version statement anywhere in the download, and they are precise: a Sequel
+Ace dump of database `mimedb` taken **2025-10-08**, whose queries are `SELECT *
+FROM metabolites WHERE export = 1` and `SELECT * FROM microbes WHERE export = 1`
+— the same tool, host and queries as v1.0's 2024-03-19 dump. Nothing in any file
+states a version number; the release is established by the dump date, the row
+counts and four new columns.
 
-**The finding: there is no association between the two tables, so this source
-cannot answer D5.** The research document (§1.7) sizes MiMeDB by its *Microbial
-Sources* and *Metabolic Reactions* categories — precursor, product, enzyme,
-enzyme's source organism, reaction type. Neither is in these files. Measured on
-the bytes: the metabolites dump contains the string `MMDBm` **0 times**, the
-microbes dump contains `MMDBc` **0 times** and `metabolite` **0 times**, and
-neither has a precursor, product, enzyme or reaction column. The only column in
-either that looks like a relation is `microbes.activity` — `NULL` on 2,129 of
-2,174 rows, `Production (export)` on 43 — **which names no compound**. Deriving
-an edge from it would manufacture exactly the claim D5 asks for out of a field
-that does not make it, so `scripts/prep_mimedb.py` declares no relationship at
-all and the build report prints `PRODUCES edges from MiMeDB: 0`.
+**The `export = 1` filter matters on the microbe side.** The NAR paper sizes
+v2.0 at 3,725 microbes; this dump has 2,648. The metabolites dump's 29,295
+matches the paper exactly. So the metabolite table is published whole and the
+microbe table is not.
 
-**What it does contribute is compound identity, and it is measurable.** NJC19
-carries no ChEBI, HMDB, KEGG or PubChem id for any of its 283 compounds, so its
-join to the graph is by name; MiMeDB's names are what give some of those
-compounds a node with an InChIKey and a formula instead of a minted stub. 935
-nodes are loaded under a three-rule selection — `observed` (`detected` or
-`quantified` = 1), `origin-classified` (`metabolite_type` filled), and
+v1.0 (`data/raw/mimedb/`, dumped 2024-03-19) is 27,641 metabolites and 2,174
+microbes, in the same four-file shape with the XML zipped. Every v1 `microbe_id`
+is present in v2, so v2 is a strict superset by organism.
+
+### The finding: no published release has the pair table
+
+**Neither v1.0 nor v2.0 carries an association between its two tables, so this
+source cannot answer D5 — and no other bulk file publishes those pairs
+either.** The research document (§1.7) sizes MiMeDB by its *Microbial Sources*
+and *Metabolic Reactions* categories — precursor, product, enzyme, enzyme's
+source organism, reaction type — and puts v2.0 at 25,276 curated reactions.
+Neither category is in any of these files.
+
+Measured on the bytes of all four v2 files, with the control counted in the same
+pass, because a zero from a pattern that matches nothing is not a measurement:
+
+| pattern | metabolites CSV | metabolites XML | microbes CSV | microbes XML |
+|---|---:|---:|---:|---:|
+| `MMDBc` (a **metabolite** id) | 29,295 | 29,295 | **0** | **0** |
+| `MMDBm` (a **microbe** id) | **0** | **0** | 2,648 | 2,648 |
+
+Each id appears exactly once per row of its own table and never once in the
+other's. There is no precursor, product, enzyme, reaction or source-organism
+column in either. The same two zeros hold on v1.0.
+
+**v2.0 publishes the *size* of the association and not its contents.** Its new
+`microbe_relations` column is an integer per metabolite — MiMeDB's own count of
+related microbes — filled on all 29,295 rows, minimum 0, maximum 4,055,
+**summing to 830,984 taxon–metabolite pairs**, with no microbe id anywhere in
+the file to say which. It is loaded as
+`Metabolite.mimedb_microbe_relation_count`, deliberately not under the source's
+own column name: a property called `microbe_relations` on a node in a graph
+holding zero MiMeDB edges reads as a degree.
+
+**Those 830,984 pairs are reachable only through the site's per-metabolite web
+pages** — the per-microbe "download all related metabolites as CSV" button the
+research document named is the same relation from the other side. Both are web
+actions behind the Cloudflare challenge, and **this project does not scrape
+them.** So the question is closed rather than open: it is not that the right
+bulk file has not been found, it is that the pairs are not in a bulk file.
+
+The only column in either table that looks like a relation is
+`microbes.activity`, empty on 2,533 of 2,648 rows, `Production (export)` on 113
+and `Consumption (import)` on 2 — **naming no compound**. Deriving an edge from
+it would manufacture exactly the claim D5 asks for out of a field that does not
+make it, so `scripts/prep_mimedb.py` declares no relationship at all, does not
+load the column in any other form either (`docs/model.md` §"MiMeDB" gives the
+reason), and the build report prints `PRODUCES edges from MiMeDB: 0`.
+
+The string `metabolite` does appear 125 times in the v2 microbes dump, all of it
+inside the new free-text `description` column — generated prose with no compound
+column, no direction and no citation. That is not an association either.
+
+### What it does contribute: compound identity
+
+NJC19 carries no ChEBI, HMDB, KEGG or PubChem id for any of its 283 compounds,
+so its join to the graph is by name; MiMeDB's names are what give some of those
+compounds a node with an InChIKey and a formula instead of a minted stub.
+**1,237 nodes** are loaded under a three-rule selection — `observed` (`detected`
+or `quantified` = 1), `origin-classified` (`metabolite_type` filled), and
 `njc19-compound` (a spelling NJC19 uses that **nothing in the graph already
-answers**) — and `Metabolite.selection_rule` records which.
+answers**) — and `Metabolite.selection_rule` records which. Every node also
+carries `mimedb_release`, so a graph that outlives its build log can still say
+which release is in it.
 
-Two identity traps in the `hmdb_id` column, both of which merge distinct
-compounds if taken literally: it holds **both** the padded (`HMDB0003402`) and
-the legacy five-digit (`HMDB03402`) spelling, and after normalising that,
-**149 accessions are claimed by two MiMeDB records each** — `HMDB0000158` by
-both `L-Tyrosine` and `D-Tyrosine`, `HMDB0000598` by `Sulfide` and `Sulfur`. A
-contested accession is not used as a join key. Full details, column lists and
-distributions: `data/raw/mimedb/PROVENANCE.md`.
+v2 added three cross-references this graph has no other source for, all now on
+the node: `vmh_id` (Virtual Metabolic Human; 83 rows of the file hold several
+ids joined by `; `, so it is stored verbatim rather than parsed) and the EPA
+DSSTox pair `epa_substance_id` / `epa_compound_id`.
+
+Three identity traps in the file, all of which merge distinct compounds if taken
+literally. `hmdb_id` holds **both** the padded (`HMDB0003402`) and the legacy
+five-digit (`HMDB03402`) spelling — 258 of 3,904 filled values are legacy — and
+after normalising that, **149 accessions are claimed by two or more MiMeDB
+records each, over 329 records**: `HMDB0000158` by both `L-Tyrosine` and
+`D-Tyrosine`, `HMDB0000598` by `Sulfide` and `Sulfur`. A contested accession is
+not used as a join key. And **new in v2**, `cmmc_inchikey` is *not* the record's
+own structure — it is the parent compound's key in the Chemically Modified
+Microbial Compounds set, and differs from the row's own `moldb_inchikey` on 428
+of the 1,763 rows that fill it, so it is carried as a cross-reference and never
+matched on. Full details, column lists and distributions:
+`data/raw/mimedb/v2/PROVENANCE.md`.
 
 ## 13. NJC19
 

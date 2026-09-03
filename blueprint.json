@@ -1329,7 +1329,13 @@
         "mimedb_id": "string",
         "mimedb_origin": "string",
         "cas": "string",
-        "average_mass": "float"
+        "average_mass": "float",
+        "mimedb_release": "string",
+        "vmh_id": "string",
+        "cmmc_inchikey": "string",
+        "epa_substance_id": "string",
+        "epa_compound_id": "string",
+        "mimedb_microbe_relation_count": "int"
       },
       "connections": {
         "junction_edges": {

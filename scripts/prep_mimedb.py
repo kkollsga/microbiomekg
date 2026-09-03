@@ -1,25 +1,46 @@
 #!/usr/bin/env python3
 """MiMeDB's two table dumps -> Metabolite nodes, and no edges, because there are none.
 
-``data/raw/mimedb/`` holds two Sequel Ace exports of one MySQL table each:
-``mimedb_metabolites_v1.csv`` (27,641 rows, ``SELECT * FROM metabolites WHERE
-export = 1``) and ``mimedb_microbes_v1.csv`` (2,174 rows, ``SELECT * FROM
-microbes WHERE export = 1``), plus the same two as zipped XML. **Neither carries
-the association between them** — the measurement and its consequence for D5 are
-in :mod:`microbiomekg.ontology.mimedb`, and the short version is that this
-script writes ``metabolite.csv`` rows and nothing else. It emits no
-``PRODUCES``, and the build report will say so with a zero rather than leaving
-the reader to notice.
+``data/raw/mimedb/v2/`` holds two Sequel Ace exports of one MySQL table each —
+``mimedb_metabolites_v2.csv`` (29,295 rows, ``SELECT * FROM metabolites WHERE
+export = 1``) and ``mimedb_microbes_v2.csv`` (2,648 rows, ``SELECT * FROM
+microbes WHERE export = 1``), plus the same two as XML. ``data/raw/mimedb/``
+holds the v1.0 pair beside them. **Neither release carries the association
+between its two tables** — the measurement and its consequence for D5 are in
+:mod:`microbiomekg.ontology.mimedb`, and the short version is that this script
+writes ``metabolite.csv`` rows and nothing else. It emits no ``PRODUCES``, and
+the build report will say so with a zero rather than leaving the reader to
+notice.
 
-The microbes table is read anyway, for two things it *can* honestly answer, both
-printed and neither loaded: how many of its 2,174 organisms carry an NCBI taxid
-(all of them) and how many of those the loaded taxonomy still resolves. That is
-the size of the taxon side of the edge list this source would supply if the
-association were downloadable, and stating it is the difference between "MiMeDB
-does not close D5" and "MiMeDB has nothing".
+**v2.0 is read where it is present and v1.0 is the fallback**, resolved by
+:func:`default_inputs`. Which one was read is stated in this script's own output
+*and* on every node it writes, as ``Metabolite.mimedb_release``: the build
+report is a terminal scroll and the graph outlives it, so a consumer asking
+"which MiMeDB is in here" must be able to ask the graph. The label comes from
+:func:`~microbiomekg.ontology.mimedb.release_of`, which reads the header rather
+than the filename.
 
-**The selection rule**, because 27,641 records is a lipidomics table and 12,105
-of them are glycerophospholipids: 935 records are loaded on the full build. A record is loaded when at least one of
+What v2 changed, all of it measured on the files:
+
+* 1,654 more metabolite records and 474 more organisms — every v1 ``microbe_id``
+  is still present, so it is a superset;
+* four new metabolite columns (:data:`~microbiomekg.ontology.mimedb.V2_ONLY_COLUMNS`),
+  three of them cross-references this graph has no other source for;
+* ``detected`` and ``quantified`` are no longer the same 711 rows — they are
+  1,674 and 1,413 — so the ``observed`` rule is a real disjunction;
+* **still no join.** ``microbe_relations`` counts related microbes (830,984
+  summed) and names none of them.
+
+The microbes table is read anyway, for what it *can* honestly answer, all
+printed and none loaded: how many of its organisms carry an NCBI taxid, how many
+of those the loaded taxonomy resolves, and how many rows fill the ``activity``
+column that names a direction and no compound. That is the size of the taxon
+side of the edge list this source would supply if the association were
+downloadable, and stating it is the difference between "MiMeDB does not close
+D5" and "MiMeDB has nothing".
+
+**The selection rule**, because 29,295 records is a lipidomics table and 12,105
+of them are glycerophospholipids. A record is loaded when at least one of
 :data:`~microbiomekg.ontology.mimedb.SELECTION_RULES` holds — ``observed``,
 ``origin-classified``, ``njc19-compound`` — and ``Metabolite.selection_rule``
 says which, joined with ``|``. The third rule reads NJC19's spreadsheet
@@ -27,22 +48,24 @@ directly, the way ``prep_hmdb.py`` reads ``ChEBI2Reactome.txt``: the alternative
 is a second pass after NJC19 has run, and NJC19 needs these nodes to exist
 before *it* runs.
 
-Nothing is written for a record whose compound the graph already holds. Two
+Nothing is written for a record whose compound the graph already holds. Three
 tests of "already holds", in this order:
 
 * the normalised ``hmdb_id`` matches a ``Metabolite`` node's accession (or one
-  of its ``secondary_accessions``) — 1,678 records over the whole file;
-* the **full** ``moldb_inchikey`` matches a node's — 1,232 records. Never the
-  first block alone: block 2 is stereochemistry, isotopes and protonation, so a
-  skeleton match folds ``D-`` onto ``L-``;
+  of its ``secondary_accessions``);
+* the **full** ``moldb_inchikey`` matches a node's. Never the first block alone:
+  block 2 is stereochemistry, isotopes and protonation, so a skeleton match
+  folds ``D-`` onto ``L-``. And never ``cmmc_inchikey``, which is a *different*
+  compound's key on 428 rows — see
+  :data:`~microbiomekg.ontology.mimedb.V2_ONLY_COLUMNS`;
 * the name matches a ``Metabolite`` node's name, casefolded — the route NJC19
   itself uses, so a duplicate here would be a second node NJC19 might then pick.
 
 Both are ledger rows in ``unresolved_mimedb.csv`` naming the node that already
 holds the compound, so "MiMeDB added nothing here" is a count rather than an
 absence. And an ``hmdb_id`` that **two** MiMeDB records claim is not used as a
-join key at all: 149 accessions are contested, mostly by a D-/L- enantiomer
-pair, and joining them would fold two compounds into one node.
+join key at all: 149 accessions are contested over 329 records, mostly by a
+D-/L- enantiomer pair, and joining them would fold two compounds into one node.
 """
 
 from __future__ import annotations
@@ -63,6 +86,12 @@ from microbiomekg.tables import Writer  # noqa: E402
 
 SOURCE = mm.SOURCE
 
+#: Where the loader looks, in order. v2.0 is the release this project reads;
+#: v1.0 stays as the fallback because it is the one `scripts/fetch.py` can
+#: actually obtain without an operator (v1's bulk files were captured by the
+#: Wayback Machine; v2's were not, and mimedb.org is Cloudflare-challenged).
+RELEASE_DIRS: tuple[tuple[str, str], ...] = (("v2", "v2"), ("", "v1"))
+
 #: Reads ``metabolite.csv``, which HMDB writes: a MiMeDB record whose compound
 #: already has a node must not mint a second one. It also *reads NJC19's raw
 #: spreadsheet* for the ``njc19-compound`` selection rule, which is not a prep
@@ -79,7 +108,9 @@ METABOLITE_FIELDS = [
     "metabolite_id", "name", "hmdb_id", "chebi_id", "kegg_id", "pubchem_cid",
     "inchikey", "status", "biospecimens", "microbial_origin", "origin",
     "chemical_formula", "secondary_accessions", "selection_rule", "source",
-    "mimedb_id", "mimedb_origin", "cas", "average_mass",
+    "mimedb_id", "mimedb_origin", "cas", "average_mass", "mimedb_release",
+    "vmh_id", "cmmc_inchikey", "epa_substance_id", "epa_compound_id",
+    mm.MICROBE_RELATION_COUNT,
 ]
 
 LEDGER_FIELDS = [
@@ -184,38 +215,74 @@ def njc19_wanted_names(xlsx: Path, held: dict[str, str]) -> set[str]:
     return wanted
 
 
-def microbe_report(path: Path, idx: TaxonomyIndex) -> tuple[int, int, Counter]:
+def default_inputs(raw: Path) -> tuple[Path, Path]:
+    """``(metabolites, microbes)`` for the newest release present under ``raw``.
+
+    v2.0 first, then v1.0. The *metabolites* file decides, because it is the one
+    that writes nodes: a directory holding only a v2 microbes dump is not a v2
+    build, and silently pairing a v2 microbes table with a v1 metabolites table
+    would report organism counts from one release beside compound counts from
+    another. The pair always comes from one directory.
+    """
+    for sub, tag in RELEASE_DIRS:
+        base = raw / SOURCE / sub if sub else raw / SOURCE
+        metabolites = base / f"mimedb_metabolites_{tag}.csv"
+        if metabolites.is_file():
+            return metabolites, base / f"mimedb_microbes_{tag}.csv"
+    # Nothing on disk: name the preferred location, so the message a fresh
+    # clone prints is the one that tells the operator where to put v2.
+    base = raw / SOURCE / RELEASE_DIRS[0][0]
+    return (base / f"mimedb_metabolites_{RELEASE_DIRS[0][1]}.csv",
+            base / f"mimedb_microbes_{RELEASE_DIRS[0][1]}.csv")
+
+
+def microbe_report(
+    path: Path, idx: TaxonomyIndex
+) -> tuple[int, int, Counter, Counter, str]:
     """How many of MiMeDB's organisms carry a taxid this taxonomy still resolves.
 
     Printed, never loaded. It is the *taxon side* of the edge list this source
     would supply if the association between its two tables were downloadable,
     and quoting it is what stops "MiMeDB does not close D5" being read as
     "MiMeDB has no organisms".
+
+    The ``activity`` counter is reported for the opposite reason: it is the only
+    column in either dump that reads like a relation, and counting it here is
+    what makes "we looked at it and it names no compound" checkable. It becomes
+    neither an edge nor a property — see ``docs/model.md`` §"MiMeDB".
     """
     statuses: Counter[str] = Counter()
+    activity: Counter[str] = Counter()
     rows = 0
     with_taxid = 0
     if not path.is_file():
-        return 0, 0, statuses
+        return 0, 0, statuses, activity, "v1.0"
     with path.open(encoding="utf-8", newline="") as fh:
-        for row in csv.DictReader(fh):
+        reader = csv.DictReader(fh)
+        release = mm.release_of(reader.fieldnames)
+        for row in reader:
             rows += 1
+            if act := cell(row, "activity"):
+                activity[act] += 1
             taxid = cell(row, "ncbi_tax_id")
             if not taxid.isdigit():
                 continue
             with_taxid += 1
             statuses[idx.resolve(tax_id=int(taxid), rank_ceiling="species").status] += 1
-    return rows, with_taxid, statuses
+    return rows, with_taxid, statuses, activity, release
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
     ap.add_argument("--metabolites", type=Path, default=None,
-                    help="MiMeDB metabolites CSV (default: <raw>/mimedb/mimedb_metabolites_v1.csv).")
+                    help="MiMeDB metabolites CSV (default: the newest release present, "
+                         "<raw>/mimedb/v2/mimedb_metabolites_v2.csv falling back to "
+                         "<raw>/mimedb/mimedb_metabolites_v1.csv).")
     ap.add_argument("--microbes", type=Path, default=None,
-                    help="MiMeDB microbes CSV (default: <raw>/mimedb/mimedb_microbes_v1.csv). "
-                         "Reported on, never loaded: the dumps carry no link between the two.")
+                    help="MiMeDB microbes CSV (default: from the same release directory "
+                         "as --metabolites). Reported on, never loaded: no published "
+                         "release carries a link between the two tables.")
     ap.add_argument("--njc19", type=Path, default=None,
                     help="NJC19's Online-only Table 5 xlsx (default: "
                          "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx). Absent means the "
@@ -224,15 +291,21 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
     args = ap.parse_args(argv)
 
-    metabolites_csv = args.metabolites or (args.raw / SOURCE / "mimedb_metabolites_v1.csv")
+    default_metabolites, default_microbes = default_inputs(args.raw)
+    metabolites_csv = args.metabolites or default_metabolites
     if not metabolites_csv.is_file():
         # Exit 3, not 2: "this source's raw file is not on this machine" is a
-        # different fact from "this script was called wrong". mimedb.org answers
-        # automated clients with 403, so an absent file is the expected state of
-        # a fresh clone.
-        print(f"no mimedb_metabolites_v1.csv at {metabolites_csv}", file=sys.stderr)
+        # different fact from "this script was called wrong". mimedb.org is
+        # behind an interactive Cloudflare challenge, so an absent file is the
+        # expected state of a fresh clone — and the message names the four files
+        # an operator has to place, because no script can fetch them.
+        print(f"no MiMeDB metabolites dump at {metabolites_csv}\n"
+              f"  place mimedb_metabolites_v2.csv and mimedb_microbes_v2.csv "
+              f"(with their .xml siblings) from https://mimedb.org/downloads into "
+              f"{args.raw / SOURCE / 'v2'}/ — see data/raw/mimedb/v2/PROVENANCE.md",
+              file=sys.stderr)
         return 3
-    microbes_csv = args.microbes or (args.raw / SOURCE / "mimedb_microbes_v1.csv")
+    microbes_csv = args.microbes or default_microbes
     njc19_xlsx = args.njc19 or (args.raw / "njc19" / "41597_2020_516_MOESM1_ESM.xlsx")
 
     try:
@@ -260,8 +333,13 @@ def main(argv: list[str] | None = None) -> int:
     # truncated file rather than a reader setting.
     csv.field_size_limit(1 << 30)
     with metabolites_csv.open(encoding="utf-8", newline="") as fh:
-        records = list(csv.DictReader(fh))
-    print(f"read {len(records):,} metabolite records from {metabolites_csv}")
+        reader = csv.DictReader(fh)
+        # The release is read off the header, not the path: see
+        # `microbiomekg.ontology.mimedb.release_of`.
+        release = mm.release_of(reader.fieldnames)
+        records = list(reader)
+    print(f"MiMeDB {release}: read {len(records):,} metabolite records "
+          f"from {metabolites_csv}")
 
     #: normalised accession -> the MiMeDB ids claiming it. An accession two
     #: records claim is not a join key; see the module docstring.
@@ -340,6 +418,11 @@ def main(argv: list[str] | None = None) -> int:
         if origin:
             origins[origin] += 1
         counters["loaded"] += 1
+        relation_count = cell(row, "microbe_relations")
+        if relation_count.isdigit():
+            counters["relations_counted"] += int(relation_count)
+        else:
+            relation_count = ""
         # This run's own names join the index as it goes. Two MiMeDB records
         # sharing a name would otherwise become two nodes, and NJC19's name
         # index — first writer wins — would then reach whichever sorted first.
@@ -372,16 +455,33 @@ def main(argv: list[str] | None = None) -> int:
             "mimedb_origin": origin,
             "cas": cell(row, "cas"),
             "average_mass": cell(row, "moldb_average_mass"),
+            "mimedb_release": release,
+            # Carried verbatim, never parsed: 83 rows of the real v2 file hold
+            # several VMH ids joined by "; ", so this is a list in a string and
+            # a consumer that wants one has to say which.
+            "vmh_id": cell(row, "vmh_id"),
+            # A cross-reference, and deliberately not one of the three
+            # "already holds" tests above — on 428 rows it is a *different*
+            # compound's key. See mimedb.V2_ONLY_COLUMNS.
+            "cmmc_inchikey": cell(row, "cmmc_inchikey"),
+            "epa_substance_id": cell(row, "epa_substance_id"),
+            "epa_compound_id": cell(row, "epa_compound_id"),
+            # Empty on v1, which has no such column, and empty on a v2 row that
+            # leaves it NULL. Never 0: that would be MiMeDB asserting no related
+            # microbe, which only a filled cell says.
+            mm.MICROBE_RELATION_COUNT: relation_count,
         })
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
-    microbe_rows, with_taxid, statuses = microbe_report(microbes_csv, idx)
+    microbe_rows, with_taxid, statuses, activity, microbe_release = microbe_report(
+        microbes_csv, idx
+    )
 
     tables = (metabolites, ledger)
     counts = {w.path.name: w.flush() for w in tables}
 
-    print(f"\nmetabolites: {len(records):,} records read")
+    print(f"\nmetabolites: {len(records):,} records read from MiMeDB {release}")
     print(f"  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items())))
     print(f"  loaded {counters['loaded']:,} new Metabolite nodes, "
           f"skipped {counters['not_selected']:,} that no rule selected")
@@ -392,11 +492,21 @@ def main(argv: list[str] | None = None) -> int:
           f"{len(contested):,} accessions")
     if origins:
         print("  mimedb_origin: " + ", ".join(f"{o} {n:,}" for o, n in origins.most_common()))
+    # The one number in the whole download that sizes the association, stated
+    # beside the zero it does not close. See mimedb.MICROBE_RELATION_COUNT.
+    print(f"  microbe_relations: {counters['relations_counted']:,} taxon-metabolite "
+          f"pairs counted, 0 enumerated — MiMeDB's own count over the loaded "
+          f"records, with no microbe id anywhere in any published file")
     print(f"\nmicrobes: {microbe_rows:,} organisms, {with_taxid:,} with an NCBI taxid, "
-          + ", ".join(f"{s} {n:,}" for s, n in statuses.most_common()))
-    print("  PRODUCES edges from MiMeDB: 0 — the two dumps carry no association "
-          "between them (microbiomekg/ontology/mimedb.py). D5 is unchanged by "
-          "this source.")
+          + ", ".join(f"{s} {n:,}" for s, n in statuses.most_common())
+          + f" (MiMeDB {microbe_release})")
+    if activity:
+        print("  activity: "
+              + ", ".join(f"{n:,} {a}" for a, n in activity.most_common())
+              + " — names no compound, so neither an edge nor a Taxon property")
+    print("  PRODUCES edges from MiMeDB: 0 — no published release carries an "
+          "association between its two tables (microbiomekg/ontology/mimedb.py). "
+          "D5 is unchanged by this source.")
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}

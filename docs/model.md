@@ -149,8 +149,8 @@ joined with `|` when several did, so `WHERE m.selection_rule = 'feces'` counts
 the rule rather than trusting this paragraph. `status` rides on the node for
 the same reason: it is what makes "measured or predicted" a filter.
 
-**Three sources write `Metabolite` nodes, and `source` says which.** 8,754 in
-total: HMDB 7,773, MiMeDB 935, NJC19 46. MiMeDB's are compounds no HMDB record
+**Three sources write `Metabolite` nodes, and `source` says which.** 9,056 in
+total: HMDB 7,773, MiMeDB 1,237, NJC19 46. MiMeDB's are compounds no HMDB record
 holds, under their own selection rule (§"MiMeDB" below); NJC19's are the 46 of
 its 283 compounds nothing else holds at all — mostly macromolecules
 (`Mucin`, `Xylan`, `Arabinogalactan`) and ions and gases, which a *human
@@ -703,40 +703,89 @@ not are nomenclatural churn, and they become tombstones.
 
 ### MiMeDB — a source that writes no edge, and why that is the finding
 
-**935 `Metabolite` nodes and nothing else. No `PRODUCES`, no relationship of any
-kind.** MiMeDB was fetched to close D5 — per-taxon metabolite production — and
-the published bulk downloads cannot: they are one MySQL table each (`SELECT *
-FROM metabolites`, 27,641 rows; `SELECT * FROM microbes`, 2,174 rows) and the
-join between them is in neither. Measured on the bytes: **zero `MMDBm` ids in
-the metabolites dump, zero `MMDBc` ids in the microbes dump**, and no precursor,
-product, enzyme, reaction or source-organism column anywhere. The only column
-that looks like a relation is `microbes.activity`, `Production (export)` on 43
-rows, **naming no compound**. `microbiomekg.ontology.mimedb.RELATIONSHIPS` is
-`{}` and `tests/test_mimedb.py` asserts the zero, so an edge appearing here
-later is a deliberate change rather than an accident.
+**1,237 `Metabolite` nodes and nothing else. No `PRODUCES`, no relationship of
+any kind.** MiMeDB was fetched to close D5 — per-taxon metabolite production —
+and no published bulk download can: they are one MySQL table each (`SELECT *
+FROM metabolites`, 29,295 rows in v2.0; `SELECT * FROM microbes`, 2,648) and the
+join between them is in neither. Measured on the bytes of all four v2 files:
+**zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the microbes
+dump**, CSV and XML alike, with each id appearing exactly once per row of its
+*own* table — 29,295 and 2,648 times — so the zeros are a measurement and not a
+mis-spelled pattern. There is no precursor, product, enzyme, reaction or
+source-organism column anywhere.
+`microbiomekg.ontology.mimedb.RELATIONSHIPS` is `{}` and `tests/test_mimedb.py`
+asserts the zero, so an edge appearing here later is a deliberate change rather
+than an accident.
 
-The microbes table is read anyway and reported, never loaded: **all 2,174 rows
-carry an NCBI taxid** and resolve 1,267 exact / 899 promoted / 8 merged / 0
-unresolved — the cleanest organism column of any source profiled for this
-project, attached to nothing. Quoting it is what separates "MiMeDB does not
-close D5" from "MiMeDB has nothing"; loading it would add 2,174 unconnected
-`Taxon` nodes.
+**v2.0 changed the release, not the finding.** The loader reads
+`data/raw/mimedb/v2/` and falls back to v1.0 beside it, and
+`Metabolite.mimedb_release` says which it read — a build report is a terminal
+scroll and the graph outlives it. What v2 added is 1,654 metabolite records, 474
+organisms, three cross-references (`vmh_id`, and the EPA DSSTox pair
+`epa_substance_id` / `epa_compound_id`) and one count. What it did not add is a
+pair table.
+
+**The count is the new fact, and it is the size of what is withheld.**
+`microbe_relations` is an integer per metabolite — MiMeDB's own count of the
+microbes it relates that compound to — filled on all 29,295 rows and summing to
+**830,984 taxon–metabolite pairs**, naming not one of them. Those pairs exist,
+they are reachable only through the site's per-metabolite web pages, and this
+project does not scrape them; so D5's gap at MiMeDB is closed as a question
+rather than left open. The count rides on the node as
+**`mimedb_microbe_relation_count`**, deliberately not under the source's own
+column name: a property called `microbe_relations` sitting on a node in a graph
+with zero MiMeDB edges reads as a degree, and the whole point is that it is not
+one. An absent value stays empty rather than becoming `0`, because "MiMeDB
+relates this compound to no microbe" is a claim only a filled cell makes.
+
+**`activity` is reported and loaded nowhere — not even as a `Taxon` property.**
+It is the only column in either table that reads like a relation: `Production
+(export)` on 113 v2 rows and `Consumption (import)` on 2, up from 45 rows in
+v1.0, and **naming no compound anywhere on the row**. A `Taxon.mimedb_activity`
+was considered and rejected on three counts. It is a production claim with **no
+object**, and D5 is precisely the query that would read it as one — the graph
+would answer "MiMeDB says this organism produces" and be unable to say what.
+This source writes no `Taxon` at all, so carrying it would mean either 2,648
+unconnected nodes or a property smuggled onto taxa another source owns. And the
+column's vocabulary is NJC19's verbatim, while NJC19 itself is loaded here *with*
+its compounds and directions — so the best case is a lossy duplicate of edges the
+graph already has properly. The prep prints the two counts and the sentence "names
+no compound", which is the honest form of the same information.
+
+*(The v1 provenance note inferred this column was an import from NJC19's
+predecessor because `microbes.data_source` reads `NJS16` on 63 rows. The two
+sets are **disjoint** in both releases — every `activity` row has an empty
+`data_source` and every `NJS16` row an empty `activity` — so the vocabulary
+match is the only evidence, and it does not carry that inference.)*
+
+The microbes table is read anyway and reported, never loaded: **2,642 of 2,648
+rows carry an NCBI taxid** (the six without are fungi; v1.0's 2,174 all had one)
+and resolve 1,665 exact / 964 promoted / 13 merged / 0 unresolved — the cleanest
+organism column of any source profiled for this project, attached to nothing.
+Quoting it is what separates "MiMeDB does not close D5" from "MiMeDB has
+nothing"; loading it would add 2,648 unconnected `Taxon` nodes.
 
 **What it contributes is compound identity for a source that has none.** NJC19's
 compounds carry no cross-reference, so a compound HMDB does not hold becomes a
 minted `NJC19:` stub with no InChIKey and no formula. MiMeDB's names close some
 of those: `Pectin`, `Chitin`, `Inulin`, `Stachyose`, `Menaquinone` and others
 reach a node with a structure. 25 of the metabolites NJC19's edges land on are
-MiMeDB's, over 279 edges. That is the measurable contribution, and it is the
-reason `SELECTION_RULES` has an `njc19-compound` rule at all.
+MiMeDB's, over 279 edges — and that pair of numbers is **unchanged from v1.0**,
+which is itself the measurement: the `njc19-compound` rule had already selected
+every compound NJC19 needed, so v2's extra records widened the file and not the
+bridge. That bridge is the reason `SELECTION_RULES` has an `njc19-compound` rule
+at all.
 
-**The selection rule, because 44% of the file is glycerophospholipids.** A
+**The selection rule, because 41% of the file is glycerophospholipids.** A
 record is loaded when it is `observed` (`detected` or `quantified` = 1),
-`origin-classified` (`metabolite_type` filled — `Co-metabolite` 660, `Primary`
-47, MiMeDB's only evidence-graded axis), or `njc19-compound`. `predicted` is
-effectively empty in this dump (`NULL` on 27,567 rows), so the 23.1M
-BLAST-propagated pathways the research document warns about are **not here**;
-there is no predicted layer to keep separate.
+`origin-classified` (`metabolite_type` filled — of the loaded set,
+`Co-metabolite` 664 and `Primary` 46, MiMeDB's only evidence-graded axis), or
+`njc19-compound`. **v2 split `detected` from `quantified`**: they were `1` on
+exactly the same 711 rows in v1.0 — one fact written twice — and are 1,674 and
+1,413 here, so the `observed` rule is a real disjunction now rather than a
+doubled-up flag. `predicted` is still effectively empty (`NULL` on 29,221 rows),
+so the 23.1M BLAST-propagated pathways the research document warns about are
+**not here** in either release; there is no predicted layer to keep separate.
 
 **The `njc19-compound` rule carries a second condition that is not tidiness.**
 A record qualifies only if **no spelling of that compound already reaches a
@@ -749,28 +798,38 @@ HMDB's 12 were not on** — one compound, two nodes, and D6's MES computed over
 half its evidence each side. That is the exact failure the conjugate rule exists
 to prevent, re-introduced by the source meant to help.
 
-**Two identity traps in `hmdb_id`, both of which merge distinct compounds.** It
-holds *both* the padded (`HMDB0003402`) and the legacy five-digit (`HMDB03402`)
-spelling, so a literal join misses every legacy id silently — which reads as
-"MiMeDB has no HMDB id for this". And after normalising the padding, **149
-accessions are claimed by two MiMeDB records each**: `HMDB0000158` by both
-`L-Tyrosine` and `D-Tyrosine`, `HMDB0000598` by `Sulfide` and `Sulfur`,
-`HMDB0000208` by `Oxoglutaric acid` and `alpha-Ketoglutarate`. A contested
-accession is **not a join key** — both records keep their own `MIMEDB:`
-identity, and the ledger says why. That is the rule `reconcile` already applies
-to an ambiguous organism name, applied to a compound.
+**Three identity traps, of which v2 added one.** `hmdb_id` holds *both* the
+padded (`HMDB0003402`) and the legacy five-digit (`HMDB03402`) spelling — 258 of
+its 3,904 filled values — so a literal join misses every legacy id silently,
+which reads as "MiMeDB has no HMDB id for this". And after normalising the
+padding, **149 accessions are claimed by two or more MiMeDB records each, over
+329 records**: `HMDB0000158` by both `L-Tyrosine` and `D-Tyrosine`,
+`HMDB0000598` by `Sulfide` and `Sulfur`, `HMDB0000208` by `Oxoglutaric acid` and
+`alpha-Ketoglutarate`. A contested accession is **not a join key** — both records
+keep their own `MIMEDB:` identity, and the ledger says why. That is the rule
+`reconcile` already applies to an ambiguous organism name, applied to a
+compound. The third trap is **`cmmc_inchikey`, new in v2 and the one that looks
+most authoritative**: it is the InChIKey of the *parent* compound in the
+Chemically Modified Microbial Compounds set, and on 428 of the 1,763 rows that
+fill it, it differs from that row's own `moldb_inchikey`. It is loaded as a
+cross-reference and is deliberately **not** one of the tests below — matching on
+it would fold a microbial conjugate onto the compound it was made from.
 
 A record whose compound the graph already holds is **not written at all**, and
 "already holds" is tested three ways in order: the normalised accession, the
-**full** InChIKey (never its first block — block 2 is stereochemistry, isotopes
-and protonation, so a skeleton match folds `D-` onto `L-`), then the casefolded
-name. `Writer` keys `metabolite.csv` on `metabolite_id` and the first row per
-key wins, so a merged row's properties would be discarded silently — an outcome
-that reads like a successful join in the row count and is not one. Each skip is
-a row in `data/csv/unresolved_mimedb.csv` naming the node that won.
+**full** `moldb_inchikey` (never its first block — block 2 is stereochemistry,
+isotopes and protonation, so a skeleton match folds `D-` onto `L-`; and never
+`cmmc_inchikey`), then the casefolded name. `Writer` keys `metabolite.csv` on
+`metabolite_id` and the first row per key wins, so a merged row's properties
+would be discarded silently — an outcome that reads like a successful join in
+the row count and is not one. Each skip is a row in
+`data/csv/unresolved_mimedb.csv` naming the node that won.
 
 **Licence: CC BY-NC 4.0**, on the node rather than the graph, so a commercially
-redistributable cut is one `WHERE m.source <> 'mimedb'`.
+redistributable cut is one `WHERE m.source <> 'mimedb'`. It is documented
+upstream and **not verified**: no file in either release carries a licence
+header, and the page that states it is behind the same Cloudflare challenge as
+the downloads.
 
 ### MASI — profiled, and deliberately not loaded
 
@@ -1528,17 +1587,87 @@ build in well under a second, and `scripts/build.py` builds exactly this list. `
 
 ---
 
-## 6b. Semantic name lookup (character n-grams, `text_score`)
+## 6b. Semantic name lookup — opt-in (`--with-vectors`, character n-grams, `text_score`)
 
-A second lane over the same two identity columns, for the lookup BM25
-structurally cannot do: a **misspelt** name. `Fecalibacterium`,
-`Akkermansia muciniphilia` and `Citrobacter frundii` share no whole token with
-their targets, so no token-level index reaches them; character n-grams do.
+**Off by default**, the way `--with-kegg` is. `scripts/build.py` always builds
+§6's five BM25 indexes; it builds this lane only when asked:
+
+```bash
+.venv/bin/python scripts/build.py                  # BM25 only — the default .kgl
+.venv/bin/python scripts/build.py --with-vectors   # both lanes
+```
+
+**The sentence that decides it: reconciliation at load time does not use this
+lane.** `microbiomekg/reconcile.py` resolves every organism name a source
+prints by exact match, by NCBI synonym, by authority stripping
+(`Clostridium difficile (Hall and O'Toole 1935) Lawson et al. 2016`) and by
+merged-id remapping — never by a vector. So the tax_id on every edge, and the
+`REPORTED_BY` audit trail recording how each spelling resolved, are *identical*
+in both builds. What the vector lane buys is query-time tolerance for a name
+the **user** misspells, and nothing else.
 
 | Node type | Property | Vectors | What it is for |
 |---|---|---|---|
-| `Taxon` | `scientific_name` | 864,099 | a printed name -> a tax_id, typos included |
+| `Taxon` | `scientific_name` | 864,110 | a printed name -> a tax_id, typos included |
 | `Disease` | `label` | 808 | free text -> a MONDO/EFO CURIE nobody memorises |
+
+### What it costs and what it buys
+
+Measured 2026-09-03 at `--scope microbial` over the ten-source graph
+(`bench/results/2026-09-03-ten-sources.md`, §1, §3 and §4 — not re-measured
+here):
+
+| | default (BM25 only) | `--with-vectors` | the lane's delta |
+|---|---|---|---|
+| build wall time | ~4.0 min | 5.4 min | **+82.6 s** (28.2 s embed + 54.4 s HNSW) |
+| `.kgl` on disk | 46.7 MB | 212.7 MB | **+165.9 MB** |
+| `kglite.load()`, warm | 1.03 s | 2.41 s | **+1.39 s** |
+| resident memory, served | 1.2 GB | 3.7 GB | **+2.5 GB** |
+| the five BM25 indexes | 276 ms, +14.3 MB | the same | — (why they are unconditional) |
+
+What it buys is one measured thing: the five misspellings in
+`tests/test_semantic_lookup.py` — `Clostridium dificile`, `Fecalibacterium`,
+`Akkermansia muciniphilia`, `Citrobacter frundii`, `Lactobacillus plantari` —
+reach the right tax_id at rank 1, **5/5**, and no token-level index reaches any
+of them. The lexical lane alone already resolves the correctly-spelled old
+binomials NCBI keeps as bare synonyms (*Ruminococcus gnavus* → 33038,
+*Propionibacterium acnes* → 1747, *Lactobacillus rhamnosus* → 47715), **3/3**,
+and the vector lane misses at least one of those — asserted, so that the day
+either lane stops earning its place the suite says so.
+
+So the trade is a 4.6× `.kgl`, a 3× serving footprint and a quarter of the
+build's wall time (82.6 s of 5.4 min), for typo tolerance at the prompt. Worth it for an interactive agent
+session where a user types organism names from memory; not worth it for a
+pipeline that queries by tax_id, and not for shipping the graph.
+
+### What the default `.kgl` gives a consumer, and what it withholds
+
+It gives them the **whole graph** — every node, edge, property and evidence
+field is identical, because the lane adds an index and changes no data — plus
+§6's five BM25 indexes
+(`Taxon.scientific_name`, `Taxon.synonyms`, `Disease.label`,
+`Signature.description`, `Paper.title`). So exact lookups, an old binomial
+through the synonym index, and free-text entry into diseases, signatures and
+papers all work; and every tax_id in it was already reconciled at load time by
+exact/synonym/authority/merged-id matching.
+
+It withholds `text_score()`, and withholds it **loudly**: on a graph with no
+vector store the call raises rather than scoring zero —
+
+```
+Cypher execution error: vector_score(): no embedding 'scientific_name_emb'
+found for node type 'Taxon'
+```
+
+— which takes the whole query down, including a hybrid
+`score_fuse(text_bm25(…), text_score(…))` whose BM25 lane would have been fine
+on its own. That is the better of the two failure modes (a silent 0.0 would
+rank arbitrarily and look like an answer), but it means anything offering a
+hybrid lookup has to **ask first and route**, not catch: `graph.list_embeddings()`
+is `[]` and `graph.embedding_dim('Taxon', 'scientific_name')` is `None` on a
+default build. That is the check `tests/test_semantic_lookup.py` skips on.
+
+### The embedder, and why `ef_search` is pinned
 
 **The embedder is `microbiomekg.embedder.CharGramEmbedder`, not a downloaded
 model, and that is a deliberate scope statement rather than a shortfall.** It
@@ -1553,14 +1682,6 @@ a published model would make the build depend on a model download. The hash is
 process — a salted hash would embed the same name differently on every run and
 the store would quietly stop matching queries after a restart.
 
-**Cost, measured 2026-09-03 at `--scope microbial`.** Embedding all 864,099
-taxon names takes **26.7 s**, the HNSW index **50.1 s**, and the `.kgl` goes
-**44.1 MB -> 209.6 MB (+165.5 MB)**. Both are inside the 2-minute / 200 MB
-budget set for the whole-scope option, which is why the store covers every
-taxon rather than only the ~7,910 that carry an association edge. The cost the
-budget did not name is resident memory: a served graph goes from ~1.4 GB to
-~2.4 GB.
-
 **`ef_search` is pinned to 512 and the default is not safe here** — see §8
 item 9. At kglite's default 64, one fixture in five came back catastrophically
 wrong through Cypher's `ORDER BY text_score(...)` index pushdown, as an
@@ -1571,7 +1692,8 @@ ordinary result set.
 and the vector query fuses *two* lanes — the whole name and the epithet alone —
 because a genus rename destroys the first word and leaves the second.
 `mcp/microbiomekg.skills/reconciliation.md` is the authority; the measured
-outcomes are in `tests/test_semantic_lookup.py`.
+outcomes are in `tests/test_semantic_lookup.py`, which skips wholesale when the
+graph was built without `--with-vectors`.
 
 ---
 

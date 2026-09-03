@@ -25,7 +25,8 @@ instructions: |
   MicrobiomeKG: microbe-disease-metabolite-drug-resistance associations over
   NCBI taxonomy, from ten curated sources (BugSigDB, gutMDisorder, CARD, HMDB,
   Reactome, ChEMBL, MiMeDB, NJC19, and the Maier 2018 and Zimmermann 2019 drug
-  screens). 932,372 nodes, 1,311,540 edges. Read-only.
+  screens; MiMeDB contributes metabolite nodes and no edges). 932,674 nodes,
+  1,311,540 edges. Read-only.
 
   What makes this graph different from the microbiome KGs it resembles: an
   association edge cannot exist without saying how it was demonstrated. Three
