@@ -73,9 +73,22 @@ GOLDEN = {
     "d17_pairs": 56124,
     "d17_direction_conflict": 8238,
     "d17_single_cohort": 47232,
-    # D4 — the intervention leg, which needed gutMDisorder and now exists
+    # D4 — the four tiers Part D quotes, and the intervention leg that needed
+    # gutMDisorder. The tier counts are the golden: "all four are non-empty"
+    # passes on a build that lost 90% of one of them.
+    "d4_tiers": {
+        "in-vivo-model": 17858,
+        "meta-analysis": 4297,
+        "interventional-rct": 4247,
+        "in-vitro": 1613,
+    },
     "d4_intervention_edges": 1380,
     "d4_interventions": 220,
+    "d4_intervention_taxa": 395,
+    "d4_intervention_levels": {"in-vivo-model": 822, "interventional-rct": 558},
+    # D15 — the rule whose whole population is one source with three missing
+    # columns, quoted in Part D as 1,380 of 1,380.
+    "d15_intervention_rule": "ABUNDANCE_CHANGED_BY.required_properties",
     # D11 — the confounder columns, and G7
     "d11_signatures": 14846,
     "d11_matched_on": 2304,
@@ -391,6 +404,12 @@ def test_d15_the_audit_reports_the_headline_completeness_number(graph):
     assert rule["total"] == GOLDEN["d15_total"]
     assert rule["violations"] == GOLDEN["d15_violations"]
     assert 0 < rule["pct"] < 100
+    # The companion Part D quotes beside it: a rule whose whole population is
+    # one source with three missing columns reads 100%, and that is the audit
+    # describing the data rather than failing.
+    intervention = audit[GOLDEN["d15_intervention_rule"]]
+    assert intervention["violations"] == GOLDEN["d4_intervention_edges"]
+    assert intervention["total"] == GOLDEN["d4_intervention_edges"]
 
 
 def test_d15_the_per_field_census_the_audit_rolls_up(graph):
@@ -600,9 +619,10 @@ def test_d4_the_four_stronger_tiers_are_all_populated(graph):
             """,
         )
     }
-    assert set(result) == {"interventional-rct", "meta-analysis", "in-vitro",
-                           "in-vivo-model"}
-    assert all(n > 0 for n in result.values())
+    assert result == GOLDEN["d4_tiers"], (
+        "Part D quotes these four counts; `all four are non-empty` would pass "
+        "on a build that lost 90% of one of them"
+    )
 
 
 def test_d4_g6_sorts_animal_evidence_below_every_human_tier(graph):
@@ -640,11 +660,13 @@ def test_d4_the_intervention_leg_exists_and_is_its_own_relation(graph):
         """
         MATCH (t:Taxon)-[r:ABUNDANCE_CHANGED_BY]->(i:Intervention)
         RETURN count(r) AS edges, count(DISTINCT i.id) AS interventions,
+               count(DISTINCT t.id) AS taxa,
                collect(DISTINCT r.primary_source) AS sources
         """,
     )
     assert result["edges"] == GOLDEN["d4_intervention_edges"]
     assert result["interventions"] == GOLDEN["d4_interventions"]
+    assert result["taxa"] == GOLDEN["d4_intervention_taxa"]
     assert result["sources"] == ["gutmdisorder"]
 
 
@@ -660,7 +682,7 @@ def test_d4_a_mouse_intervention_is_still_animal_evidence(graph):
             "RETURN r.evidence_level AS level, count(r) AS edges",
         )
     }
-    assert set(result) == {"in-vivo-model", "interventional-rct"}
+    assert result == GOLDEN["d4_intervention_levels"]
     assert result["in-vivo-model"] > result["interventional-rct"]
 
 
@@ -733,6 +755,7 @@ D7 = {
     "ecoli_drug_classes": 31,
     "ecoli_mechanisms": 7,
     # The caveats, as counts.
+    "above_species": 264,        # carriage edges whose taxon is above species rank
     "bacteria_only": 132,        # models whose whole taxon claim is "a bacterium"
     "not_an_organism": 18,       # plasmids, a transposon, a synthetic construct
     "predicted_confers": 104,    # the 36 meta-models' drug-class edges
@@ -818,7 +841,7 @@ def test_d7_the_taxon_edge_does_not_claim_the_organism_is_resistant(graph):
             "RETURN r.taxon_specificity AS scope, count(r) AS n",
         )
     }
-    assert by_scope["above-species"] >= D7["bacteria_only"]
+    assert by_scope["above-species"] == D7["above_species"]
     assert by_scope["not-an-organism"] == D7["not_an_organism"]
     assert sum(by_scope.values()) == D7["carriage_edges"]
     bacteria = one(
@@ -925,9 +948,12 @@ CHEMBL_GOLDEN = {
     "bacterial_drugs_approved": 65,
     "bacterial_taxa": 28,
     "evidence_levels": {"in-vitro": 3153, "interventional-rct": 2059, "unknown": 1772},
-    # 15 of gutMDisorder's 222 interventions carry a name ChEMBL knows.
+    # 15 of gutMDisorder's 222 interventions carry a name ChEMBL knows, and
+    # that join is D8's second leg: a drug that changed a taxon's abundance.
     "is_drug": 15,
     "interventions": 222,
+    "d8_leg2_edges": 85,
+    "d8_leg2_taxa": 57,
     "metformin": "CHEMBL:CHEMBL1431",
 }
 
@@ -1054,6 +1080,18 @@ def test_chembl_an_intervention_that_names_a_drug_reaches_it(chembl_graph):
     assert result["methods"] == ["pref_name"]
     total = one(chembl_graph, "MATCH (i:Intervention) RETURN count(i) AS n")["n"]
     assert total == CHEMBL_GOLDEN["interventions"]
+    # D8's second leg, which is what those 15 links are for: the drug that
+    # changed a taxon's abundance, reachable from the drug rather than only
+    # from gutMDisorder's own label.
+    leg2 = one(
+        chembl_graph,
+        "MATCH (t:Taxon)-[r:ABUNDANCE_CHANGED_BY]->(i:Intervention)-[:IS_DRUG]->(d:Drug) "
+        "RETURN count(r) AS edges, count(DISTINCT d.id) AS drugs, "
+        "count(DISTINCT t.id) AS taxa",
+    )
+    assert leg2["edges"] == CHEMBL_GOLDEN["d8_leg2_edges"]
+    assert leg2["drugs"] == CHEMBL_GOLDEN["is_drug"]
+    assert leg2["taxa"] == CHEMBL_GOLDEN["d8_leg2_taxa"]
 
 
 def test_chembl_every_mechanism_edge_says_how_it_was_demonstrated(chembl_graph):
@@ -1119,6 +1157,11 @@ METABOLITE_GOLDEN = {
     "d13_in_pathway_tas": 4357,
     "d13_in_pathway_iea": 31773,
     "d13_reactome_species": 16,
+    # The three-hop walk itself, which Part D quotes as its golden.
+    "d13_walk_rows": 4806,
+    "d13_walk_taxa": 95,
+    "d13_walk_pathways": 635,
+    "d13_ecoli_rows": 387,
 }
 
 
@@ -1292,6 +1335,23 @@ def test_d13_the_path_resolves_and_every_pathway_is_a_model_organisms(
     assert result, "no taxon reaches a pathway at all"
     assert len(result) == METABOLITE_GOLDEN["d13_reactome_species"]
     assert result[0]["species"] == "Homo sapiens"
+    walk = one(
+        metabolite_graph,
+        """
+        MATCH (t:Taxon)-[:PRODUCES]->(m:Metabolite)-[:IN_PATHWAY]->(pw:Pathway)
+        RETURN count(*) AS rows, count(DISTINCT t.id) AS taxa,
+               count(DISTINCT pw.id) AS pathways
+        """,
+    )
+    assert walk["rows"] == METABOLITE_GOLDEN["d13_walk_rows"]
+    assert walk["taxa"] == METABOLITE_GOLDEN["d13_walk_taxa"]
+    assert walk["pathways"] == METABOLITE_GOLDEN["d13_walk_pathways"]
+    # Part D's own D13 query names E. coli, which is the taxon it resolves for.
+    assert one(
+        metabolite_graph,
+        "MATCH (t:Taxon {id: 562})-[:PRODUCES]->(m:Metabolite)-[:IN_PATHWAY]->(pw:Pathway) "
+        "RETURN count(*) AS rows",
+    )["rows"] == METABOLITE_GOLDEN["d13_ecoli_rows"]
     # The claim in one query, and it has **one exception the plan did not
     # name**: of the 272 organisms HMDB attributes a metabolite to, exactly one
     # is also a species Reactome models — *Mycobacterium tuberculosis*, which
