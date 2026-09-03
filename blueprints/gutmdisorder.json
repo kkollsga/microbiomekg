@@ -1,5 +1,5 @@
 {
-  "_doc": "gutMDisorder (human.xlsx + mouse.xlsx, 2020 v1): the Intervention node and the ABUNDANCE_CHANGED_BY edge \u2014 'a taxon changed BY something', which is the relation D4's intervention leg needs and which no other surveyed source curates. Its taxon-disease associations are rows in core.json's taxon_disease.csv, not a second relationship, so D2/D3/D17 span both sources; the properties it adds to that shared junction edge are declared here and merged additively.",
+  "_doc": "gutMDisorder (human.xlsx + mouse.xlsx, 2020 v1): the Intervention node and the ABUNDANCE_CHANGED_BY edge \u2014 'a taxon changed BY something', which is the relation D4's intervention leg needs and which no other surveyed source curates. Its taxon-disease associations are rows in core.json's taxon_condition.csv, not a second relationship, so D2/D3/D17 span both sources; the properties it adds to that shared junction edge are declared here and merged additively.",
   "nodes": {
     "Intervention": {
       "csv": "intervention.csv",
@@ -16,9 +16,13 @@
       "connections": {
         "junction_edges": {
           "ASSOCIATED_WITH": {
-            "csv": "taxon_disease.csv",
+            "csv": "taxon_condition.csv",
             "source_fk": "tax_id",
-            "target": "Disease",
+            "target": [
+              "Disease",
+              "Phenotype",
+              "Exposure"
+            ],
             "target_fk": "condition_id",
             "properties": [
               "p_value",
@@ -45,7 +49,8 @@
               "reported_tax_id": "int",
               "resolution_status": "string",
               "duplicate_rows": "int"
-            }
+            },
+            "target_type_column": "condition_type"
           },
           "ABUNDANCE_CHANGED_BY": {
             "csv": "taxon_intervention.csv",

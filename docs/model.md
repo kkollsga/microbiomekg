@@ -120,9 +120,10 @@ merely incomplete, it is contradictory. Three rules, in order:
 Anything still unpaired goes to the ledger with its raw string. On the full
 dump that is one row: a condition label with no id at all.
 
-**Accounting.** 14,987 condition mentions in; 12,843 `IN_CONDITION` + 678
-`IN_PHENOTYPE` + 438 `IN_EXPOSURE` + 1,028 ledger rows out. The three sinks sum
-to the input, which is C18's rule applied to the condition column.
+**Accounting.** 14,987 condition mentions in; 13,959 `IN_CONDITION` edges
+(12,843 to a `Disease`, 678 to a `Phenotype`, 438 to an `Exposure`) + 1,028
+ledger rows out. The two sinks sum to the input, which is C18's rule applied to
+the condition column.
 
 **`Paper` is separate from `Study`.** Every later source (CARD, ChEMBL,
 Disbiome) cites PMIDs too, so `Paper` is the join point that makes "what else
@@ -196,8 +197,8 @@ a rule that stops it being duplication:**
   reads them: 26 differentially abundant ASVs in type 2 diabetes became **0**
   after matching on host variables, and no other source in the survey records
   the fact at all.
-- The three association relationships (112,966 edges: 105,880 `ASSOCIATED_WITH`
-  + 4,717 `ASSOCIATED_WITH_PHENOTYPE` + 2,369 `ASSOCIATED_WITH_EXPOSURE`) carry
+- `ASSOCIATED_WITH` (112,966 edges: 105,880 to a `Disease`, 4,717 to a
+  `Phenotype`, 2,369 to an `Exposure`) carries
   the **fourteen-field evidence contract** and nothing else, because
   `required_properties` is the only completeness check kglite can enforce, and
   it works on **edge** properties only. Putting the evidence on the `Signature`
@@ -237,14 +238,10 @@ per taxon (BugSigDB does not).
 | Edge | Domain → Range | Carries |
 |---|---|---|
 | `HAS_PARENT` | `Taxon` → `Taxon` | — (parent pointer, `ancestry`) |
-| `ASSOCIATED_WITH` | `Taxon` → `Disease` | **the evidence contract** |
-| `ASSOCIATED_WITH_PHENOTYPE` | `Taxon` → `Phenotype` | **the same contract** |
-| `ASSOCIATED_WITH_EXPOSURE` | `Taxon` → `Exposure` | **the same contract** |
+| `ASSOCIATED_WITH` | `Taxon` → `Condition` (`Disease` ∪ `Phenotype` ∪ `Exposure`) | **the evidence contract** |
 | `REPORTED_BY` | `ReportedTaxon` → `Signature` | reconciliation provenance |
 | `PART_OF_STUDY` | `Signature` → `Study` | — |
-| `IN_CONDITION` | `Signature` → `Disease` | — |
-| `IN_PHENOTYPE` | `Signature` → `Phenotype` | — |
-| `IN_EXPOSURE` | `Signature` → `Exposure` | — |
+| `IN_CONDITION` | `Signature` → `Condition` | — |
 | `AT_BODY_SITE` | `Signature` → `BodySite` | — |
 | `ABUNDANCE_CHANGED_BY` | `Taxon` → `Intervention` | **the same contract** |
 | `CONFERS_RESISTANCE_TO` | `ResistanceGene` → `DrugClass` | **CARD's eight-property contract** |
@@ -267,17 +264,25 @@ per taxon (BugSigDB does not).
 | `PART_OF_PATHWAY` | `Pathway` → `Pathway` | — (sub-pathway pointer, `ancestry`, a **DAG**) |
 | `PUBLISHED_AS` | `Study` → `Paper` | — |
 
-**Three association relationships are one relation, split by the engine.** The
-model wants a single `ASSOCIATED_WITH` over a union range, and the ontology can
-express that (an abstract `Condition` class with three subclasses, the way
-`ReportedTaxon` already works on the domain side). The **blueprint** cannot:
-`junction_edges` is a map keyed by relationship name inside one node spec, and
-each entry names exactly one `target` node type — so one relationship cannot be
-loaded from three CSVs pointing at three types. The names are therefore listed
-in `microbiomekg.ontology.ASSOCIATION_RELATIONSHIPS`, "any association" is
-`-[:ASSOCIATED_WITH|ASSOCIATED_WITH_PHENOTYPE|ASSOCIATED_WITH_EXPOSURE]->`, and
-the split is recorded in §8 as an engine limitation rather than a preference.
-The same constraint splits `IN_CONDITION`.
+**One relation, one relationship name, over a union range.** `ASSOCIATED_WITH`
+runs from a `Taxon` to a `Condition` — the abstract class `Disease`, `Phenotype`
+and `Exposure` are `is_a`, the way `ReportedTaxon` works on the domain side.
+The blueprint expresses it directly: `taxon_condition.csv` is one junction CSV,
+the entry's `target` is the list of the three types, and `target_type_column`
+names the `condition_type` column that routes each row (kglite 0.16.22). The
+routing column is *not* an edge property; the target node's own type is what a
+query narrows on, so `-[:ASSOCIATED_WITH]->(:Disease)` is exactly the disease
+subset and `-[:ASSOCIATED_WITH]->()` is every association. `IN_CONDITION` is
+the same shape.
+
+Until 0.16.22 this needed three relationship names — `ASSOCIATED_WITH`,
+`ASSOCIATED_WITH_PHENOTYPE`, `ASSOCIATED_WITH_EXPOSURE`, and the same again for
+`IN_CONDITION` — because a junction entry named exactly one target type. That
+was the largest modelling compromise in this document (§8), and it cost more
+than three names: the audit reported *three* rules, so the headline
+"what fraction of associations lack evidence" covered only the disease third of
+them, and `IN_CONDITION.required` could only ask "no disease-coded condition"
+rather than "no condition at all".
 
 **The four drug↔taxon relationships are four by choice, not by engine
 limitation** — the opposite case, and worth stating beside it so the two are not
@@ -1610,12 +1615,12 @@ discovered rather than listed, and two of them declaring the same class
 differently is a `FragmentConflict`, not a silent override — see §8.
 
 ```python
-ASSOCIATION_RELATIONSHIPS = (
-    "ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "ASSOCIATED_WITH_EXPOSURE",
-)
+ASSOCIATION_RELATIONSHIPS = ("ASSOCIATED_WITH",)
+
+"Condition": {"abstract": True},                       # Disease/Phenotype/Exposure is_a it
 
 "ASSOCIATED_WITH": {
-    "domain": "Taxon", "range": "Disease",
+    "domain": "Taxon", "range": "Condition",
     "required_properties": EVIDENCE_CONTRACT,          # the fourteen fields
     "property_types": EVIDENCE_PROPERTY_TYPES,
     "enforcement": {"required_properties": "warn", "property_types": "error"},
@@ -1627,8 +1632,10 @@ ASSOCIATION_RELATIONSHIPS = (
 evidence contract by looking for one that required both a direction and a study
 design. That passes for the wrong reason the moment a provenance edge happens
 to carry both, and it silently covers nothing if a rename breaks the marker.
-The three names are now stated, and the test asserts they are declared rather
-than inferring which they are.
+The name is now stated, and the test asserts it is declared rather than
+inferring which it is. There is one of them since the union range collapsed the
+three, which is also what makes the audit's headline row cover every
+association rather than the disease third of them.
 
 **Severity is split on who owns the gap**, which is the lifecycle the kglite
 ontology guide prescribes:
@@ -1975,15 +1982,13 @@ ABUNDANCE_CHANGED_BY.required_properties      warn    1380 / 1380    100.00%
 CONFERS_RESISTANCE_TO.required_properties     warn    8052 / 13691    58.80%
 CARRIES_RESISTANCE_GENE.required_properties   warn    3717 / 6415     57.90%
 VIA_MECHANISM.required_properties             warn    3717 / 6513     57.10%
-ASSOCIATED_WITH_EXPOSURE.required_properties  warn     485 / 2369     20.50%
-IN_CONDITION.required                         warn    2292 / 14846    15.40%
-ASSOCIATED_WITH.required_properties           warn   16768 / 105880   15.80%
-ASSOCIATED_WITH_PHENOTYPE.required_properties warn     293 / 4717      6.20%
+ASSOCIATED_WITH.required_properties           warn   17546 / 112966   15.50%
+IN_CONDITION.required                         warn    1206 / 14846     8.10%
 AT_BODY_SITE.required                         warn      78 / 14846     0.50%
-ASSOCIATED_WITH.property_types                error       0 / 105880    0.00%
+ASSOCIATED_WITH.property_types                error       0 / 112966    0.00%
 REPORTED_BY.required_properties               error       0 / 114742    0.00%
 IS_DRUG.required_properties                   error       0 / 15        0.00%
-… 123 rules total, 114 of them at 0 violations
+… 111 rules total, 104 of them at 0 violations
 ```
 
 The four rules above `ASSOCIATED_WITH` are what a new source looks like when
@@ -1993,6 +1998,17 @@ CARD's carriage and drug-class edges carry no group sizes or statistical test
 because there are none to carry. The number to watch is the *denominator* —
 `IS_DRUG.required_properties` read 0 / 0 for a whole release while the
 relationship silently loaded nothing (§8).
+
+**Two of these rows are the union range arriving**, and both moved in the
+direction that says the earlier number was the wrong question.
+`ASSOCIATED_WITH.required_properties` used to be three rules — 16,768 / 105,880
+(15.80%) for the disease third plus 293 / 4,717 and 485 / 2,369 that nothing
+quoted — and only the first was ever called "the headline". One rule over
+17,546 / 112,966 is that headline actually covering the relation. And
+`IN_CONDITION.required` fell from 2,292 / 14,846 (15.40%) to 1,206 (8.10%),
+because it used to count signatures with no *disease*-coded condition; it now
+counts signatures naming **no condition at all**, which is the metric §4 wanted
+and could not express.
 
 Drill down to individual edges with
 `CALL edge_property_violation() YIELD relationship, check, source, target, property`,
@@ -2044,16 +2060,19 @@ the same key with a **different** value raises `FragmentConflict` naming both
 fragments. A merger that let the last writer win would turn a real
 disagreement about which CSV backs `Disease` into a silently different graph.
 Shared *rows* work the same way: a second source's taxon–disease association is
-a row in `taxon_disease.csv`, not a second relationship, because a junction
-entry names one relationship, one CSV and one target type (item 5 below). That
-is what `microbiomekg.tables.Writer(merge=True, owner=…)` is for.
+a row in `taxon_condition.csv`, not a second relationship, because a junction
+entry names one relationship and one CSV. That is what
+`microbiomekg.tables.Writer(merge=True, owner=…)` is for. The *target type* is
+no longer part of that constraint — the entry names a list of them and a
+routing column (item 5 below) — which is why the three condition tables are now
+one.
 
 **The `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000` workaround is gone, and
 this build sets no chunk size at all.** It was here because the blueprint
 junction-edge loader streamed each junction CSV in 100,000-row chunks and
 re-decided *per chunk* whether the connection type was new: the first chunk
-registered it and every later chunk merged by endpoints, so `taxon_disease.csv`
-— 105,880 rows of deliberately parallel edges — lost every repeat of a pair the
+registered it and every later chunk merged by endpoints, so `taxon_condition.csv`
+— 112,966 rows of deliberately parallel edges — lost every repeat of a pair the
 first chunk had seen, with no warning and no error. kglite 0.16.22 decides the
 regime once per CSV and holds it, so the chunk size bounds peak RAM without
 changing the graph. Measured both ways on the eleven-source build: at the
@@ -2085,10 +2104,13 @@ the engine, not into a workaround this repo pretends is a design.**
    `string`/`integer`/`float`/`boolean`/`date`/`datetime`/`timestamp`/`point`/`any`,
    so a list property is declared `any` there and its shape is unchecked while
    its presence still is.
-2. **FK edges cannot carry properties** — only junction edges can. Any
-   evidence-bearing edge therefore needs its own CSV even when the data is 1:1
-   with a node row. That is why `taxon_disease.csv` exists as a separate file
-   rather than being columns on `signature.csv`.
+2. **FK edges cannot carry properties** — only junction edges can. **Closed by
+   kglite 0.16.22**: an `fk_edges` entry now reads `properties`,
+   `property_types` and `rename`, the same three keys a junction edge reads.
+   Nothing here moves because of it — `taxon_condition.csv` is many-to-many and
+   would be a junction table whatever FK edges could carry — but the reason it
+   is a separate file is now "the relation is many-to-many", not "the engine
+   cannot put a property on an FK edge".
 3. **No secondary labels.** `NodeSpec` has no `labels` field, so the ontology
    guide's advice to model multi-role nodes with secondary labels is not
    reachable from a blueprint build; the escape hatches are a post-build
@@ -2104,49 +2126,55 @@ the engine, not into a workaround this repo pretends is a design.**
    not per property, so a fourteen-field contract yields one percentage and the
    per-field breakdown has to be a Cypher query (Q5).
 5. **One relationship cannot span a union range from a blueprint.**
-   `connections.junction_edges` is a map *keyed by relationship name* inside one
-   node spec, and each entry names exactly one `target` node type. So
-   `ASSOCIATED_WITH` cannot be loaded from three CSVs pointing at `Disease`,
-   `Phenotype` and `Exposure` — the second entry would collide on the key. The
-   *ontology* can express it (abstract class + `is_a`, exactly what
-   `ReportedTaxon` does on the domain side); the loader cannot. This repo
-   therefore ships three relationship names for one relation, and every "any
-   association" query is a three-way alternation
-   (`ASSOCIATION_RELATIONSHIPS` in `microbiomekg/ontology.py`). It is the
-   single largest modelling compromise in this document. What would fix it: a
-   per-row target type, or an optional `relationship:` field on the junction
-   entry so the map key can be a local alias.
+   **Closed by kglite 0.16.22.** A junction entry's `target` now takes a list
+   of node types plus an optional `target_type_column` naming the column that
+   holds each row's target type, so `ASSOCIATED_WITH` is one relationship over
+   `Disease` ∪ `Phenotype` ∪ `Exposure` loaded from one `taxon_condition.csv`,
+   and `IN_CONDITION` is the same. The ontology `range` is the abstract
+   `Condition` the three are `is_a`, exactly as `ReportedTaxon` works on the
+   domain side, so `ontology_audit()` reports **one** rule.
+
+   This was the single largest modelling compromise in this document, and
+   collapsing it changed two numbers rather than only the query syntax. The
+   headline completeness rule went from 16,768 / 105,880 (the disease third,
+   the only one anybody quoted) to 17,546 / 112,966 — the whole relation. And
+   nothing was lost on the way in: `-[:ASSOCIATED_WITH]->(:Disease)` is still
+   exactly the disease subset, because the target node's own type is what
+   separates them and always was. `target_type_column` is routing only; it does
+   not become an edge property.
 6. **The ontology cannot say "at least one of these relationships".**
    `required: true` is per relationship, and `exempt` covers only
    `required_properties` and `property_types` (`EXEMPTABLE_CHECKS`), so there
-   is no way to declare that a `Signature` must have an `IN_CONDITION` **or**
-   an `IN_PHENOTYPE` **or** an `IN_EXPOSURE`. §4 explains the reading that
-   keeps the gate honest instead; the metric it used to report — signatures
-   with no condition of any kind — now has to come from the prep script's own
-   counter. Falls away entirely if (5) is fixed.
+   is no way to declare that a node must have an `A` **or** a `B`. **This stands
+   as an engine limitation and no longer bites here**, because (5) removed the
+   case that needed it: `IN_CONDITION.required` is one rule over the union, so
+   it counts signatures naming no condition *of any kind* — 1,206 of 14,846
+   (8.1%) — which is the metric §4 wanted. It read 2,292 (15.4%) as
+   "no disease-coded condition" before, and the 1,086 difference is exactly the
+   signatures whose only condition is a phenotype or an exposure.
 7. **Relationship-type alternation is a syntax error inside `EXISTS { }`.**
-   `MATCH (n)-[:A|B]->()` parses; `WHERE EXISTS { (n)-[:A|B]->() }` and
-   `WHERE EXISTS { MATCH (n)-[:A|B]->() }` both fail with
-   *"Unexpected token in EXISTS pattern: |"* (kglite 0.16.21, reproduced on a
-   two-node scratch graph). Given (5) forces three relationship names, the
-   natural "signatures that name no condition at all" query —
-   `WHERE NOT EXISTS { (s)-[:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->() }` —
-   is unavailable, and has to be written as three separate `NOT EXISTS`
-   clauses. This one looks like a parser gap rather than a design choice.
+   **Fixed in kglite 0.16.22** and verified here on a scratch graph:
+   `WHERE EXISTS { (n)-[:A|B]->() }`, the `MATCH`-prefixed spelling and the
+   `NOT EXISTS` form all return what the equivalent `MATCH` returns. It was a
+   parser gap — the subquery's pattern re-serializer had no `|` case — and it
+   mattered because (5) forced three relationship names, so the natural
+   "signatures that name no condition at all" query had to be written as three
+   separate `NOT EXISTS` clauses. Both halves are gone: the query is now one
+   clause over one relationship name.
 8. **`text_bm25()` on an unindexed property fails two different ways, and the
-   likelier query shape is the silent one.** Calling it where no BM25 index
-   exists normally raises a clear, actionable error naming
-   `build_text_index(...)`. But a query that both filters and ranks —
-   `WHERE text_bm25(n, 'p', $q) > 0 … ORDER BY …`, which is the *documented
-   fast-path shape* — returns **zero rows and no error at all** (kglite
-   0.16.21, reproduced on this graph for `Metabolite.name` and
-   `UnresolvedTaxon.raw_name`; the same query without the `ORDER BY` raises).
-   So the mistake is invisible in exactly the form an author is most likely to
-   write, and "no hits" is indistinguishable from "nothing matched". Two skill
-   queries shipped broken this way and passed a test that only asserted the
-   Cypher executed; `tests/test_mcp_skills.py::test_no_block_ranks_on_a_property_with_no_bm25_index`
-   now checks `has_text_index()` directly rather than trusting the engine to
-   complain.
+   likelier query shape is the silent one.** **Fixed in kglite 0.16.22** and
+   verified here: both shapes now raise, naming `build_text_index(...)`. It was
+   the *documented fast path* that stayed silent — a query that both filters and
+   ranks, `WHERE text_bm25(n, 'p', $q) > 0 … ORDER BY …`, returned zero rows
+   and no error (reproduced on 0.16.21 for `Metabolite.name` and
+   `UnresolvedTaxon.raw_name`), so the mistake was invisible in exactly the form
+   an author is most likely to write and "no hits" was indistinguishable from
+   "nothing matched". Two skill queries shipped broken that way and passed a
+   test that only asserted the Cypher executed.
+   `tests/test_mcp_skills.py::test_no_block_ranks_on_a_property_with_no_bm25_index`
+   stays as it is — it checks `has_text_index()` directly rather than trusting
+   the engine to complain, which is a better test than the one the fix would
+   allow, and it costs nothing to keep.
 9. **An HNSW vector index changes the answer, and Cypher gives no way to opt
    out.** `ORDER BY text_score(…) DESC LIMIT n` is pushed into the vector index
    when one exists, so an approximate result arrives as an ordinary result set.

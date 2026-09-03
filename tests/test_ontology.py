@@ -382,12 +382,25 @@ def test_no_property_is_declared_twice_under_two_names():
         )
 
 
-def test_association_relationships_all_carry_the_same_contract():
+def test_the_association_relationship_ranges_over_the_condition_union():
+    """One relation, one name, one rule — and the range is the abstract class.
+
+    It was three names (`ASSOCIATED_WITH` / `_PHENOTYPE` / `_EXPOSURE`) until a
+    blueprint junction edge could take a list of target types, and the audit
+    then reported three rules of which only the first was ever quoted as "the"
+    completeness number. The range being abstract is what keeps the collapse
+    honest: `Disease`, `Phenotype` and `Exposure` are `is_a Condition`, so the
+    range check still refuses an edge pointing anywhere else.
+    """
     decls = association_relationships()
-    contracts = {tuple(d.get("required_properties", ())) for d in decls.values()}
-    assert len(contracts) == 1, (
-        "the three association relationships are one relation split by the "
-        "engine's one-target-per-junction rule; a contract that differs "
-        "between them is a bug, not a model"
+    assert set(decls) == {"ASSOCIATED_WITH"}, (
+        "a second association relationship name is back; one relation over a "
+        "union range is one relationship (docs/model.md §2)"
     )
-    assert {d["range"] for d in decls.values()} == {"Disease", "Phenotype", "Exposure"}
+    contracts = {tuple(d.get("required_properties", ())) for d in decls.values()}
+    assert len(contracts) == 1
+    assert {d["range"] for d in decls.values()} == {"Condition"}
+    classes = ONTOLOGY["classes"]
+    assert classes["Condition"].get("abstract") is True
+    for concrete in ("Disease", "Phenotype", "Exposure"):
+        assert classes[concrete]["is_a"] == "Condition", concrete

@@ -44,7 +44,7 @@ instructions: |
      you.
   3. Check the audit before trusting a relationship. `CALL ontology_audit()`
      reports what fraction of each relationship's edges fail its declared
-     required-property set — 15.8% for `ASSOCIATED_WITH`, 100% for
+     required-property set — 15.5% for `ASSOCIATED_WITH`, 100% for
      `ABUNDANCE_CHANGED_BY`. A relationship you have not audited may be
      answering from a source that records none of the fields you are reading.
 
@@ -52,7 +52,8 @@ instructions: |
 # schema instead of ageing out of context the way `instructions` does.
 overview_prefix: |
   Evidence fields ride the EDGE, not the node. Every association edge
-  (ASSOCIATED_WITH, ASSOCIATED_WITH_PHENOTYPE, ASSOCIATED_WITH_EXPOSURE,
+  (ASSOCIATED_WITH — one relationship to a Disease, Phenotype or Exposure alike,
+  so narrow it by the target's label, not by a second relationship name —
   ABUNDANCE_CHANGED_BY, PRODUCES, CARRIES_RESISTANCE_GENE, CONFERS_RESISTANCE_TO,
   HAS_MECHANISM, IN_PATHWAY) carries at least:
 

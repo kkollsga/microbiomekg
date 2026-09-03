@@ -1,5 +1,5 @@
 {
-  "_doc": "BugSigDB: the Signature node (the taxon SET, which a flattened model would destroy and D1's enrichment needs), the body sites, and the REPORTED_BY provenance edge from both Taxon and its UnresolvedTaxon tombstone. The association rows this source writes go into core.json's taxon_disease.csv / taxon_phenotype.csv / taxon_exposure.csv.",
+  "_doc": "BugSigDB: the Signature node (the taxon SET, which a flattened model would destroy and D1's enrichment needs), the body sites, and the REPORTED_BY provenance edge from both Taxon and its UnresolvedTaxon tombstone. The association rows this source writes go into core.json's taxon_condition.csv, and IN_CONDITION spans the three condition types the same way ASSOCIATED_WITH does.",
   "nodes": {
     "Signature": {
       "csv": "signature.csv",
@@ -47,19 +47,12 @@
           "IN_CONDITION": {
             "csv": "signature_condition.csv",
             "source_fk": "signature_id",
-            "target": "Disease",
-            "target_fk": "condition_id"
-          },
-          "IN_PHENOTYPE": {
-            "csv": "signature_phenotype.csv",
-            "source_fk": "signature_id",
-            "target": "Phenotype",
-            "target_fk": "condition_id"
-          },
-          "IN_EXPOSURE": {
-            "csv": "signature_exposure.csv",
-            "source_fk": "signature_id",
-            "target": "Exposure",
+            "target": [
+              "Disease",
+              "Phenotype",
+              "Exposure"
+            ],
+            "target_type_column": "condition_type",
             "target_fk": "condition_id"
           },
           "AT_BODY_SITE": {

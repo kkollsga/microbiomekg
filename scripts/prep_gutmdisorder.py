@@ -259,7 +259,8 @@ def main(argv: list[str] | None = None) -> int:
         key="intervention_id", merge=True, owner=("source", SOURCE),
     )
     assoc = Writer(
-        out / "taxon_disease.csv", ["tax_id", "condition_id", *ASSOCIATION_FIELDS],
+        out / "taxon_condition.csv",
+        ["tax_id", "condition_id", "condition_type", *ASSOCIATION_FIELDS],
         dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
     )
     changed_by = Writer(
@@ -569,7 +570,13 @@ def main(argv: list[str] | None = None) -> int:
             taxa_seen[res.tax_id] = taxa_seen.get(res.tax_id, 0) + 1
             targets = 0
             for condition in study_diseases.get(index, []):
-                assoc.add({"tax_id": str(res.tax_id), "condition_id": condition, **edge})
+                # Every gutMDisorder condition is disease-coded: the source's
+                # own column is a disease name and `condition_node_type` has
+                # routed all 1,636 of them to `Disease`. The column is still
+                # written rather than assumed, because it is what the loader
+                # reads to pick this row's target type.
+                assoc.add({"tax_id": str(res.tax_id), "condition_id": condition,
+                           "condition_type": "Disease", **edge})
                 counters["associated_with"] += 1
                 targets += 1
             for iid in study_interventions.get(index, []):

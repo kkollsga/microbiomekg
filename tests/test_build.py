@@ -73,23 +73,19 @@ NODE_COUNTS = {
 EDGE_COUNTS = {
     "HAS_PARENT": 142,          # every Taxon but root, which is its own parent
     "REPORTED_BY": 74,          # every taxon mention, resolved or not
-    # (resolved taxon x condition term) per signature, split by the condition's
-    # node type. 72, not 73: the one association to NCBITAXON:568703 has no
-    # condition node to point at and is in the ledger.
-    "ASSOCIATED_WITH": 55,
-    "ASSOCIATED_WITH_PHENOTYPE": 3,
-    "ASSOCIATED_WITH_EXPOSURE": 14,
-    "IN_CONDITION": 34,
-    "IN_PHENOTYPE": 3,
-    "IN_EXPOSURE": 6,
+    # (resolved taxon x condition term) per signature, over the union of the
+    # three condition types. 72, not 73: the one association to
+    # NCBITAXON:568703 has no condition node to point at and is in the ledger.
+    "ASSOCIATED_WITH": 72,
+    "IN_CONDITION": 43,
     "AT_BODY_SITE": 45,
     "PART_OF_STUDY": 43,
     "PUBLISHED_AS": 34,
 }
 
-#: Every association edge, whatever its condition type. The three relationship
-#: names are an engine constraint, not a modelling choice (docs/model.md §8).
-ANY_ASSOCIATION = "ASSOCIATED_WITH|ASSOCIATED_WITH_PHENOTYPE|ASSOCIATED_WITH_EXPOSURE"
+#: Every association edge, whatever its condition type — one relationship name
+#: over a union range since kglite 0.16.22 (docs/model.md §8).
+ANY_ASSOCIATION = "ASSOCIATED_WITH"
 ASSOCIATION_EDGES = 72
 
 CITED_TAXA = 53                 # taxa some signature actually named
@@ -380,7 +376,7 @@ def test_conflicting_directions_survive_as_separate_edges(graph):
         h["sig"]: h["direction"]
         for h in rows(
             graph,
-            "MATCH (t:Taxon)-[r:ASSOCIATED_WITH_PHENOTYPE]->(d:Phenotype) "
+            "MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Phenotype) "
             "WHERE t.tax_id = 1386 AND d.condition_id = 'HP:0002745' "
             "RETURN r.signature_id AS sig, r.direction AS direction",
         )
@@ -484,7 +480,7 @@ def test_multi_condition_row_links_to_both_terms(graph):
         (r["t"], r["d"], r["c"])
         for r in rows(
             graph,
-            "MATCH (s:Signature)-[:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->(d) "
+            "MATCH (s:Signature)-[:IN_CONDITION]->(d) "
             "WHERE s.signature_id = 'bsdb:23349750/1/2' "
             "RETURN labels(d)[0] AS t, d.condition_id AS d, d.source_condition AS c",
         )
@@ -993,7 +989,7 @@ def test_every_condition_mention_is_accounted_for(graph, condition_ledger):
     condition mentions the 43 rows carry."""
     linked = count(
         graph,
-        "MATCH (:Signature)-[r:IN_CONDITION|IN_PHENOTYPE|IN_EXPOSURE]->() "
+        "MATCH (:Signature)-[r:IN_CONDITION]->() "
         "RETURN count(r) AS n",
     )
     mentions = 0

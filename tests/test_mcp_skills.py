@@ -237,12 +237,14 @@ def test_the_vector_lane_is_either_present_or_the_documented_fallback_works(grap
         )
 
 
-#: `text_bm25(n, 'p', …)` where `n.p` has no BM25 index normally raises. In one
-#: query shape it does not: a `WHERE text_bm25(...) > 0` filter *combined with*
-#: an ORDER BY returns **zero rows and no error** — verified on kglite 0.16.21,
-#: recorded in docs/model.md §8. That shape is the documented fast path, so it
-#: is exactly the one a skill is likely to teach, and it swallows the mistake.
-#: This check does not rely on the engine complaining.
+#: `text_bm25(n, 'p', …)` where `n.p` has no BM25 index raises. Through kglite
+#: 0.16.21 one query shape did not: a `WHERE text_bm25(...) > 0` filter
+#: *combined with* an ORDER BY returned **zero rows and no error**, and that
+#: shape is the documented fast path, so it was exactly the one a skill is
+#: likely to teach. 0.16.22 fixed it (docs/model.md §8 item 8) and this check
+#: still does not rely on the engine complaining: asking `has_text_index()`
+#: names the missing index instead of waiting for a query to fail on it, which
+#: holds whatever a later release does with the error.
 BM25_CALL = re.compile(r"text_bm25\(\s*(\w+)\s*,\s*'([^']+)'")
 NODE_BINDING = re.compile(r"\((\w+)\s*:\s*(\w+)")
 

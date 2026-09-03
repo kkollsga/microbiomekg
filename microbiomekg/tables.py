@@ -5,13 +5,15 @@ column-by-column, and rows deduplicated on either a primary key or the whole
 row. :class:`Writer` is that, plus the one thing a second source makes
 necessary — **merging into a table another source already wrote**.
 
-Sharing a table is not an optimisation, it is the model. ``taxon_disease.csv``
-backs a single ``ASSOCIATED_WITH`` junction edge, because a blueprint junction
-entry names one relationship, one CSV and one target type (docs/model.md §8);
-so an association from a second source is a *row* in that file, not a second
-relationship. The same goes for ``paper.csv``: one PMID is one ``Paper`` node
-whoever cites it, which is what makes "what else does this paper support?" a
-one-hop query.
+Sharing a table is not an optimisation, it is the model. ``taxon_condition.csv``
+backs the single ``ASSOCIATED_WITH`` junction edge, because a blueprint junction
+entry names one relationship and one CSV; so an association from a second source
+is a *row* in that file, not a second relationship. Its ``condition_type``
+column is what lets one relationship span ``Disease`` ∪ ``Phenotype`` ∪
+``Exposure`` — the blueprint's ``target_type_column`` — rather than three
+relationship names splitting one relation. The same goes for ``paper.csv``: one
+PMID is one ``Paper`` node whoever cites it, which is what makes "what else does
+this paper support?" a one-hop query.
 
 Merging is why ``scripts/build.py`` empties ``data/csv/`` before it runs the
 prep scripts. Given that, the output is a function of the inputs and the

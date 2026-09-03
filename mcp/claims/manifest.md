@@ -31,7 +31,7 @@ The two headings below name the manifest's prose keys — the handshake
 <!-- claim: CALL ontology_audit() YIELD rule, pct
      RETURN sum(CASE WHEN rule = 'ASSOCIATED_WITH.required_properties' THEN pct ELSE 0.0 END) AS assoc,
             sum(CASE WHEN rule = 'ABUNDANCE_CHANGED_BY.required_properties' THEN pct ELSE 0.0 END) AS abundance
-     == 15.8, 100 -->
+     == 15.5, 100 -->
 
 <!-- claim: MATCH ()-[r]->() WHERE r.primary_source = 'mimedb'
      RETURN count(r) AS mimedb_edges == 0 -->

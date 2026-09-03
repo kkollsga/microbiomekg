@@ -12,9 +12,11 @@ hatches.
      WITH t, d, count(r) AS n RETURN sum(n) AS edges, count(*) AS pairs
      == 105880, 56306 -->
 
-<!-- claim: MATCH ()-[p:ASSOCIATED_WITH_PHENOTYPE]->() WITH count(p) AS phenotype
-     MATCH ()-[e:ASSOCIATED_WITH_EXPOSURE]->()
-     RETURN phenotype, count(e) AS exposure == 4717, 2369 -->
+<!-- claim: MATCH ()-[r:ASSOCIATED_WITH]->(c)
+     RETURN sum(CASE WHEN 'Phenotype' IN labels(c) THEN 1 ELSE 0 END) AS phenotype,
+            sum(CASE WHEN 'Exposure'  IN labels(c) THEN 1 ELSE 0 END) AS exposure,
+            sum(CASE WHEN 'Disease'   IN labels(c) THEN 1 ELSE 0 END) AS disease,
+            count(r) AS every == 4717, 2369, 105880, 112966 -->
 
 ## Ask it like this (D2)
 

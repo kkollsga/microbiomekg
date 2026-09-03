@@ -383,18 +383,24 @@ PRODUCTION_DESCRIPTION: str = (
 #: inferred. `tests/test_ontology.py` used to work out which relationships were
 #: associations by looking for a direction plus a study design, which is a
 #: heuristic standing in for a declaration (C21.5).
-ASSOCIATION_RELATIONSHIPS: tuple[str, ...] = (
-    "ASSOCIATED_WITH",
-    "ASSOCIATED_WITH_PHENOTYPE",
-    "ASSOCIATED_WITH_EXPOSURE",
-)
+#:
+#: There is **one**, and that is the point. Until kglite 0.16.22 a blueprint
+#: junction edge named exactly one target node type, so one relation over
+#: `Disease` ∪ `Phenotype` ∪ `Exposure` needed three relationship names — and
+#: the headline audit number then covered only the disease third of it. The
+#: union target collapsed them; a query that wants only diseases says
+#: `-[:ASSOCIATED_WITH]->(:Disease)`, which the three-name shape could not
+#: improve on.
+ASSOCIATION_RELATIONSHIPS: tuple[str, ...] = ("ASSOCIATED_WITH",)
 
-#: The condition node type each association relationship points at, positionally.
-ASSOCIATION_RANGES: tuple[str, ...] = ("Disease", "Phenotype", "Exposure")
+#: The class each association relationship points at, positionally. `Condition`
+#: is abstract and `Disease`/`Phenotype`/`Exposure` are `is_a` it, so the range
+#: check reads the union and `ontology_audit()` reports one rule.
+ASSOCIATION_RANGES: tuple[str, ...] = ("Condition",)
 
 
 def association_declaration(range_class: str) -> dict:
-    """One association relationship declaration. Identical but for its range."""
+    """One association relationship declaration."""
     return {
         "domain": "Taxon",
         "range": range_class,
@@ -406,6 +412,8 @@ def association_declaration(range_class: str) -> dict:
         # never building. `property_types` is ours — our prep writes the
         # column types — so that one is an error.
         "enforcement": {"required_properties": "warn", "property_types": "error"},
-        "description": f"Differential abundance of a taxon in a {range_class.lower()}, "
-        f"with the evidence that established it. One edge per (signature, taxon).",
+        "description": f"Differential abundance of a taxon in a "
+        f"{range_class.lower()} — a disease, a phenotype or an exposure, and "
+        f"the node's own type says which. Carries the evidence that established "
+        f"it; one edge per (signature, taxon).",
     }

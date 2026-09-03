@@ -29,7 +29,7 @@ Two gotchas in the export, both silent if you get them wrong:
   rather than in a node type it does not belong to.
 
 This script writes several tables it *shares* with the other sources —
-``paper.csv``, ``study.csv``, ``disease.csv``, ``taxon_disease.csv``,
+``paper.csv``, ``study.csv``, ``disease.csv``, ``taxon_condition.csv``,
 ``cited_taxa.csv`` and the two ledgers — through
 :class:`microbiomekg.tables.Writer` with ``merge=True``, so running it before
 or after another source's prep gives the same file. ``scripts/build.py`` runs
@@ -249,19 +249,17 @@ def main(argv: list[str] | None = None) -> int:
          "state", "pmid", "n_taxa", "n_unresolved", "source"],
         key="signature_id",
     )
-    # One junction CSV per condition node type, because a blueprint junction
-    # edge names exactly one target node type (see docs/model.md section 8).
-    sig_condition = {
-        "Disease": Writer(
-            out / "signature_condition.csv", ["signature_id", "condition_id"],
-            dedupe_full=True),
-        "Phenotype": Writer(
-            out / "signature_phenotype.csv", ["signature_id", "condition_id"],
-            dedupe_full=True),
-        "Exposure": Writer(
-            out / "signature_exposure.csv", ["signature_id", "condition_id"],
-            dedupe_full=True),
-    }
+    # One junction CSV over the three condition node types. `condition_type`
+    # is the blueprint's `target_type_column`: it routes each row to Disease,
+    # Phenotype or Exposure, so one relationship spans the union instead of
+    # three names splitting it (docs/model.md section 8). The column is routing
+    # only — it is not in the edge's `properties`, so it never lands as an edge
+    # property; the target node's own label is what a query narrows on.
+    sig_condition = Writer(
+        out / "signature_condition.csv",
+        ["signature_id", "condition_id", "condition_type"],
+        dedupe_full=True,
+    )
     sig_bodysite = Writer(
         out / "signature_bodysite.csv", ["signature_id", "bodysite_id"], dedupe_full=True
     )
@@ -287,24 +285,18 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    assoc_fields = ["tax_id", "condition_id", "direction", "study_design",
+    assoc_fields = ["tax_id", "condition_id", "condition_type",
+                    "direction", "study_design",
                     "evidence_level", "sequencing_type", "statistical_test",
                     "group_0_size", "group_1_size", "pmid",
                     "knowledge_level", "agent_type", "primary_source",
                     "source_record_id", "source_licence", "source_relation",
                     "signature_id", "study_id", "host_species", "body_site",
                     "significance_threshold", "mht_correction"]
-    assoc = {
-        "Disease": Writer(
-            out / "taxon_disease.csv", assoc_fields, dedupe_full=True, merge=True,
-            owner=("primary_source", SOURCE)),
-        "Phenotype": Writer(
-            out / "taxon_phenotype.csv", assoc_fields, dedupe_full=True, merge=True,
-            owner=("primary_source", SOURCE)),
-        "Exposure": Writer(
-            out / "taxon_exposure.csv", assoc_fields, dedupe_full=True, merge=True,
-            owner=("primary_source", SOURCE)),
-    }
+    assoc = Writer(
+        out / "taxon_condition.csv", assoc_fields, dedupe_full=True, merge=True,
+        owner=("primary_source", SOURCE),
+    )
 
     cited: "OrderedDict[int, int]" = OrderedDict()
     unresolved_hits: dict[str, int] = {}
@@ -442,8 +434,9 @@ def main(argv: list[str] | None = None) -> int:
 
             for node_type, keys in row_conditions.items():
                 for key in keys:
-                    sig_condition[node_type].add(
-                        {"signature_id": bsdb, "condition_id": key}
+                    sig_condition.add(
+                        {"signature_id": bsdb, "condition_id": key,
+                         "condition_type": node_type}
                     )
             for sid in site_ids:
                 sig_bodysite.add({"signature_id": bsdb, "bodysite_id": sid})
@@ -511,10 +504,11 @@ def main(argv: list[str] | None = None) -> int:
 
                 for node_type, keys in row_conditions.items():
                     for key in keys:
-                        assoc[node_type].add(
+                        assoc.add(
                             {
                                 "tax_id": str(res.tax_id),
                                 "condition_id": key,
+                                "condition_type": node_type,
                                 "direction": direction,
                                 "study_design": design,
                                 "evidence_level": level,
@@ -618,8 +612,8 @@ def main(argv: list[str] | None = None) -> int:
 
     counts = {w.path.name: w.flush() for w in (
         studies, papers, *conditions.values(), bodysites, signatures,
-        *sig_condition.values(), sig_bodysite, reported, reported_unres,
-        unresolved_nodes, *assoc.values(), unresolved_conditions, cited_writer)}
+        sig_condition, sig_bodysite, reported, reported_unres,
+        unresolved_nodes, assoc, unresolved_conditions, cited_writer)}
 
     ont_path = ont.write_json(args.ontology_json)
 
@@ -634,7 +628,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in (
-        studies, papers, *conditions.values(), unresolved_nodes, *assoc.values(),
+        studies, papers, *conditions.values(), unresolved_nodes, assoc,
         unresolved_conditions, cited_writer) if w.merged_in}
     if shared:
         print("  merged into tables another source had written: " + ", ".join(

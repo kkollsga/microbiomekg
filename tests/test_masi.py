@@ -769,7 +769,7 @@ def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
 
 def test_the_disease_records_are_rows_in_the_shared_association_table(graph):
     """MASI is the fourth source of `ASSOCIATED_WITH` and writes into the same
-    `taxon_disease.csv` BugSigDB, gutMDisorder and CARD do — a row, never a
+    `taxon_condition.csv` BugSigDB, gutMDisorder and CARD do — a row, never a
     second relationship, so D2/D3/D17 span it without knowing it arrived."""
     assert one(
         graph,

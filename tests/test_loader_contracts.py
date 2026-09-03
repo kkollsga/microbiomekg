@@ -68,7 +68,7 @@ def test_junction_loader_keeps_parallel_edges_across_a_chunk_boundary(
     connection type was new: the first chunk registered it and every later
     chunk merged by endpoints, folding its rows onto the edges the first chunk
     had created. Ten identical `A1 -> B1` rows through a three-row chunk gave
-    three edges, and this project's ~118k-row `taxon_disease.csv` lost 7.7% of
+    three edges, and this project's 112,966-row `taxon_condition.csv` lost 7.7% of
     its associations against the 100,000-row default — with no warning.
 
     The chunk size is a memory bound again, so it must not change the graph.

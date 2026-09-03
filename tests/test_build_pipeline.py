@@ -275,7 +275,7 @@ def test_the_expansion_report_covers_every_declared_relationship():
     edge count means was missing for every relationship four later sources
     added, including the one that was loading zero edges."""
     declared = build.declared_relationships(FRAGMENTS)
-    assert {"ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "ASSOCIATED_WITH_EXPOSURE",
+    assert {"ASSOCIATED_WITH", "IN_CONDITION", "AT_BODY_SITE",
             "ABUNDANCE_CHANGED_BY", "IS_DRUG", "PRODUCES", "HAS_MECHANISM",
             "CARRIES_RESISTANCE_GENE", "CONFERS_RESISTANCE_TO", "IN_PATHWAY",
             "PART_OF_PATHWAY", "REPORTED_BY", "HAS_PARENT"} <= set(declared)
@@ -298,7 +298,7 @@ def test_every_csv_a_fragment_names_is_one_the_report_can_count():
     whose CSV a fragment misnames would be reported as zero records rather than
     as an error."""
     csv_dir = ROOT / "data" / "csv"
-    if not (csv_dir / "taxon_disease.csv").is_file():
+    if not (csv_dir / "taxon_condition.csv").is_file():
         pytest.skip("no built CSVs — run scripts/build.py first")
     missing = sorted(
         name
@@ -316,7 +316,7 @@ def test_the_record_count_is_rows_and_not_newlines(tmp_path):
     with a line break in it — so the report printed
     ``PART_OF_STUDY 14,846 edges / 15,820 rows = 0.9x``: an FK edge expanding
     to *less* than one edge per row, which cannot happen and was the counter
-    rather than the loader. Also `taxon_disease.csv` (49), `study.csv` (92),
+    rather than the loader. Also `taxon_condition.csv` (49), `study.csv` (92),
     `drug_target.csv` (34), `taxon_intervention.csv` (35) and `paper.csv` (1).
     """
     path = tmp_path / "t.csv"
@@ -361,7 +361,7 @@ def test_the_expansion_report_names_every_relationship_it_declared(
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     section = proc.stdout.split("expansion factor (G10)")[1]
-    for rel in ("ASSOCIATED_WITH", "ASSOCIATED_WITH_PHENOTYPE", "REPORTED_BY",
+    for rel in ("ASSOCIATED_WITH", "IN_CONDITION", "REPORTED_BY",
                 "HAS_PARENT", "PART_OF_STUDY", "PUBLISHED_AS", "AT_BODY_SITE"):
         assert rel in section, f"{rel} is declared and unreported"
 

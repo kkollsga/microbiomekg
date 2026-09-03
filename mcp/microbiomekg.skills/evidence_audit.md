@@ -22,10 +22,13 @@ CALL ontology_audit() YIELD rule, severity, violations, exempted, total, pct
 RETURN rule, severity, violations, total, pct ORDER BY pct DESC
 ```
 
-123 rules, 24 of them the `required_properties` completeness check. The
+111 rules, 22 of them the `required_properties` completeness check. The
 headline row is
-**`ASSOCIATED_WITH.required_properties` at 16,768 of 105,880 edges = 15.8%,
-`severity = warn`**.
+**`ASSOCIATED_WITH.required_properties` at 17,546 of 112,966 edges = 15.5%,
+`severity = warn`** — one rule over every association, whatever kind of
+condition it points at. Narrow it by the target's own label
+(`-[r:ASSOCIATED_WITH]->(:Disease)`) when a question is about diseases only;
+there is no separate relationship name to remember.
 
 ## How to read a row — three failure modes it can hide
 

@@ -87,7 +87,7 @@ def test_two_junction_edges_under_one_node_are_both_kept():
     merged = merge_fragments(
         [
             ("a.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
-                "ASSOCIATED_WITH": {"csv": "taxon_disease.csv"}}}}}}),
+                "ASSOCIATED_WITH": {"csv": "taxon_condition.csv"}}}}}}),
             ("b.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
                 "ABUNDANCE_CHANGED_BY": {"csv": "taxon_intervention.csv"}}}}}}),
         ]
@@ -106,7 +106,7 @@ def test_the_same_relationship_backed_by_two_csvs_is_an_error():
         merge_fragments(
             [
                 ("a.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
-                    "ASSOCIATED_WITH": {"csv": "taxon_disease.csv"}}}}}}),
+                    "ASSOCIATED_WITH": {"csv": "taxon_condition.csv"}}}}}}),
                 ("b.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
                     "ASSOCIATED_WITH": {"csv": "gutmdisorder_disease.csv"}}}}}}),
             ]

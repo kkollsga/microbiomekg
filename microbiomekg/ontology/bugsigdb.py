@@ -78,38 +78,28 @@ RELATIONSHIPS: dict[str, dict] = {
         "enforcement": {"cardinality": "error", "required": "error"},
         "description": "Every signature belongs to exactly one study.",
     },
-    # No `cardinality: {max: 1}` on any of these, and that is a data fact,
-    # not an oversight: 329 BugSigDB signatures name two conditions and 462
-    # name two body sites (comma-joined in one cell), so both are genuinely
-    # one-to-many and are loaded from junction CSVs.
+    # No `cardinality: {max: 1}`, and that is a data fact, not an oversight:
+    # 329 BugSigDB signatures name two conditions and 462 name two body sites
+    # (comma-joined in one cell), so both are genuinely one-to-many and are
+    # loaded from junction CSVs.
     #
-    # `required` is declared on IN_CONDITION only, and it counts exactly
-    # what it says: signatures with no *disease*-coded condition. The
-    # ontology cannot express "at least one of these three relationships",
-    # so putting `required` on all three would report ~99% violations on
-    # the two narrow ones; putting it on none would drop the gate.
+    # `required` here now counts what §4 always wanted it to: signatures with
+    # **no condition of any kind**. It used to count signatures with no
+    # *disease*-coded one, because the relation was split across
+    # IN_CONDITION / IN_PHENOTYPE / IN_EXPOSURE and the ontology cannot say
+    # "at least one of these three" — so `required` on all three reported ~99%
+    # violations on the two narrow ones and `required` on one over-counted.
+    # The union target made the question askable of a single rule.
     "IN_CONDITION": {
         "domain": "Signature",
-        "range": "Disease",
+        "range": "Condition",
         "required": True,
         "inverse_name": "HAS_SIGNATURE",
         "enforcement": {"required": "warn"},
-        "description": "A disease the signature contrasts. Multi-valued upstream. "
-        "Its `required` violations are signatures with no disease-coded condition "
-        "— which includes those whose condition is a phenotype or an exposure.",
-    },
-    "IN_PHENOTYPE": {
-        "domain": "Signature",
-        "range": "Phenotype",
-        "inverse_name": "HAS_SIGNATURE",
-        "description": "An HP-coded phenotype the signature contrasts.",
-    },
-    "IN_EXPOSURE": {
-        "domain": "Signature",
-        "range": "Exposure",
-        "inverse_name": "HAS_SIGNATURE",
-        "description": "A chemical, environmental or social exposure the signature "
-        "contrasts.",
+        "description": "A condition the signature contrasts — a disease, an "
+        "HP-coded phenotype or a chemical, environmental or social exposure, and "
+        "the node's own type says which. Multi-valued upstream. Its `required` "
+        "violations are signatures naming no condition at all.",
     },
     "AT_BODY_SITE": {
         "domain": "Signature",

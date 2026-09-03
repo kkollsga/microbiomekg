@@ -36,7 +36,7 @@ that already measures that exact (taxon, compound) pair — computed here by
 reading the screens' own CSVs, which is what ``DEPENDS_ON`` is for. The
 reasoning is in :mod:`microbiomekg.ontology.masi`.
 
-The disease records go into the shared ``taxon_disease.csv`` as a fourth source
+The disease records go into the shared ``taxon_condition.csv`` as a fourth source
 of ``ASSOCIATED_WITH``, keyed through MONDO by **name** — MASI ships no
 condition identifier at all, so :meth:`microbiomekg.conditions.MondoIndex.
 mondo_by_name` is the only route, and the route it took is on the node as
@@ -334,7 +334,8 @@ def main(argv: list[str] | None = None) -> int:
         key="pmid", merge=True,
     )
     assoc = Writer(
-        out / "taxon_disease.csv", ["tax_id", "condition_id", *ASSOCIATION_FIELDS],
+        out / "taxon_condition.csv",
+        ["tax_id", "condition_id", "condition_type", *ASSOCIATION_FIELDS],
         dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
     )
     probiotics = Writer(
@@ -707,6 +708,10 @@ def main(argv: list[str] | None = None) -> int:
         assoc.add({
             "tax_id": str(entry["tax_id"]),
             "condition_id": node,
+            # The blueprint's `target_type_column`. MASI's disease export is
+            # disease-coded throughout, and the column says so per row rather
+            # than the loader inferring it.
+            "condition_type": "Disease",
             "direction": direction,
             # The six the export has no column for. Left empty rather than
             # filled with a plausible string: `Association-type` is a curation

@@ -14,7 +14,7 @@ hatches.
           sum(CASE WHEN rule = 'ASSOCIATED_WITH.required_properties' THEN violations ELSE 0 END) AS bad,
           sum(CASE WHEN rule = 'ASSOCIATED_WITH.required_properties' THEN total ELSE 0 END) AS edges,
           sum(CASE WHEN rule = 'ASSOCIATED_WITH.required_properties' THEN pct ELSE 0.0 END) AS pct
-     RETURN rules, completeness, bad, edges, pct == 123, 24, 16768, 105880, 15.8 -->
+     RETURN rules, completeness, bad, edges, pct == 111, 22, 17546, 112966, 15.5 -->
 
 ## How to read a row — three failure modes it can hide
 

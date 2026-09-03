@@ -47,17 +47,32 @@ CLASSES: dict[str, dict] = {
     # `kind` property because the schema survey's §5(a) counter-example is
     # exactly that merge: PrimeKG folded HPO phenotypes and drug side
     # effects into one type and cannot undo it.
+    #
+    # `Condition` is the abstract union over them, and it is what makes
+    # ASSOCIATED_WITH and IN_CONDITION one relationship each: a junction edge's
+    # `target` is a list plus a per-row type column (kglite 0.16.22), and the
+    # ontology `range` is then the class the three are `is_a`. It is a *union*,
+    # not a merge — the concrete type stays the node's own, so
+    # `-[:ASSOCIATED_WITH]->(:Disease)` is still exactly the disease subset.
+    "Condition": {
+        "abstract": True,
+        "description": "What a signature contrasts: a disease, a phenotype or an "
+        "exposure. Abstract — every node is one of the three.",
+    },
     "Disease": {
+        "is_a": "Condition",
         "description": "A disease, keyed on its MONDO CURIE where MONDO declares "
-        "an equivalence and on the source CURIE otherwise."
+        "an equivalence and on the source CURIE otherwise.",
     },
     "Phenotype": {
+        "is_a": "Condition",
         "description": "An observable trait coded in HP — kept apart from Disease, "
-        "which it is not."
+        "which it is not.",
     },
     "Exposure": {
+        "is_a": "Condition",
         "description": "What the subjects were exposed to or characterised by: a "
-        "chemical, an environment, a social or an exposure-ontology term."
+        "chemical, an environment, a social or an exposure-ontology term.",
     },
     "Study": {"description": "One curated study — the unit that carries a citation."},
     "Paper": {"description": "A publication, keyed by PMID."},
@@ -74,11 +89,11 @@ RELATIONSHIPS: dict[str, dict] = {
         "cardinality": {"max": 1},
         "description": "NCBI parent pointer; walk it with -[:HAS_PARENT*1..]->.",
     },
-    # The headline contract, once per condition type. Three relationship
-    # names for one relation is not a modelling choice — a blueprint
-    # junction edge names exactly one target node type and one relationship
-    # per source node type, so a single ASSOCIATED_WITH over a union range
-    # is not expressible (docs/model.md section 8).
+    # The headline contract, once. It used to be three relationship names for
+    # one relation, because a blueprint junction edge named exactly one target
+    # node type; kglite 0.16.22's union target retired that, so the rule the
+    # audit reports covers every association rather than the disease third of
+    # them (docs/model.md section 8).
     **{
         rel: association_declaration(rng)
         for rel, rng in zip(ASSOCIATION_RELATIONSHIPS, ASSOCIATION_RANGES)

@@ -109,7 +109,7 @@ build. Where an entry carries several queries, each was run separately.
 | D12a/D12b nomenclature | partial | yes | 3 / 1 | **exact**: 1598 at rank filter, score 14.16; 69 edges, all `exact` |
 | D13 pathway walk | partial | yes | 1,028 | **stale prose, see below** |
 | D14 dysbiosis breadth | partial | yes | 20 | **exact**: Bacteroides 1,150 · Streptococcus 1,123 · Prevotella 1,063 · Lachnospiraceae 1,024 · Lactobacillus 938 · Oscillospiraceae 875 |
-| D15a audit | answerable-now | yes | 104 | **exact**: `ASSOCIATED_WITH` 15,985 / 105,097 = 15.2%, warn — 16,768 / 105,880 = 15.8% after MASI |
+| D15a audit | answerable-now | yes | 111 | **exact**: `ASSOCIATED_WITH` 15,985 / 105,097 = 15.2%, warn — 16,768 / 105,880 = 15.8% after MASI, then 17,546 / 112,966 = 15.5% once the union range made it one rule over all three condition types |
 | D15b per-source census | answerable-now | yes | 2 | **exact**: bugsigdb 103,461 · gutmdisorder 1,636, all 1,636 missing group sizes |
 | D16a/D16b shortest path | answerable-now | yes | 1 / 3 | **exact**: 1 hop direct, 3-hop evidence walk returns the signatures |
 | D17 disagreement | answerable-now | yes | 50 | **exact**: 8,238 conflicts, 47,232 single-cohort of 56,124 pairs (84.2%) |
@@ -194,9 +194,10 @@ association relationships (112,183 edges):
 | in-vitro | 1,705 | 1.5% |
 | unknown | 17 | 0.02% |
 
-Within `ASSOCIATED_WITH` alone, `observational-16S` is **58,595 of 105,880 =
-55.3%** — a genus-resolution assay carrying the majority of the graph's
-disease claims, and the graph says so on every edge rather than in a footnote.
+Within `ASSOCIATED_WITH`'s disease edges alone, `observational-16S` is
+**58,595 of 105,880 = 55.3%** — a genus-resolution assay carrying the majority
+of the graph's disease claims, and the graph says so on every edge rather than
+in a footnote.
 
 Across **all 272,897 evidence-bearing edges** (adding the exchange, screen,
 AMR, mechanism, pathway and MASI layers) the picture inverts, because the
@@ -236,7 +237,7 @@ once. That is a property of the literature, not of the loader, and the graph
 reports it instead of averaging it away.
 
 **What the audit reports per relationship, and why one headline number is not
-comparable.** `CALL ontology_audit()` returns 104 rules; the twenty
+comparable.** `CALL ontology_audit()` returns 111 rules; the twenty-two
 `required_properties` rows are the completeness check:
 
 | relationship | severity | violations | total | pct |
@@ -245,9 +246,7 @@ comparable.** `CALL ontology_audit()` returns 104 rules; the twenty
 | `CONFERS_RESISTANCE_TO` | warn | 8,052 | 13,691 | 58.8% |
 | `CARRIES_RESISTANCE_GENE` | warn | 3,717 | 6,415 | 57.9% |
 | `VIA_MECHANISM` | warn | 3,717 | 6,513 | 57.1% |
-| `ASSOCIATED_WITH_EXPOSURE` | warn | 485 | 2,369 | 20.5% |
-| `ASSOCIATED_WITH` | warn | 16,768 | 105,880 | 15.8% |
-| `ASSOCIATED_WITH_PHENOTYPE` | warn | 293 | 4,717 | 6.2% |
+| `ASSOCIATED_WITH` | warn | 17,546 | 112,966 | 15.5% |
 | `PRODUCES` / `CONSUMES` / `DEGRADES` / `NO_EXCHANGE_WITH` | warn | 0 | 9,483 | 0.0% |
 | `IN_PATHWAY` | warn | 0 | 36,130 | 0.0% |
 | `INHIBITS_GROWTH_OF` / `DOES_NOT_INHIBIT_GROWTH_OF` | **error** | 0 | 47,825 | 0.0% |
@@ -262,8 +261,12 @@ edges have no `publications` and no `pmid`, because CARD's `PMID.tsv` cites
 2,734 of its 6,451 models and the rest of the file is not a citation index.
 `ABUNDANCE_CHANGED_BY`'s 100% is three columns gutMDisorder never had — it
 records no `study_design` at all and its association rows carry no link to a
-sample arm, so no per-association group sizes exist. `ASSOCIATED_WITH`'s 15.2%
-is a source that *has* those columns leaving 11.7% of its sample sizes blank.
+sample arm, so no per-association group sizes exist. `ASSOCIATED_WITH`'s 15.5%
+is a source that *has* those columns leaving 11.7% of its sample sizes blank —
+and that row covers all three condition types since the union range made it one
+relationship, where it used to be the disease third of the relation quoted as
+though it were the whole of it (16,768 / 105,880 = 15.8%, beside two rules at
+6.2% and 20.5% that nothing reported).
 Each contract is the set of fields *that source could in principle supply*, so
 the fractions measure different things by construction. Comparing them requires
 the per-field census (D15b), and the per-relationship denominators — every one
@@ -271,8 +274,8 @@ of them non-zero — are what make the audit non-vacuous.
 
 One deliberate hole, stated by the model and confirmed here:
 `evidence_level` is **never null** (a missing design yields the string
-`'unknown'`), so no required-property check can see the 17 edges whose level
-means nothing. The 15.2% is a floor.
+`'unknown'`), so no required-property check can see the 800 edges whose level
+means nothing. The 15.5% is a floor.
 
 ### 2.2 "It's designed to be used by AI agents, not humans"
 
@@ -285,7 +288,7 @@ entry point at all. `scripts/serve.py` starts an MCP server over stdio;
 no tabular export, no `.tsv` dump of the association table. A bioinformatician
 who wants the evidence-annotated taxon–disease table has to either write kglite
 Python or run an LLM. The one artefact that is human-shaped —
-`data/csv/taxon_disease.csv`, 105,880 rows with all fourteen contract fields —
+`data/csv/taxon_condition.csv`, 112,966 rows with all fourteen contract fields —
 is a build intermediate that nothing in the README points at as a product.
 
 This is worth stating plainly because it is the difference between the two
@@ -410,7 +413,7 @@ the whole footprint:
 | ASSOCIATED_WITH | 219 |
 | INHIBITS_GROWTH_OF | 92 |
 | METABOLISES | 15 |
-| ASSOCIATED_WITH_PHENOTYPE / ABUNDANCE_CHANGED_BY / ASSOCIATED_WITH_EXPOSURE | 13 / 12 / 12 |
+| ASSOCIATED_WITH to a Phenotype / ABUNDANCE_CHANGED_BY / ASSOCIATED_WITH to an Exposure | 13 / 12 / 12 |
 | PRODUCES | 4 |
 | CONSUMES | 3 |
 | DEGRADES | 1 |
@@ -691,8 +694,8 @@ reports a bigger number.
 
 The case *against*, stated as strongly as it deserves:
 
-- **The core association layer is one source.** 103,461 of 105,880
-  taxon–disease edges are BugSigDB, which has an R package, a GMT exporter and
+- **The core association layer is one source.** 110,547 of 112,966
+  taxon–condition edges are BugSigDB, which has an R package, a GMT exporter and
   its own enrichment tool. For W1 and W2 — the two workflows the graph is best
   at — a bioinformatician can already do the job with `bugsigdbr` and no graph
   at all. The graph's value over that is the join to CARD, the screens and

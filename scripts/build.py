@@ -5,7 +5,7 @@ Six steps, in this order and for these reasons:
 
 1. **Prep each source.** Every ``scripts/prep_<source>.py`` writes flat CSVs
    into ``data/csv/``, sharing the tables it shares (``paper.csv``,
-   ``disease.csv``, ``taxon_disease.csv``, …) with whoever else writes them —
+   ``disease.csv``, ``taxon_condition.csv``, …) with whoever else writes them —
    see :mod:`microbiomekg.tables`. The directory is emptied first, so the
    output is a function of the raw inputs and this order, not of what a
    previous run left behind. A **licence-gated** source (:data:`LICENCE_GATED`)

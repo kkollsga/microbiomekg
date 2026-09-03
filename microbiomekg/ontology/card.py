@@ -2,7 +2,7 @@
 
 This source adds three node types — ``ResistanceGene``, ``DrugClass`` and
 ``ResistanceMechanism`` — and the three relationships between them and
-``Taxon``. It writes **no** rows into ``taxon_disease.csv``: CARD curates no
+``Taxon``. It writes **no** rows into ``taxon_condition.csv``: CARD curates no
 taxon–disease association, so nothing here lands in the shared
 ``ASSOCIATED_WITH`` tables and :data:`ASSOCIATION_RELATIONSHIPS` is empty.
 

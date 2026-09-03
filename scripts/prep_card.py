@@ -41,7 +41,7 @@ Everything below that is not obvious is a pitfall from
   semicolons (21 in the real file). :func:`split_pmids` drops them.
 
 CARD curates no taxon–disease association, so this script writes nothing into
-``taxon_disease.csv``. What it shares with the other sources is
+``taxon_condition.csv``. What it shares with the other sources is
 ``cited_taxa.csv`` (which decides what the taxonomy build keeps) and
 ``unresolved_taxa.csv`` / ``unresolved_associations.csv`` (C18's accounting).
 """

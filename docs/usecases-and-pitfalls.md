@@ -958,7 +958,7 @@ kglite 0.16.21 while writing these tests: the blueprint's junction-CSV loader
 streamed in chunks and **deduplicated parallel edges from the second chunk
 onwards**. With `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=3` and a junction CSV
 holding ten identical `A1 -> B1` pairs, the built graph had **three** edges.
-The default chunk is 100,000 rows and `taxon_disease.csv` is 105,880 rows of
+The default chunk is 100,000 rows and `taxon_condition.csv` is 112,966 rows of
 deliberately parallel edges, so a default build dropped 7.7% of them —
 precisely the evidence multiplicity this whole document exists to protect,
 removed with no warning and no error, which is why the build raised the chunk
@@ -1095,9 +1095,9 @@ engine directly — `tests/test_loader_contracts.py::test_integer_ids_survive_a_
 ### C17. Evidence completeness must be countable, not invisible
 
 The A1 contract is that an edge with unknown evidence exists but is
-*countable*. Over the fixture's **72** association edges (55 `ASSOCIATED_WITH`,
-3 `ASSOCIATED_WITH_PHENOTYPE`, 14 `ASSOCIATED_WITH_EXPOSURE`), the per-field
-gap census is:
+*countable*. Over the fixture's **72** `ASSOCIATED_WITH` edges (55 to a
+`Disease`, 3 to a `Phenotype`, 14 to an `Exposure` — one relationship over the
+union), the per-field gap census is:
 
 | evidence property | edges lacking it |
 |---|---|
@@ -1207,13 +1207,13 @@ reading the pipeline's output — and the two agree.
 |---|---|---|---|---|
 | `Signature` | **43** | | `HAS_PARENT` | **142** |
 | `Study` | **39** | | `REPORTED_BY` | **74** |
-| `Paper` | **33** | | `ASSOCIATED_WITH` | **55** |
-| `Disease` | **15** | | `ASSOCIATED_WITH_PHENOTYPE` | **3** |
-| `Phenotype` | **1** | | `ASSOCIATED_WITH_EXPOSURE` | **14** |
-| `Exposure` | **4** | | `IN_CONDITION` | **34** |
-| `BodySite` | **9** | | `IN_PHENOTYPE` | **3** |
-| `Taxon` | **143** | | `IN_EXPOSURE` | **6** |
-| `UnresolvedTaxon` | **3** | | `AT_BODY_SITE` | **45** |
+| `Paper` | **33** | | `ASSOCIATED_WITH` | **72** |
+| `Disease` | **15** | | — of them to a `Disease` | **55** |
+| `Phenotype` | **1** | | — to a `Phenotype` | **3** |
+| `Exposure` | **4** | | — to an `Exposure` | **14** |
+| `BodySite` | **9** | | `IN_CONDITION` | **43** |
+| `Taxon` | **143** | | `AT_BODY_SITE` | **45** |
+| `UnresolvedTaxon` | **3** | | | |
 | | | | `PART_OF_STUDY` | **43** |
 | | | | `PUBLISHED_AS` | **34** |
 
@@ -1228,7 +1228,7 @@ and the derived quantities:
 | unresolved records | **3** |
 | condition terms with no node type (ledgered) | **1** |
 | typed condition terms with no MONDO equivalence | **14** |
-| association edges (all three relationships) | **72** |
+| `ASSOCIATED_WITH` edges, over all three condition types | **72** |
 | association edges missing ≥1 evidence field | **16** |
 
 Three of these numbers are where the guards actually bit during this
@@ -1347,8 +1347,9 @@ blueprint `pk` value) and node titles as `.title`. Queries against loaded data
 use `docs/model.md`'s names as they stand in `blueprint.json` today — including
 the three post-model.md changes the loader has since made: `Disease` is keyed on
 its MONDO CURIE where MONDO declares an equivalence, non-disease conditions have
-moved to `Phenotype` / `Exposure` with their own `ASSOCIATED_WITH_PHENOTYPE` /
-`ASSOCIATED_WITH_EXPOSURE` edges, and the evidence contract's `source` /
+moved to `Phenotype` / `Exposure` — reached by the *same* `ASSOCIATED_WITH` and
+`IN_CONDITION` relationships, over a union range, so a disease-only query says
+`->(:Disease)` — and the evidence contract's `source` /
 `signature_id` are now `primary_source` / `source_record_id` alongside
 `knowledge_level`, `agent_type`, `source_licence` and `source_relation`.
 Queries marked `pending: <source>` are written against the node and edge names
@@ -2369,11 +2370,18 @@ ORDER BY edges DESC
 *Golden check (measured, and this is the project's headline number):*
 `ontology_audit()` must return an `ASSOCIATED_WITH.required_properties` row at
 `severity = warn` with a **non-zero denominator** and a violation fraction of
-**15,985 of 105,097 edges = 15.20%** on the 2026-09-03 six-source build
-(the association layer is still BugSigDB + gutMDisorder; the other four sources
-bring their own relationships and their own rules)
-(BugSigDB alone: 14,349 of 103,461 = 13.87%). **The rise is the audit working,
-not a regression:** all 1,636 gutMDisorder edges are violations, because that
+**17,546 of 112,966 edges = 15.5%**. That is **one** rule over every
+association — disease, phenotype and exposure alike — since the junction edge's
+target became a union; it was three rules of which only the disease one
+(16,768 of 105,880 = 15.8%) was ever quoted as "the" number, beside 293 of
+4,717 and 485 of 2,369 that nothing reported. The relation's completeness and
+the disease slice's completeness are different questions and this row now
+answers the first; `-[r:ASSOCIATED_WITH]->(:Disease)` still answers the second.
+
+Earlier readings, kept because the movement is the point: 14,349 of 103,461 =
+13.87% on BugSigDB alone, 15,985 of 105,097 = 15.20% once gutMDisorder landed,
+16,768 of 105,880 = 15.8% once MASI did. **Each rise is the audit working, not
+a regression:** all 1,636 gutMDisorder edges are violations, because that
 source records no `study_design` and its association rows carry no link to a
 sample arm, so no per-association group sizes exist either. For the same reason
 `ABUNDANCE_CHANGED_BY.required_properties` reads **1,380 of 1,380 = 100%** — a
@@ -2384,7 +2392,7 @@ denominator means the rule is auditing property names nothing writes (C20); a
 0.00% fraction means BugSigDB's literal `"NA"` reached the graph as a value
 (C17) and the gate is vacuous. *And the number is a floor, not the whole gap:*
 `evidence_level` is never absent — the derivation returns the string
-`"unknown"` — so 17 further edges carry a level that means nothing and no
+`"unknown"` — so 800 further edges carry a level that means nothing and no
 required-property check can see them. That is deliberate (never silently
 "observational") and it is why `level_unknown` is a column here.
 *G10's expansion factor* belongs in this report too, and `scripts/build.py`

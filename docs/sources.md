@@ -677,7 +677,7 @@ observations, with nothing in the query text to say so.
 relationships: `METABOLISES_SUBSTANCE` 3,356, `DOES_NOT_METABOLISE_SUBSTANCE`
 16, `ABUNDANCE_CHANGED_BY_SUBSTANCE` 7,579, `ABUNDANCE_UNCHANGED_BY_SUBSTANCE`
 505. Plus **883 `SAME_COMPOUND_AS` edges** onto the `Drug` nodes ChEMBL and the
-two screens own, **783 `ASSOCIATED_WITH` edges** into the shared taxon–disease
+two screens own, **783 `ASSOCIATED_WITH` edges** into the shared taxon–condition
 table as its fourth source, and MASI's probiotic annotation on **540 `Taxon`
 nodes** (44 of them `probiotic = true`).
 

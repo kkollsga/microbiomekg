@@ -42,9 +42,12 @@ D2_DISSENTING_RECORD = "bsdb:41270896/1/2"
 D15_RULE = "ASSOCIATED_WITH.required_properties"
 #: 15,985 of 105,097 (15.20%) before MASI. Its 784 disease associations become
 #: 783 edges and every one is a violation — the export names no design, host,
-#: sequencing type, statistical test or arm size — so 15,985 + 783 = 16,768.
-D15_VIOLATIONS = 16768
-D15_TOTAL = 105880
+#: sequencing type, statistical test or arm size — so 15,985 + 783 = 16,768 of
+#: 105,880 disease edges. The union range then made this one rule over all
+#: three condition types, and the phenotype and exposure edges it absorbed are
+#: cleaner: 16,768 + 293 + 485 = 17,546 of 112,966.
+D15_VIOLATIONS = 17546
+D15_TOTAL = 112966
 
 #: Every skill this repo ships. All seven must reach `cypher_query`, which is
 #: the tool every one of them names.
@@ -177,7 +180,7 @@ def test_d15_audit_through_the_protocol(client):
     # A zero denominator is the failure this golden exists to catch: a rule
     # auditing property names nothing writes passes at 0 of 0.
     assert int(cell(answer, "total")) == D15_TOTAL, answer
-    assert float(cell(answer, "pct")) == pytest.approx(15.8, abs=0.05), answer
+    assert float(cell(answer, "pct")) == pytest.approx(15.5, abs=0.05), answer
 
 
 def test_d15_per_source_census_through_the_protocol(client):

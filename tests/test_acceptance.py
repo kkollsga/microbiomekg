@@ -34,7 +34,7 @@ CSV_DIR = ROOT / "data" / "csv"
 BLUEPRINT = ROOT / "blueprint.json"
 
 #: Files without which there is nothing to assert against.
-REQUIRED_CSVS = ("signature.csv", "taxon.csv", "taxon_disease.csv", "disease.csv")
+REQUIRED_CSVS = ("signature.csv", "taxon.csv", "taxon_condition.csv", "disease.csv")
 
 #: The sources these goldens were measured over. A build missing one of them is
 #: not a failure of this module — it is a different build — so the fixture
@@ -71,9 +71,21 @@ GOLDEN = {
     # variant of the same reason: its disease export names no design, host,
     # sequencing type, statistical test or arm sizes, so all 783 are
     # violations. 15,985 + 783 = 16,768.
+    #
+    # And the **denominator** then grew, because the union target made
+    # `ASSOCIATED_WITH` one relationship over all three condition types: the
+    # rule now covers the 4,717 phenotype and 2,369 exposure edges that used to
+    # be two separate rules nobody quoted. 16,768 + 293 + 485 = 17,546 of
+    # 112,966 = 15.53%. The headline fell because the two absorbed rules were
+    # *cleaner* than the disease one, which is the audit describing the data.
     "d15_rule": "ASSOCIATED_WITH.required_properties",
-    "d15_violations": 16768,
-    "d15_total": 105880,
+    "d15_violations": 17546,
+    "d15_total": 112966,
+    # The disease-only slice the earlier goldens measured, still asked of the
+    # same relationship — narrowed by the target's label rather than by a
+    # relationship name.
+    "d15_disease_violations": 16768,
+    "d15_disease_total": 105880,
     # D17 — disagreement and single-cohort support (was 8,114 and 46,809 of
     # 55,445, then 8,238 and 47,232 of 56,124)
     "d17_pairs": 56306,
@@ -137,7 +149,7 @@ def graph():
         )
     if not BLUEPRINT.is_file():
         pytest.skip("blueprint.json does not exist yet")
-    with (CSV_DIR / "taxon_disease.csv").open(encoding="utf-8", newline="") as fh:
+    with (CSV_DIR / "taxon_condition.csv").open(encoding="utf-8", newline="") as fh:
         loaded = {row["primary_source"] for row in csv.DictReader(fh)}
     if not REQUIRED_SOURCES <= loaded:
         pytest.skip(
@@ -196,7 +208,7 @@ def logical_rows(path: Path) -> int:
 def test_every_junction_row_became_an_edge(graph, relationship):
     """The regression detector for C13, and the reason the override is gone.
 
-    A junction row is an evidence record: `taxon_disease.csv` is 105,880 rows
+    A junction row is an evidence record: `taxon_condition.csv` is 112,966 rows
     of deliberately parallel edges, and kglite < 0.16.22 kept only the first
     100,000-row chunk's — 7.7% of the associations gone with no warning, no
     error and a plausible-looking graph. Equality with the CSV is the check
@@ -469,6 +481,15 @@ def test_d15_the_audit_reports_the_headline_completeness_number(graph):
     intervention = audit[GOLDEN["d15_intervention_rule"]]
     assert intervention["violations"] == GOLDEN["d4_intervention_edges"]
     assert intervention["total"] == GOLDEN["d4_intervention_edges"]
+    # One rule, not three: the union range is what makes the headline cover
+    # every association rather than the disease subset of them.
+    assert [r for r in audit if r.startswith("ASSOCIATED_WITH_")] == []
+    # And the disease slice is still exactly askable, by the target's label.
+    disease = one(
+        graph,
+        "MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease) RETURN count(r) AS n",
+    )
+    assert disease["n"] == GOLDEN["d15_disease_total"]
 
 
 def test_d15_the_per_field_census_the_audit_rolls_up(graph):
@@ -2882,7 +2903,7 @@ def test_masi_mints_no_drug_node_and_the_identity_is_an_edge(graph):
 
 
 def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(graph):
-    """Its 784 disease records land as rows in the shared `taxon_disease.csv`,
+    """Its 784 disease records land as rows in the shared `taxon_condition.csv`,
     not as a fourth relationship, so D2/D3/D17 span them without knowing MASI
     arrived. All 783 edges violate the fourteen-property contract, and that is
     the audit working for the third time: the export has eleven columns and not

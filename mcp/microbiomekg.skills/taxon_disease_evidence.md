@@ -18,15 +18,19 @@ applies_when:
 # Taxon x disease: reading the evidence, and the three ways to get it wrong
 
 An `ASSOCIATED_WITH` edge is **one signature's report of one taxon in one
-condition**, not a summary of the literature. 105,880 of them exist over 56,306
-(taxon, condition) pairs. Everything below follows from that one fact.
+condition**, not a summary of the literature. 105,880 of them point at a
+`Disease`, over 56,306 (taxon, disease) pairs. Everything below follows from
+that one fact.
 
-The sibling relationships are the same shape with a different target:
-`ASSOCIATED_WITH_PHENOTYPE` (4,717 edges, HP terms) and
-`ASSOCIATED_WITH_EXPOSURE` (2,369, CHEBI/ENVO terms — probiotics, diet, drugs
-as *exposures*). A question about "conditions" usually means all three; a
-question about "diseases" means the first. `ABUNDANCE_CHANGED_BY` is a
-different claim (an intervention changed the taxon) and is covered in `drugs`.
+**The same relationship also reaches two other kinds of condition**, and the
+target node's own label is what tells them apart: `Phenotype` (4,717 edges, HP
+terms) and `Exposure` (2,369, CHEBI/ENVO terms — probiotics, diet, drugs as
+*exposures*), beside the 105,880 that point at a `Disease`. So
+`-[:ASSOCIATED_WITH]->()` is every association, `-[:ASSOCIATED_WITH]->(:Disease)`
+is the disease subset, and there is no second relationship name to remember —
+which is also why the audit reports one completeness rule over all 112,966.
+`ABUNDANCE_CHANGED_BY` is a different claim (an intervention changed the taxon)
+and is covered in `drugs`.
 
 ## Ask it like this (D2)
 

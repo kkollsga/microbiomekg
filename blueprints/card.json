@@ -1,5 +1,5 @@
 {
-  "_doc": "CARD 4.0.2 (card-data/card.json as the model authority, card-ontology/aro.obo for names and hierarchy): the ResistanceGene / DrugClass / ResistanceMechanism nodes and the three edges D7 walks. CARD curates no taxon-disease association, so this fragment adds nothing to core.json's taxon_disease.csv; what it adds under Taxon is CARRIES_RESISTANCE_GENE, whose taxid is the *reference sequence's* organism and says so on the edge (sequence_derived, taxon_scope, taxon_specificity). Licence is per edge, not per source: a fact aro.obo also states is CC-BY-4.0, a fact only card.json states is CARD-noncommercial.",
+  "_doc": "CARD 4.0.2 (card-data/card.json as the model authority, card-ontology/aro.obo for names and hierarchy): the ResistanceGene / DrugClass / ResistanceMechanism nodes and the three edges D7 walks. CARD curates no taxon-disease association, so this fragment adds nothing to core.json's taxon_condition.csv; what it adds under Taxon is CARRIES_RESISTANCE_GENE, whose taxid is the *reference sequence's* organism and says so on the edge (sequence_derived, taxon_scope, taxon_specificity). Licence is per edge, not per source: a fact aro.obo also states is CC-BY-4.0, a fact only card.json states is CARD-noncommercial.",
   "nodes": {
     "ResistanceGene": {
       "csv": "resistance_gene.csv",
