@@ -964,10 +964,16 @@ it saw in the first chunk — precisely the evidence multiplicity this whole
 document exists to protect, removed with no warning and no error. The build
 command must raise the chunk size above the row count.
 
-Guard: `tests/test_loader_contracts.py::test_junction_loader_keeps_parallel_edges`
-and `::test_junction_loader_drops_parallel_edges_beyond_one_chunk` — the
-second pins the *bug*, deliberately not as an xfail, so a kglite release that
-repairs it turns the test red and the chunk-size override can be removed.
+That test pinned the *bug* rather than xfailing it, and kglite 0.16.22 turned
+it red: the chunk regime is now decided once per CSV, so the chunk size bounds
+peak RAM without changing the graph. It is asserted as a fix now — `guard`
+below — and this repo's floor is `kglite>=0.16.22`.
+
+Guard: `tests/test_loader_contracts.py::test_junction_loader_keeps_parallel_edges`,
+`::test_junction_loader_keeps_parallel_edges_across_a_chunk_boundary` (ten rows
+through a three-row chunk still load ten edges) and
+`::test_junction_loader_keeps_edge_properties_across_a_chunk_boundary` (the
+survivors keep their own `pmid` rather than the last chunk's).
 
 ### C14. Disease identity: the column named `EFO ID` is not EFO, and not disease
 

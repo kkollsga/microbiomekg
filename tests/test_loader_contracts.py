@@ -59,27 +59,49 @@ def test_junction_loader_keeps_parallel_edges(parallel_edge_blueprint):
     assert n == 10, f"the junction loader collapsed 10 parallel edges into {n}"
 
 
-def test_junction_loader_drops_parallel_edges_beyond_one_chunk(
+def test_junction_loader_keeps_parallel_edges_across_a_chunk_boundary(
     parallel_edge_blueprint, monkeypatch
 ):
-    """C13: the failure mode, pinned so it cannot change silently.
+    """C13, at the boundary that used to silently discard evidence.
 
-    The junction loader streams in chunks and deduplicates parallel edges from
-    the second chunk onwards, so a junction CSV longer than one chunk loses
-    every repeat of a pair it already saw. The project's real
-    `taxon_disease.csv` is ~118k rows against a 100,000-row default chunk.
+    Until kglite 0.16.22 the junction loader decided per chunk whether the
+    connection type was new: the first chunk registered it and every later
+    chunk merged by endpoints, folding its rows onto the edges the first chunk
+    had created. Ten identical `A1 -> B1` rows through a three-row chunk gave
+    three edges, and this project's ~118k-row `taxon_disease.csv` lost 7.7% of
+    its associations against the 100,000-row default — with no warning.
 
-    This test asserts the *bug*, not the fix: if a kglite upgrade repairs it,
-    this test goes red and the `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE` override
-    in the build command can be removed. An xfail would let the repair pass
-    unnoticed.
+    The chunk size is a memory bound again, so it must not change the graph.
+    Three rows per chunk over ten rows is four chunks: if the regime is ever
+    re-decided per chunk this returns 3 and the build's whole evidence
+    multiplicity is back in question.
     """
     monkeypatch.setenv("KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE", "3")
     graph = kglite.from_blueprint(parallel_edge_blueprint, save=False)
     n = list(graph.cypher("MATCH ()-[r:LINKS]->() RETURN count(r) AS n"))[0]["n"]
-    assert n == 3, (
-        f"expected the known chunk-boundary dedupe (3 of 10 survive), got {n}. "
-        f"If kglite fixed this, drop the chunk-size override from the build."
+    assert n == 10, (
+        f"the chunk size changed the result: 10 parallel edges loaded as {n} "
+        f"at 3 rows per chunk. This is the kglite<0.16.22 defect returning, and "
+        f"the build has no chunk-size override left to hide it."
+    )
+
+
+def test_junction_loader_keeps_edge_properties_across_a_chunk_boundary(
+    parallel_edge_blueprint, monkeypatch
+):
+    """The same defect's other half: the survivors' properties were overwritten.
+
+    Merging by endpoints did not only drop rows, it wrote each later row's
+    values onto the edge the first chunk had made — so the three survivors
+    carried the *last* chunk's `pmid`. Ten distinct pmids must come back.
+    """
+    monkeypatch.setenv("KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE", "3")
+    graph = kglite.from_blueprint(parallel_edge_blueprint, save=False)
+    pmids = sorted(
+        r["p"] for r in graph.cypher("MATCH ()-[r:LINKS]->() RETURN r.pmid AS p")
+    )
+    assert pmids == list(range(100, 110)), (
+        f"the chunk boundary rewrote edge properties: got {pmids}"
     )
 
 
