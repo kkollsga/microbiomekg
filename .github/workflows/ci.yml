@@ -19,16 +19,12 @@
 #     skipped, against 1216 passed / 15 skipped locally. The skip accounting is
 #     printed, and the job name says what it does not cover, until item 3's
 #     `status`-driven build gives CI a graph of its own.
-# What is NOT here, and why — the empty-data smoke build. docs/design/
-# library-pipeline.md rule 2 wants a build against an EMPTY data directory to
-# SUCCEED and report every source as absent. It does not, today: probed
-# 2026-09-03, `scripts/build.py --raw <empty>` skips ten sources correctly with
-# their MISSING_INPUT exit and then dies on the eleventh, prep_taxonomy.py,
-# which refuses through argparse — exit 2, a usage dump — and takes the build
-# down with it. Whether an empty directory should produce the NCBI-only
-# taxonomy graph or refuse is an open question in that doc, so this workflow
-# does not encode an answer to it. Writing the job is the second half of
-# release-readiness item 2, once the question is decided.
+#   * `smoke` is docs/design/library-pipeline.md rule 2: a build against an
+#     EMPTY data directory must SUCCEED, name every source as skipped, and
+#     write no graph. That is the fresh-clone state, and the job proves
+#     "absent means skipped, loudly" rather than "absent means a traceback".
+#     The same shape runs offline in tests/test_build_pipeline.py; the job
+#     exists so the claim is also made on a machine that is not this one.
 #
 # No job carries `continue-on-error` — at the job level it would make the job
 # structurally unable to turn the build red, and any gate inside it decorative
@@ -99,3 +95,30 @@ jobs:
           echo "Graph-backed suites (acceptance goldens, documented queries,"
           echo "claim gate) self-skip here: CI has no graph/microbiomekg.kgl."
           echo "A skip is NOT a pass — see docs/design/release-readiness.md §2."
+
+  smoke:
+    name: build against an empty data directory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Provision the venv
+        run: make venv
+      # Exit 0, every source named as skipped, and no graph file: the three
+      # things a fresh clone is promised. Each assertion is its own failure so
+      # the summary says which promise broke.
+      - name: Build with nothing in it
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/empty /tmp/csv
+          .venv/bin/python scripts/build.py --raw /tmp/empty --csv /tmp/csv \
+            --out /tmp/graph/x.kgl | tee /tmp/build.log
+          grep -q "nothing loaded" /tmp/build.log
+          grep -q "no graph written" /tmp/build.log
+          for p in scripts/prep_*.py; do
+            s=$(basename "$p" .py); s=${s#prep_}
+            grep -q "$s: raw input absent" /tmp/build.log || { echo "$s not reported"; exit 1; }
+          done
+          test ! -e /tmp/graph/x.kgl

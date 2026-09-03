@@ -65,7 +65,7 @@ from microbiomekg.conditions import (  # noqa: E402
     split_curies,
 )
 from microbiomekg.ontology import gutmdisorder as gmd  # noqa: E402
-from microbiomekg.rawdata import find_taxdump  # noqa: E402
+from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
 from microbiomekg.tables import Writer, as_list  # noqa: E402
 
@@ -241,7 +241,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         taxdump = args.taxdump or find_taxdump(args.raw)
     except FileNotFoundError as e:
-        ap.error(str(e))
+        return missing_input(e)
 
     print(f"reading {books}/{{human,mouse}}.xlsx", flush=True)
     print(f"loading taxdump from {taxdump} ...", flush=True)

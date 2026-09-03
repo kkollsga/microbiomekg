@@ -60,7 +60,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from microbiomekg import ontology as ont  # noqa: E402
 from microbiomekg.ontology import card  # noqa: E402
-from microbiomekg.rawdata import find_taxdump  # noqa: E402
+from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex  # noqa: E402
 from microbiomekg.tables import Writer, as_list  # noqa: E402
 
@@ -261,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         taxdump = args.taxdump or find_taxdump(args.raw)
     except FileNotFoundError as e:
-        ap.error(str(e))
+        return missing_input(e)
 
     print(f"reading {models_path}", flush=True)
     document = json.loads(models_path.read_text(encoding="utf-8"))

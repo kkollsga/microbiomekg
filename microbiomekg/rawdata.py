@@ -10,9 +10,17 @@ failing later on a missing column.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-__all__ = ["find_taxdump", "find_bugsigdb_dump"]
+__all__ = ["MISSING_INPUT", "find_taxdump", "find_bugsigdb_dump", "missing_input"]
+
+#: The exit code a prep uses for "my raw input is not on this machine".
+#: Distinct from a real failure so ``build.py`` can go on without that source
+#: rather than either dying or silently loading nothing — and distinct from
+#: argparse's 2, which means "this script was called wrong" and which the build
+#: correctly treats as fatal.
+MISSING_INPUT = 3
 
 _TAXDUMP_DIRS = ("ncbi_taxonomy", "ncbi", "taxdump", "new_taxdump")
 _DUMP_NAMES = ("full_dump_main.csv", "full_dump.csv")
@@ -51,3 +59,15 @@ def find_bugsigdb_dump(raw: Path) -> Path:
     raise FileNotFoundError(
         f"no full_dump*.csv under {raw} (looked in bugsigdb/ and the root)"
     )
+
+
+def missing_input(exc: Exception) -> int:
+    """Report an absent raw input and return :data:`MISSING_INPUT`.
+
+    The one door every prep leaves by when a file is not there: the message on
+    stderr says what was looked for, and the code says "skip me", never "you
+    called me wrong". Routing this through ``ArgumentParser.error`` instead
+    took the whole build down on a fresh clone, because that exits 2.
+    """
+    print(str(exc), file=sys.stderr)
+    return MISSING_INPUT

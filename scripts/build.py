@@ -9,7 +9,12 @@ Six steps, in this order and for these reasons:
    see :mod:`microbiomekg.tables`. The directory is emptied first, so the
    output is a function of the raw inputs and this order, not of what a
    previous run left behind. A **licence-gated** source (:data:`LICENCE_GATED`)
-   is skipped unless its flag is passed — ``--with-kegg`` today.
+   is skipped unless its flag is passed — ``--with-kegg`` today. A source whose
+   raw input is absent exits ``MISSING_INPUT`` and is skipped the same way; if
+   that leaves no ``taxon.csv`` at all, the build reports every skip, writes
+   no graph, and exits 0 — an empty data directory is the fresh-clone state,
+   not an error. A directory holding only the taxdump builds the Taxon spine
+   and says "taxonomy-only".
 2. **In declared dependency order.** A prep that reads a table another prep
    writes says so in its own ``DEPENDS_ON``, and :func:`order_preps`
    topologically sorts them (independent preps keep name order; a cycle is an
@@ -113,10 +118,9 @@ VECTOR_INDEXES: tuple[tuple[str, str, int], ...] = (
 )
 
 
-#: Exit code a prep script uses for "my raw input is not on this machine".
-#: Distinct from a real failure so the build can go on without that source
-#: rather than either dying or silently loading nothing.
-MISSING_INPUT = 3
+#: Exit code a prep script uses for "my raw input is not on this machine" —
+#: the same constant the preps return, so the two sides cannot drift.
+from microbiomekg.rawdata import MISSING_INPUT  # noqa: E402
 
 #: source -> the flag that opts into it. A licence-gated source is **off by
 #: default** and its prep refuses to run without the flag, exiting
@@ -392,6 +396,70 @@ def write_load_blueprint(
     return out
 
 
+def prune_absent_tables(blueprint: dict, csv_dir: Path) -> tuple[dict, list[str]]:
+    """Drop every node type and junction whose CSV is not in ``csv_dir``.
+
+    ``sources_with_tables`` keeps a *source* out when its CSVs are missing, but
+    the spine's tables — ``paper.csv``, ``disease.csv``, ``taxon_condition.csv``
+    — are written by whichever sources ran, so a build that loaded no
+    association source has a spine declaring node types with nothing behind
+    them. The loader reads those as empty types and the index step then asks
+    for a ``Disease`` that does not exist. Pruning keeps the rule the rest of
+    the build runs on: no node type loaded empty, and no audit rule over one.
+    Returns the pruned document and the dropped names, node types and
+    junctions alike.
+    """
+    dropped: list[str] = []
+
+    def keep(spec: dict) -> bool:
+        csv_name = spec.get("csv")
+        return not isinstance(csv_name, str) or (csv_dir / csv_name).is_file()
+
+    nodes: dict = {}
+    for name, spec in blueprint.get("nodes", {}).items():
+        if not keep(spec):
+            dropped.append(name)
+            continue
+        junctions = spec.get("connections", {}).get("junction_edges", {})
+        gone = [j for j, jspec in junctions.items() if not keep(jspec)]
+        if gone:
+            dropped.extend(gone)
+            spec = dict(spec)
+            spec["connections"] = dict(spec["connections"])
+            spec["connections"]["junction_edges"] = {
+                j: v for j, v in junctions.items() if j not in gone
+            }
+        nodes[name] = spec
+    if not dropped:
+        return blueprint, []
+    pruned = dict(blueprint)
+    pruned["nodes"] = nodes
+    return pruned, sorted(dropped)
+
+
+def prune_ontology(ontology: dict, dropped: list[str]) -> dict:
+    """The declaration without the classes and rules ``dropped`` emptied.
+
+    A concrete class with no node type behind it is a loader warning; a rule
+    whose domain, range or relationship was dropped audits ``0 / 0``. Both are
+    the same defect a partial build's per-source pruning already prevents.
+    """
+    gone = set(dropped)
+    classes = {
+        name: spec
+        for name, spec in ontology.get("classes", {}).items()
+        if spec.get("abstract") or name not in gone
+    }
+    relationships = {
+        name: spec
+        for name, spec in ontology.get("relationships", {}).items()
+        if name not in gone
+        and spec.get("domain") not in gone
+        and spec.get("range") not in gone
+    }
+    return {**ontology, "classes": classes, "relationships": relationships}
+
+
 def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
     def rows(query):
         return list(graph.cypher(query))
@@ -472,6 +540,13 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
     print("    source_record_id where the edge carries one, else the input rows")
     print("    of the CSV(s) it was loaded from, marked `rows`.")
     for rel, spec in declared_relationships(fragments, sources).items():
+        if not any((csv_dir / name).is_file() for name in spec.csvs):
+            # Not the zero-edge finding above: no source wrote this CSV, so
+            # the loader was never asked for the relationship. A taxonomy-only
+            # build has no `taxon_condition.csv`, and querying the type it
+            # would have made only draws an unknown-type warning.
+            print(f"  {rel:<28s} no CSV in this build ({', '.join(spec.csvs)})")
+            continue
         rows_in = sum(max(csv_rows(csv_dir / name), 0) for name in spec.csvs)
         breakdown = rows(
             f"MATCH ()-[r:{rel}]->() "
@@ -558,6 +633,21 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 skipped.add(source)
 
+    # Every prep needs the taxdump, so a build whose taxonomy prep skipped has
+    # nothing at all — and an empty data directory is the fresh-clone state,
+    # not an error. The answer to it is a to-do list: every source named as
+    # skipped above, no graph written, exit 0. A graph file would have to be
+    # either empty or stale, and both read as "built" to whoever opens it.
+    if not (args.csv / "taxon.csv").is_file():
+        print(
+            f"\n=== nothing loaded: {len(skipped) or 'every'} source(s) skipped, "
+            "no graph written"
+        )
+        print("    Each skipped source printed the file it wanted and where it")
+        print("    comes from. `scripts/fetch.py` fills what it can; docs/sources.md")
+        print("    has the rest.")
+        return 0
+
     # A source that did not run, and a source whose tables are not in --csv,
     # are left out of both declarations for the same reason: a blueprint naming
     # a CSV that is not there loads that node type as empty, and an ontology
@@ -596,16 +686,22 @@ def main(argv: list[str] | None = None) -> int:
     # full build gated on a subset of its own rules.
     from microbiomekg.ontology import ontology_for, write_json
 
-    ontology = write_json(args.csv / "ontology.json", ontology_for(loaded))
+    document, pruned = prune_absent_tables(
+        compose(fragments, loaded) if loaded != sources else full, args.csv
+    )
+    if pruned:
+        print(f"=== spine tables absent, dropped from the load: {', '.join(pruned)}")
+    if not loaded:
+        print("=== taxonomy-only build: no association source loaded")
+    ontology = write_json(
+        args.csv / "ontology.json", prune_ontology(ontology_for(loaded), pruned)
+    )
     print(f"=== ontology -> {ontology}")
 
     import kglite
 
     blueprint = write_load_blueprint(
-        compose(fragments, loaded) if loaded != sources else full,
-        args.csv,
-        ontology,
-        args.csv / "blueprint.load.json",
+        document, args.csv, ontology, args.csv / "blueprint.load.json"
     )
     print("\n=== from_blueprint", flush=True)
     print(f"    {blueprint} (root {args.csv})")
@@ -614,7 +710,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"loaded in {time.time() - t0:.1f}s")
 
     print("\n--- text indexes")
+    present = set(graph.node_types)
     for node_type, prop in TEXT_INDEXES:
+        if node_type not in present:
+            print(f"  {node_type}.{prop:<18s} skipped: no {node_type} in this build")
+            continue
         stats = graph.build_text_index(node_type, prop)
         print(
             f"  {node_type}.{prop:<18s} {stats.get('indexed', 0):>9,} docs, "

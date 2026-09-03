@@ -59,28 +59,19 @@ Two things the workflow must not paper over:
 exists, inert until then, and said to be inert in `CLAUDE.md` so no session
 reports a CI result there is no CI for.
 
-**The empty-directory smoke build is not in it, because it does not pass
-today.** Probed 2026-09-03: `scripts/build.py --raw <empty dir> --csv <tmp>`
-skips ten sources exactly as rule 2 wants — each prep exits `MISSING_INPUT`
-with the file it wanted and where to get it — and then dies on the eleventh.
-`prep_taxonomy.py` refuses an absent NCBI dump **through argparse**: exit 2, a
-usage dump, and `build.py` takes that as a hard failure rather than a skip,
-because 2 is not `MISSING_INPUT`. So the whole build exits 1.
+**The empty-directory smoke build is in it** (the `smoke` job), and the
+build it asserts on behaves as rule 2 wants since 2026-09-03: an empty
+directory is the fresh-clone state, so `build.py` exits 0, names every source
+as skipped with the file it wanted, and writes no graph — "nothing loaded" is
+printed rather than an empty `.kgl` that reads as built. A directory holding
+only the taxdump builds the Taxon spine and says "taxonomy-only". The defect
+that blocked this — every prep routed a missing taxdump through argparse, exit
+2, which the build reads as fatal — is closed: `microbiomekg.rawdata.missing_input`
+is the one door, and `tests/test_build_pipeline.py` holds all eleven preps and
+both build shapes to it, offline.
 
-That is one decision and one defect, and they should be separated:
-
-- **The decision** is `library-pipeline.md`'s first open question — whether an
-  empty directory produces the NCBI-only taxonomy graph (the dump fetches
-  automatically, so it can) or refuses. It is the user's to make, at the
-  planning phase for this item.
-- **The defect, whichever way that goes,** is the *channel*: the taxonomy prep
-  is the one source that reports an absent input as an argparse usage error
-  instead of the exit code every other prep uses. A deliberate refusal should
-  refuse deliberately — a stated message and a distinguishable code — rather
-  than through a parser error that reads as a bug in the invocation.
-
-**Done when:** a push runs the matrix green, the empty-directory smoke build is
-one of its jobs, and the skip accounting is visible in the summary.
+**Done when:** a push runs the matrix green, the smoke job is one of them, and
+the skip accounting is visible in the summary. Everything but the push is done.
 
 ## 3. Package surface
 

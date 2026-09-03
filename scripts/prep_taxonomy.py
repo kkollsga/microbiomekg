@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from microbiomekg.rawdata import find_taxdump  # noqa: E402
+from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
 from microbiomekg.tables import as_list  # noqa: E402
 from microbiomekg.reconcile import (  # noqa: E402
     NAME_CLASSES,
@@ -262,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         taxdump = args.taxdump or find_taxdump(args.raw)
     except FileNotFoundError as e:
-        ap.error(str(e))
+        return missing_input(e)
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)

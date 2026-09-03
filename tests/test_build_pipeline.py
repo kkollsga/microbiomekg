@@ -612,3 +612,111 @@ def test_text_score_raises_on_the_default_graph_and_answers_on_the_flagged_one(
         graphs["with_vectors"].cypher(query, params={"q": "Bacteroides frajilis"})
     )
     assert rows and rows[0]["score"] > 0.0, rows
+
+
+# --------------------------------------------------------------------------
+# Absent input is exit 3 for every prep, and a build with nothing in it
+# succeeds and says so
+# --------------------------------------------------------------------------
+
+PREPS = sorted(SCRIPTS.glob("prep_*.py"))
+assert PREPS, "the prep glob found nothing — this parametrisation would be vacuous"
+
+
+@pytest.mark.parametrize("prep", PREPS, ids=[p.stem for p in PREPS])
+def test_every_prep_reports_an_absent_input_as_missing_input(tmp_path, prep):
+    """Exit 3 is the one channel ``build.py`` reads as "skip this source".
+    Exit 2 is argparse's "you called me wrong", and ``build.py`` reads it as
+    fatal — so a prep that routes a missing raw file through ``ap.error``
+    takes the whole build down with it. Every prep, against an empty raw
+    directory, must leave by the same door, and must say what it wanted."""
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    proc = subprocess.run(
+        [sys.executable, str(prep), "--raw", str(raw), "--out", str(tmp_path / "csv")],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    assert proc.returncode == build.MISSING_INPUT, (
+        f"{prep.name} exited {proc.returncode}, not {build.MISSING_INPUT}:\n"
+        f"{proc.stderr}"
+    )
+    assert proc.stderr.strip(), f"{prep.name} said nothing about what it wanted"
+    assert "usage:" not in proc.stderr, f"{prep.name} refused through argparse"
+
+
+def test_a_prep_with_its_own_file_but_no_taxdump_exits_missing_input(tmp_path):
+    """The class, not the instance: nine preps check their own file before the
+    taxdump, so an empty directory never reaches their taxdump lookup. With the
+    source's own file present and no taxdump, the lookup is reached — and it
+    must still be exit 3, not a usage error."""
+    raw = tmp_path / "raw"
+    (raw / "hmdb").mkdir(parents=True)
+    (raw / "hmdb" / "hmdb_metabolites.xml").write_bytes(
+        (
+            ROOT / "tests" / "fixtures" / "hmdb_mini" / "hmdb_metabolites.xml"
+        ).read_bytes()
+    )
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS / "prep_hmdb.py"),
+            "--raw",
+            str(raw),
+            "--out",
+            str(tmp_path / "csv"),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    assert proc.returncode == build.MISSING_INPUT, proc.stderr
+    assert "nodes.dmp" in proc.stderr
+    assert "usage:" not in proc.stderr
+
+
+def run_build(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(SCRIPTS / "build.py"), *args],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+
+def test_a_build_with_nothing_in_it_succeeds_and_reports_every_source_absent(tmp_path):
+    """docs/design/library-pipeline.md rule 2: absent means skipped, loudly.
+    An empty data directory is the fresh-clone state, and the build's answer
+    to it is a to-do list, not a traceback — exit 0, no graph file, and every
+    source named as skipped."""
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    out = tmp_path / "graph" / "x.kgl"
+    proc = run_build(
+        "--raw", str(raw), "--csv", str(tmp_path / "csv"), "--out", str(out)
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert not out.exists(), "a build that loaded nothing wrote a graph"
+    for prep in PREPS:
+        source = prep.stem.removeprefix("prep_")
+        assert f"{source}: raw input absent" in proc.stdout, source
+    assert "nothing loaded" in proc.stdout
+    assert "no graph written" in proc.stdout
+
+
+def test_a_build_from_a_taxdump_alone_is_a_taxonomy_only_graph(tmp_path):
+    """The taxdump fetches automatically, so "only the taxdump" is the first
+    state a fresh clone reaches after ``fetch``. It builds — a Taxon spine and
+    nothing else — and the report says that is what it is."""
+    raw = tmp_path / "raw" / "ncbi"
+    raw.mkdir(parents=True)
+    for f in TAXDUMP_MINI.iterdir():
+        (raw / f.name).write_bytes(f.read_bytes())
+    proc = run_build(
+        "--raw", str(tmp_path / "raw"), "--csv", str(tmp_path / "csv"), "--no-save"
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "taxonomy-only" in proc.stdout, proc.stdout
+    assert "  Taxon " in proc.stdout
+    assert "Signature" not in proc.stdout.split("--- nodes")[1].split("--- edges")[0]

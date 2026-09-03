@@ -100,9 +100,12 @@ Rules that make it a contract rather than a convention:
 
 ## Open questions (decide at planning time, not now)
 
-- Whether `build` on an empty directory should produce the NCBI-only taxonomy
-  graph (it can: taxonomy needs only the NCBI dump, which fetches
-  automatically) or refuse. Leaning: produce it, and say it is taxonomy-only.
+- ~~Whether `build` on an empty directory should produce the NCBI-only taxonomy
+  graph or refuse.~~ **Decided 2026-09-03.** `build` does not fetch, so an
+  *empty* directory builds nothing: exit 0, every source named as skipped, no
+  graph written. A directory holding only the taxdump builds the Taxon spine
+  and the report says "taxonomy-only". Both are tests in
+  `tests/test_build_pipeline.py`.
 - Whether the MCP manifest and skills ship in the package or stay a
   documented add-on. They are the agent surface the critique was about;
   shipping them makes the package's default framing agent-first again.

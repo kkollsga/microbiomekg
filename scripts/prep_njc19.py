@@ -63,7 +63,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from microbiomekg import ontology as ont  # noqa: E402
 from microbiomekg.ontology import njc19 as nj  # noqa: E402
-from microbiomekg.rawdata import find_taxdump  # noqa: E402
+from microbiomekg.rawdata import find_taxdump, missing_input  # noqa: E402
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth  # noqa: E402
 from microbiomekg.tables import Writer, as_list  # noqa: E402
 
@@ -234,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         taxdump = args.taxdump or find_taxdump(args.raw)
     except FileNotFoundError as e:
-        ap.error(str(e))
+        return missing_input(e)
 
     out = args.out
     names = load_metabolite_names(out / "metabolite.csv")
