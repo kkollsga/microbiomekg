@@ -303,18 +303,34 @@ def declared_relationships(
 def csv_rows(path: Path) -> int:
     """Data rows in a CSV, or ``-1`` when it is not there.
 
-    Counted in binary chunks: ``taxon.csv`` is 128 MB and this runs for every
-    declared relationship. Newlines inside a quoted field would over-count, and
-    no table this counts has any — the loader would not survive one either,
-    since kglite reads these files by column position.
+    Counted in binary chunks rather than through :mod:`csv`, because
+    ``taxon.csv`` is 128 MB and this runs for every declared relationship — but
+    counting bare newlines over-counts, because six of these tables *do* carry
+    quoted newlines: a BugSigDB title, a study abstract fragment, a MASI drug
+    name. ``signature.csv`` is 14,846 rows and 15,820 newlines, and the G10
+    report printed ``PART_OF_STUDY 14,846 edges / 15,820 rows = 0.9x`` — an
+    expansion factor below one, which is not a thing an FK edge can do. The
+    loader reads them correctly; only this counter did not.
+
+    So the scan tracks whether it is inside a quoted field. RFC 4180 escapes a
+    quote by doubling it, and a doubled quote toggles the state twice, which is
+    the same as not toggling it — so no lookahead is needed.
     """
     if not path.is_file():
         return -1
     lines = 0
+    outside = True
     with path.open("rb") as fh:
         while chunk := fh.read(1 << 20):
-            lines += chunk.count(b"\n")
-    return max(lines - 1, 0)
+            # Split on the quote character and count newlines in the segments
+            # that are outside a quoted field — every count runs in C, so this
+            # stays a streaming scan rather than a per-byte Python loop.
+            for segment in chunk.split(b'"'):
+                if outside:
+                    lines += segment.count(b"\n")
+                outside = not outside
+            outside = not outside          # the split's last segment does not
+    return max(lines - 1, 0)               # end at a quote
 
 
 def write_load_blueprint(

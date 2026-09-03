@@ -309,6 +309,45 @@ def test_every_csv_a_fragment_names_is_one_the_report_can_count():
     assert missing == []
 
 
+def test_the_record_count_is_rows_and_not_newlines(tmp_path):
+    """G10's denominator was newlines, and six of these tables carry quoted ones.
+
+    ``signature.csv`` is 14,846 rows and 15,820 newlines — a BugSigDB title
+    with a line break in it — so the report printed
+    ``PART_OF_STUDY 14,846 edges / 15,820 rows = 0.9x``: an FK edge expanding
+    to *less* than one edge per row, which cannot happen and was the counter
+    rather than the loader. Also `taxon_disease.csv` (49), `study.csv` (92),
+    `drug_target.csv` (34), `taxon_intervention.csv` (35) and `paper.csv` (1).
+    """
+    path = tmp_path / "t.csv"
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["id", "text"])
+        writer.writerows(
+            [(i, ["plain", "two\nlines", 'a "quoted" word', "a,b"][i % 4])
+             for i in range(400)]
+        )
+    with path.open(encoding="utf-8", newline="") as fh:
+        real = sum(1 for _ in csv.reader(fh)) - 1
+    assert real == 400
+    assert path.read_bytes().count(b"\n") - 1 > real, (
+        "this fixture must contain quoted newlines or it measures nothing"
+    )
+    assert build.csv_rows(path) == real
+
+
+def test_the_record_count_survives_a_chunk_boundary(tmp_path):
+    """The scan is chunked at 1 MiB and the quote state has to cross it."""
+    path = tmp_path / "big.csv"
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["id", "text"])
+        writer.writerows([(i, "pad " * 8 + "two\nlines") for i in range(40_000)])
+    assert path.stat().st_size > (1 << 20), "smaller than one chunk: no boundary"
+    with path.open(encoding="utf-8", newline="") as fh:
+        assert build.csv_rows(path) == sum(1 for _ in csv.reader(fh)) - 1
+
+
 def test_the_expansion_report_names_every_relationship_it_declared(
     tmp_path, fixture_csvs
 ):
