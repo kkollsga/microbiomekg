@@ -847,11 +847,16 @@ def fetch_njc19(args) -> None:
     log(f"  Dryad deposit doi:{NJC19_DRYAD_DOI} recorded as manual (JS interstitial)")
 
 
-# aiddlab.com resolves and answers a 301 to https, then the TLS connection never
-# completes — the site is effectively gone. Of the eight files its Download page
-# offered, the Wayback Machine captured only substanceInfo; the interaction and
-# microbe tables were never archived, and no mirror was found.
-MASI_ORIGIN = "http://www.aiddlab.com/MASI/downloadFiles/"
+# aiddlab.com is NOT down — its TLS certificate has expired. Every request dies
+# at the handshake with "certificate verify failed: certificate has expired",
+# and http:// 301-redirects to https, so there is no plain-HTTP route around it.
+# Behind that handshake the server still answers 200 on all eight files its
+# Download page lists (confirmed 2026-09-03 with `curl -k`). Fetching them would
+# mean turning off certificate verification, which is a security decision for
+# the operator, not for this script — so the six files the Wayback Machine never
+# captured are recorded as `manual` with the exact command that gets them.
+# Of the eight, only substanceInfo was ever archived.
+MASI_ORIGIN = "https://www.aiddlab.com/MASI/downloadFiles/"
 MASI_WAYBACK = [
     ("MASI_v1.0_download_substanceInfo.txt", "20240728033042"),
     ("MASI_v1.0_download_substanceInfo.xlsx", "20240420002051"),
@@ -885,8 +890,10 @@ def fetch_masi(args) -> None:
             log(f"  origin: HTTP {r.status_code}, {len(r.content):,} B")
         except requests.RequestException as exc:
             log(f"  origin: {type(exc).__name__}: {exc}")
+            log("  (expired certificate, not a dead host — see MASI_UNARCHIVED)")
         for name, ts in MASI_WAYBACK:
-            wb = wayback_url(ts, MASI_ORIGIN + name)
+            # Wayback captured the pre-redirect http:// URLs; playback keys on those.
+            wb = wayback_url(ts, MASI_ORIGIN.replace("https://", "http://") + name)
             if download("masi", wb, name, timeout=180, force=args.force) is None:
                 record_problem("masi", name, MASI_ORIGIN + name, "manual",
                                f"origin gone and Wayback playback {wb} failed")
@@ -898,11 +905,14 @@ def fetch_masi(args) -> None:
     for name in MASI_UNARCHIVED:
         record_problem(
             "masi", name, MASI_ORIGIN + name, "manual",
-            "not recoverable: the origin (www.aiddlab.com) no longer completes a "
-            "TLS connection and the Wayback Machine never captured this file "
-            "(domain-wide CDX query over aiddlab.com/MASI* returns only "
-            "substanceInfo). The measured drug-microbe evidence in "
-            "data/raw/drug_screens/ is the substitute.")
+            "the origin serves this file but its TLS certificate has expired, and "
+            "the Wayback Machine never captured it (a domain-wide CDX query over "
+            "aiddlab.com/MASI* returns only substanceInfo). Fetch it deliberately, "
+            "accepting the expired certificate:  curl -k -A 'Mozilla/5.0' -o "
+            f"data/raw/masi/{name} '{MASI_ORIGIN + name}'  — or download it in a "
+            "browser from https://www.aiddlab.com/MASI/download.html after "
+            "accepting the certificate warning. Until then the measured "
+            "drug-microbe evidence in data/raw/drug_screens/ is the substitute.")
 
 
 # The measured drug x taxon evidence behind MASI's curated edges. Maier's
