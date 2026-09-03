@@ -23,7 +23,11 @@
         "lineage_class": "string",
         "lineage_phylum": "string",
         "lineage_kingdom": "string",
-        "lineage_domain": "string"
+        "lineage_domain": "string",
+        "probiotic": "bool",
+        "probiotic_use_species": "string",
+        "probiotic_research_stage": "string",
+        "probiotic_reported_name": "string"
       },
       "skipped": [
         "parent_tax_id"

@@ -30,6 +30,7 @@ __all__ = [
     "malformed_curie",
     "ConditionPairing",
     "MondoIndex",
+    "SYNONYM_SCOPE",
     "condition_node_type",
     "curie_vocabulary",
     "pair_conditions",
@@ -89,12 +90,20 @@ CURIE_SHAPES: dict[str, str] = {
 
 _PREFIX = re.compile(r"^\s*([A-Za-z][A-Za-z0-9.]*)[:_]")
 _XREF = re.compile(r"^xref:\s+(\S+)(?:\s+\{(.*)\})?\s*$")
+_SYNONYM = re.compile(r'^synonym:\s+"(.*?)"\s+([A-Z]+)\b')
 _SOURCE = re.compile(r'source="([^"]+)"')
 
 #: The one xref qualifier that means "the same thing". MONDO also emits
 #: ``MONDO:relatedTo`` and ``MONDO:otherHierarchy``; reading those as identity
 #: is the false-merge failure the schema survey catalogues (kg-microbe #899).
 EQUIVALENT_TO = "MONDO:equivalentTo"
+
+#: The one synonym scope that means "the same disease". MONDO also emits
+#: ``BROAD``, ``NARROW`` and ``RELATED``, and reading any of those as identity
+#: is the false-merge failure :data:`EQUIVALENT_TO` guards against on the xref
+#: side — ``RELATED`` on MONDO:0005130 includes *coeliac sprue, susceptibility
+#: to*, which is a different disease.
+SYNONYM_SCOPE = "EXACT"
 
 
 def curie_vocabulary(curie: str) -> str:
@@ -177,6 +186,15 @@ class MondoIndex:
     equivalent: dict[str, str] = field(default_factory=dict)
     #: MONDO CURIEs carrying `is_obsolete: true`
     obsolete: frozenset[str] = frozenset()
+    #: casefolded `name:` → the live MONDO CURIE. One term per name on the
+    #: 2026-09-01 release: MONDO's own labels are unique.
+    by_name: dict[str, str] = field(default_factory=dict)
+    #: casefolded EXACT synonym → the live MONDO CURIE, **only where exactly
+    #: one term claims it**. A string two diseases both call themselves is not
+    #: an identifier, and picking one of them would be the merge-on-a-shared-
+    #: attribute failure the schema survey catalogues — the same rule
+    #: :class:`microbiomekg.drugs.DrugIndex` applies to an ATC code.
+    by_exact_synonym: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_obo(cls, path: str | Path) -> "MondoIndex":
@@ -186,22 +204,36 @@ class MondoIndex:
         nor an equivalence: an obsolete term's ``name:`` literally starts with
         the word "obsolete", so keying a Disease node on one produces a node
         called *obsolete sickle cell disease…*.
+
+        The ``name:`` and ``EXACT`` synonym strings are indexed too, for the one
+        case a CURIE-keyed hub cannot serve: a source that ships **no condition
+        identifier at all**. MASI's disease export is 56 labels and nothing
+        else, and :meth:`mondo_by_name` is the only route it has. That is a name
+        match, which this project distrusts on principle (C1) — the difference
+        is that the far side is a curated ontology's own label rather than
+        another source's free text, and that the route is recorded on the node
+        so it stays countable and reversible.
         """
         idx = cls()
         dead: set[str] = set()
         term_id = name = None
         is_obsolete = False
         xrefs: list[tuple[str, str]] = []
+        synonyms: list[str] = []
+        claimed: dict[str, set[str]] = {}
         in_term = False
 
         def flush() -> None:
-            nonlocal term_id, name, is_obsolete, xrefs
+            nonlocal term_id, name, is_obsolete, xrefs, synonyms
             if term_id and term_id.startswith("MONDO:"):
                 if is_obsolete:
                     dead.add(term_id)
                 else:
                     if name:
                         idx.label[term_id] = name
+                        idx.by_name.setdefault(name.strip().casefold(), term_id)
+                    for text in synonyms:
+                        claimed.setdefault(text.strip().casefold(), set()).add(term_id)
                     for target, attrs in xrefs:
                         if EQUIVALENT_TO in _SOURCE.findall(attrs):
                             # First writer wins: a foreign id claimed by two
@@ -211,6 +243,7 @@ class MondoIndex:
             term_id = name = None
             is_obsolete = False
             xrefs = []
+            synonyms = []
 
         with Path(path).open(encoding="utf-8") as fh:
             for raw in fh:
@@ -231,8 +264,21 @@ class MondoIndex:
                     m = _XREF.match(line)
                     if m:
                         xrefs.append((m.group(1), m.group(2) or ""))
+                        continue
+                    m = _SYNONYM.match(line)
+                    if m and m.group(2) == SYNONYM_SCOPE:
+                        synonyms.append(m.group(1))
         flush()
         idx.obsolete = frozenset(dead)
+        # A synonym only becomes a key while exactly one live term claims it,
+        # and a synonym that is some other term's own `name:` is not a key at
+        # all — the label always wins, so `mondo_by_name` never answers a
+        # question one term has already answered exactly.
+        idx.by_exact_synonym = {
+            text: next(iter(ids))
+            for text, ids in claimed.items()
+            if len(ids) == 1 and text not in idx.by_name
+        }
         return idx
 
     def mondo_id(self, curie: str) -> str | None:
@@ -254,6 +300,36 @@ class MondoIndex:
         """MONDO's own name for this term, reached through equivalence."""
         hub = self.mondo_id(curie)
         return self.label.get(hub) if hub else None
+
+    def mondo_by_name(self, label: str | None) -> tuple[str | None, str]:
+        """``(live MONDO CURIE or None, the route)`` for a disease **name**.
+
+        For a source that ships a disease label and no identifier. Two routes,
+        label first:
+
+        * ``mondo-name`` — the string is some live term's own ``name:``;
+        * ``mondo-exact-synonym`` — the string is an ``EXACT`` synonym of
+          exactly one live term, and is not any term's ``name:``.
+
+        ``(None, "unmatched")`` otherwise, which is the answer for a
+        misspelling (*Rheumatoid arthrits*), a label MONDO spells only as a
+        ``RELATED`` synonym (*coeliac disease*) and a phrase that is not a
+        disease term at all (*Skin and mucosal infections*). The caller keys
+        the node on the source's own id and reports the miss; it does not
+        widen the match.
+
+        The caller is expected to pass an already-normalised string — the
+        source decides what its own labels need stripping — and this method
+        casefolds and nothing more.
+        """
+        key = (label or "").strip().casefold()
+        if not key:
+            return None, "unmatched"
+        if key in self.by_name:
+            return self.by_name[key], "mondo-name"
+        if key in self.by_exact_synonym:
+            return self.by_exact_synonym[key], "mondo-exact-synonym"
+        return None, "unmatched"
 
 
 def pair_conditions(

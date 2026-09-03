@@ -44,9 +44,28 @@ from microbiomekg.reconcile import (  # noqa: E402
 #: no lineage. ``tests/test_build_pipeline.py`` fails if a prep writes the
 #: table and is missing here.
 DEPENDS_ON: list[str] = [
-    "bugsigdb", "card", "chembl", "gutmdisorder", "hmdb", "maier2018", "njc19",
-    "zimmermann2019",
+    "bugsigdb", "card", "chembl", "gutmdisorder", "hmdb", "maier2018", "masi",
+    "njc19", "zimmermann2019",
 ]
+
+#: The one source that writes *node properties* onto a taxon rather than edges
+#: onto it, and the table it leaves them in.
+#:
+#: MASI's microbe dictionary says which of the organisms it curates are used as
+#: probiotics, in whom, and how far the evidence has got. Those are properties
+#: of the organism, not of any interaction, and ``Taxon`` is one CSV — so the
+#: only place they can be written is here, which is why ``masi`` is in
+#: :data:`DEPENDS_ON` above alongside the sources that write ``cited_taxa.csv``.
+#: The columns are written on **every** row whether or not that table exists, so
+#: the header ``blueprints/core.json`` declares does not depend on which sources
+#: a build ran.
+PROBIOTIC_TABLE = "taxon_probiotic.csv"
+PROBIOTIC_COLUMNS = (
+    "probiotic",
+    "probiotic_use_species",
+    "probiotic_research_stage",
+    "probiotic_reported_name",
+)
 
 #: Clade roots for ``--scope microbial``: Bacteria, Archaea, Fungi.
 MICROBIAL_ROOTS = (2, 2157, 4751)
@@ -79,12 +98,38 @@ FIELDS = [
     "synonyms",
     "synonym_count",
     *LINEAGE_COLUMNS[1:],
+    # Three-state on purpose: `true` for a taxon MASI marks as a probiotic,
+    # `false` for the other organisms MASI curates, and **empty for every taxon
+    # MASI says nothing about**. Writing `false` everywhere would turn "this
+    # database does not cover the organism" into "this organism is not a
+    # probiotic", which MASI never claimed about anything.
+    *PROBIOTIC_COLUMNS,
 ]
 
 #: Cap on synonyms carried into the CSV. A handful of taxa have hundreds of
 #: ``includes`` names; the graph only needs enough for a BM25 hit, and the
 #: authoritative lookup lives in TaxonomyIndex, not in the graph.
 SYNONYM_CAP = 20
+
+
+def read_probiotics(path: Path) -> dict[int, dict[str, str]]:
+    """``tax_id -> {column: value}`` from the table MASI's prep leaves behind.
+
+    An absent file is an empty map, not an error: a build that did not run
+    ``prep_masi.py`` still writes the columns, empty on every row, so the
+    header stays a function of this script rather than of which raw files are
+    on the machine.
+    """
+    if not path.is_file():
+        return {}
+    out: dict[int, dict[str, str]] = {}
+    with path.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if row.get("tax_id", "").isdigit():
+                out[int(row["tax_id"])] = {
+                    c: (row.get(c) or "") for c in PROBIOTIC_COLUMNS
+                }
+    return out
 
 
 def read_cited(cited_path: Path) -> set[int]:
@@ -209,6 +254,9 @@ def main(argv: list[str] | None = None) -> int:
 
     lineage = read_ranked_lineage(taxdump / "rankedlineage.dmp", keep)
     synonyms = read_synonyms(taxdump / "names.dmp", keep)
+    probiotics = read_probiotics(args.out / PROBIOTIC_TABLE)
+    if probiotics:
+        print(f"  {len(probiotics):,} taxa carry MASI probiotic annotation")
 
     args.out.mkdir(parents=True, exist_ok=True)
     path = args.out / "taxon.csv"
@@ -237,6 +285,7 @@ def main(argv: list[str] | None = None) -> int:
                 "synonym_count": len(syn),
             }
             row.update(zip(LINEAGE_COLUMNS[1:], lin[1:]))
+            row.update(probiotics.get(tid, dict.fromkeys(PROBIOTIC_COLUMNS, "")))
             w.writerow(row)
 
     print(f"wrote {path} ({len(keep):,} rows; {n_placeholder:,} placeholder names; "
