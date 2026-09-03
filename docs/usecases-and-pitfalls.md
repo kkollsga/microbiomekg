@@ -2494,9 +2494,10 @@ RETURN t.title AS taxon, d.title AS disease, directions, n_studies, n_edges,
 ORDER BY n_edges DESC LIMIT 50
 ```
 
-*Golden check (measured):* **8,238 of 56,124 (taxon, condition) pairs carry both
-`increased` and `decreased`, and 47,232 of 56,124 — 84.2% — rest on a single
-study** (BugSigDB alone: 8,114 and 46,809 of 55,445, 84.4%). So `single_cohort` is the default exclusion for every ranked D-query,
+*Golden check (measured):* **8,257 of 56,306 (taxon, disease) pairs carry both
+`increased` and `decreased`, and 47,262 of 56,306 — 83.9% — rest on a single
+study** (BugSigDB alone: 8,114 and 46,809 of 55,445, 84.4%; before MASI, 8,238
+and 47,232 of 56,124). So `single_cohort` is the default exclusion for every ranked D-query,
 not a rare flag. The named fixture is D2's: *Fusobacterium nucleatum* ×
 colorectal cancer returns `directions = ['increased','decreased']`, `n_edges =
 40`, `n_studies = 21`. **The query reports the disagreement; it never resolves

@@ -148,7 +148,10 @@ golden is a failing test, not a stale doc.
 test.** Every number and every existential phrase in a skill body, in a skill's
 routing `description`, and in the manifest's two prose keys must be covered by
 a claim in `tests/claims/`, and every graph claim is executed against the built
-graph. It exists because on 2026-09-03 all 810 tests passed while the shipped
+graph. The same gate covers the tracked pages `DOC_UNITS` in
+`tests/skill_claims.py` names — `docs/benchmarks.md` today, sidecar under
+`docs/claims/` — and it is extended one small measured page at a time, never to
+`docs/model.md` wholesale, where narrative numbers would make it tiresome. It exists because on 2026-09-03 all 810 tests passed while the shipped
 `metabolites_pathways` skill told agents there was no `CONSUMES` edge in a
 graph holding 4,784 of them: the skill tests checked that the *Cypher* ran,
 never that the *prose* was true.
@@ -318,8 +321,8 @@ bound checked only at milestones is not a bound (`R4` corollary).
 - **A comment the tooling parses is load-bearing (`R18`).** In this repo:
   `microbiomekg/mcp/microbiomekg.skills/*` bodies and frontmatter `description`s are
   injected verbatim into the tool descriptions an agent reads and are checked
-  by `tests/test_skill_claims.py`; `tests/claims/*.md` annotations are parsed by
-  `tests/skill_claims.py`; `_`-prefixed keys in `microbiomekg/blueprints/*.json` are
+  by `tests/test_skill_claims.py`; `tests/claims/*.md` and `docs/claims/*.md`
+  annotations are parsed by `tests/skill_claims.py`; `_`-prefixed keys in `microbiomekg/blueprints/*.json` are
   comments the composer strips; a module docstring passed to argparse
   (`description=__doc__`, e.g. `scripts/build_blueprint.py`) is rendered
   verbatim as `--help`. The `clean-comments` skill carries the maintained

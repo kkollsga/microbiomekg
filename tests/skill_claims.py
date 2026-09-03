@@ -73,6 +73,14 @@ CLAIMS_DIR = ROOT / "tests" / "claims"
 MANIFEST = ROOT / "microbiomekg" / "mcp" / "microbiomekg_mcp.yaml"
 MANIFEST_CLAIMS = CLAIMS_DIR / "manifest.md"
 
+#: Tracked markdown pages gated the way the skills are: ``(page, sidecar)``.
+#: Deliberately a short list of small pages whose numbers are *measurements*
+#: — a benchmark table, a README — never a 2,000-line model document, where
+#: narrative numbers would make the gate tiresome and get it switched off.
+DOC_UNITS: tuple[tuple[Path, Path], ...] = (
+    (ROOT / "docs" / "benchmarks.md", ROOT / "docs" / "claims" / "benchmarks.md"),
+)
+
 #: The manifest keys whose text reaches an agent: `instructions` is the
 #: handshake blob, `overview_prefix` rides every bare graph_overview(). Both are
 #: prose about the graph, so both are gated. Any other key is configuration.
@@ -390,9 +398,24 @@ def manifest_units() -> list[Unit]:
     return _bind(MANIFEST.name, manifest_sections(), claims_by_section(MANIFEST_CLAIMS))
 
 
+def doc_units(page: Path, sidecar: Path) -> list[Unit]:
+    """Every ``##`` section of a tracked markdown page, gated by its sidecar.
+
+    The page has no frontmatter, so its sections are its headings and the
+    text before the first one (``preamble``). The sidecar mirrors the
+    headings exactly as a skill's does.
+    """
+    if not page.is_file():
+        raise ClaimSyntaxError(f"{page} is gated but does not exist")
+    sections = split_sections(page.read_text(encoding="utf-8"))
+    return _bind(page.name, sections, claims_by_section(sidecar))
+
+
 def all_units() -> list[Unit]:
     units: list[Unit] = []
     for path in sorted(SKILLS_DIR.glob("*.md")):
         units.extend(skill_units(path))
     units.extend(manifest_units())
+    for page, sidecar in DOC_UNITS:
+        units.extend(doc_units(page, sidecar))
     return units

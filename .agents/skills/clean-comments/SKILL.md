@@ -89,7 +89,7 @@ reader.
   the matching claim in `tests/claims/` moves with it.
 - **`microbiomekg/mcp/microbiomekg_mcp.yaml`'s `instructions:` and `overview_prefix:`** —
   same rule: prose the agent reads, checked by the same gate.
-- **`tests/claims/*.md`** — the claim annotations are *parsed* by
+- **`tests/claims/*.md` and `docs/claims/*.md`** — the claim annotations are *parsed* by
   `tests/skill_claims.py`. A malformed annotation is a claim nobody can run,
   which the gate treats as worse than no claim.
 - **`_`-prefixed keys in `microbiomekg/blueprints/*.json`** — comments the composer strips.

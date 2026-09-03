@@ -39,6 +39,7 @@ from tests.skill_claims import (
     canonical,
     checkable_numbers,
     claims_by_section,
+    doc_units,
     existential_phrases,
     manifest_units,
     parse_claim,
@@ -72,6 +73,8 @@ def _units():
     for path in SKILL_FILES:
         collected.extend(skill_units(path))
     collected.extend(manifest_units())
+    for page, sidecar in skill_claims.DOC_UNITS:
+        collected.extend(doc_units(page, sidecar))
     return collected
 
 
@@ -245,3 +248,34 @@ def test_the_gate_can_fail():
         "5",
         "592",
     )
+
+
+def test_the_doc_gate_can_fail(tmp_path):
+    """A tracked page is gated section by section like a skill: a number its
+    sidecar does not cover is uncovered, a sidecar heading the page lacks
+    raises, and a gated page that is missing raises rather than skips."""
+    page = tmp_path / "page.md"
+    sidecar = tmp_path / "page.claims.md"
+    page.write_text("Intro with 12 sources.\n\n## Shape\n\n56,306 pairs.\n")
+    sidecar.write_text(
+        "## Shape\n\n<!-- claim: MATCH ()-[r]->() RETURN count(r) == 56306 -->\n"
+    )
+    units = {u.section: u for u in doc_units(page, sidecar)}
+    assert set(units) == {"preamble", "Shape"}
+    covered = {v for c in units["Shape"].claims for v in c.values}
+    assert not [n for n in checkable_numbers(units["Shape"].text) if n not in covered]
+    # The preamble's number has no claim: uncovered, which the gate reports.
+    assert checkable_numbers(units["preamble"].text) == ["12"]
+    assert units["preamble"].claims == []
+    # The mutation: the page's number moves and the claim no longer covers it.
+    page.write_text(page.read_text().replace("56,306", "56,000"))
+    units = {u.section: u for u in doc_units(page, sidecar)}
+    assert "56000" not in covered
+    assert [n for n in checkable_numbers(units["Shape"].text) if n not in covered]
+    # A sidecar heading the page does not have is a renamed section, not a skip.
+    sidecar.write_text("## Gone\n\n<!-- claim: RETURN 1 == 1 -->\n")
+    with pytest.raises(ClaimSyntaxError):
+        doc_units(page, sidecar)
+    # A gated page that does not exist is an error, never a silent pass.
+    with pytest.raises(ClaimSyntaxError):
+        doc_units(tmp_path / "missing.md", sidecar)

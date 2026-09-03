@@ -706,6 +706,12 @@ At most eight, benchmarks first because they are cheap and decisive. Each is
 one line of scope plus what it depends on. **Not filed here** — the coordinator
 owns `dev-docs/todos.md`.
 
+**G1–G5 shipped 2026-09-03 as `docs/benchmarks.md`**, one Cypher statement each,
+every number executed by the claim gate (`docs/claims/benchmarks.md`); the rows
+below are the scope they were run to. G1's stop rule fired on distinct pairs
+(56,306 against their 63,316, no multiple claimed) and not on microbes or
+diseases.
+
 | # | Item | Scope | Depends on | Effort |
 |---|---|---|---|---|
 | G1 | **Association-layer shape benchmark** | Run §D.1.1 + §D.1.2, publish the table, and correct `docs/evaluation.md` §5 per §F.1 | nothing — current build | S |
