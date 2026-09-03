@@ -106,13 +106,13 @@ is named. Two such places exist and are marked **[A-override]** below.
 (`new_taxdump` 2026-09-02), BugSigDB (`full_dump` 2026-09-02), MONDO
 (2026-09-01, as the disease-id hub), gutMDisorder v1 (2020, recovered from
 Wayback), CARD, HMDB 5.0, Reactome, ChEMBL 37, MiMeDB, NJC19 and the two
-published drug screens, Maier 2018 and Zimmermann 2019 — ten sources over the
-taxonomy. **KEGG** has a loader and stays off by default on its licence, and
-**MASI** is fetched and unloadable (below). `docs/sources.md` is the per-source
-record.
+published drug screens, Maier 2018 and Zimmermann 2019, and **MASI** — eleven
+sources over the taxonomy. **KEGG** has a loader and stays off by default on its
+licence. `docs/sources.md` is the per-source record.
 
 **The gap-filling sources have now been fetched and profiled, and the outcome is
-three for five — the last two being the substitutes for the one that failed.**
+four for five — the two substitutes arrived first and answered better than the
+source they substituted for, which then arrived after all.**
 **NJC19** is exactly what it was fetched for and closed W5/D6.
 **MiMeDB**'s published bulk downloads carry **no microbe–metabolite association
 at all, in v1.0 or in v2.0** — two MySQL tables with zero cross-references
@@ -120,13 +120,26 @@ between them (`data/raw/mimedb/v2/PROVENANCE.md`) — so it cannot close W4/D5 a
 contributes `Metabolite` nodes only; what moved D5 was NJC19's export half, which
 was fetched for D6. v2.0 was fetched on 2026-09-03 specifically to test whether
 the newer release published the pairs. It does not: it publishes a *count* of
-them. **MASI**'s download is the substance dictionary, 1,350 rows with
-**no organism column**, and its interaction tables are *unrecoverable* rather
-than unfetched — so W7's drug↔taxon layer came from the two published screens
-MASI aggregates, loaded directly and one per direction: **Maier 2018** (1,197
+them. **MASI**'s interaction tables were **written off as unrecoverable and were
+not**: `www.aiddlab.com` answers HTTP 200 on all eight download files from
+behind an **expired TLS certificate**, which is what every automated fetch was
+failing on, and they arrived by hand through a browser on 2026-09-03 rather
+than by turning certificate verification off (`docs/sources.md` §14). W7's
+drug↔taxon layer had already been closed by the two published screens MASI
+aggregates, loaded directly and one per direction: **Maier 2018** (1,197
 drugs × 40 gut isolates; 5,592 measured inhibitions, 42,233 measured non-hits)
 and **Zimmermann 2019** (271 drugs × 76 strains; 2,575 measured depletions,
-17,479 measured non-hits). Every "no" below now names what actually happened
+17,479 measured non-hits) — **and that order turned out to matter.** MASI is an
+aggregator: 66.4% of its 12,512 interaction records cite one of those two
+papers, and **7,161 of the 11,456 edges it produces (62.5%) restate a (taxon,
+compound) pair one of those screens already *measures*.** Because the primary
+sources landed first, the graph could measure that overlap instead of
+accumulating it — MASI's substances are their own `Substance` node type, its
+four interaction relationships are its own, and
+`duplicates_primary_source` names the restatement on every edge. What it adds
+that nothing else here has is a **curated literature layer over 542 taxa and
+1,350 substances** including 278 that are not drugs at all, plus the probiotic
+annotation D10 is named for. Every "no" below now names what actually happened
 rather than what was expected.
 
 ### W1. Enrichment of a differential-abundance result against curated signatures
@@ -363,12 +376,16 @@ bacteria→substance 4,001 pairs, substance→bacteria 7,770 pairs, genus-level.
 **Can this graph answer it? YES — both directions are closed, and neither was
 closed by MASI.**
 
-MASI is dead: the interaction downloads its 4,001 + 7,770 typed pairs live in
-are **not recoverable** — the origin no longer completes a TLS connection and
-the Wayback Machine never captured them — and the one file that survives,
-`MASI_v1.0_download_substanceInfo.{txt,xlsx}`, is the substance dictionary
-(1,350 rows, 18 columns, no organism column, no interaction, no direction, no
-PMID). Nothing was loaded from it (`data/raw/masi/PROVENANCE.md`).
+MASI is not dead, and this entry said it was. `www.aiddlab.com` answers HTTP
+200 on all eight of its download files from behind an **expired TLS
+certificate**: every automated fetch died at the handshake, and the Wayback
+Machine — which cannot handshake with it either — holds only the one file
+somebody had saved by hand, so two failures with one cause read as
+confirmation. The tables carrying the 4,001 + 7,770 typed pairs were fetched
+through a browser on 2026-09-03, with certificate verification left on;
+`docs/sources.md` §14 carries the retraction, the file list and what is loaded
+from them. What closed both directions of this query is still the two primary
+screens below, which measure where MASI curates.
 
 **Direction (a), drug → bug, is answered by the landmark screen MASI
 aggregates, loaded directly.** Maier et al.'s supplementary tables carry the
@@ -1334,15 +1351,14 @@ document has no table yet (MiMeDB, NJC19, MASI) the names are proposed here and
 are the loader's contract.
 
 Measurements quoted as "measured" were taken on 2026-09-03 from a clean
-`scripts/build.py` run over **ten** sources — BugSigDB (`full_dump`
+`scripts/build.py` run over **eleven** sources — BugSigDB (`full_dump`
 2026-09-02), gutMDisorder v1, CARD 4.0.2, HMDB 5.0, Reactome (2026-09-02),
-ChEMBL 37, MiMeDB v2.0 (dumped 2025-10-08), NJC19 (Sci Data 7:204, 2020) and
-the two published drug screens, Maier 2018 (Nature 555:623) and Zimmermann 2019
-(Nature 570:462) — against NCBI `new_taxdump` 2026-09-02 at `--scope
-microbial`. **932,674 nodes, 1,311,540 edges.** MASI was fetched and is **not** in any number here: its
-download is the substance dictionary and nothing was loaded from it (D8). KEGG is
-licence-gated and **not** in any number here: a default build carries none of
-it. Where a later source moved a number the earlier value is kept beside it: a
+ChEMBL 37, MiMeDB v2.0 (dumped 2025-10-08), NJC19 (Sci Data 7:204, 2020), the
+two published drug screens, Maier 2018 (Nature 555:623) and Zimmermann 2019
+(Nature 570:462), and MASI v1.0 (NAR 49:D776, 2021) — against NCBI
+`new_taxdump` 2026-09-02 at `--scope microbial`. **934,206 nodes, 1,324,684
+edges.** KEGG is licence-gated and **not** in any number here: a default build
+carries none of it. Where a later source moved a number the earlier value is kept beside it: a
 golden that moves when a source lands is the expected outcome, and the pair is
 what says by how much. `tests/test_acceptance.py` runs every `answerable-now`
 and `partial` query below and asserts these numbers.
@@ -1507,12 +1523,17 @@ rank at which the claim holds · citation · replication count.
 // Two sources in one table: HMDB's 578 ontology annotations and NJC19's 2,840
 // curated export events. `primary_source` is what tells them apart.
 MATCH (t:Taxon {id: 239935})-[p:PRODUCES]->(m:Metabolite)
-RETURN m.title AS metabolite, m.chebi_id AS chebi, m.hmdb_status AS hmdb_status,
+RETURN m.title AS metabolite, m.chebi_id AS chebi, m.status AS hmdb_status,
        p.evidence_level AS level, p.knowledge_level AS knowledge_level,
-       p.reported_name AS organism_as_named, p.enzyme AS enzyme,
+       p.reported_name AS organism_as_named, p.genus_level_evidence AS genus_only,
        p.publications AS refs, p.primary_source AS source
 ORDER BY level, metabolite
+```
 
+`m.status` is HMDB's own quantification status and `p.enzyme` does not exist:
+**neither source carries an enzyme**, which is what D13 is `partial` about.
+
+```cypher
 // the reverse (A5.2's second half): who makes butyrate?
 // CHEBI:30772 is butyric *acid*, which is what HMDB's record carries. See the
 // key note below: CHEBI:17968 is the conjugate base and matches nothing here.
@@ -1627,12 +1648,16 @@ RETURN m.title AS metabolite, producers, consumers,
             ELSE 2.0 * producers * consumers / (producers + consumers)
        END AS mes
 ORDER BY mes DESC LIMIT 20
+```
 
+```cypher
 // the degradation half, which is a different claim and a different edge type
 MATCH (t:Taxon)-[d:DEGRADES]->(m:Metabolite)
 RETURN m.title AS macromolecule, count(DISTINCT t) AS degraders
 ORDER BY degraders DESC
+```
 
+```cypher
 // and the refutations, which are countable rather than absent
 MATCH (t:Taxon)-[n:NO_EXCHANGE_WITH]->(m:Metabolite)
 RETURN n.source_relation AS refuted, count(n) AS n ORDER BY n DESC
@@ -1924,8 +1949,11 @@ refutation of the literature: digoxin reduction needs the *cgr* operon expressed
 under arginine-poor conditions, and this screen ran one medium at 12 h. **Read
 every `DOES_NOT_METABOLISE` edge as "not in this assay", never as "not at
 all"** — `incubation_hours` and `replicates` are on the edge so the bound is
-readable, and 21 other taxa *do* metabolise digoxin here, which is itself the
-finding the classic single-organism story does not carry.
+readable, and **15 other taxa across 21 screened isolates** *do* metabolise
+digoxin here, which is itself the finding the classic single-organism story does
+not carry. The 21 is the isolate count — `count(DISTINCT r.screen_column)` —
+and reading it as a taxon count is the error this entry warns about two
+paragraphs below.
 
 **"And the gene where identified" is answered without a `Gene` node.** The
 paper's second half names 30 bacterial gene products for 20 of the drugs, and
@@ -1967,8 +1995,8 @@ edges**, and `nt_code` / `screen_column`, `strain` and `reported_name` are on
 every edge, so "which strain?" is answerable from the edge even though the
 strain is not a node. **The consequence is a per-taxon count that exceeds any
 per-strain count**: *Bacteroides fragilis* metabolises 116 drugs in the graph
-and no single isolate metabolised more than 95, because seven isolates are one
-node. `count(DISTINCT r.screen_column)` is the strain count; `count(r)` is not.
+and no single one of its seven isolates metabolised more than 89, because those
+seven are one node. `count(DISTINCT r.screen_column)` is the strain count; `count(r)` is not.
 
 *Licence caveat, and these are the two strictest in the graph:* both screens are
 journal supplementary tables of subscription articles with no separate data
@@ -1979,18 +2007,34 @@ one has no reason to lose the other; because G3 puts the licence on the edge,
 either cut is one `WHERE` clause and neither contaminates anything else.
 
 > **What the MASI download turned out to be, and what replaced it
-> (2026-09-03).** `MASI_v1.0_download_substanceInfo.{txt,xlsx}` is the
-> **substance dictionary**, not the interaction tables: 1,350 rows, 18 columns,
-> and **no organism column, no interaction column, no effect, no direction and
-> no PMID**. Worse than absent — the 4,001 bacteria→substance and 7,770
-> substance→bacteria pairs are **not recoverable**: `aiddlab.com` no longer
-> completes a TLS connection and a domain-wide Wayback CDX query returns only
-> `substanceInfo`. Nothing was loaded — no prep script, no blueprint fragment,
-> no ontology module — and nothing should be: loading the substances would add
-> 1,350 unconnected nodes, the ones ChEMBL already has cannot be enriched
-> (`drug.csv` is keyed on the id, first row per key wins), the licence is
-> unstated, and the one true statement the file supports names no organism.
-> Profile: `data/raw/masi/PROVENANCE.md`. **So the aggregator was replaced by
+> (2026-09-03).** The file this entry was written against,
+> `MASI_v1.0_download_substanceInfo.{txt,xlsx}`, is the **substance
+> dictionary**, not the interaction tables: 1,350 rows, 18 columns, and **no
+> organism column, no interaction column, no effect, no direction and no
+> PMID**. The interaction tables were then recorded as **not recoverable**,
+> which was wrong: `aiddlab.com` serves them from behind an **expired TLS
+> certificate**, so every fetch failed at the handshake and the Wayback Machine
+> never captured them for the same reason. They were downloaded by hand through
+> a browser on 2026-09-03 — see `docs/sources.md` §14 for the retraction and
+> for what is loaded from them now.
+>
+> **And what is loaded is deliberately not on this query's relationships.**
+> MASI is an aggregator: **5,419 of its 12,512 interaction records cite Maier
+> 2018 and 2,884 cite Zimmermann 2019**, and **7,161 of the 11,456 edges it
+> produces (62.5%) restate a (taxon, compound) pair one of those two screens
+> already *measures*.** So its substances are `Substance` nodes, its four
+> relationships are its own (`METABOLISES_SUBSTANCE`,
+> `DOES_NOT_METABOLISE_SUBSTANCE`, `ABUNDANCE_CHANGED_BY_SUBSTANCE`,
+> `ABUNDANCE_UNCHANGED_BY_SUBSTANCE`), and the identity between a MASI
+> substance and a `Drug` is one declared `SAME_COMPOUND_AS` edge. **Every
+> golden on this page is therefore unmoved by MASI's arrival**, which is the
+> point: had its metabolism records landed on `METABOLISES`, the query above
+> would count a curated restatement and a measured screen cell as two
+> observations with nothing in the query text to say so. What MASI adds is
+> reached deliberately, in one hop, and
+> `WHERE r.duplicates_primary_source IS NULL` is the 4,295 edges no screen
+> here measured.
+> Profile: `data/raw/masi/PROVENANCE.md`. **The aggregator was overtaken by
 > the two primary sources it aggregates**, one per direction, and both are
 > better artifacts than MASI would have been: strain-resolved where MASI is
 > genus-resolved, and carrying the 42,233 and 17,479 measured non-hits a curated
@@ -2191,30 +2235,36 @@ RETURN m.title AS metabolite, pw.id AS pathway, pw.title AS pathway_name,
 ORDER BY pathway_source, pathway
 ```
 
-*Golden check (measured, Reactome only — KEGG is licence-gated and a default
-build has none of it):* the three-hop path resolves for **4,806 rows over 95
-organisms and 635 pathways**, out of **23,604 `Pathway` nodes** and a **23,717-edge
-`PART_OF_PATHWAY` DAG in which 388 children have more than one parent** (a
-loader modelling it as a tree loses those silently). *E. coli* alone reaches 387
-rows. The `IN_PATHWAY` edges split **`IEA` 31,773 / `TAS` 4,357** — 87.7% of
+*Golden check (re-measured 2026-09-03 over the whole `PRODUCES` layer — KEGG is
+licence-gated and a default build has none of it):* the three-hop path resolves
+for **130,214 rows over 628 taxa and 1,125 pathways**, out of **23,604
+`Pathway` nodes** and a **23,717-edge `PART_OF_PATHWAY` DAG in which 388
+children have more than one parent** (a loader modelling it as a tree loses
+those silently). *E. coli* alone reaches **1,028** rows. **The figures this
+entry carried until now — 4,806 rows over 95 organisms and 635 pathways, with
+*E. coli* at 387 — are the HMDB-only slice**, and they stayed here after NJC19
+grew `PRODUCES` 6x; `p.primary_source = 'hmdb'` still reproduces them exactly.
+The `IN_PATHWAY` edges split **`IEA` 31,773 / `TAS` 4,357** — 87.9% of
 `ChEBI2Reactome.txt` is an orthology projection from human rather than a read
 paper, carried as `knowledge_level = logical_entailment` against
 `knowledge_assertion`, and it is the cleanest knowledge-level signal in the
 whole increment. Without it on the edge, D13's answer would read as curated
-throughout. Part D's D5 example, *Akkermansia muciniphila*, returns **zero
-rows** here for the reason D5 gives: HMDB attributes no metabolite to it, so
-there is no production claim for a pathway to carry.
+throughout. D5's example, *Akkermansia muciniphila*, reached **zero rows** here
+while HMDB was the only source of production; on NJC19's four products it now
+reaches **195**, every one of them a statement about the metabolite rather than
+about the organism.
 
-*The qualifier is part of the answer.* Reactome's 23,603 pathways span **16 model
+*The qualifier is part of the answer.* Reactome's 23,604 pathways span **16 model
 organisms and not one gut commensal**, and the built graph reproduces exactly
 that: every species a `PRODUCES → IN_PATHWAY` walk reaches is one of the 16, led
-by *Homo sapiens* (654 rows). So a Reactome hit says the *metabolite*
+by *Homo sapiens* (16,424 rows). So a Reactome hit says the *metabolite*
 participates in a human — or bovine, or zebrafish — pathway, never that the
-taxon runs it. **There is one exception the plan did not name:** of the 272
-organisms HMDB attributes a metabolite to, exactly one is also a species
-Reactome models, *Mycobacterium tuberculosis*, which Reactome carries for its
-infection pathways — and a tuberculosis bacillus is a pathogen, not a gut
-commensal, so "not one gut commensal" survives intact.
+taxon runs it. **There are three exceptions the plan did not name:** of the 830
+organisms this graph credits with producing something, three are also species
+Reactome models — *Mycobacterium tuberculosis*, *Plasmodium falciparum* and
+*Saccharomyces cerevisiae*, carried for infection and model-organism pathways —
+and a tuberculosis bacillus, a malaria parasite and a laboratory yeast are not
+gut commensals, so "not one gut commensal" survives intact.
 
 *Why the gene half is `pending` rather than absent by choice.* KEGG carries
 microbial maps but **no taxid at all** (its organism route was retired upstream)
@@ -2323,7 +2373,9 @@ MATCH p = shortestPath((t:Taxon {id: 853})-[*..4]-(d:Disease {id: 'MONDO:0005011
 RETURN length(p) AS hops,
        [n IN nodes(p) | labels(n)[0]] AS types,
        [n IN nodes(p) | n.title]      AS names
+```
 
+```cypher
 // the evidence path, asked for explicitly rather than inferred from the shortcut
 MATCH p = (t:Taxon {id: 853})-[:REPORTED_BY]->(s:Signature)-[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005011'})
 RETURN s.id AS signature, s.evidence_level AS level, s.study_design AS design,
@@ -2333,7 +2385,7 @@ RETURN s.id AS signature, s.evidence_level AS level, s.study_design AS design,
 *Golden check:* returns **1 hop** where a direct `ASSOCIATED_WITH` exists — the
 flattened edge doing its job — and the three-hop
 `Taxon → Signature → Disease` walk returns the evidence that shortcut stands
-for. *Caveat, from G10:* over a graph of ~1.14M edges a shortest path routes
+for. *Caveat, from G10:* over a graph of ~1.31M edges a shortest path routes
 through hubs — `Bacillota` alone carries 855 taxon-report edges — and a KG's
 link scores correlate with node degree at R² = 0.77. A shortest path here is a
 navigation aid, never evidence, and no D-query treats path existence as support.
@@ -2511,8 +2563,10 @@ exactly that and carries no reaction table and no pair list, only a count of the
 pairs it withholds, so that candidate is eliminated rather than pending;
 **gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's healthy-prevalence
 half; **LPSN** → D12's nomenclatural half. MASI is off this
-list for good: its interaction tables are unrecoverable, and both primary
-sources it aggregated are loaded instead. Nothing on this list would close D18 —
+list because it arrived: its tables were recovered on 2026-09-03 once the
+"unrecoverable" verdict turned out to be an expired certificate
+(`docs/sources.md` §14), and both primary sources it aggregates were already
+loaded. Nothing on this list would close D18 —
 what that query wants is a screen that ran *Intestinibacter*, and no published
 one did.
 
