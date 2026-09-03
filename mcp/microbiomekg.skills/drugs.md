@@ -267,17 +267,18 @@ disagree. Report the disagreement; it is not a data error.
   this screen scored that pair a **non-hit** (4.0% consumed against a 20%
   threshold, FDR p = 0.55) because digoxin reduction needs the *cgr* operon
   under arginine-poor conditions and the screen ran one medium for 12 h. **15
-  other taxa** *do* metabolise digoxin here. Always quote `incubation_hours` and
-  the drug's own `drug_threshold_percent` beside a negative.
+  other taxa** *do* metabolise digoxin here, over 21 screened isolates. Always
+  quote `incubation_hours` and the drug's own `drug_threshold_percent` beside a
+  negative.
 - **66 taxa, not the gut.** Only those 76 strains were screened, and two strain
   names were left **deliberately unresolved** (`Bacteroides WH2`,
   `Bifidobacterium ruminatum`) because NCBI holds two candidates for each — they
   are `UnresolvedTaxon` nodes carrying both ids, and four drugs are metabolised
   only by one of them.
 - **Strain collapses to species, so `count(r)` is not a taxon count.**
-  *Bacteroides fragilis* metabolises 116 drugs here and no single isolate
-  metabolised more than 95, because seven isolates are one node. Use
-  `count(DISTINCT r.screen_column)` for strains.
+  *Bacteroides fragilis* metabolises 116 drugs here and no single one of its
+  seven isolates metabolised more than 89, because those seven are one node.
+  Use `count(DISTINCT r.screen_column)` for strains.
 - **Licence.** Every leg-4 edge is `source_licence = 'Zimmermann2019-unstated'`,
   a *different* token from leg 3's `Maier2018-unstated`, so the two screens can
   be excluded independently.
@@ -289,7 +290,7 @@ as mass features (`Bisacodyl_183.0685`) with no name, ChEBI or HMDB id, so leg 4
 says *that* a drug was depleted and never *into what*. Do not join it to the
 `Metabolite` layer.
 
-**No `Gene` node.** The 30 gene products are edge properties, not entities;
+**No `Gene` node.** The gene products are edge properties, not entities;
 "which taxa carry gene X" is not answerable, and neither screen measured gene
 presence per strain.
 

@@ -22,8 +22,9 @@ CALL ontology_audit() YIELD rule, severity, violations, exempted, total, pct
 RETURN rule, severity, violations, total, pct ORDER BY pct DESC
 ```
 
-76 rules. The headline row is
-**`ASSOCIATED_WITH.required_properties` at 15,985 of 105,097 edges = 15.2%,
+123 rules, 24 of them the `required_properties` completeness check. The
+headline row is
+**`ASSOCIATED_WITH.required_properties` at 16,768 of 105,880 edges = 15.8%,
 `severity = warn`**.
 
 ## How to read a row — three failure modes it can hide
@@ -36,8 +37,8 @@ RETURN rule, severity, violations, total, pct ORDER BY pct DESC
   passes, and it means nothing.
 - **`evidence_level` can never violate a required-property rule**, because a
   source with no derivable level yields the string `'unknown'` rather than
-  null. 17 edges carry a level that means nothing and no completeness check can
-  see them. The audit percentage is a **floor** on the gap, not the gap.
+  null. 800 edges carry a level that means nothing and no completeness check
+  can see them. The audit percentage is a **floor** on the gap, not the gap.
 
 ## The fraction is not comparable across sources — this is the important part
 
@@ -54,7 +55,9 @@ ranking. Two rows make it concrete:
 
 So a "shared-14 fraction" — the share of edges carrying the full fourteen-field
 evidence contract — compares a source that *has* those columns against one that
-never did. Comparing sources needs the per-field census, per source, and that
+never did.
+
+Comparing sources needs the per-field census, per source, and that
 census cannot be built from the audit: the `edge_property_violation` procedure
 names only the **first** missing property, so a breakdown built from it
 under-counts every field but one. Ask for the fields directly:
@@ -84,7 +87,8 @@ ORDER BY total DESC
 
 ## Distinct values, because a near-miss spelling is a silent filter miss
 
-`evidence_level` has twelve legal values, hyphenated with `16S` capitalised. A
+`evidence_level` has twelve legal values and this build carries eleven of
+them, hyphenated with `16S` capitalised. A
 row spelled `observational_16s` would be filtered out by every query in every
 other skill and reported by none of them. Count the values, do not assume them:
 

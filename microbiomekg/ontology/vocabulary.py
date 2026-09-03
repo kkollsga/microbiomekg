@@ -67,9 +67,8 @@ OBSERVATIONAL_BY_SEQUENCING: dict[str, str] = {
 
 #: The twelve values an ``evidence_level`` may hold, and the only twelve
 #: (docs/usecases-and-pitfalls.md Part B, "The final `evidence_level`
-#: vocabulary"). Ten are emitted today; ``text-mined`` is reserved so that a
-#: SemMedDB-class source can never land as anything else, and
-#: ``computational-predicted`` waits on the first predicted layer. Spelling is
+#: vocabulary"). Eleven are emitted today; only ``text-mined`` is reserved, so
+#: that a SemMedDB-class source can never land as anything else. Spelling is
 #: hyphenated with ``16S`` capitalised because that is what the built edges
 #: carry — a near-miss spelling is a silent filter miss, so a source that
 #: writes ``observational_16s`` maps to the hyphenated form on write.

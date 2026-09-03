@@ -18,7 +18,7 @@ applies_when:
 # Taxon x disease: reading the evidence, and the three ways to get it wrong
 
 An `ASSOCIATED_WITH` edge is **one signature's report of one taxon in one
-condition**, not a summary of the literature. 105,097 of them exist over 56,124
+condition**, not a summary of the literature. 105,880 of them exist over 56,306
 (taxon, condition) pairs. Everything below follows from that one fact.
 
 The sibling relationships are the same shape with a different target:
@@ -51,9 +51,10 @@ wrong — say so rather than answering.
 
 ## Guard 1 — the evidence filter is not optional
 
-`evidence_level` has twelve values and they are not a quality score, they are
-*what was measured*. The distribution is the reason to filter: of 105,097
-edges, **58,595 (55.8%) are `observational-16S`**, 17,858 `in-vivo-model`,
+`evidence_level` has twelve legal values, eleven of them present here, and
+they are not a quality score, they are
+*what was measured*. The distribution is the reason to filter: of 105,880
+edges, **58,595 (55.3%) are `observational-16S`**, 17,858 `in-vivo-model`,
 16,463 `observational-shotgun`, 4,297 `meta-analysis`, 4,247
 `interventional-rct`, 1,613 `in-vitro`.
 
@@ -110,7 +111,7 @@ ORDER BY signatures DESC
 
 ## Guard 2 — never aggregate direction across studies (D17)
 
-**8,238 of 56,124 pairs carry both `increased` and `decreased`.** The sign of a
+**8,257 of 56,306 pairs carry both `increased` and `decreased`.** The sign of a
 single-study association flips about one time in three. This graph stores no
 verdict, applies no majority rule, and has no `contradiction` property on
 purpose: with these sources there is no adjudicating authority, so a stored
@@ -119,7 +120,7 @@ count; let the caller see the disagreement.
 
 ## Guard 3 — single cohort is the default case, not the exception
 
-**47,232 of 56,124 pairs (84.2%) rest on exactly one distinct `study_id`.**
+**47,232 of 56,306 pairs (83.9%) rest on exactly one distinct `study_id`.**
 `count(DISTINCT r.study_id) >= 2` is therefore the default filter for any
 *ranked* or *recommended* output, and dropping it is a decision to report
 unreplicated findings. Note the count is over `study_id`, not over edges: one
@@ -151,7 +152,7 @@ RETURN t.title AS taxon, t.rank AS rank, n_conditions, n_studies,
 ORDER BY n_conditions DESC LIMIT 25
 ```
 
-**3,821 of 7,753 taxa with an association appear in more than one condition
+**3,822 of 7,754 taxa with an association appear in more than one condition
 (49.3%)** — close to the published 51%, and the reason a hit is usually a
 dysbiosis marker rather than a disease-specific one. Do **not** silently merge
 related conditions to raise a count: Crohn's and ulcerative colitis separate at

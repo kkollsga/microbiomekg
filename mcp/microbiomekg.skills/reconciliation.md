@@ -29,7 +29,9 @@ Four ways a name lookup goes wrong, all of them silent:
   Lawson et al. 2016`). So an exact name search returns nothing for the single
   most-cited renamed organism in the clinical literature, and the failure looks
   exactly like a data gap.
-- **Homonyms.** `Bacillus` is 1386 (bacteria) **and** 55087 (stick insects).
+- **Homonyms.** `Bacillus` is 1386 (bacteria) **and** 55087 (stick insects),
+  and both are nodes here — a name match returns two organisms from different
+  kingdoms.
   `Proteus` is 583 and 210425 (a salamander). `Morganella` is a three-way
   collision. Even "prefer the bacterial one" fails: `Bacteroides corrodens` is a
   synonym of both 539 and 827, and both are oral/gut bacteria.
@@ -70,6 +72,25 @@ and nothing at all for a misspelling — both go to stage 2.
 
 ## Stage 2 — the vector lane, for a name stage 1 could not match
 
+**Check that this lane exists before you use it.** The embedding store is built
+only when the graph was built with `--with-vectors`, and on a graph without one
+`text_score()` **raises** — it does not score zero — so the query below fails
+outright rather than ranking badly. The probe is one call:
+
+```cypher
+CALL db.indexes()
+```
+
+A default build returns `FULLTEXT` rows only; a `--with-vectors` build also
+returns `Taxon.scientific_name | VECTOR | ONLINE`. `graph_overview()` says
+nothing about embedding stores, so this is the only way to know.
+
+**When the `VECTOR` row is absent, do not run this query or the blended one
+below.** Resolve what Stage 1 can, then run the `UnresolvedTaxon` tombstone
+query, and **say in the answer that the misspelling lane is unavailable on this
+graph** — "no such organism" and "this graph cannot resolve a misspelling" are
+different answers and collapsing them invents a fact.
+
 The vector store is **not a semantic model**. It is deterministic character
 n-gram hashing (`microbiomekg/embedder.py`), so `text_score()` here means
 *spelled like*, never *means the same as*: it will resolve
@@ -96,14 +117,17 @@ leaves the second: `Clostridium dificile` shares almost nothing with
 *Clostridium diolis* first — while the epithet lane alone matches `dificile`
 against every *difficile*-like epithet in the tree, including
 *Flavobacterium difficile*. Fused, each cancels the other's failure mode.
-Measured on this graph, the fused query returns the right taxon at rank 1 for
-all of: `Clostridium dificile` -> 1496, `Fecalibacterium` -> 216851,
+Measured on a `--with-vectors` graph, the fused query returns the right taxon
+at rank 1 for all of: `Clostridium dificile` -> 1496, `Fecalibacterium` -> 216851,
 `Akkermansia muciniphilia` -> 239935, `Citrobacter frundii` -> 546,
 `Lactobacillus plantari` -> 1590.
 
 ## Both lanes in one score, and the trap in doing it
 
-`score_fuse()` takes lanes of any kind, so BM25 and vector can ride one score:
+`score_fuse()` takes lanes of any kind, so BM25 and vector can ride one score —
+on a graph that has the vector lane. Re-weighting cannot rescue it on a graph
+that does not: `text_score()` raises before any fusing happens, whatever weight
+it carries, so a zero weight is not a fallback and the whole query fails.
 
 ```cypher
 MATCH (t:Taxon)
@@ -130,7 +154,7 @@ show a user, not when you want the answer.
 
 An absent lane leaves the average rather than scoring zero — a taxon with no
 synonyms is not punished for it — which is what makes the blend safe to run
-over all 864,099 taxa at once.
+over all 864,132 taxa at once.
 
 ## Read the audit trail before trusting the resolution
 

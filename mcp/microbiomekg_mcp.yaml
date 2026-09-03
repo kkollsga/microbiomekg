@@ -23,28 +23,28 @@ skills:
 # overview_prefix (re-read on every bare graph_overview).
 instructions: |
   MicrobiomeKG: microbe-disease-metabolite-drug-resistance associations over
-  NCBI taxonomy, from ten curated sources (BugSigDB, gutMDisorder, CARD, HMDB,
-  Reactome, ChEMBL, MiMeDB, NJC19, and the Maier 2018 and Zimmermann 2019 drug
-  screens; MiMeDB contributes metabolite nodes and no edges). 932,674 nodes,
-  1,311,540 edges. Read-only.
+  NCBI taxonomy, from eleven curated sources (BugSigDB, gutMDisorder, CARD,
+  HMDB, Reactome, ChEMBL, MiMeDB, NJC19, MASI, and the Maier 2018 and
+  Zimmermann 2019 drug screens; MiMeDB contributes metabolite nodes and no
+  edges). 934,206 nodes, 1,324,684 edges. Read-only.
 
   What makes this graph different from the microbiome KGs it resembles: an
   association edge cannot exist without saying how it was demonstrated. Three
   rules follow, and they are not style preferences — each exists because
   ignoring it produces a confidently wrong answer:
 
-  1. Always filter or group by `evidence_level`. 55.8% of association edges are
+  1. Always filter or group by `evidence_level`. 55.3% of association edges are
      `observational-16S`, which resolves genus at best; `in-vivo-model` is a
      discounted tier, never causal support. An answer that pools the tiers is
      reporting mouse studies and 16S surveys as if they were trials.
   2. Never aggregate direction across studies. A (taxon, disease) pair is many
-     parallel edges on purpose — 8,238 pairs carry both `increased` and
-     `decreased`, and 84.2% rest on a single cohort. Report the disagreement
+     parallel edges on purpose — 8,257 pairs carry both `increased` and
+     `decreased`, and 83.9% rest on a single cohort. Report the disagreement
      and the study count; the graph applies no majority rule and neither should
      you.
   3. Check the audit before trusting a relationship. `CALL ontology_audit()`
      reports what fraction of each relationship's edges fail its declared
-     required-property set — 15.2% for `ASSOCIATED_WITH`, 100% for
+     required-property set — 15.8% for `ASSOCIATED_WITH`, 100% for
      `ABUNDANCE_CHANGED_BY`. A relationship you have not audited may be
      answering from a source that records none of the fields you are reading.
 
@@ -56,11 +56,13 @@ overview_prefix: |
   ABUNDANCE_CHANGED_BY, PRODUCES, CARRIES_RESISTANCE_GENE, CONFERS_RESISTANCE_TO,
   HAS_MECHANISM, IN_PATHWAY) carries at least:
 
-    evidence_level    how it was measured — one of 12 values, `unknown` is a
-                      real value and never defaulted to observational
+    evidence_level    how it was measured — one of 12 declared values, 11 of
+                      which this build carries; `unknown` is a real value and
+                      never defaulted to observational
     knowledge_level   Biolink: knowledge_assertion | logical_entailment |
                       prediction | statistical_association | observation | ...
-    primary_source    which of the six sources wrote this edge
+    primary_source    which of the 10 edge-writing sources wrote this edge
+                      (the graph loads 11; MiMeDB contributes nodes only)
     publications      / `pmid` — the citing paper, where the source has one
 
   Two things exist that a naive query silently misses:
@@ -78,12 +80,25 @@ overview_prefix: |
   `Bacteroides sp.`, Candidatus names) are real nodes and must be excluded by
   that boolean in any ranked output, never by a name substring.
 
-# Semantic name lookup. The embedder is this repo's deterministic
-# character-n-gram hasher, not a downloaded model — see microbiomekg/embedder.py
-# for why, and mcp/microbiomekg.skills/reconciliation.md for what it can and
-# cannot answer. `factory:` is the documented escape for a custom builder;
-# `model:` names the width the graph's vectors were written at, so a manifest
-# that drifts from the build fails loudly instead of scoring nothing.
+  The misspelling lane is optional and this overview cannot see it: the
+  embedding store exists only on a `--with-vectors` build, and `text_score()`
+  RAISES on a graph without one rather than scoring zero. `CALL db.indexes()`
+  is the probe — FULLTEXT rows only means no vector lane — and the
+  `reconciliation` skill carries what to do instead.
+
+# Semantic name lookup, *when the graph has one*. The vector store is built
+# only under `scripts/build.py --with-vectors`; a default build carries the five
+# BM25 indexes and no embeddings, and this block is then inert — the server
+# still starts, --selftest still passes, and `text_score()` raises on the first
+# query that reaches for a store that is not there. `CALL db.indexes()` is what
+# tells the two builds apart; mcp/microbiomekg.skills/reconciliation.md carries
+# the degradation path.
+#
+# The embedder itself is this repo's deterministic character-n-gram hasher, not
+# a downloaded model — see microbiomekg/embedder.py for why. `factory:` is the
+# documented escape for a custom builder; `model:` names the width the graph's
+# vectors were written at, so a manifest that drifts from the build fails
+# loudly instead of scoring nothing.
 trust:
   allow_embedder: true
 extensions:

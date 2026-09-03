@@ -83,8 +83,8 @@ ORDER BY determinants DESC
 
 ## Licence rides the edge, not the graph
 
-`aro.obo` is CC-BY-4.0; `card-data/` is CARD's non-commercial licence. Only
-**42 of 13,691** drug-class edges are CC-BY-4.0 — the AMR answer lives almost
+`aro.obo` is `CC-BY-4.0`; `card-data/` is CARD's non-commercial licence. Only
+**42 of 13,691** drug-class edges are `CC-BY-4.0` — the AMR answer lives almost
 entirely in the non-redistributable half. `c.source_licence` is on every edge
 so a redistributable subset can be selected; report the licence when the answer
 will be republished.
