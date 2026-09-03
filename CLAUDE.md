@@ -364,6 +364,14 @@ Commit format: `type: short description` (`feat`, `fix`, `docs`, `refactor`,
   approval.
 - **Commit messages are public.** Describe the mechanical change; keep
   positioning and internal motivation out of them.
+- **An agent worktree lives in `../MicrobiomeKG-worktrees/<name>`** — a sibling
+  directory holding all of them, never loose beside the real projects under
+  `Python/`. That directory exists only while worktrees are in progress and is
+  deleted when the last one is removed. A worktree with uncommitted work is
+  never removed without its `git diff` saved and a `todos.md` entry pointing at
+  it. Note that a worktree does **not** get `data/raw/` or `graph/` — both are
+  gitignored — so anything graph-backed must run in the main checkout or point
+  `--raw` at the real directory.
 - Co-author trailer per the harness convention.
 
 ## The dev-docs / inbox / skills system
