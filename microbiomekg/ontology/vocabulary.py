@@ -25,6 +25,7 @@ __all__ = [
     "EVIDENCE_PROPERTY_TYPES",
     "EXCHANGE_CONTRACT",
     "EXCHANGE_PROPERTY_TYPES",
+    "DRUG_DESCRIPTION",
     "PRODUCTION_DESCRIPTION",
     "KNOWLEDGE_LEVELS",
     "NON_HOST_SPECIES",
@@ -354,6 +355,22 @@ def exchange_declaration(description: str, extra_property_types: dict | None = N
 #: half is an organism named in a hand-built origin ontology; NJC19's is an
 #: export event read out of a paper. `primary_source` is what separates them,
 #: and it is on every edge.
+#: The description ``Drug`` carries, written for both its authors. `Drug` is a
+#: shared node table the way `PRODUCES` is a shared edge table: ChEMBL keys it
+#: on the parent molecule, and Maier 2018 mints one for each screened compound
+#: no ChEMBL join route reaches. Fragment merging raises on a contradicting
+#: scalar, and a class `description` is exactly that — so the sentence both
+#: sources agree on is written once, here, rather than duplicated into two
+#: modules that would then drift.
+DRUG_DESCRIPTION: str = (
+    "A drug keyed on the ChEMBL id of its parent molecule, so a salt form is "
+    "the same drug rather than a second one, and on its Prestwick catalogue "
+    "number for a screened compound no ChEMBL join route reaches. `approved` "
+    "is false both for a molecule a mechanism names that the max_phase-4 file "
+    "does not carry, and for every minted screen compound."
+)
+
+
 PRODUCTION_DESCRIPTION: str = (
     "An organism a source names as making this metabolite: HMDB's "
     "microbial-origin annotation, or NJC19's curated export event. One edge per "

@@ -6,12 +6,14 @@ papers) but with the *evidence model* as the point: every association edge
 carries study design, direction, sample size and the citing paper, and the
 ontology audit reports what fraction of edges lack evidence.
 
-Eight sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome, ChEMBL,
-MiMeDB and NJC19, over NCBI taxonomy. KEGG has a loader and is **off by
-default** — `--with-kegg` — because its licence forbids redistributing a graph
-carrying it. MASI was fetched and is **not** loaded: its download is the
-substance dictionary and names no organism, so nothing in it can become an edge
-(`docs/sources.md` §14).
+Nine sources are loaded: BugSigDB, gutMDisorder, CARD, HMDB, Reactome, ChEMBL,
+MiMeDB, NJC19 and the Maier 2018 drug screen, over NCBI taxonomy. KEGG has a
+loader and is **off by default** — `--with-kegg` — because its licence forbids
+redistributing a graph carrying it. MASI was fetched and is **not** loaded: its
+download is the substance dictionary and names no organism, so nothing in it can
+become an edge (`docs/sources.md` §14) — the drug↔taxon layer it was fetched for
+comes from Maier's published screen instead, 1,197 drugs × 40 gut isolates,
+**with its 42,233 measured non-hits kept as their own relationship** (§15).
 
 Layout:
 

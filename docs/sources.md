@@ -31,26 +31,33 @@ did not answer; the exact error is recorded.
 | 12 | MiMeDB | fetched manually (user, browser) | 53 MB | `data/raw/mimedb/` |
 | 13 | NJC19 | fetched manually (user, browser) | 738 KB | `data/raw/njc19/` |
 | 14 | MASI | fetched manually (user, browser) — **substances only** | 1.3 MB | `data/raw/masi/` |
+| 15 | Maier 2018 drug screen | fetched | 1.0 MB | `data/raw/drug_screens/maier2018/` |
+| 16 | Zimmermann 2019 drug-metabolism screen | fetched | 40 MB | `data/raw/drug_screens/zimmermann2019/` |
 
-Total on disk: **7.5 GB** across 73 files. **13 of 14 sources usable; only
+Total on disk: **7.5 GB** across 82 files. **15 of 16 sources usable; only
 Disbiome is blocked** — its origin is down and, unlike gutMDisorder, no archived
 copy of its JSON API has ever existed (Wayback has never captured one, confirmed
 by a domain-wide CDX query; see `data/raw/disbiome/PROVENANCE.md`).
 
-**"Usable" is not "answers the question it was fetched for", and two of the last
-three do not.** The three were fetched to close three named gaps
-(`docs/usecases-and-pitfalls.md` Part B), and the outcome is one for three:
+**"Usable" is not "answers the question it was fetched for", and two of these
+four do not.** Four sources were fetched to close three named gaps
+(`docs/usecases-and-pitfalls.md` Part B), and the outcome is two for four —
+including the one that arrived as the *substitute* for the source that failed:
 
 | Source | Fetched to close | What the download turned out to be | Loaded |
 |---|---|---|---|
 | MiMeDB | **D5**, per-taxon metabolite production | two MySQL tables with **no join between them** — zero `MMDBm` ids in the metabolites dump, zero `MMDBc` ids in the microbes dump | 935 `Metabolite` nodes, **no edges** |
 | NJC19 | **D6**, consumption / cross-feeding | exactly what it says: 9,136 curated directed events, 912 of them negative | 8,905 edges over 820 taxa — D6 answered |
 | MASI | **D8 / D18**, drug↔taxon | the **substance dictionary** — 1,350 rows, no organism column, no interaction column | nothing |
+| Maier 2018 | **D8 / D18**, drug↔taxon — fetched after MASI's interaction tables proved unrecoverable | the whole published screen: 1,197 drugs x 40 gut isolates, one adjusted p-value per cell | **47,825 edges** over 38 taxa and 1,197 drugs — the first direct `Drug`–`Taxon` edge in the graph |
 
 Each raw directory carries a `PROVENANCE.md` with the file-level profile, the
 column lists, and the measurement behind the middle column. D5 moved anyway —
 NJC19's export half is nearly five times HMDB's whole yield — but it moved on
-the source fetched for D6, not the one fetched for it.
+the source fetched for D6, not the one fetched for it. D8 moved on a source
+fetched *because* MASI failed: the aggregator that curates the drug↔taxon
+literature is unrecoverable, and the landmark screen it aggregates is a
+supplementary table anyone can download.
 
 ## Redistribution: what blocks shipping a built graph
 
@@ -534,20 +541,155 @@ no PubMed id. The two edge sets the research document sizes MASI by
 (bacteria→substance **4,001** pairs, substance→bacteria **7,770**) are in
 neither file.
 
-So **D8 and D18 stay `partial` on exactly the two legs they already had** —
-ChEMBL's drug→bacterial-protein mechanism and gutMDisorder's intervention edge
-joined to ChEMBL by name — and `tests/test_acceptance.py` asserts that, including
-that `MATCH (d:Drug)-[r]-(t:Taxon)` still returns **0**. Loading the substances
-anyway would add 1,350 unconnected nodes; the ones ChEMBL already has cannot be
-enriched, because `drug.csv` is keyed on the ChEMBL id and the first row per key
-wins. The one true statement derivable from the file — "MASI curates at least
-one experimentally determined microbiota interaction for this substance", its
-stated inclusion criterion — names no organism and so answers neither query.
+**And the interaction downloads are not merely absent, they are
+unrecoverable.** `www.aiddlab.com` no longer completes a TLS connection and a
+domain-wide Wayback CDX query over `aiddlab.com/MASI*` returns only
+`substanceInfo` — the four `microbe*` files have never been captured by anyone
+(`data/raw/manifest.json` records the attempt and the error per file). So this
+is not a fetch to retry.
 
-What would close them is MASI's separate interaction downloads, and Part D
-already specifies how they must land: **two edge types, `ALTERS_TAXON` and
-`ALTERS_SUBSTANCE`, never one**, because collapsing them conflates antimicrobial
-killing with drug metabolism. Full profile: `data/raw/masi/PROVENANCE.md`.
+Loading the substances anyway would add 1,350 unconnected nodes; the ones ChEMBL
+already has cannot be enriched, because `drug.csv` is keyed on the ChEMBL id and
+the first row per key wins. The one true statement derivable from the file —
+"MASI curates at least one experimentally determined microbiota interaction for
+this substance", its stated inclusion criterion — names no organism and so
+answers neither query. Full profile: `data/raw/masi/PROVENANCE.md`.
+
+**What closed D8's inhibition leg instead was the primary source MASI
+aggregates** (§15). That is a better artifact for this leg than MASI would have
+been: MASI resolves "down to genus level" while Maier's screen is strain-level,
+and MASI curates positives while the screen measured every cell of its matrix
+and so carries 42,233 **negatives**. Part D's requirement that the two
+directions land as separate edge types is unchanged and half-discharged — the
+inhibition direction landed as two types of its own (hit and measured non-hit),
+and the metabolism direction is still open, on Zimmermann 2019 (§16) rather than
+on MASI.
+
+## 15. Maier 2018 — the drug screen, and the source that actually closed D8
+
+- **URL** — Europe PMC's supplementary bundle for the author manuscript,
+  `https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6108420/supplementaryFiles`,
+  a zip holding the six `NIHMS76168-supplement-Supplementary_table_*.xlsx`
+  workbooks and their information guide. Paper: Maier et al., *Nature*
+  555:623-628 (2018), doi:10.1038/nature25979, **PMID 29555994**.
+- **Licence** — **unstated.** Journal supplementary material of a subscription
+  article: no licence line, no terms URL and no document property in any of the
+  six workbooks, and Nature states none for supplementary files. Every edge
+  carries `source_licence = 'Maier2018-unstated'` rather than an invented
+  permissive token, which is what makes `WHERE r.source_licence <>
+  'Maier2018-unstated'` the redistributable cut (G3).
+- **Format** — six XLSX workbooks, eight sheets between them.
+- **Status** — **fetched; loaded**, and it is the source that closed D8's
+  drug→taxon leg after MASI's interaction tables proved unrecoverable.
+
+| File | Bytes | sha256 |
+|---|---:|---|
+| `NIHMS76168-supplement-Supplementary_table_1.xlsx` | 206,502 | `c5415eea…a654eb04` |
+| `NIHMS76168-supplement-Supplementary_table_2.xlsx` | 52,255 | `d0109fa9…75b0dbca` |
+| `NIHMS76168-supplement-Supplementary_table_3.xlsx` | 508,728 | `c3590a0c…29c55506` |
+| `NIHMS76168-supplement-Supplementary_table_4.xlsx` | 62,825 | `f400d411…b8104630` |
+| `NIHMS76168-supplement-Supplementary_table_5.xlsx` | 50,753 | `aafa75ce…b7c69089` |
+| `NIHMS76168-supplement-Supplementary_table_6.xlsx` | 109,425 | `3d001519…15ba6a26` |
+
+**What each sheet is, and which four are read.**
+
+| Sheet | Shape | Loaded |
+|---|---|---|
+| `S1a. Prestwick_Libery` | 1,200 library entries: catalogue name, STITCH4 id (a PubChem CID on all 1,200), ATC codes, target species, dose, estimated intestinal concentration, physicochemistry | yes — the drug dictionary |
+| `S1b. Additional_Chemicals` | 79 catalogue numbers and suppliers for the follow-up compounds | no: a purchasing list |
+| `S2. Species selection` | 44 isolates: `NT` code, full lineage, species, strain designation, DSM/ATCC number, Gram stain, medium | yes — the isolate dictionary |
+| **`S3a. Adjusted p-values`** | **1,197 drugs x 40 isolates, one adjusted p-value per cell, plus `drug_class` and `n_hit`** | **yes — every edge comes from here** |
+| `S3b. Antibacterial_activity` | 40 drugs with a literature check on whether antibacterial activity was already reported, and the lowest MIC found | no: a drug-level annotation, no organism |
+| `S4. MICs` | 379 dose-response follow-ups: 25 drugs x 27 isolates with IC25, MIC, both qualifiers, and the authors' TP/TN/FP/FN call against the screen | yes — merged onto the 379 pairs it covers |
+| `S5. Enriched SE among ABX` | 69 UMLS side-effect concepts enriched among antibiotics | no: names no organism |
+| `S6. Adjusted p-values` | the tolC screen: 1,197 drugs x 4 strains, two of them the *E. coli* K-12 wild type and its ΔtolC deletion | no: `NT5085` is a laboratory deletion mutant, not a taxon, and the other two species are already in `S3a` |
+
+**Every cell of the matrix was measured, and that is the whole point.** 47,880
+cells: **5,592 hits, 42,233 measured non-hits, 55 written `NA`**. No other
+source in this graph carries a drug negative at all — MASI would have curated
+positives only, and gutMDisorder curates what somebody chose to publish. The two
+populations load as **two relationships**, `INHIBITS_GROWTH_OF` and
+`DOES_NOT_INHIBIT_GROWTH_OF`, never as a flag on one: Part D's D8 states that
+rule for this layer and NJC19's `NO_EXCHANGE_WITH` already applies it to the
+exchange layer. The 55 `NA` cells become neither and are ledger rows — a pair
+the screen did not measure is not a non-hit.
+
+**The hit threshold is derived, because the sheet never states it.** `S3a`
+publishes adjusted p-values and an `n_hit` count per drug. **`p < 0.01`
+reproduces `n_hit` on all 1,197 rows** (0.05 reproduces 791, 0.001 reproduces
+879), and then reproduces three things it was not fitted to: the per-species
+human-targeted hit counts in *both* figure source-data workbooks (`MOESM16`
+sheet `5a`, 40 of 40 isolates; `MOESM13` sheet `1c`, 25 of 25), the paper's own
+abstract (203 of 835 human-targeted drugs hit at least one strain = **24.3%**
+against its "24%"), and `S4`'s independent confusion matrix — its 170 `TP`/`FP`
+rows all land on a hit edge and its 209 `TN`/`FN` rows all on a non-hit edge,
+379 for 379, using a column that had no part in deriving the threshold.
+`scripts/prep_maier2018.py` re-derives the first of those on every run and
+**refuses to write** if it stops holding, because the constant decides the type
+of every edge in the source.
+
+**The drug side joins ChEMBL by three routes and none of them is a guess.**
+Tried in order — what the source wrote before anything derived from it: the
+exact casefolded `pref_name` (**455** drugs), a level-5 ATC code (**390**), the
+name with a salt or hydrate suffix removed (**22**). **867 of 1,197 = 72.4%**;
+the other **330** become `Drug` nodes keyed on their Prestwick catalogue number
+with `approved = false`. Only the seven-character ATC form is a join key — level
+4 names a *class*, and joining `L01BB` would put every nitrogen-mustard analogue
+on one node. `drug_join` is on every edge, so the weakest route is countable.
+
+**39 drugs are reached by two routes that disagree, and the ledger says so.**
+In every case the name route lands on a ChEMBL *salt* node while the ATC code
+lands on its parent — `Estradiol Valerate` reaches CHEMBL1511 by name and
+CHEMBL135 (estradiol) by ATC. That is ChEMBL's own documented parent gap showing
+through (a salt no mechanism row names keeps its own id, `docs/model.md`
+§ChEMBL), not a defect here; the verbatim-first rule decides it and
+`data/csv/unresolved_maier2018.csv` names both candidates, so the count is read
+rather than trusted.
+
+**The organism column is the second-cleanest of any source here, and its two
+failures are not taxonomy failures.** 38 of the 40 screened isolates resolve
+verbatim (24 exact, 12 synonym, 4 promoted — every one at rank `species` after
+promotion). The two that do not are `Bacteroides fragilis nontoxigenic` and
+`Bacteroides fragilis enterotoxigenic (ET)`: supplementary table 2 writes the
+**toxigenicity phenotype inside the species column**, and no `names.dmp` entry
+spells either string. They are a closed two-entry override
+(`microbiomekg.ontology.maier2018.SPECIES_OVERRIDES`, the same shape as NJC19's
+six host cell types) rather than two `UnresolvedTaxon` tombstones asserting NCBI
+has lost *Bacteroides fragilis* — which is false, and which would cost 2,394
+edges. The strings survive verbatim on the edge as `reported_name`, with the
+isolate's own designation in `strain`, so the two isolates stay distinguishable
+on one taxon. **40 isolates collapse to 38 taxa** — the two *B. fragilis* rows
+and the two *E. coli* rows (IAI1 and ED1a) — and each collapse is two parallel
+edges per drug, not one.
+
+**The figure source data in `data/raw/maier2018/` is deliberately not loaded,
+and one of its sheets is the reason to say so.** `MOESM13/14/15/16_ESM.xlsx` are
+the four figure source-data workbooks from the Springer static host, fetched
+separately. `MOESM15` sheet `3c` is a drug x isolate table with a concentration
+and a `=`/`<` qualifier and reads exactly like a hit list — but **all 29 of its
+drugs have `n_hit = 0` in the screen, and none of its 212 pairs is a hit.**
+Loading it as inhibition would have written 212 edges the same paper's own
+p-value matrix contradicts. `MOESM13` `1c` and `MOESM16` `5a` are per-species
+hit *counts*, aggregates of `S3a`, and are used as cross-checks of the derived
+threshold rather than as rows; `MOESM14` `2b` and `MOESM15` `3a`/`3b` are
+distribution curves with no entity pair; `MOESM16` `5b` is drug x *E. coli*
+gene, and this graph has no gene node type for a chemical-genomics score.
+
+## 16. Zimmermann 2019 — fetched, not yet loaded
+
+- **URL** —
+  `https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-019-1291-3/MediaObjects/41586_2019_1291_MOESM1_ESM.xlsx`.
+  Paper: Zimmermann et al., *Nature* 570:462-467 (2019), PMID 31158845.
+- **Licence** — unstated, on the same terms as Maier 2018.
+- **Status** — **fetched (40 MB); not loaded.** No prep script, no blueprint
+  fragment, no ontology module.
+
+This is W7's *other* direction — 76 gut bacteria against 271 oral drugs, of
+which 176 (65%) were metabolised by at least one strain. Maier answers "does the
+drug change the bug"; Zimmermann answers "does the bug change the drug", and
+Part D's D8 is explicit that the two must land as **two edge types, never one**,
+because collapsing them conflates antimicrobial killing with drug metabolism.
+Nothing is loaded from it yet, so D8's metabolism leg is still open and says so.
 
 ---
 

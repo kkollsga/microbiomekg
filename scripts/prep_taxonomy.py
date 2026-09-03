@@ -44,7 +44,7 @@ from microbiomekg.reconcile import (  # noqa: E402
 #: no lineage. ``tests/test_build_pipeline.py`` fails if a prep writes the
 #: table and is missing here.
 DEPENDS_ON: list[str] = [
-    "bugsigdb", "card", "chembl", "gutmdisorder", "hmdb", "njc19",
+    "bugsigdb", "card", "chembl", "gutmdisorder", "hmdb", "maier2018", "njc19",
 ]
 
 #: Clade roots for ``--scope microbial``: Bacteria, Archaea, Fungi.

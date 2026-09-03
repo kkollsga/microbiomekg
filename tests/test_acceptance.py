@@ -934,7 +934,11 @@ CHEMBL_GOLDEN = {
     # 4,225 molecule rows collapse to 3,120 nodes (1,105 are a salt of another
     # approved molecule), plus 2,910 molecules a mechanism names and the
     # max_phase-4 file does not carry.
-    "drugs": 6030,
+    # 6,030 ChEMBL nodes plus the 355 Prestwick library entries Maier 2018
+    # mints, which is why this number moved: `drug.csv` is a shared table and
+    # the second source's rows are rows, not a second node type.
+    "drugs": 6385,
+    "chembl_drugs": 6030,
     "approved": 3120,
     "withdrawn": 297,
     "targets": 1518,
@@ -992,6 +996,18 @@ def test_chembl_drugs_and_their_targets_are_reachable(chembl_graph):
     assert nodes["drugs"] == CHEMBL_GOLDEN["drugs"]
     assert nodes["approved"] == CHEMBL_GOLDEN["approved"]
     assert nodes["withdrawn"] == CHEMBL_GOLDEN["withdrawn"]
+    # `approved` is ChEMBL's max_phase-4 claim and stays ChEMBL's: the 355
+    # nodes Maier mints are all `approved = false`, because inheriting the
+    # Prestwick catalogue's "approved drugs" marketing would put an unverified
+    # regulatory status on them.
+    by_source = {
+        r["source"]: r["n"]
+        for r in rows(
+            chembl_graph,
+            "MATCH (d:Drug) RETURN d.source AS source, count(d) AS n",
+        )
+    }
+    assert by_source["chembl"] == CHEMBL_GOLDEN["chembl_drugs"]
     # A worked example, so "reachable" is not a count nobody read: vancomycin,
     # its target and that target's organism.
     walk = rows(
@@ -1038,22 +1054,32 @@ def test_chembl_a_bacterial_target_is_the_half_of_d8_that_exists(chembl_graph):
     assert organisms["taxa"] == CHEMBL_GOLDEN["target_taxa"]
 
 
-def test_chembl_has_no_drug_taxon_edge_which_is_what_keeps_d8_partial(
-    chembl_graph,
-):
-    """The gap is load-bearing and must stay visible: ChEMBL has **no**
-    drug↔taxon edge, and a graph that quietly grew a `Drug`–`Taxon` shortcut
-    through a shared organism would answer D8 and D18 wrongly. Within ChEMBL
-    the only path from a drug to a taxon runs through the protein it acts on,
-    which is a different claim. The drug→taxon leg those two queries do have
-    comes from *gutMDisorder* — `ABUNDANCE_CHANGED_BY` joined through
-    `IS_DRUG` — and is 15 interventions wide, which is why both are `partial`
-    rather than `answerable-now`."""
-    direct = one(
-        chembl_graph,
-        "MATCH (d:Drug)-[r]-(t:Taxon) RETURN count(r) AS edges",
-    )
-    assert direct["edges"] == 0
+def test_chembl_still_has_no_drug_taxon_edge_of_its_own(chembl_graph):
+    """The guard, restated rather than deleted. It used to assert that
+    `MATCH (d:Drug)-[r]-(t:Taxon)` returns **0**, so D8's gap could not close by
+    accident. Maier 2018 closed it deliberately, so the zero is gone — but the
+    thing the zero was protecting is not: **ChEMBL still has no drug↔taxon edge
+    of its own**, and a graph that quietly grew a `Drug`–`Taxon` shortcut
+    through a shared organism would answer D8 and D18 wrongly.
+
+    So the assertion moves from "there are none" to "every one of them is a
+    growth measurement somebody made", which is a rule that can still fail:
+    an edge of any other type, or of these types from any other source, means
+    either a new source landed without restating these goldens or something
+    collapsed ChEMBL's two-hop `HAS_MECHANISM` path into a claim it does not
+    make."""
+    kinds = {
+        (r["rel"], r["source"]): r["n"]
+        for r in rows(
+            chembl_graph,
+            "MATCH (d:Drug)-[r]-(t:Taxon) "
+            "RETURN type(r) AS rel, r.primary_source AS source, count(r) AS n",
+        )
+    }
+    assert set(kinds) == {
+        ("INHIBITS_GROWTH_OF", "maier2018"),
+        ("DOES_NOT_INHIBIT_GROWTH_OF", "maier2018"),
+    }, "a Drug-Taxon edge appeared that is not the Maier growth screen"
     # And metformin — D18's drug — is present and reachable, so the query is one
     # source away rather than one model change away.
     metformin = one(
@@ -1859,6 +1885,46 @@ PARTIAL_GOLDEN = {
     # for none of the first three, which is why D18 is not `answerable-now`.
     "d18_absent_fixtures": ("Escherichia", "Intestinibacter", "Lactobacillus"),
     "d18_present_fixture": "Bifidobacterium",
+    # --- Maier 2018, measured 2026-09-03 on the nine-source build -----------
+    # D8 leg 3: the growth screen. `no_effect` is the number that did not exist
+    # before this source — a drug the screen *tested* against a taxon and found
+    # nothing at 20 uM, which is a measurement rather than an absence of
+    # curation and which no other source here supports for drugs.
+    "d8_inhibits": 5592,
+    "d8_no_effect": 42233,
+    "d8_screen_taxa": 38,
+    "d8_screen_drugs": 1197,
+    "d8_drugs_with_a_hit": 399,
+    "d8_approved_with_a_hit": 287,
+    # The paper's own headline, reproduced from the loaded edges: "24% of the
+    # drugs with human targets ... inhibited the growth of at least one strain".
+    "d8_human_targeted_hitting": 203,
+    "d8_human_targeted_edges": 1120,
+    # The dose-response follow-up, split by which relationship it landed on.
+    "d8_validation": {
+        "INHIBITS_GROWTH_OF": {"TP": 158, "FP": 12},
+        "DOES_NOT_INHIBIT_GROWTH_OF": {"TN": 182, "FN": 27},
+    },
+    # The three join routes and the minted remainder, over 1,197 library
+    # entries reaching 1,197 distinct Drug nodes.
+    "d8_drug_join": {"name": 455, "atc": 361, "salt-name": 26, "minted": 355},
+    # D18 leg 3: metformin against the 40 isolates. **Forty measurements, zero
+    # hits** — the competing explanation is now a negative, and a negative is
+    # what the confounding argument actually needed.
+    "d18_metformin_measurements": 40,
+    "d18_metformin_screen_taxa": 38,
+    "d18_metformin_hits": 0,
+    "d18_screen_t2d_taxa": 32,
+    "d18_t2d_taxa_inhibited_by_something": 32,
+    "d18_t2d_inhibiting_drugs": 380,
+    "d18_t2d_human_targeted_inhibitors": 186,
+    # Forslund's named genera, at the species the screen actually ran. Three of
+    # the four are now measured; gutMDisorder curated only the fourth.
+    "d18_screened_fixtures": (
+        "Escherichia coli", "Lacticaseibacillus paracasei",
+        "Bifidobacterium longum", "Bifidobacterium adolescentis",
+    ),
+    "d18_unscreened_fixture_genus": "Intestinibacter",
 }
 
 
@@ -2108,27 +2174,166 @@ def test_d18_is_partial_because_the_named_fixtures_are_the_missing_ones(graph):
     assert not (set(PARTIAL_GOLDEN["d18_absent_fixtures"]) & reachable)
 
 
-def test_d8_and_d18_stay_partial_because_masi_shipped_no_interactions(graph):
-    """**What the MASI download turned out to be.**
-    `data/raw/masi/MASI_v1.0_download_substanceInfo.{txt,xlsx}` is the substance
-    dictionary — 1,350 rows, 18 columns, **no organism column, no interaction
-    column, no effect, no direction, no PMID**. The two edge sets the research
-    document sizes MASI by (bacteria→substance 4,001 pairs, substance→bacteria
-    7,770) are in neither file, so nothing was loaded: no prep, no blueprint
-    fragment, no ontology module, and `data/raw/masi/PROVENANCE.md` records the
-    profile.
+def test_d8_leg3_is_the_growth_screen_and_its_negatives(graph):
+    """**What closed D8's inhibition leg, after MASI could not.** MASI's
+    interaction tables are unrecoverable — its origin no longer completes a TLS
+    connection and the Wayback Machine never captured them — so the aggregator
+    was replaced by the landmark screen it aggregates: Maier et al. measured
+    1,197 marketed drugs against 40 human gut isolates, every cell of the
+    matrix, and published the p-values.
 
-    So D8's and D18's status is unchanged and their goldens above are the same
-    numbers they were — and the guard that was written when MASI was still
-    `pending-source` still holds, because nothing arrived to grow a shortcut:
-    `MATCH (d:Drug)-[r]-(t:Taxon)` returns **0**. A `Drug`–`Taxon` edge
-    appearing here would mean either MASI's interaction tables landed (in which
-    case they must land as `ALTERS_TAXON` and `ALTERS_SUBSTANCE`, two types,
-    never one) or something collapsed ChEMBL's two-hop `HAS_MECHANISM` path
-    into a claim it does not make."""
-    assert one(
-        graph, "MATCH (d:Drug)-[r]-(t:Taxon) RETURN count(r) AS n"
-    )["n"] == 0
+    The number that matters is the second one. **42,233 measured non-hits** is
+    a population no other source in this graph has for drugs: MASI would have
+    curated positives, and gutMDisorder curates what somebody chose to publish.
+    They are their own relationship rather than a flag, so no
+    `MATCH (d)-[:INHIBITS_GROWTH_OF]->(t)` can count a refutation as an
+    observation by omission — Part D's own rule for this layer, stated before
+    the source arrived."""
+    counts = {
+        r["rel"]: r
+        for r in rows(
+            graph,
+            "MATCH (d:Drug)-[r:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(t:Taxon) "
+            "RETURN type(r) AS rel, count(r) AS edges, count(DISTINCT t) AS taxa",
+        )
+    }
+    assert counts["INHIBITS_GROWTH_OF"]["edges"] == PARTIAL_GOLDEN["d8_inhibits"]
+    assert counts["DOES_NOT_INHIBIT_GROWTH_OF"]["edges"] == PARTIAL_GOLDEN["d8_no_effect"]
+    assert all(c["taxa"] == PARTIAL_GOLDEN["d8_screen_taxa"] for c in counts.values())
+    reach = one(
+        graph,
+        "MATCH (d:Drug)-[:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->() "
+        "RETURN count(DISTINCT d) AS drugs",
+    )
+    assert reach["drugs"] == PARTIAL_GOLDEN["d8_screen_drugs"], (
+        "1,197 library entries must reach 1,197 distinct Drug nodes: an ATC "
+        "code two entries claim identifies neither, and joining both to the one "
+        "node it names attributes one enantiomer's measurement to the other"
+    )
+    hits = one(
+        graph,
+        "MATCH (d:Drug)-[:INHIBITS_GROWTH_OF]->() "
+        "RETURN count(DISTINCT d) AS drugs, "
+        "count(DISTINCT CASE WHEN d.approved THEN d.id END) AS approved",
+    )
+    assert hits["drugs"] == PARTIAL_GOLDEN["d8_drugs_with_a_hit"]
+    assert hits["approved"] == PARTIAL_GOLDEN["d8_approved_with_a_hit"]
+
+
+def test_d8_reproduces_the_papers_own_headline_from_the_loaded_edges(graph):
+    """"24% of the drugs with human targets ... inhibited the growth of at
+    least one strain in vitro" (Nature 555:623, abstract). The graph says
+    **203 of 835 = 24.3%** — computed from the edges, not quoted.
+
+    This is not decoration: the hit threshold is *derived* (the sheet publishes
+    p-values and an `n_hit` count and never states the cutoff), it decides the
+    **type** of every edge in the source, and reproducing the abstract is one
+    of the four independent checks that it is right."""
+    result = one(
+        graph,
+        "MATCH (d:Drug)-[r:INHIBITS_GROWTH_OF]->(t:Taxon) "
+        "WHERE r.drug_class = 'human-targeted drugs' "
+        "RETURN count(r) AS edges, count(DISTINCT d) AS drugs, "
+        "count(DISTINCT t) AS taxa",
+    )
+    assert result["drugs"] == PARTIAL_GOLDEN["d8_human_targeted_hitting"]
+    assert result["edges"] == PARTIAL_GOLDEN["d8_human_targeted_edges"]
+    assert result["taxa"] == PARTIAL_GOLDEN["d8_screen_taxa"]
+    screened = one(
+        graph,
+        "MATCH ()-[r:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->() "
+        "WHERE r.drug_class = 'human-targeted drugs' "
+        "RETURN count(DISTINCT r.prestwick_id) AS drugs",
+    )
+    assert screened["drugs"] == 835
+    assert 0.24 <= result["drugs"] / screened["drugs"] < 0.245
+
+
+def test_d8_the_authors_own_validation_lands_on_the_right_relationship(graph):
+    """Supplementary table 4 re-measured 379 pairs in a dilution series and
+    scored each against the screen's call. Every `TP`/`FP` sits on a hit edge
+    and every `TN`/`FN` on a non-hit edge — a check on the derived threshold
+    from a column that had no part in deriving it. It is also where the
+    negatives get *bounded*: `> 160 µM` is a far stronger statement than "not
+    at 20 µM", and `ic25_qualifier` keeps the source's own operator."""
+    got: dict[str, dict[str, int]] = {}
+    for row in rows(
+        graph,
+        "MATCH ()-[r:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->() "
+        "WHERE r.validation_outcome <> '' "
+        "RETURN type(r) AS rel, r.validation_outcome AS outcome, count(r) AS n",
+    ):
+        got.setdefault(row["rel"], {})[row["outcome"]] = row["n"]
+    assert got == PARTIAL_GOLDEN["d8_validation"]
+    qualifiers = {
+        r["q"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:DOES_NOT_INHIBIT_GROWTH_OF]->() "
+            "WHERE r.ic25_qualifier <> '' RETURN DISTINCT r.ic25_qualifier AS q",
+        )
+    }
+    assert ">" in qualifiers, "a bounded negative must keep the source's operator"
+
+
+def test_d8_every_edge_says_which_identifier_space_reached_the_drug(graph):
+    """The Prestwick library names salts and catalogue forms and ChEMBL keys on
+    the parent molecule, so the join is three routes tried verbatim-first. The
+    rate is **842 of 1,197 = 70.3%** and the other 355 are minted on their
+    catalogue number — reported rather than hidden, and `drug_join` is what
+    makes the weakest route countable instead of assumed."""
+    got = {
+        r["route"]: r["drugs"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->() "
+            "RETURN r.drug_join AS route, count(DISTINCT r.prestwick_id) AS drugs",
+        )
+    }
+    assert got == PARTIAL_GOLDEN["d8_drug_join"]
+    assert sum(got.values()) == PARTIAL_GOLDEN["d8_screen_drugs"]
+
+
+def test_d8_metabolism_leg_is_still_open_and_says_so(graph):
+    """D8 asks two things — "does drug D inhibit gut bacteria, **or get
+    metabolised by them**". Maier answers the first. The second is
+    Zimmermann et al. 2019 (76 gut bacteria x 271 oral drugs, 176 metabolised),
+    whose supplementary workbook is **fetched and not loaded**, and Part D
+    requires the two to land as different edge types because collapsing them
+    conflates antimicrobial killing with drug metabolism.
+
+    So there must be no relationship claiming a bacterium changes a drug, and
+    the absence has to stay visible rather than being read as "nothing to
+    find"."""
+    types = {
+        r["rel"]
+        for r in rows(graph, "MATCH ()-[r]->() RETURN DISTINCT type(r) AS rel")
+    }
+    assert not (types & {"METABOLISES", "ALTERS_SUBSTANCE", "TRANSFORMS_DRUG"}), (
+        "a drug-metabolism relationship appeared — D8's second leg and its "
+        "status have to be restated rather than left as they are"
+    )
+    assert not (ROOT / "scripts" / "prep_zimmermann2019.py").exists()
+    assert (ROOT / "data" / "raw" / "drug_screens" / "zimmermann2019").is_dir(), (
+        "the raw file is the deliverable that says the leg is open by choice "
+        "of scope rather than for want of a source"
+    )
+
+
+def test_d8_and_d18_no_longer_wait_on_masi(graph):
+    """**What the MASI download turned out to be, and what replaced it.**
+    `data/raw/masi/MASI_v1.0_download_substanceInfo.{txt,xlsx}` is the substance
+    dictionary — 1,350 rows, 18 columns, no organism column, no interaction
+    column, no effect, no direction, no PMID — and the interaction tables the
+    research document sizes MASI by are *not recoverable*: the origin no longer
+    completes a TLS connection and the Wayback Machine never captured them
+    (`data/raw/manifest.json`).
+
+    Nothing is loaded from it, and nothing should be: no prep, no blueprint
+    fragment, no ontology module. The drug↔taxon layer arrived from the
+    published screen MASI aggregates instead, which is a *better* source for
+    D8's inhibition leg than MASI would have been — it is strain-resolved where
+    MASI is genus-resolved, and it carries the negatives MASI would not have."""
     assert not (ROOT / "scripts" / "prep_masi.py").exists(), (
         "a MASI prep exists — if the interaction tables landed, D8 and D18's "
         "goldens and statuses have to be restated rather than left as they are"
@@ -2137,3 +2342,136 @@ def test_d8_and_d18_stay_partial_because_masi_shipped_no_interactions(graph):
     assert (ROOT / "data" / "raw" / "masi" / "PROVENANCE.md").is_file(), (
         "the profile that says why MASI loaded nothing is the deliverable here"
     )
+    assert not rows(
+        graph,
+        "MATCH ()-[r]->() WHERE r.primary_source = 'masi' RETURN r LIMIT 1",
+    )
+
+
+def test_d18_metformin_inhibits_none_of_the_screened_taxa(graph):
+    """**D18's leg 3, and it is a negative — which is what the confounding
+    argument actually needed.** Forslund et al. showed that metformin, not type
+    2 diabetes, explains an *Escherichia* increase and an *Intestinibacter*
+    decrease. The competing explanation the graph could offer was
+    gutMDisorder's abundance shifts for 17 taxa; what it could never say was
+    *how* — and "metformin does not inhibit the growth of any of these 38
+    isolates at 20 µM" is a measured constraint on the mechanism rather than a
+    second correlation.
+
+    40 measurements, 38 taxa, **zero hits**, and every one of them is a
+    `DOES_NOT_INHIBIT_GROWTH_OF` edge that a query can count."""
+    growth = rows(
+        graph,
+        f"MATCH (:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}})"
+        "-[g:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(t:Taxon) "
+        "RETURN type(g) AS rel, count(g) AS edges, count(DISTINCT t) AS taxa",
+    )
+    assert len(growth) == 1, "metformin must reach exactly one of the two relationships"
+    assert growth[0]["rel"] == "DOES_NOT_INHIBIT_GROWTH_OF"
+    assert growth[0]["edges"] == PARTIAL_GOLDEN["d18_metformin_measurements"]
+    assert growth[0]["taxa"] == PARTIAL_GOLDEN["d18_metformin_screen_taxa"]
+    hits = one(
+        graph,
+        f"MATCH (:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}})"
+        "-[g:INHIBITS_GROWTH_OF]->() RETURN count(g) AS n",
+    )
+    assert hits["n"] == PARTIAL_GOLDEN["d18_metformin_hits"]
+
+
+def test_d18_the_competing_explanation_is_now_offered_for_32_t2d_taxa(graph):
+    """The same query D18 always asked, through the growth screen instead of
+    through 15 name-matched interventions: **32** T2D taxa carry a metformin
+    measurement, against gutMDisorder's 17, and all 32 read `no-effect`.
+
+    Both legs stay — they answer different questions. gutMDisorder says
+    metformin *changed this taxon's abundance in a patient*; Maier says it
+    *does not kill this taxon in a tube*. Neither refutes the other, and the
+    pair is more informative than either: an abundance shift with no growth
+    inhibition is an argument for an indirect mechanism."""
+    joined = rows(
+        graph,
+        f"""
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {{id: 'MONDO:0005148'}})
+        MATCH (drug:Drug {{id: '{CHEMBL_GOLDEN["metformin"]}'}})
+              -[g:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(t)
+        WITH t, collect(DISTINCT r.direction) AS direction_in_t2d,
+             count(DISTINCT r.study_id) AS t2d_studies,
+             collect(DISTINCT g.effect) AS metformin_growth_effect,
+             collect(DISTINCT g.nt_code) AS isolates,
+             collect(DISTINCT g.source_relation) AS wording
+        RETURN t.title AS taxon, direction_in_t2d, t2d_studies,
+               metformin_growth_effect, isolates, wording,
+               'competing explanation' AS reading
+        ORDER BY t2d_studies DESC
+        """,
+    )
+    assert len(joined) == PARTIAL_GOLDEN["d18_screen_t2d_taxa"]
+    for row in joined:
+        assert row["metformin_growth_effect"] == ["no-effect"], row
+        assert row["isolates"], row
+        # G3: the source's own wording survives the normalisation, so a reader
+        # can see the threshold the call rests on rather than trusting `effect`.
+        assert all("adjusted p" in w for w in row["wording"]), row
+    # The old leg is untouched and still 17 — two legs, two questions.
+    assert len(rows(
+        graph,
+        f"""
+        MATCH (t:Taxon)-[:ASSOCIATED_WITH]->(:Disease {{id: 'MONDO:0005148'}})
+        MATCH (t)-[:ABUNDANCE_CHANGED_BY]->(:Intervention)
+              -[:IS_DRUG]->(:Drug {{id: '{CHEMBL_GOLDEN["metformin"]}'}})
+        RETURN DISTINCT t.id AS taxon
+        """,
+    )) == PARTIAL_GOLDEN["d18_t2d_taxa"]
+
+
+def test_d18_the_screen_widens_the_question_past_metformin(graph):
+    """D18 is a template, not one drug. Every T2D taxon can now be handed the
+    full list of drugs measured against it — **380** that inhibit at least one
+    of the 32, of which **186** are human-targeted rather than antibacterial.
+    That is the shape of the confounding question Forslund generalised to: of
+    41 drug categories, 19 associated singly with the microbiome and only 6
+    survived multi-drug correction."""
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon)-[:ASSOCIATED_WITH]->(:Disease {id: 'MONDO:0005148'})
+        MATCH (d:Drug)-[g:INHIBITS_GROWTH_OF]->(t)
+        RETURN count(DISTINCT t) AS taxa, count(DISTINCT d) AS drugs,
+               count(DISTINCT CASE WHEN g.drug_class = 'human-targeted drugs'
+                                   THEN d.id END) AS human_targeted
+        """,
+    )
+    assert result["taxa"] == PARTIAL_GOLDEN["d18_t2d_taxa_inhibited_by_something"]
+    assert result["drugs"] == PARTIAL_GOLDEN["d18_t2d_inhibiting_drugs"]
+    assert result["human_targeted"] == PARTIAL_GOLDEN["d18_t2d_human_targeted_inhibitors"]
+
+
+def test_d18_three_of_forslunds_four_named_taxa_are_now_screened(graph):
+    """The reason D18 was `partial` was that gutMDisorder curated a metformin
+    edge for none of *Escherichia*, *Intestinibacter* or *Lactobacillus* — only
+    *Bifidobacterium* of the named set. The screen ran three of the four at
+    species level, so the query answers with the taxa the confounding
+    literature names rather than with the taxa this corpus happens to have.
+
+    **The fourth is why the status does not become `answerable-now`:**
+    *Intestinibacter* is in the taxonomy and was not one of the 40 isolates, so
+    the decrease Forslund calls the most consistent metformin effect of the
+    four has no growth measurement here and cannot get one from this source."""
+    screened = {
+        r["taxon"]
+        for r in rows(
+            graph,
+            "MATCH (d:Drug)-[:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(t:Taxon) "
+            "RETURN DISTINCT t.title AS taxon",
+        )
+    }
+    assert set(PARTIAL_GOLDEN["d18_screened_fixtures"]) <= screened
+    genus = PARTIAL_GOLDEN["d18_unscreened_fixture_genus"]
+    assert one(
+        graph, f"MATCH (t:Taxon) WHERE t.lineage_genus = '{genus}' RETURN count(t) AS n"
+    )["n"] > 0, f"{genus} is not even in the taxonomy — a different gap"
+    assert not rows(
+        graph,
+        "MATCH (d:Drug)-[:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(t:Taxon) "
+        f"WHERE t.lineage_genus = '{genus}' RETURN t LIMIT 1",
+    ), f"{genus} was screened after all — D18's status can be restated"

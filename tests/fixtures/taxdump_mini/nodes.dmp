@@ -16,6 +16,7 @@
 724	|	712	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
 815	|	171549	|	family	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
 816	|	815	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|
+817	|	816	|	species	|	BF	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
 818	|	816	|	species	|	BT	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
 827	|	194	|	species	|	CU	|	0	|	1	|	11	|	1	|	0	|	1	|	1	|	0	|	code compliant; specified	|		|		|	1	|	0	|	1	|
 838	|	171552	|	genus	|		|	0	|	1	|	11	|	1	|	0	|	1	|	0	|	0	|	code compliant	|		|		|	0	|	0	|	1	|

@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from .vocabulary import register_source
+from .vocabulary import DRUG_DESCRIPTION, register_source
 
 __all__ = [
     "APPROVED_PHASE",
@@ -202,11 +202,7 @@ MECHANISM_PROPERTY_TYPES: dict[str, str] = {
 }
 
 CLASSES: dict[str, dict] = {
-    "Drug": {
-        "description": "A drug keyed on the ChEMBL id of its parent molecule, so a "
-        "salt form is the same drug rather than a second one. `approved` is false "
-        "for a molecule a mechanism names but the max_phase-4 file does not carry."
-    },
+    "Drug": {"description": DRUG_DESCRIPTION},
     "ProteinTarget": {
         "description": "A ChEMBL target — a single protein, a complex, a family or "
         "a whole organism — with its UniProt accessions and the organism it belongs "
