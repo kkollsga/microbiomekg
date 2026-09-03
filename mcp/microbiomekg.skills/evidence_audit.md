@@ -60,10 +60,44 @@ So a "shared-14 fraction" — the share of edges carrying the full fourteen-fiel
 evidence contract — compares a source that *has* those columns against one that
 never did.
 
-Comparing sources needs the per-field census, per source, and that
-census cannot be built from the audit: the `edge_property_violation` procedure
-names only the **first** missing property, so a breakdown built from it
-under-counts every field but one. Ask for the fields directly:
+## Which fields are the gap — ask the audit, do not derive it
+
+A single percentage over the whole declared contract does not say *what* is
+missing, and the two obvious ways to work it out are both wrong: an edge
+missing several fields is one violation rather than several, and a field
+nothing fails leaves no trace at all. `{by: 'property'}` is the answer, and it
+includes the complete fields so "this one is fine" is a row:
+
+```cypher
+CALL ontology_audit({by: 'property'})
+YIELD rule, property, violations, total, pct
+WHERE rule = 'ASSOCIATED_WITH.required_properties' AND property IS NOT NULL
+RETURN property, violations, total, pct ORDER BY pct DESC
+```
+
+**`group_0_size` 14,837 (13.1%) and `group_1_size` 14,732 (13.0%) are the
+gap.** Then `study_design` 2,436, `statistical_test` 2,305, `sequencing_type`
+1,910, `pmid` 1,061, `direction` and `source_relation` 894 each — and
+`evidence_level`, `knowledge_level`, `agent_type`, `primary_source`,
+`source_record_id` and `source_licence` are complete on all 112,966 edges.
+
+**It is a census, not a partition.** An edge missing both group sizes is
+counted in both rows, so these sum to more than the rule's 17,546 violations.
+Do not add them up. (`{by: 'domain_class'}` is the partitioning breakdown; its
+rows do sum back.)
+
+The same reading, per edge, comes from the row-level procedure —
+`properties` is the whole failing set, and `property` is only the first of it:
+
+```cypher
+CALL edge_property_violation() YIELD relationship, properties, exempt
+WHERE relationship = 'ASSOCIATED_WITH' AND NOT exempt
+UNWIND properties AS field
+RETURN field, count(*) AS edges ORDER BY edges DESC
+```
+
+Neither says which **source** a gap comes from, which is the other axis a
+cross-source comparison needs, and that is still an aggregation:
 
 ```cypher
 MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
@@ -77,6 +111,12 @@ RETURN r.primary_source AS source, count(r) AS edges,
        sum(CASE WHEN r.knowledge_level = 'not_provided' THEN 1 ELSE 0 END) AS kl_not_provided
 ORDER BY edges DESC
 ```
+
+**A high percentage is often one field.** `CONFERS_RESISTANCE_TO` reads 58.8%,
+and the census says it is `pmid` on 8,052 of 13,691 edges with every other
+declared property complete — CARD cites 2,734 of its 6,451 models and the rest
+of the file is not a citation index. "58.8% incomplete" and "no citation on
+58.8%" are very different sentences to put in a methods section.
 
 Each association relationship declares its own required set, and they are not
 the same set. Read the declaration before reading the percentage:

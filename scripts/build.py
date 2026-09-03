@@ -405,6 +405,45 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
     quiet = sum(1 for r in audit if not r["violations"] and r["severity"] != "error")
     print(f"  … {quiet} further rules at 0 violations")
 
+    # The number the whole project rests on, per field rather than per edge.
+    # A `required_properties` rule reports one percentage over a fourteen-field
+    # contract, and a reader who takes it for "14% of the fields are missing"
+    # is wrong in both directions: an edge missing three fields counts once,
+    # and a field nothing fails is invisible. `by: 'property'` fans the rule
+    # into one row per *declared* property, zero-violation rows included, so
+    # "which fields are the gap" is an answer rather than an inference.
+    #
+    # It is a **census, not a partition**: an edge missing `group_0_size` and
+    # `group_1_size` is counted under both, so these rows sum to more than the
+    # aggregate above and adding them up is a mistake.
+    print("\n--- per-field census (ontology_audit({by: 'property'}))")
+    print("    One row per declared property, including the ones nothing fails.")
+    print("    A census, not a partition: an edge missing three fields is in")
+    print("    three rows, so these do not sum back to the rule's violations.")
+    census = rows(
+        "CALL ontology_audit({by: 'property'}) "
+        "YIELD rule, property, violations, total, pct "
+        "WHERE rule ENDS WITH '.required_properties' AND property IS NOT NULL "
+        "RETURN rule, property, violations, total, pct "
+        "ORDER BY rule, violations DESC, property"
+    )
+    for rule in dict.fromkeys(r["rule"] for r in census):
+        fields = [r for r in census if r["rule"] == rule]
+        if not any(r["violations"] for r in fields):
+            continue
+        print(f"  {rule}")
+        for r in fields:
+            complete = "" if r["violations"] else "   (complete)"
+            print(
+                f"    {r['property']:<24s} {r['violations']:>8,} / "
+                f"{r['total']:>8,}  {r['pct']:>6.2f}%{complete}"
+            )
+    clean = [
+        rule for rule in dict.fromkeys(r["rule"] for r in census)
+        if not any(r["violations"] for r in census if r["rule"] == rule)
+    ]
+    print(f"  … {len(clean)} further required_properties rules with every field complete")
+
     # G10: edges per source record, published rather than assumed. An
     # expansion factor is how a curated source turns into a big-looking graph,
     # and it is the number that says whether "N million edges" means anything.

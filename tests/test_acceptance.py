@@ -542,6 +542,68 @@ def test_d15_the_per_field_census_the_audit_rolls_up(graph):
 # --------------------------------------------------------------------------
 
 
+def test_d15_the_per_field_census_names_the_gap(graph):
+    """The query the project's premise rests on, per field rather than per edge.
+
+    `required_properties` reports one percentage over a fourteen-field
+    contract, and a reader who takes it for "15.5% of the fields are missing"
+    is wrong in both directions: an edge missing two fields is one violation,
+    and a field nothing fails is invisible. `{by: 'property'}` answers both —
+    it is a **census**, so its rows sum to *at least* the aggregate and never
+    back to it, and it emits a zero row for a complete field.
+    """
+    census = {
+        r["property"]: r
+        for r in rows(
+            graph,
+            "CALL ontology_audit({by: 'property'}) "
+            "YIELD rule, property, violations, total, pct "
+            "WHERE rule = 'ASSOCIATED_WITH.required_properties' "
+            "AND property IS NOT NULL "
+            "RETURN property, violations, total, pct",
+        )
+    }
+    from microbiomekg.ontology import EVIDENCE_CONTRACT
+
+    assert set(census) == set(EVIDENCE_CONTRACT), (
+        "the census must name every declared property, including the complete "
+        f"ones: missing {sorted(set(EVIDENCE_CONTRACT) - set(census))}"
+    )
+    assert all(r["total"] == GOLDEN["d15_total"] for r in census.values())
+    assert census["group_0_size"]["violations"] == 14837
+    assert census["group_1_size"]["violations"] == 14732
+    complete = {p for p, r in census.items() if r["violations"] == 0}
+    assert complete == {
+        "evidence_level", "knowledge_level", "agent_type",
+        "primary_source", "source_record_id", "source_licence",
+    }, complete
+
+    # A census, not a partition — and the difference is not academic here:
+    # the group sizes are absent together on most of the edges that lack them.
+    summed = sum(r["violations"] for r in census.values())
+    assert summed > GOLDEN["d15_violations"], (
+        f"the per-property rows sum to {summed:,}, which is not more than the "
+        f"rule's {GOLDEN['d15_violations']:,} — either nothing overlaps or this "
+        f"breakdown has become a partition, and the skill says otherwise"
+    )
+
+    # And the row-level procedure carries the whole failing set, not its first
+    # member, so an UNWIND over it reproduces the census exactly.
+    unwound = {
+        r["field"]: r["edges"]
+        for r in rows(
+            graph,
+            "CALL edge_property_violation() YIELD relationship, properties, exempt "
+            "WHERE relationship = 'ASSOCIATED_WITH' AND NOT exempt "
+            "UNWIND properties AS field "
+            "RETURN field, count(*) AS edges",
+        )
+    }
+    assert unwound == {
+        p: r["violations"] for p, r in census.items() if r["violations"]
+    }
+
+
 def test_d16_shortest_path_is_one_hop_where_a_direct_edge_exists(graph):
     result = one(
         graph,

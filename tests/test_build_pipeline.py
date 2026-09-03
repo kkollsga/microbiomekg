@@ -391,6 +391,31 @@ def test_the_expansion_report_names_every_relationship_it_declared(
         assert rel in section, f"{rel} is declared and unreported"
 
 
+def test_the_report_prints_the_per_field_census(tmp_path, fixture_csvs):
+    """The audit's single percentage is not the number this project is about.
+
+    A `required_properties` rule rolls a fourteen-field contract into one
+    figure, and the per-field breakdown used to be a Cypher query somebody had
+    to know to run — so the build reported "15.5% incomplete" and nothing said
+    which field. `{by: 'property'}` is in the report now, and it prints the
+    complete fields too, so a field at zero is stated rather than inferred.
+    """
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
+         "--csv", str(fixture_csvs), "--no-save"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    section = proc.stdout.split("per-field census")[1].split("expansion factor")[0]
+    assert "ASSOCIATED_WITH.required_properties" in section
+    for field in ("group_0_size", "study_design", "pmid"):
+        assert field in section, f"{field} is not in the census"
+    assert "(complete)" in section, (
+        "a field nothing fails must appear at zero — a census that only lists "
+        "failures cannot say a field is complete, which is half of what it is for"
+    )
+
+
 # --------------------------------------------------------------------------
 # The vector lane is opt-in, and the default build must not carry it
 # --------------------------------------------------------------------------

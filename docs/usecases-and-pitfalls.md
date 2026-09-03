@@ -1112,22 +1112,29 @@ union), the per-field gap census is:
 | `evidence_level`, `knowledge_level`, `agent_type`, `primary_source`, `source_record_id`, `source_licence` | 0 (always derived/written) |
 | **edges missing at least one** | **16** (22.2%) |
 
-Two things about the instrument, both verified against kglite 0.16.21:
+Three things about the instrument, the first two verified against kglite
+0.16.21 and the third the 0.16.22 answer to them:
 
 - `CALL ontology_audit()` counts **edges** missing at least one required
   property — so its `violations` column is the union (16), never the sum of
   the column above. Its columns are `rule, severity, violations, exempted,
-  total, pct`.
-- `CALL edge_property_violation()` emits **one row per violating edge**,
-  naming only the *first* missing property in declaration order — not one row
-  per missing field. It tells you *which* edges are incomplete; the per-field
-  table above needs a Cypher query
-  (`MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.<prop> IS NULL`). A gap report
-  built from the procedure alone silently under-counts every field but the
-  first.
+  total, pct`, plus `domain_class` and `property`, which are Null unless asked
+  for.
+- `CALL edge_property_violation()` emits **one row per violating edge**. Its
+  `property` names the *first* missing property in declaration order — so a
+  gap report built from that column alone silently under-counts every field
+  but the first — and its `properties` column is the whole failing set, which
+  is what to `UNWIND` for a per-field tally.
+- **`CALL ontology_audit({by: 'property'})` is the table above, from the
+  engine.** One row per *declared* property — the complete ones included, so
+  "nothing fails `evidence_level`" is a row rather than an absence. It is a
+  **census**: an edge missing `pmid` and `statistical_test` appears in both
+  rows, so the rows sum to more than the 16 and never back to it.
+  `scripts/build.py` prints it on every build, and D15 is where it is read.
 
-Since the union runs over three relationships (C14), `ontology_audit()` reports
-three `*.required_properties` rows and the 16 is their sum.
+`ontology_audit()` reports **one** `ASSOCIATED_WITH.required_properties` row,
+not three: the relation is one relationship over a union range, so the 16 is
+the whole of it rather than a sum across three names (C14, docs/model.md §8).
 
 Setting `enforcement: "error"` on the association's `required_properties`
 would fail the build on upstream data reality; per KGLite's ontology guide
@@ -1273,8 +1280,8 @@ Guard: `tests/test_ontology.py::test_the_checked_in_ontology_json_matches_the_mo
 
 ### C21. Interface gaps this catalog exposes
 
-Recorded here because they are contract changes, not test bugs. **Items 1–5 are
-closed**; the resolution is noted under each, and item 6 stands.
+Recorded here because they are contract changes, not test bugs. **All six are
+closed**; the resolution is noted under each.
 
 1. **`Resolution` has no way to say "resolved, but not an organism".** C9's
    placeholder taxa — `uncultured bacterium` (77133), `Bacteroides sp.`
@@ -1329,8 +1336,17 @@ closed**; the resolution is noted under each, and item 6 stands.
    assert against instead of inferring from.
 6. **`CALL edge_property_violation()` under-reports.** One row per violating
    edge, naming only the first missing property — see C17. Anything that
-   needs a per-field gap census must use Cypher instead, and a reader who
-   assumes otherwise will report a confidently wrong breakdown.
+   needed a per-field gap census had to use Cypher instead, and a reader who
+   assumed otherwise reported a confidently wrong breakdown. **Done, by
+   kglite 0.16.22, in both of the two shapes this wanted.** The procedure
+   yields a `properties` column carrying the whole failing set (`property` is
+   now defined as the first of it, so the row identity is unchanged), and
+   `CALL ontology_audit({by: 'property'})` fans a `required_properties` rule
+   into one row per *declared* property — including the ones nothing fails, so
+   a complete field is visible as complete rather than as an absence. D15 uses
+   both and `scripts/build.py` prints the census on every build. The one
+   caveat is in the name: it is a **census**, so an edge missing two fields is
+   counted twice and the rows do not sum back to the rule's violations.
 
 ## Part D — Acceptance queries
 
@@ -2352,9 +2368,43 @@ RETURN rule, severity, violations, total, pct ORDER BY pct DESC
 ```
 
 ```cypher
-// the per-field census the audit's single percentage rolls up (C17: the
-// edge_property_violation procedure names only the FIRST missing property,
-// so a breakdown built from it under-counts every field but one)
+// the per-field census the audit's single percentage rolls up — the engine's
+// own, one row per DECLARED property including the ones nothing fails
+CALL ontology_audit({by: 'property'})
+YIELD rule, property, violations, total, pct
+WHERE rule = 'ASSOCIATED_WITH.required_properties' AND property IS NOT NULL
+RETURN property, violations, total, pct ORDER BY pct DESC
+```
+
+*Golden check (measured):* of 112,966 edges, **`group_0_size` 14,837 (13.1%)
+and `group_1_size` 14,732 (13.0%)** are the gap; `study_design` 2,436 (2.2%),
+`statistical_test` 2,305 (2.0%), `sequencing_type` 1,910 (1.7%), `pmid` 1,061
+(0.9%), `direction` and `source_relation` 894 (0.8%) each, and the remaining
+six of the fourteen — `evidence_level`, `knowledge_level`, `agent_type`,
+`primary_source`, `source_record_id`, `source_licence` — are **complete**,
+which the census says out loud rather than leaving to be inferred from an
+absence. The same query over `CONFERS_RESISTANCE_TO` is the sharper reading:
+its 58.8% is **one field**, `pmid` on 8,052 of 13,691 edges, and every other
+declared property is complete.
+
+**Read it as a census, not a partition.** An edge missing both group sizes is
+counted under both, so these rows sum to *more* than the rule's 17,546
+violations. The `domain_class` breakdown is the partitioning one.
+
+The row-level drill-down carries the same information per edge, and the
+`properties` column is the whole failing set rather than the first of it:
+
+```cypher
+CALL edge_property_violation() YIELD relationship, properties, exempt
+WHERE relationship = 'ASSOCIATED_WITH' AND NOT exempt
+UNWIND properties AS field
+RETURN field, count(*) AS edges ORDER BY edges DESC
+```
+
+Neither reports the **source** each gap comes from, which is the other half of
+this query's question and still a Cypher aggregation:
+
+```cypher
 MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
 RETURN r.primary_source AS source, count(r) AS edges,
        sum(CASE WHEN r.direction        IS NULL THEN 1 ELSE 0 END) AS no_direction,

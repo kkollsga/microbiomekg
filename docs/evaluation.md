@@ -110,7 +110,7 @@ build. Where an entry carries several queries, each was run separately.
 | D13 pathway walk | partial | yes | 1,028 | **stale prose, see below** |
 | D14 dysbiosis breadth | partial | yes | 20 | **exact**: Bacteroides 1,150 · Streptococcus 1,123 · Prevotella 1,063 · Lachnospiraceae 1,024 · Lactobacillus 938 · Oscillospiraceae 875 |
 | D15a audit | answerable-now | yes | 111 | **exact**: `ASSOCIATED_WITH` 15,985 / 105,097 = 15.2%, warn — 16,768 / 105,880 = 15.8% after MASI, then 17,546 / 112,966 = 15.5% once the union range made it one rule over all three condition types |
-| D15b per-source census | answerable-now | yes | 2 | **exact**: bugsigdb 103,461 · gutmdisorder 1,636, all 1,636 missing group sizes |
+| D15b per-field / per-source census | answerable-now | yes | 14 / 2 | **exact**: `{by: 'property'}` names `group_0_size` 14,837 and `group_1_size` 14,732 as the gap, six fields complete; per source, bugsigdb 103,461 · gutmdisorder 1,636, all 1,636 missing group sizes |
 | D16a/D16b shortest path | answerable-now | yes | 1 / 3 | **exact**: 1 hop direct, 3-hop evidence walk returns the signatures |
 | D17 disagreement | answerable-now | yes | 50 | **exact**: 8,238 conflicts, 47,232 single-cohort of 56,124 pairs (84.2%) |
 | D18a/D18b metformin | partial | yes | 32 / 25 | **exact**: 32 rows, `['no-effect']` on every one |
@@ -269,8 +269,16 @@ though it were the whole of it (16,768 / 105,880 = 15.8%, beside two rules at
 6.2% and 20.5% that nothing reported).
 Each contract is the set of fields *that source could in principle supply*, so
 the fractions measure different things by construction. Comparing them requires
-the per-field census (D15b), and the per-relationship denominators — every one
-of them non-zero — are what make the audit non-vacuous.
+the per-field census, which is now the engine's own —
+`CALL ontology_audit({by: 'property'})`, printed on every build — rather than a
+Cypher aggregation somebody had to know to write. It settles the three CARD
+rows in one row each: `pmid` on 8,052 of 13,691 `CONFERS_RESISTANCE_TO` edges,
+every other declared property complete. And on `ASSOCIATED_WITH` it says the
+15.5% is **`group_0_size` (14,837) and `group_1_size` (14,732)**, with six of
+the fourteen fields complete on all 112,966 edges. Read it as a census — an
+edge missing both group sizes is in both rows, so the rows sum past the
+aggregate. The per-relationship denominators — every one of them non-zero —
+are what make the audit non-vacuous.
 
 One deliberate hole, stated by the model and confirmed here:
 `evidence_level` is **never null** (a missing design yields the string

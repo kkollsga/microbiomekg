@@ -2141,11 +2141,20 @@ the engine, not into a workaround this repo pretends is a design.**
    original note worried about is still real — when `Metabolite` and `Drug`
    grow their own association edges, `Associatable` is a second union over
    `Taxon` — and `labels` is now the answer to it.
-4. **The ontology audits edge properties only.** There is no
+4. **The ontology audits edge properties only.** There is still no
    `required_properties` for *node* properties, which is the single fact that
-   decided §1's edge-vs-node split. And `required_properties` reports per edge,
-   not per property, so a fourteen-field contract yields one percentage and the
-   per-field breakdown has to be a Cypher query (Q5).
+   decided §1's edge-vs-node split, and that half of this item **stands**.
+   The other half — "reports per edge, not per property, so a fourteen-field
+   contract yields one percentage" — is **closed by kglite 0.16.22**:
+   `CALL ontology_audit({by: 'property'})` fans a `required_properties` rule
+   into one row per *declared* property, and `edge_property_violation()` yields
+   a `properties` list rather than only the first failing name. `scripts/build.py`
+   prints the census on every build, D15 reads it, and it says what a Cypher
+   aggregation could not: `ASSOCIATED_WITH`'s 15.5% is **`group_0_size` on
+   14,837 edges and `group_1_size` on 14,732** with six of the fourteen
+   complete, and `CONFERS_RESISTANCE_TO`'s 58.8% is *one* field, `pmid`. It is
+   a census — an edge missing both group sizes is in both rows — so the rows
+   sum to more than the rule's violations and never back to them.
 5. **One relationship cannot span a union range from a blueprint.**
    **Closed by kglite 0.16.22.** A junction entry's `target` now takes a list
    of node types plus an optional `target_type_column` naming the column that
