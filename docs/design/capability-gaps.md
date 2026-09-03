@@ -688,6 +688,20 @@ belongs in the document that carries the claim.
 
 ## 8. Section G — proposed backlog items
 
+> **Direction (user, 2026-09-03).** Focus on what the comparator does better, and
+> improve there — but kglite is the superpower, and it lets the API surface stay
+> *small*. Their endpoint catalogue is what one builds when the graph sits behind a
+> database the user cannot be handed; each endpoint is a frozen query. Here the
+> query language is the API: shortest path, neighbourhood, cross-feeding and
+> probiotic discovery are each one Cypher statement (D16, D6, D10). So G8 is a
+> **Cypher-first read surface** over what kglite already ships (Bolt, MCP, Python),
+> documented as "one statement per endpoint group", plus only what Cypher cannot
+> do (a typed-count / autocomplete recipe). What they genuinely do better after
+> that reframe: always-on access (our 4.1 s MCP boot vs a service), documentation
+> as a product surface, search with typed counts, and Gene/Protein as first-class
+> entities — the last is the one real data gap.
+
+
 At most eight, benchmarks first because they are cheap and decisive. Each is
 one line of scope plus what it depends on. **Not filed here** — the coordinator
 owns `dev-docs/todos.md`.
