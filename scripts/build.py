@@ -22,9 +22,12 @@ Six steps, in this order and for these reasons:
    ``./data/csv``. A ``blueprint.load.json`` beside the CSVs carries the same
    document with every path bound to *this* build's directories, so ``--csv``
    is what gets loaded rather than what gets ignored.
-4. **Load** that copy, with ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` raised
-   above the junction row count — see the note on that constant below. Not
-   optional.
+4. **Load** that copy. Junction streaming is a memory bound and nothing
+   more, as of kglite 0.16.22: until then the loader re-decided per chunk
+   whether a connection type was new, so this build had to raise
+   ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` above the junction row count or
+   lose 7.7% of its association edges. ``tests/test_loader_contracts.py``
+   holds the engine to it.
 5. **Build the BM25 indexes** docs/model.md §6 lists. Unconditional — five
    indexes for 276 ms and 14.3 MB. The **vector** lane (§6b) is not: it is
    opt-in behind ``--with-vectors`` — the same shape of gate as ``--with-kegg``
@@ -43,7 +46,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import os
 import subprocess
 import sys
 import time
@@ -53,20 +55,6 @@ from typing import NamedTuple
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-#: kglite's blueprint junction loader streams each junction CSV in 100,000-row
-#: chunks and calls the connect path once per chunk; parallel edges are written
-#: on the *first* call for a relationship type and deduplicated on every call
-#: after it. ``taxon_disease.csv`` is ~100k rows of deliberately parallel edges
-#: — the independent observations this graph exists to keep — so a default
-#: build silently drops every repeat of a pair it saw in the first chunk, with
-#: no warning and no error. Setting the chunk size above the row count restores
-#: the exact count (verified both ways).
-#:
-#: This is a workaround for a kglite defect, not a tuning knob: the chunk
-#: boundary changes the *result*, not just the memory profile. Remove it when
-#: the fix ships.
-JUNCTION_CHUNK_SIZE = "1000000"
 
 #: docs/model.md §6. ``(node type, property)`` — the everyday lookup, the
 #: reconciliation-by-old-name index, and the three free-text entry points.
@@ -499,14 +487,13 @@ def main(argv: list[str] | None = None) -> int:
     ontology = write_json(args.csv / "ontology.json", ontology_for(loaded))
     print(f"=== ontology -> {ontology}")
 
-    os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
     import kglite
 
     blueprint = write_load_blueprint(
         compose(fragments, loaded) if loaded != sources else full,
         args.csv, ontology, args.csv / "blueprint.load.json",
     )
-    print(f"\n=== from_blueprint (chunk size {JUNCTION_CHUNK_SIZE})", flush=True)
+    print("\n=== from_blueprint", flush=True)
     print(f"    {blueprint} (root {args.csv})")
     t0 = time.time()
     graph = kglite.from_blueprint(blueprint, verbose=True, save=False)

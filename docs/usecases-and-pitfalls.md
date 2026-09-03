@@ -953,16 +953,16 @@ Guard: `tests/test_build.py::test_same_pair_from_three_signatures_is_three_edges
 `::test_conflicting_directions_survive_as_separate_edges`,
 `::test_golden_edge_counts`.
 
-**And the loader will silently undo it at scale.** Reproduced against kglite
-0.16.21 while writing these tests: the blueprint's junction-CSV loader streams
-in chunks and **deduplicates parallel edges from the second chunk onwards**.
-With `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=3` and a junction CSV holding ten
-identical `A1 -> B1` pairs, the built graph has **three** edges. The default
-chunk is 100,000 rows and the full-dump `taxon_disease.csv` is ~118k rows of
-deliberately parallel edges, so a default build drops every repeat of a pair
-it saw in the first chunk — precisely the evidence multiplicity this whole
-document exists to protect, removed with no warning and no error. The build
-command must raise the chunk size above the row count.
+**And the loader used to undo it silently at scale.** Reproduced against
+kglite 0.16.21 while writing these tests: the blueprint's junction-CSV loader
+streamed in chunks and **deduplicated parallel edges from the second chunk
+onwards**. With `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=3` and a junction CSV
+holding ten identical `A1 -> B1` pairs, the built graph had **three** edges.
+The default chunk is 100,000 rows and `taxon_disease.csv` is 105,880 rows of
+deliberately parallel edges, so a default build dropped 7.7% of them —
+precisely the evidence multiplicity this whole document exists to protect,
+removed with no warning and no error, which is why the build raised the chunk
+size above the row count.
 
 That test pinned the *bug* rather than xfailing it, and kglite 0.16.22 turned
 it red: the chunk regime is now decided once per CSV, so the chunk size bounds
@@ -1431,8 +1431,9 @@ check (measured, and **unchanged by gutMDisorder**, which curates no
 `increased` from 20 of them, and one `decreased` from `bsdb:41270896`.** The
 increased-direction requirement of "more than one study" is met twenty times
 over; the single dissenting edge is not removed, and D17 is where it is
-reported. If this returns one row, C13's parallel-edge collapse has recurred and
-`KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE` was not set above the row count.
+reported. If this returns one row, C13's parallel-edge collapse has recurred —
+the chunk-boundary dedupe kglite 0.16.22 fixed, which this build no longer
+overrides.
 
 ### D3 — "Which taxa are reported in more than one disease, and in which direction?"
 

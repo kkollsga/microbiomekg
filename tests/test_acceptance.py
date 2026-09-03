@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import csv
 import json
-import os
 import tempfile
 from pathlib import Path
 
@@ -120,13 +119,15 @@ D14_TOP_TAXA = {
 
 @pytest.fixture(scope="session")
 def graph():
-    """The real graph, built once from ``data/csv/``.
+    """The real graph, built once from ``data/csv/`` — at the default chunk size.
 
-    ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE`` is not optional: the junction
-    loader deduplicates parallel edges from the second 100,000-row chunk
-    onwards, and this graph's parallel edges *are* its independent
-    observations. Without it D2 returns 1 row instead of 40 and D17's whole
-    premise disappears — silently, with no warning and no error.
+    Deliberately not raising ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE``. Until
+    kglite 0.16.22 the junction loader deduplicated parallel edges from the
+    second 100,000-row chunk onwards, and this graph's parallel edges *are* its
+    independent observations: D2 returned 1 row instead of 40 and D17's whole
+    premise disappeared, silently. The override that hid it is gone, so a
+    return of that defect now shows up here — and in
+    ``test_every_association_row_became_an_edge`` — rather than being masked.
     """
     missing = [name for name in REQUIRED_CSVS if not (CSV_DIR / name).is_file()]
     if missing:
@@ -157,7 +158,6 @@ def graph():
     blueprint["ontology"] = str(work / "ontology.json")
     (work / "blueprint.json").write_text(json.dumps(blueprint))
 
-    os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = "1000000"
     return kglite.from_blueprint(work / "blueprint.json", verbose=False, save=False)
 
 
@@ -169,6 +169,58 @@ def one(graph, query: str) -> dict:
     result = rows(graph, query)
     assert result, f"query returned no rows:\n{query}"
     return result[0]
+
+
+# --------------------------------------------------------------------------
+# C13 at scale — every junction row is an edge, at the default chunk size
+# --------------------------------------------------------------------------
+
+
+def junction_edges() -> dict[str, list[str]]:
+    """``relationship -> the junction CSV(s) blueprint.json loads it from``."""
+    blueprint = json.loads(BLUEPRINT.read_text())
+    tables: dict[str, list[str]] = {}
+    for spec in blueprint.get("nodes", {}).values():
+        for rel, edge in spec.get("connections", {}).get("junction_edges", {}).items():
+            tables.setdefault(rel, []).append(edge["csv"])
+    return tables
+
+
+def logical_rows(path: Path) -> int:
+    """Data rows, read as CSV — six of these tables carry quoted newlines."""
+    with path.open(encoding="utf-8", newline="") as fh:
+        return sum(1 for _ in csv.reader(fh)) - 1
+
+
+@pytest.mark.parametrize("relationship", sorted(junction_edges()))
+def test_every_junction_row_became_an_edge(graph, relationship):
+    """The regression detector for C13, and the reason the override is gone.
+
+    A junction row is an evidence record: `taxon_disease.csv` is 105,880 rows
+    of deliberately parallel edges, and kglite < 0.16.22 kept only the first
+    100,000-row chunk's — 7.7% of the associations gone with no warning, no
+    error and a plausible-looking graph. Equality with the CSV is the check
+    that cannot be satisfied by a build that quietly dropped rows, and it needs
+    no re-measuring when a source lands: the goldens elsewhere pin *this*
+    build's numbers, this pins the loader's contract with any build's.
+
+    Every junction table in this graph loads 1:1 — a missing endpoint vivifies
+    a stub rather than dropping the row — so the equality holds for all of
+    them, not only the association tables.
+    """
+    tables = [CSV_DIR / name for name in junction_edges()[relationship]]
+    missing = [p.name for p in tables if not p.is_file()]
+    if missing:
+        pytest.skip(f"{relationship} is loaded from {missing}, not in this build")
+    rows_in = sum(logical_rows(p) for p in tables)
+    edges = one(graph, f"MATCH ()-[r:{relationship}]->() RETURN count(r) AS n")["n"]
+    assert edges == rows_in, (
+        f"{relationship}: {rows_in:,} rows in "
+        f"{', '.join(p.name for p in tables)} became {edges:,} edges. Rows are "
+        f"evidence records here; a shortfall is the kglite<0.16.22 "
+        f"chunk-boundary dedupe or something like it, and this build sets no "
+        f"KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE override to hide it."
+    )
 
 
 # --------------------------------------------------------------------------
@@ -247,8 +299,8 @@ def test_d2_one_row_per_signature_never_one_aggregated_row(graph):
     )
     assert len(result) == GOLDEN["d2_edges"], (
         f"expected {GOLDEN['d2_edges']} parallel edges, got {len(result)}. One row "
-        f"means C13's parallel-edge collapse recurred and "
-        f"KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE was not set above the row count."
+        f"means C13's parallel-edge collapse recurred — the chunk-boundary "
+        f"dedupe kglite 0.16.22 fixed, which this build no longer overrides."
     )
     assert len({r["study"] for r in result}) == GOLDEN["d2_studies"]
     increased = [r for r in result if r["direction"] == "increased"]

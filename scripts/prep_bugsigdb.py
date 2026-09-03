@@ -33,8 +33,7 @@ This script writes several tables it *shares* with the other sources —
 ``cited_taxa.csv`` and the two ledgers — through
 :class:`microbiomekg.tables.Writer` with ``merge=True``, so running it before
 or after another source's prep gives the same file. ``scripts/build.py`` runs
-the whole pipeline in order (and works around the junction-chunk defect that
-would otherwise drop most of this script's parallel edges).
+the whole pipeline in order.
 """
 
 from __future__ import annotations

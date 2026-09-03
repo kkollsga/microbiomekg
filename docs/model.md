@@ -2010,7 +2010,7 @@ in its own `DEPENDS_ON` and `build.py` topologically sorts them, so
 `prep_chembl` after the gutMDisorder table its `IS_DRUG` join reads — composes
 `blueprint.json` from `blueprints/*.json`, writes the ontology document and a
 `blueprint.load.json` **into the CSV directory** with every path bound to that
-build, loads it with the chunk-size workaround below, builds §6's five BM25
+build, loads it, builds §6's five BM25
 indexes, prints the counts, the audit and G10's expansion factor for every
 declared relationship, and saves `graph/microbiomekg.kgl`.
 
@@ -2042,17 +2042,26 @@ a row in `taxon_disease.csv`, not a second relationship, because a junction
 entry names one relationship, one CSV and one target type (item 5 below). That
 is what `microbiomekg.tables.Writer(merge=True, owner=…)` is for.
 
-**`KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000` is not optional, and this is
-a kglite defect.** `scripts/build.py` sets it; anything loading the blueprint
-by hand must too. The
-blueprint junction-edge loader streams each junction CSV in 100,000-row chunks
-and calls the connect path once per chunk; parallel edges are written on the
-*first* call for a relationship type and **deduplicated on every call after it**.
-`taxon_disease.csv` is ~103k rows of deliberately parallel edges, so a default
-build silently drops every repeat of a pair it saw in the first chunk — **with
-no warning and no error**. Setting the chunk size above the row count restores
-the exact count (verified both ways). Worth reporting upstream: the chunk
-boundary changes the *result*, not just the memory profile.
+**The `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=1000000` workaround is gone, and
+this build sets no chunk size at all.** It was here because the blueprint
+junction-edge loader streamed each junction CSV in 100,000-row chunks and
+re-decided *per chunk* whether the connection type was new: the first chunk
+registered it and every later chunk merged by endpoints, so `taxon_disease.csv`
+— 105,880 rows of deliberately parallel edges — lost every repeat of a pair the
+first chunk had seen, with no warning and no error. kglite 0.16.22 decides the
+regime once per CSV and holds it, so the chunk size bounds peak RAM without
+changing the graph. Measured both ways on the eleven-source build: at the
+default chunk size 0.16.22 loads **934,206 nodes and 1,324,684 edges**, the
+same totals the override produced on 0.16.21, and every junction relationship's
+edge count equals its CSV's logical row count.
+
+Two tests hold it there rather than the constant.
+`tests/test_loader_contracts.py` runs ten parallel edges through a *three-row*
+chunk and asserts all ten survive with their own properties; the
+`tests/test_acceptance.py::test_every_junction_row_became_an_edge` family
+asserts rows == edges for all 29 junction relationships of the real build. The
+second is the one that cannot be satisfied by a build that quietly dropped
+rows, and it needs no re-measuring when a source lands.
 
 Six other things the blueprint or the ontology could not express. **These go to
 the engine, not into a workaround this repo pretends is a design.**
