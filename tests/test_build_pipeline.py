@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -720,3 +721,16 @@ def test_a_build_from_a_taxdump_alone_is_a_taxonomy_only_graph(tmp_path):
     assert "taxonomy-only" in proc.stdout, proc.stdout
     assert "  Taxon " in proc.stdout
     assert "Signature" not in proc.stdout.split("--- nodes")[1].split("--- edges")[0]
+
+
+def test_a_relative_csv_directory_loads_the_same_as_an_absolute_one(fixture_csvs):
+    """The build's defaults are relative to the working directory, and the
+    load blueprint's ``ontology`` path is resolved by the engine against
+    ``settings.root`` — so a relative ``--csv`` once produced
+    ``data/csv/data/csv/ontology.json`` and a build that died at the load.
+    Every other test here passes absolute temp paths and could not see it."""
+    relative = os.path.relpath(fixture_csvs, ROOT)
+    assert not os.path.isabs(relative)
+    proc = run_build("--skip-prep", "--csv", relative, "--no-save")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "  Signature                    43" in proc.stdout, proc.stdout

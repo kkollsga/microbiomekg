@@ -688,8 +688,11 @@ def build(
     build is minutes long and the report is its record — and returns what it
     made, so :mod:`microbiomekg.api` can hand the graph to a caller.
     """
-    raw, csv = Path(raw), Path(csv)
-    out = Path(out) if out is not None else Path("graph/microbiomekg.kgl")
+    # Absolute from here on: the load blueprint names the ontology by path and
+    # the engine resolves a relative one against `settings.root`, so a
+    # relative --csv once loaded `data/csv/data/csv/ontology.json`.
+    raw, csv = Path(raw).resolve(), Path(csv).resolve()
+    out = (Path(out) if out is not None else Path("graph/microbiomekg.kgl")).resolve()
     preps = order_preps(PREPS_DIR)
     sources = [
         p.stem.removeprefix("prep_") for p in preps if p.name != "prep_taxonomy.py"
