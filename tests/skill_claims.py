@@ -80,6 +80,10 @@ MANIFEST_CLAIMS = CLAIMS_DIR / "manifest.md"
 DOC_UNITS: tuple[tuple[Path, Path], ...] = (
     (ROOT / "docs" / "benchmarks.md", ROOT / "docs" / "claims" / "benchmarks.md"),
     (ROOT / "README.md", ROOT / "docs" / "claims" / "README.md"),
+    (
+        ROOT / "docs" / "queries-by-task.md",
+        ROOT / "docs" / "claims" / "queries-by-task.md",
+    ),
 )
 
 #: The manifest keys whose text reaches an agent: `instructions` is the

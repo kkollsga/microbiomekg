@@ -29,6 +29,7 @@ redistribution permission, so what ships is the pipeline.
 :caption: Guides
 
 usecases-and-pitfalls
+queries-by-task
 model
 sources
 evaluation

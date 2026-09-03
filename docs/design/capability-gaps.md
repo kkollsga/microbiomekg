@@ -706,6 +706,10 @@ At most eight, benchmarks first because they are cheap and decisive. Each is
 one line of scope plus what it depends on. **Not filed here** — the coordinator
 owns `dev-docs/todos.md`.
 
+**G8 shipped 2026-09-03 as `docs/queries-by-task.md`** — one Cypher statement
+per endpoint group, plus the typed-count / prefix recipe B.2 asked for; every
+block runs in the suite and every number is claim-gated.
+
 **G1–G5 shipped 2026-09-03 as `docs/benchmarks.md`**, one Cypher statement each,
 every number executed by the claim gate (`docs/claims/benchmarks.md`); the rows
 below are the scope they were run to. G1's stop rule fired on distinct pairs

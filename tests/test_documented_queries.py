@@ -34,6 +34,9 @@ kglite = pytest.importorskip("kglite")
 
 ROOT = Path(__file__).resolve().parents[1]
 PART_D = ROOT / "docs" / "usecases-and-pitfalls.md"
+#: The pages whose fenced Cypher is a published promise: Part D (the user
+#: contract) and the task page (one statement per endpoint group).
+PAGES = (("partD", PART_D), ("queries", ROOT / "docs" / "queries-by-task.md"))
 
 #: `(alias:Label` and `[alias:REL_TYPE` — how a query says what a name is.
 NODE_BINDING = re.compile(r"\((\w+)\s*:\s*([A-Za-z_]\w*)")
@@ -101,9 +104,15 @@ def carried(graph):
 
 
 def part_d_blocks() -> list[tuple[str, str]]:
-    text = PART_D.read_text(encoding="utf-8")
-    blocks = re.findall(r"```cypher\n(.*?)```", text, re.DOTALL)
-    return [(f"partD-{index}", block.strip()) for index, block in enumerate(blocks, 1)]
+    out = []
+    for tag, page in PAGES:
+        text = page.read_text(encoding="utf-8")
+        blocks = re.findall(r"```cypher\n(.*?)```", text, re.DOTALL)
+        assert blocks, f"{page.name} has no cypher fences — this scan would be vacuous"
+        out += [
+            (f"{tag}-{index}", block.strip()) for index, block in enumerate(blocks, 1)
+        ]
+    return out
 
 
 def skill_blocks() -> list[tuple[str, str]]:
