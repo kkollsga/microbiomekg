@@ -1,0 +1,148 @@
+{
+  "_doc": "ChEMBL 37 (mechanism.jsonl + molecule_max_phase4.jsonl + target.jsonl): the Drug and ProteinTarget nodes, the HAS_MECHANISM edge between them, the OF_ORGANISM edge that carries a target onto an NCBI Taxon — the one field in ChEMBL that touches a microbe, and what makes D8 partially answerable while MASI is pending — and IS_DRUG, which makes the Intervention nodes gutMDisorder mints from DrugBank ids reachable from a ChEMBL id. Drug is keyed on the PARENT molecule, so a salt form is the same drug: 1,626 mechanism rows name a salt and keying on molecule_chembl_id would split those drugs in half. The Intervention entry declares connections only — gutMDisorder owns that node's table, the way core.json owns Taxon's.",
+  "nodes": {
+    "Drug": {
+      "csv": "drug.csv",
+      "pk": "drug_id",
+      "title": "pref_name",
+      "properties": {
+        "chembl_id": "string",
+        "pref_name": "string",
+        "molecule_type": "string",
+        "max_phase": "int",
+        "first_approval": "int",
+        "atc_codes": "string",
+        "approved": "bool",
+        "withdrawn": "bool",
+        "therapeutic": "bool",
+        "oral": "bool",
+        "parenteral": "bool",
+        "topical": "bool",
+        "smiles": "string",
+        "salt_form": "bool",
+        "salt_ids": "string",
+        "source": "string",
+        "source_licence": "string",
+        "chembl_release": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "HAS_MECHANISM": {
+            "csv": "drug_target.csv",
+            "source_fk": "drug_id",
+            "target": "ProteinTarget",
+            "target_fk": "target_id",
+            "properties": [
+              "evidence_level",
+              "knowledge_level",
+              "agent_type",
+              "primary_source",
+              "source_record_id",
+              "source_licence",
+              "source_relation",
+              "action_type",
+              "mechanism_of_action",
+              "publications",
+              "regulatory_refs",
+              "clinical_phase",
+              "direct_interaction",
+              "disease_efficacy",
+              "mechanism_comment",
+              "selectivity_comment",
+              "reported_molecule_chembl_id",
+              "chembl_release"
+            ],
+            "property_types": {
+              "evidence_level": "string",
+              "knowledge_level": "string",
+              "agent_type": "string",
+              "primary_source": "string",
+              "source_record_id": "string",
+              "source_licence": "string",
+              "source_relation": "string",
+              "action_type": "string",
+              "mechanism_of_action": "string",
+              "publications": "string",
+              "regulatory_refs": "string",
+              "clinical_phase": "int",
+              "direct_interaction": "bool",
+              "disease_efficacy": "bool",
+              "mechanism_comment": "string",
+              "selectivity_comment": "string",
+              "reported_molecule_chembl_id": "string",
+              "chembl_release": "string"
+            }
+          }
+        }
+      }
+    },
+    "ProteinTarget": {
+      "csv": "protein_target.csv",
+      "pk": "target_id",
+      "title": "pref_name",
+      "properties": {
+        "chembl_id": "string",
+        "pref_name": "string",
+        "target_type": "string",
+        "organism": "string",
+        "tax_id": "int",
+        "uniprot": "string",
+        "n_components": "int",
+        "species_group": "bool",
+        "source": "string",
+        "source_licence": "string",
+        "chembl_release": "string"
+      },
+      "connections": {
+        "junction_edges": {
+          "OF_ORGANISM": {
+            "csv": "protein_target_taxon.csv",
+            "source_fk": "target_id",
+            "target": "Taxon",
+            "target_fk": "tax_id",
+            "properties": [
+              "reported_tax_id",
+              "resolution_status",
+              "organism",
+              "primary_source",
+              "source_licence"
+            ],
+            "property_types": {
+              "reported_tax_id": "int",
+              "resolution_status": "string",
+              "organism": "string",
+              "primary_source": "string",
+              "source_licence": "string"
+            }
+          }
+        }
+      }
+    },
+    "Intervention": {
+      "connections": {
+        "junction_edges": {
+          "IS_DRUG": {
+            "csv": "intervention_drug.csv",
+            "source_fk": "intervention_id",
+            "target": "Drug",
+            "target_fk": "drug_id",
+            "properties": [
+              "match_method",
+              "matched_name",
+              "drugbank_id",
+              "primary_source",
+              "source_licence"
+            ],
+            "property_types": {
+              "match_method": "string",
+              "matched_name": "string",
+              "drugbank_id": "string",
+              "primary_source": "string",
+              "source_licence": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -891,3 +891,192 @@ def test_d7_and_d2_meet_on_one_taxon(graph):
     assert result["name"] == "Escherichia coli"
     assert result["determinants"] == D7["ecoli_determinants"]
     assert result["associations"] > 0 and result["diseases"] > 0
+
+
+# --------------------------------------------------------------------------
+# ChEMBL — "drugs and their targets are reachable from the graph"
+#
+# D8 and D18 stay `pending-source: MASI`: ChEMBL carries no drug↔taxon edge at
+# all, and no query below invents one. What lands here is the half of those two
+# queries that ChEMBL can supply — the `Drug` and `ProteinTarget` nodes, the
+# mechanism between them, and the target organisms, which is what makes "which
+# approved drugs act on a bacterial protein?" answerable one join short of
+# "which gut bacteria does this drug inhibit?".
+# --------------------------------------------------------------------------
+
+#: Measured 2026-09-03 on the full build: ChEMBL 37 REST subset (7,561
+#: mechanism rows, 4,225 max_phase-4 molecules, 1,518 targets) against NCBI
+#: `new_taxdump` 2026-09-02, `--scope microbial`.
+CHEMBL_GOLDEN = {
+    # 4,225 molecule rows collapse to 3,120 nodes (1,105 are a salt of another
+    # approved molecule), plus 2,910 molecules a mechanism names and the
+    # max_phase-4 file does not carry.
+    "drugs": 6030,
+    "approved": 3120,
+    "withdrawn": 297,
+    "targets": 1518,
+    "mechanisms": 6984,          # 7,561 rows − 577 with no target
+    "of_organism": 1493,         # 98.4% of targets carry a tax_id
+    "target_taxa": 94,           # 125 source taxids, promoted to the species ceiling
+    "non_human_mechanisms": 865,
+    # The D8 slice that exists today: approved drugs acting on a protein of a
+    # bacterium.
+    "bacterial_drugs": 95,
+    "bacterial_drugs_approved": 65,
+    "bacterial_taxa": 28,
+    "evidence_levels": {"in-vitro": 3153, "interventional-rct": 2059, "unknown": 1772},
+    # 15 of gutMDisorder's 222 interventions carry a name ChEMBL knows.
+    "is_drug": 15,
+    "interventions": 222,
+    "metformin": "CHEMBL:CHEMBL1431",
+}
+
+
+@pytest.fixture(scope="session")
+def chembl_graph(graph):
+    """The same graph, skipped when the build did not include ChEMBL."""
+    if not (CSV_DIR / "drug.csv").is_file():
+        pytest.skip(
+            "no drug.csv in the built CSVs — this build did not load ChEMBL, "
+            "which is a different build rather than a regression"
+        )
+    return graph
+
+
+def test_chembl_drugs_and_their_targets_are_reachable(chembl_graph):
+    """The acceptance sentence, as one query: from a drug, to the protein it
+    acts on, to the organism that protein belongs to — with the evidence and
+    the licence on the edge."""
+    result = one(
+        chembl_graph,
+        """
+        MATCH (d:Drug)-[r:HAS_MECHANISM]->(p:ProteinTarget)
+        RETURN count(r) AS mechanisms, count(DISTINCT d) AS drugs,
+               count(DISTINCT p) AS targets
+        """,
+    )
+    assert result["mechanisms"] == CHEMBL_GOLDEN["mechanisms"]
+    assert result["targets"] == CHEMBL_GOLDEN["targets"]
+    nodes = one(
+        chembl_graph,
+        "MATCH (d:Drug) RETURN count(d) AS drugs, "
+        "sum(CASE WHEN d.approved THEN 1 ELSE 0 END) AS approved, "
+        "sum(CASE WHEN d.withdrawn THEN 1 ELSE 0 END) AS withdrawn",
+    )
+    assert nodes["drugs"] == CHEMBL_GOLDEN["drugs"]
+    assert nodes["approved"] == CHEMBL_GOLDEN["approved"]
+    assert nodes["withdrawn"] == CHEMBL_GOLDEN["withdrawn"]
+    # A worked example, so "reachable" is not a count nobody read: vancomycin,
+    # its target and that target's organism.
+    walk = rows(
+        chembl_graph,
+        """
+        MATCH (d:Drug {pref_name: 'VANCOMYCIN'})-[r:HAS_MECHANISM]->
+              (p:ProteinTarget)-[:OF_ORGANISM]->(t:Taxon)
+        RETURN p.title AS target, p.uniprot AS uniprot, t.title AS organism,
+               r.action_type AS action, r.evidence_level AS level,
+               r.source_licence AS licence
+        """,
+    )
+    assert walk, "vancomycin reaches no target organism"
+    assert all(row["licence"] == "CC-BY-SA-3.0" for row in walk)
+
+
+def test_chembl_a_bacterial_target_is_the_half_of_d8_that_exists(chembl_graph):
+    """865 mechanism rows point at a non-human target, and those are the only
+    part of ChEMBL that touches a microbe. This is D8's "which drugs hit
+    bacterial targets" — the *protein* half, which needs no MASI.
+
+    Approved and unapproved are counted separately because they answer
+    different questions: 65 of the 95 are marketed drugs, and the other 30 are
+    molecules the max_phase-4 file does not carry, which a clinical reading
+    must exclude and a mechanism reading must not."""
+    result = one(
+        chembl_graph,
+        """
+        MATCH (d:Drug)-[:HAS_MECHANISM]->(p:ProteinTarget)-[:OF_ORGANISM]->(t:Taxon)
+        WHERE t.lineage_domain = 'Bacteria'
+        RETURN count(DISTINCT d) AS drugs, count(DISTINCT t) AS taxa,
+               count(DISTINCT CASE WHEN d.approved THEN d.id END) AS approved
+        """,
+    )
+    assert result["drugs"] == CHEMBL_GOLDEN["bacterial_drugs"]
+    assert result["approved"] == CHEMBL_GOLDEN["bacterial_drugs_approved"]
+    assert result["taxa"] == CHEMBL_GOLDEN["bacterial_taxa"]
+    organisms = one(
+        chembl_graph,
+        "MATCH (p:ProteinTarget)-[:OF_ORGANISM]->(t:Taxon) "
+        "RETURN count(*) AS edges, count(DISTINCT t) AS taxa",
+    )
+    assert organisms["edges"] == CHEMBL_GOLDEN["of_organism"]
+    assert organisms["taxa"] == CHEMBL_GOLDEN["target_taxa"]
+
+
+def test_chembl_d8_and_d18_are_still_pending_because_the_drug_taxon_edge_is_absent(
+    chembl_graph,
+):
+    """The gap is load-bearing and must stay visible: ChEMBL has **no**
+    drug↔taxon edge, so "does this drug inhibit gut commensals?" (D8) and the
+    metformin confounding check (D18) cannot be answered, and a graph that
+    quietly grew a `Drug`–`Taxon` shortcut through a shared organism would
+    answer them wrongly. The only path from a drug to a taxon runs through the
+    protein it acts on, which is a different claim."""
+    direct = one(
+        chembl_graph,
+        "MATCH (d:Drug)-[r]-(t:Taxon) RETURN count(r) AS edges",
+    )
+    assert direct["edges"] == 0
+    # And metformin — D18's drug — is present and reachable, so the query is one
+    # source away rather than one model change away.
+    metformin = one(
+        chembl_graph,
+        f"MATCH (d:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}}) "
+        "RETURN d.title AS name, d.atc_codes AS atc, d.first_approval AS approved",
+    )
+    assert metformin["name"] == "METFORMIN"
+    assert metformin["atc"] == "A10BA02"
+
+
+def test_chembl_an_intervention_that_names_a_drug_reaches_it(chembl_graph):
+    """gutMDisorder mints `Intervention` nodes with DrugBank ids; ChEMBL's
+    molecule subset carries none, so the join is an exact name match and it is
+    thin on purpose — 15 of 222. The rest are ledgered rather than fuzzy
+    matched, and the low rate is the measurement, not a failure."""
+    result = one(
+        chembl_graph,
+        "MATCH (i:Intervention)-[r:IS_DRUG]->(d:Drug) "
+        "RETURN count(r) AS links, count(DISTINCT d) AS drugs, "
+        "collect(DISTINCT r.match_method) AS methods",
+    )
+    assert result["links"] == CHEMBL_GOLDEN["is_drug"]
+    assert result["methods"] == ["pref_name"]
+    total = one(chembl_graph, "MATCH (i:Intervention) RETURN count(i) AS n")["n"]
+    assert total == CHEMBL_GOLDEN["interventions"]
+
+
+def test_chembl_every_mechanism_edge_says_how_it_was_demonstrated(chembl_graph):
+    """The project's thesis applied to a source with no study design at all:
+    an approved label and a paper are different claims, and both are
+    countable. `unknown` is 25% of the edges and is a value, not a null."""
+    levels = {
+        r["level"]: r["edges"]
+        for r in rows(
+            chembl_graph,
+            "MATCH ()-[r:HAS_MECHANISM]->() "
+            "RETURN r.evidence_level AS level, count(r) AS edges",
+        )
+    }
+    assert levels == CHEMBL_GOLDEN["evidence_levels"]
+    audit = {
+        r["rule"]: r
+        for r in rows(
+            chembl_graph,
+            "CALL ontology_audit() YIELD rule, severity, violations, total "
+            "RETURN rule, severity, violations, total",
+        )
+    }
+    for rule in ("HAS_MECHANISM.required_properties", "OF_ORGANISM.required_properties",
+                 "IS_DRUG.required_properties"):
+        assert audit[rule]["severity"] == "error"
+        assert audit[rule]["violations"] == 0
+        assert audit[rule]["total"] > 0, f"{rule} audits nothing"

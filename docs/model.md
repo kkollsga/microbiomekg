@@ -29,8 +29,8 @@ editing a shared one (§8).
 | `Intervention` | `INTERVENTION:<slug>` | `label` | gutMDisorder `Intervention` (+ `drugbank_id`) | 2 |
 | `Metabolite` | HMDB id | `name` | HMDB; ChEBI/KEGG/PubChem as properties | 2 |
 | `Pathway` | `R-HSA-…` / `mapNNNNN` | `name` | Reactome / KEGG, `source` property | 2 |
-| `Drug` | ChEMBL id | `pref_name` | ChEMBL `max_phase = 4` | 3 |
-| `ProteinTarget` | ChEMBL target id | `pref_name` | ChEMBL; `uniprot` property | 3 |
+| `Drug` | `CHEMBL:<parent molecule id>` | `pref_name` | ChEMBL `max_phase = 4` **and** every molecule a mechanism names | 3 |
+| `ProteinTarget` | `CHEMBL:<target id>` | `pref_name` | ChEMBL; `uniprot`, `tax_id` properties | 3 |
 | `ResistanceGene` | `ARO:3002999` | `name` | CARD `card.json` model, named from `aro.obo` | 3 |
 | `DrugClass` | `ARO:0000032` | `label` | CARD ARO category `Drug Class` | 3 |
 | `ResistanceMechanism` | `ARO:0001004` | `label` | CARD ARO category `Resistance Mechanism` | 3 |
@@ -472,6 +472,113 @@ first of them so the contract's integer column is filled, and it is *a*
 citation for the determinant, not a claim to be the principal one.
 
 ---
+
+### ChEMBL — one drug, whatever salt it was curated as
+
+**6,030 `Drug` nodes, 1,518 `ProteinTarget` nodes, 6,984 `HAS_MECHANISM`
+edges, 1,493 `OF_ORGANISM` edges, 15 `IS_DRUG` edges.** Three JSONL files, CC
+BY-SA 3.0 — the only copyleft source in the graph, which is why
+`source_licence` and `chembl_release` (`ChEMBL 37`) ride on every ChEMBL node
+and edge rather than living only in `docs/sources.md`: a per-edge licence is
+what lets the rest of the graph be redistributed on its own terms.
+
+**`Drug` is keyed on the *parent* molecule.** 1,626 mechanism rows name a salt
+rather than the free base, and 1,105 of the 4,225 approved molecules *are* a
+salt of another one in the same file. Keyed on `molecule_chembl_id`, metformin
+and metformin hydrochloride are two nodes with half the mechanisms each and
+nothing says so. The parent comes from `mechanism.parent_molecule_chembl_id`,
+which is 100% filled — the molecule file carries no `molecule_hierarchy` field
+at all, so a molecule no mechanism names has no parent evidence anywhere in the
+fetched subset and keeps its own id. The salt id the row actually carried stays
+on the edge as `reported_molecule_chembl_id`, and the collapsed ids stay on the
+node as `salt_ids`, so the normalisation is reversible. `Drug.salt_form` marks
+a node whose *properties* had to be read from a salt record because the parent
+has none: **0 on ChEMBL 37**, and implemented anyway because it stops being 0
+the day a release ships a salt whose parent is not approved.
+
+**Both halves of the molecule set load, and `approved` says which is which.**
+`mechanism.jsonl` names 5,954 molecules and the max_phase-4 file holds 3,025 of
+them. Filtering the mechanisms to the molecules file drops 49% of them
+silently; loading them against nothing mints nameless drugs indistinguishable
+from approved ones. `source-formats.md` §6 asks for an explicit decision rather
+than half of each, and this is it: 3,120 nodes with a `pref_name`, an ATC code
+and an approval year, and 2,910 with `approved = false`, no name and their
+mechanisms intact.
+
+**`ProteinTarget.tax_id` is the only field in ChEMBL that touches a microbe.**
+It is on 98.4% of targets, resolves through `microbiomekg.reconcile` like every
+other source's organism, and yields 1,493 `OF_ORGANISM` edges over 94 taxa
+(125 source taxids, promoted to the species ceiling; **every one live in
+`nodes.dmp`** — the cleanest taxid set of any source here). 865 mechanism edges
+land on a non-human target, and 95 drugs — 65 of them approved — reach a
+protein of one of 28 bacteria. **That is the half of D8 that exists**: "which
+drugs act on a
+bacterial protein" is answerable now; "which gut bacteria does this drug
+inhibit" still needs MASI, because ChEMBL carries no drug↔taxon edge at all.
+D8 and D18 therefore stay `pending-source: MASI`, and
+`tests/test_acceptance.py` asserts that no `Drug`–`Taxon` edge exists, so the
+gap cannot close by accident.
+
+A target whose taxid the loaded taxonomy does not carry is a **ledger row, not
+an edge**: the junction loader vivifies a stub node for a missing endpoint
+(§8), so writing one through would grow `Taxon` nodes whose only name is their
+own id.
+
+**`HAS_MECHANISM` carries seven required properties, not the fourteen-field
+contract.** Eight of those fourteen describe a differential-abundance
+observation — direction, group sizes, sequencing type, statistical test — and a
+drug–protein mechanism has none of them. Requiring them would report ~100%
+violations meaning "this is not an abundance study" rather than "this evidence
+is missing", and an audit row that always reads 100% is one nobody looks at
+again. What is required is the §5(b) provenance set plus `evidence_level`, all
+written by our prep unconditionally — so the rule is declared at **`error`**,
+where a violation is a regression here rather than a gap upstream. The upstream
+gaps stay countable elsewhere: 577 mechanisms with no target and 25 targets
+with no `tax_id` are ledger rows in `unresolved_chembl.csv`, and the 42
+reference-less rows land in `evidence_level = 'unknown'`.
+
+**Three evidence levels, from a source with no study design.** `max_phase = 4`
+**and** a regulatory reference (DailyMed/FDA/EMA/PMDA/HMA/BNF) is
+`interventional-rct` — an approved label is a regulator's finding that the
+mechanism supports an approved indication. References that are *all* literature
+(PubMed/PMC/DOI) are `in-vitro`. Everything else is `unknown`. Measured:
+`in-vitro` 3,153, `interventional-rct` 2,059, `unknown` 1,772. Never
+`computational-predicted` — nothing in this subset is predicted. "All", not
+"any": one Wikipedia entry in the reference set means the mechanism is not
+carried by papers alone, which moves 1,070 edges from `in-vitro` to `unknown`
+and is the conservative direction.
+
+**`IS_DRUG` is a name match, because the id route does not exist.** The
+intended join was the DrugBank id gutMDisorder puts on 35 of its 222
+`Intervention` nodes — but the fetched molecule JSONL carries **no**
+cross-references at all (the REST pull's `only=` kept 13 of 34 fields), so
+there is no DrugBank, ChEBI or PubChem id on the ChEMBL side to join to. The
+link is therefore an **exact, casefolded, whole-label** match against ChEMBL's
+`pref_name` (a salt's name resolves onto its parent's node), and it is thin on
+purpose: **15 of 222**. Every miss is a row in `unresolved_chembl.csv` naming
+the drugs it would have reached — `Acetylsalicylic acid` is ASPIRIN to ChEMBL,
+and `Clarithromycin,Metronidazole` is one cell naming two molecules — because
+accepting either would invent an intervention gutMDisorder never curated.
+
+> **The link needs a prep-order hook this repo does not have.**
+> `intervention.csv` is gutMDisorder's, and `scripts/build.py` runs the prep
+> scripts in **name** order, which puts `prep_chembl.py` first — so in a
+> single-pass build the table is not there yet and `IS_DRUG` is empty, reported
+> as such on stderr. Re-running `python scripts/prep_chembl.py` after a build
+> merges the links in. The fix is the ordering hook `prep_taxonomy` already
+> has (it runs last because it reads `cited_taxa.csv`), and it belongs in
+> `build.py` rather than in a workaround here — a consumer that re-derived
+> another source's node ids from its raw input would dangle silently, and a
+> dangling junction endpoint is vivified rather than refused.
+
+Two statements in `docs/research/source-formats.md`'s ChEMBL extraction table
+did not survive contact and are corrected here rather than there:
+`(ProteinTarget)-[:IN_ORGANISM]->(Taxon)` is spelled `OF_ORGANISM` in the
+built graph, and the evidence values it names (`interventional_clinical`,
+`in_vitro`, `computational_predicted`) are the underscore spellings Part B
+maps onto the hyphenated vocabulary on write. Its claim that **one** PubMed
+reference carries a URL is two — and both sit on mechanisms with no target, so
+no edge is affected either way.
 
 ## 3. Taxon reconciliation
 
