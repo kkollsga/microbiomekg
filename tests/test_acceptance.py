@@ -1012,15 +1012,17 @@ def test_chembl_a_bacterial_target_is_the_half_of_d8_that_exists(chembl_graph):
     assert organisms["taxa"] == CHEMBL_GOLDEN["target_taxa"]
 
 
-def test_chembl_d8_and_d18_are_still_pending_because_the_drug_taxon_edge_is_absent(
+def test_chembl_has_no_drug_taxon_edge_which_is_what_keeps_d8_partial(
     chembl_graph,
 ):
     """The gap is load-bearing and must stay visible: ChEMBL has **no**
-    drug↔taxon edge, so "does this drug inhibit gut commensals?" (D8) and the
-    metformin confounding check (D18) cannot be answered, and a graph that
-    quietly grew a `Drug`–`Taxon` shortcut through a shared organism would
-    answer them wrongly. The only path from a drug to a taxon runs through the
-    protein it acts on, which is a different claim."""
+    drug↔taxon edge, and a graph that quietly grew a `Drug`–`Taxon` shortcut
+    through a shared organism would answer D8 and D18 wrongly. Within ChEMBL
+    the only path from a drug to a taxon runs through the protein it acts on,
+    which is a different claim. The drug→taxon leg those two queries do have
+    comes from *gutMDisorder* — `ABUNDANCE_CHANGED_BY` joined through
+    `IS_DRUG` — and is 15 interventions wide, which is why both are `partial`
+    rather than `answerable-now`."""
     direct = one(
         chembl_graph,
         "MATCH (d:Drug)-[r]-(t:Taxon) RETURN count(r) AS edges",
@@ -1362,3 +1364,289 @@ def test_d13_a_default_build_carries_no_kegg_pathway(metabolite_graph):
         metabolite_graph,
         "MATCH ()-[r]->() WHERE r.source_licence = 'KEGG-restricted' RETURN r LIMIT 1",
     )
+
+
+# --------------------------------------------------------------------------
+# The three `partial` queries whose legs the later sources moved
+#
+# D10, D12 and D18 are `partial` in Part D, and Part D requires every
+# `answerable-now` **and** `partial` query to have a matching test — a status
+# nothing runs is a claim, not a contract. Each of these was measured on the
+# same 2026-09-03 six-source build as the goldens above, and each says which
+# leg works and which is still waiting on a source.
+# --------------------------------------------------------------------------
+
+PARTIAL_GOLDEN = {
+    # D10 — inflammatory bowel disease (MONDO:0005265), replicated depletions.
+    # The AMR and metabolite columns read 0 and [] for every row before CARD
+    # and HMDB landed; they are the two numbers that say the legs exist.
+    "d10_candidates": 26,
+    "d10_with_amr": 4,
+    "d10_with_metabolites": 7,
+    "d10_candidates_any_support": 118,
+    # D12 — the synonym lookup, and the rank filter that makes it an answer.
+    "d12_reuteri": 1598,
+    "d12_rhamnosus": 47715,
+    "d12_scoring_taxa": 726,
+    "d12_authority_synonym": "Lactobacillus reuteri Kandler et al. 1982",
+    "d12_reuteri_signatures": 69,
+    "d12_resolution_statuses": {
+        "exact": 114161, "merged": 413, "promoted": 152, "deleted": 16,
+    },
+    # D18 — metformin as a competing explanation, through gutMDisorder's
+    # intervention edge joined to ChEMBL's drug identity by IS_DRUG.
+    "d18_metformin_edges": 24,
+    "d18_metformin_taxa": 21,
+    "d18_t2d_rows": 19,
+    "d18_t2d_taxa": 17,
+    # Forslund et al.'s named fixtures. gutMDisorder curates a metformin edge
+    # for none of the first three, which is why D18 is not `answerable-now`.
+    "d18_absent_fixtures": ("Escherichia", "Intestinibacter", "Lactobacillus"),
+    "d18_present_fixture": "Bifidobacterium",
+}
+
+
+@pytest.fixture(scope="session")
+def synonym_index(graph):
+    """`text_bm25` is opt-in, so D12's query needs the index built first —
+    which `scripts/build.py` does and the acceptance fixture does not."""
+    graph.build_text_index("Taxon", "synonyms")
+    return graph
+
+
+# --------------------------------------------------------------------------
+# D10 — "For disease Y, which depleted taxa are plausible probiotic candidates?"
+# --------------------------------------------------------------------------
+
+
+def test_d10_the_amr_and_metabolite_legs_are_populated_not_zero(graph):
+    """Part D filed D10 `partial` with the AMR and metabolite columns
+    returning `0` and `[]` for every row — "the honest answer, not a bug".
+    CARD and HMDB changed that, and the two counts are what the status now
+    rests on: the gap is coverage, not a missing relationship."""
+    result = one(
+        graph,
+        """
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005265'})
+        WHERE r.direction = 'decreased' AND t.placeholder = false
+        WITH t, count(DISTINCT r.study_id) AS n_studies
+        WHERE n_studies >= 2
+        OPTIONAL MATCH (t)-[:CARRIES_RESISTANCE_GENE]->(a:ResistanceGene)
+        OPTIONAL MATCH (t)-[:PRODUCES]->(m:Metabolite)
+        WITH t, count(DISTINCT a) AS amr, count(DISTINCT m) AS metabolites
+        RETURN count(*) AS candidates,
+               sum(CASE WHEN amr > 0 THEN 1 ELSE 0 END) AS with_amr,
+               sum(CASE WHEN metabolites > 0 THEN 1 ELSE 0 END) AS with_metabolites
+        """,
+    )
+    assert result["candidates"] == PARTIAL_GOLDEN["d10_candidates"]
+    assert result["with_amr"] == PARTIAL_GOLDEN["d10_with_amr"]
+    assert result["with_metabolites"] == PARTIAL_GOLDEN["d10_with_metabolites"]
+
+
+def test_d10_g4_is_the_two_study_clause_not_a_nicety(graph):
+    """84.2% of (taxon, condition) pairs rest on a single study and the sign of
+    a single-study association flips about one time in three, so a candidate
+    list without `n_studies >= 2` is a list of coin flips. The clause drops
+    **92 of 118** candidates here — measured, so a build where it stopped
+    filtering could not pass by returning the same list twice."""
+    def candidates(minimum: int) -> int:
+        return one(
+            graph,
+            f"""
+            MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {{id: 'MONDO:0005265'}})
+            WHERE r.direction = 'decreased' AND t.placeholder = false
+            WITH t, count(DISTINCT r.study_id) AS n_studies
+            WHERE n_studies >= {minimum}
+            RETURN count(*) AS n
+            """,
+        )["n"]
+    assert candidates(2) == PARTIAL_GOLDEN["d10_candidates"]
+    assert candidates(1) == PARTIAL_GOLDEN["d10_candidates_any_support"]
+
+
+# --------------------------------------------------------------------------
+# D12 — "This paper says Lactobacillus reuteri. What is the current name?"
+# --------------------------------------------------------------------------
+
+
+def test_d12_the_synonym_lookup_needs_the_rank_filter_to_be_an_answer(
+    synonym_index,
+):
+    """**Part D's golden was wrong until this was run.** Unfiltered, the top
+    BM25 hits for an obsolete binomial are *strains*: a strain's synonym string
+    repeats the binomial in a shorter document, which is exactly what BM25
+    scores higher. The species the question is about is only the top hit once
+    the query says it wants a species."""
+    unfiltered = rows(
+        synonym_index,
+        """
+        MATCH (t:Taxon)
+        WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+        RETURN t.id AS tax_id, t.rank AS rank,
+               text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
+        ORDER BY score DESC LIMIT 3
+        """,
+    )
+    assert [r["rank"] for r in unfiltered] == ["strain"] * 3
+    assert PARTIAL_GOLDEN["d12_reuteri"] not in {r["tax_id"] for r in unfiltered}
+
+    filtered = rows(
+        synonym_index,
+        """
+        MATCH (t:Taxon)
+        WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+          AND t.rank = 'species'
+        RETURN t.id AS tax_id, t.title AS current_name, t.rank AS rank,
+               t.synonyms AS synonyms,
+               text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
+        ORDER BY score DESC LIMIT 3
+        """,
+    )
+    assert filtered[0]["tax_id"] == PARTIAL_GOLDEN["d12_reuteri"]
+    assert filtered[0]["current_name"] == "Limosilactobacillus reuteri"
+    # C4, in the built graph: NCBI keeps the old binomial **only** in
+    # authority-decorated form, so a resolver indexing name classes literally
+    # returns `unresolved` for it and the failure looks like a data gap.
+    synonyms = filtered[0]["synonyms"].split(" | ")
+    assert PARTIAL_GOLDEN["d12_authority_synonym"] in synonyms
+    assert "Lactobacillus reuteri" not in synonyms
+    # And the rank filter is load-bearing rather than tidy: 726 taxa score
+    # above zero on that query.
+    assert one(
+        synonym_index,
+        "MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0 "
+        "RETURN count(t) AS n",
+    )["n"] == PARTIAL_GOLDEN["d12_scoring_taxa"]
+
+
+def test_d12_the_rhamnosus_case_answers_cleanly_and_is_still_partial(
+    synonym_index,
+):
+    """The note Part D attaches to this query: `Lactobacillus rhamnosus`
+    resolves to 47715 as a bare synonym, so the *lookup* is clean — and LPSN
+    records the current name as taxonomically suspended, which a graph with one
+    name field cannot express. The test asserts the half that is answerable."""
+    result = rows(
+        synonym_index,
+        """
+        MATCH (t:Taxon)
+        WHERE text_bm25(t, 'synonyms', 'Lactobacillus rhamnosus') > 0
+          AND t.rank = 'species'
+        RETURN t.id AS tax_id, t.title AS name,
+               text_bm25(t, 'synonyms', 'Lactobacillus rhamnosus') AS score
+        ORDER BY score DESC LIMIT 3
+        """,
+    )
+    assert result[0]["tax_id"] == PARTIAL_GOLDEN["d12_rhamnosus"]
+    assert result[0]["name"] == "Lacticaseibacillus rhamnosus"
+
+
+def test_d12_the_audit_trail_records_a_resolution_that_needed_no_rescue(graph):
+    """The second half of D12's golden, and it also came out other than Part D
+    claimed. BugSigDB prints the **current** name, so every one of taxon 1598's
+    report edges resolved `exact` with no authority stripping — and
+    `resolution_normalized` is true on **no edge in the graph**. Authority
+    stripping is a resolver path this corpus never exercises; asserting it here
+    would be asserting a fact about `tests/test_reconcile.py`."""
+    trail = rows(
+        graph,
+        """
+        MATCH (t:Taxon {id: 1598})-[r:REPORTED_BY]->(s:Signature)
+        RETURN r.reported_name AS as_printed, r.reported_tax_id AS as_given,
+               r.resolution_status AS status,
+               r.resolution_normalized AS needed_authority_stripping,
+               r.resolution_note AS note, count(s) AS signatures
+        ORDER BY as_printed
+        """,
+    )
+    assert len(trail) == 1
+    assert trail[0]["as_printed"] == "Limosilactobacillus reuteri"
+    assert trail[0]["status"] == "exact"
+    assert trail[0]["needed_authority_stripping"] is False
+    assert trail[0]["signatures"] == PARTIAL_GOLDEN["d12_reuteri_signatures"]
+    statuses = {
+        r["status"]: r["n"]
+        for r in rows(
+            graph,
+            "MATCH ()-[r:REPORTED_BY]->() "
+            "RETURN r.resolution_status AS status, count(r) AS n",
+        )
+    }
+    assert statuses == PARTIAL_GOLDEN["d12_resolution_statuses"]
+    assert not rows(
+        graph,
+        "MATCH ()-[r:REPORTED_BY]->() WHERE r.resolution_normalized = true "
+        "RETURN r LIMIT 1",
+    ), "an edge now needed authority stripping — D12's golden can be restated"
+
+
+# --------------------------------------------------------------------------
+# D18 — the metformin confounding check
+# --------------------------------------------------------------------------
+
+
+def test_d18_metformin_is_offered_as_a_competing_explanation(graph):
+    """What moved D18 off `pending-source`: gutMDisorder curates metformin as
+    an `Intervention` and ChEMBL knows METFORMIN, so `IS_DRUG` joins them and
+    the drug→taxon leg exists — for the 15 interventions that join, at least.
+    17 T2D taxa can be handed their competing explanation, which is 17 more
+    than a graph with no drug→taxon layer at all."""
+    reach = one(
+        graph,
+        f"""
+        MATCH (t:Taxon)-[r:ABUNDANCE_CHANGED_BY]->(i:Intervention)
+              -[:IS_DRUG]->(d:Drug {{id: '{CHEMBL_GOLDEN["metformin"]}'}})
+        RETURN count(r) AS edges, count(DISTINCT t.id) AS taxa,
+               collect(DISTINCT r.direction) AS directions
+        """,
+    )
+    assert reach["edges"] == PARTIAL_GOLDEN["d18_metformin_edges"]
+    assert reach["taxa"] == PARTIAL_GOLDEN["d18_metformin_taxa"]
+    # G4 again: the drug's effect is reported in both directions and neither
+    # is resolved away.
+    assert sorted(reach["directions"]) == ["decreased", "increased"]
+
+    joined = rows(
+        graph,
+        f"""
+        MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {{id: 'MONDO:0005148'}})
+        MATCH (t)-[a:ABUNDANCE_CHANGED_BY]->(i:Intervention)
+              -[:IS_DRUG]->(drug:Drug {{id: '{CHEMBL_GOLDEN["metformin"]}'}})
+        WITH t, collect(DISTINCT r.direction) AS direction_in_t2d,
+             collect(DISTINCT a.direction) AS metformin_effect,
+             a.evidence_level AS metformin_level, a.pmid AS metformin_pmid,
+             count(DISTINCT r.study_id) AS t2d_studies
+        RETURN t.title AS taxon, direction_in_t2d, t2d_studies,
+               metformin_effect, metformin_level, metformin_pmid,
+               'competing explanation' AS reading
+        ORDER BY t2d_studies DESC
+        """,
+    )
+    assert len(joined) == PARTIAL_GOLDEN["d18_t2d_rows"]
+    assert len({r["taxon"] for r in joined}) == PARTIAL_GOLDEN["d18_t2d_taxa"]
+    for row in joined:
+        assert row["metformin_pmid"], row
+        assert row["metformin_effect"], row
+
+
+def test_d18_is_partial_because_the_named_fixtures_are_the_missing_ones(graph):
+    """Forslund et al. name an *Escherichia* increase, an *Intestinibacter*
+    decrease and a *Lactobacillus* increase as metformin effects rather than
+    T2D signals. gutMDisorder curates a metformin edge for **none** of them —
+    only *Bifidobacterium* of the named set is reachable — so the query answers
+    with the taxa this corpus happens to have, and MASI's 4,001 + 7,770 typed
+    pairs are still what closes it."""
+    reachable = {
+        r["taxon"]
+        for r in rows(
+            graph,
+            f"""
+            MATCH (t:Taxon)-[a:ABUNDANCE_CHANGED_BY]->(i:Intervention)
+                  -[:IS_DRUG]->(d:Drug {{id: '{CHEMBL_GOLDEN["metformin"]}'}})
+            RETURN DISTINCT t.title AS taxon
+            """,
+        )
+    }
+    assert PARTIAL_GOLDEN["d18_present_fixture"] in reachable
+    assert not (set(PARTIAL_GOLDEN["d18_absent_fixtures"]) & reachable)

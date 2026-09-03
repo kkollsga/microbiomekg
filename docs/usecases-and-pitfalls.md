@@ -188,11 +188,15 @@ insulin-resistant humans (Depommier et al., Nat Med 25:1096, 2019, PMID
 31263284). No single database records more than one rung of that chain.
 gutMDisorder v2.0, NAR 51:D717 (2023); CARD, Alcock et al., NAR 48:D517 (2020).
 
-**Can this graph answer it? PARTIAL — the depletion leg only.** Replicated
+**Can this graph answer it? PARTIAL — three legs of four.** Replicated
 depletion with an evidence tier is answerable now (D10's first leg). The AMR leg
-is `pending: CARD`; the metabolite leg is `pending: MiMeDB` (HMDB alone yields
-224 microbial-origin metabolites keyed on free-text organism names, §"HMDB" in
-`source-formats.md`); the interventional-evidence leg **is loaded** —
+**is loaded**: CARD contributes 6,415 `CARRIES_RESISTANCE_GENE` edges, and 4 of
+the 26 replicated IBD depletion candidates carry a determinant (D7, D10). The
+metabolite leg is loaded **as wide as HMDB and no wider** — 578 `PRODUCES` edges
+over 272 organisms, from 224 microbial-origin metabolites keyed on free-text
+organism names (§"HMDB" in `source-formats.md`); 7 of those 26 candidates have
+one, and `pending: MiMeDB` is what makes it a leg rather than a sample. The
+interventional-evidence leg **is loaded** —
 gutMDisorder contributes 1,380
 `(Taxon)-[:ABUNDANCE_CHANGED_BY]->(Intervention)` edges over 220 interventions,
 558 of them human-interventional and 822 animal (D4). Note the graph can already *distinguish* the rungs —
@@ -219,10 +223,13 @@ load-bearing number: gutSMASH, on 1,135 individuals with matched plasma and
 faecal metabolomics, found metabolite levels "almost completely uncorrelated"
 with the metagenomic abundance of the corresponding genes (r ≈ −0.04 to 0.24).
 
-**Can this graph answer it? NO.** There is no taxon–metabolite edge today.
-**`pending: HMDB` gives 224 edges** — 0.10% of the file, keyed on uncontrolled,
-misspelled, mixed-rank organism strings with no taxid, of which 158 are
-`quantified`/`detected`. **`pending: MiMeDB`** is what makes the question
+**Can this graph answer it? PARTIAL — at HMDB's size.** The taxon–metabolite
+edge exists: **578 `PRODUCES` edges over 272 organisms and 154 metabolites**,
+`in-vitro` 543 / `computational-predicted` 35, with a replication count of 1 for
+every pair (D5). That is HMDB's whole microbial branch — **224 records, 0.10% of
+the file**, keyed on uncontrolled, misspelled, mixed-rank organism strings with
+no taxid, of which 158 are `quantified`/`detected`, and 67 of which name no
+organism at all. **`pending: MiMeDB`** is what makes the question
 answerable at scale (Microbial Sources + Metabolic Reactions carrying Precursor,
 Product, Enzyme, Enzyme's source organism, Reaction type, References; v2.0:
 29,295 metabolites, 3,725 microbes, 25,276 curated reactions). Its 23.1M
@@ -278,16 +285,22 @@ elevated minimum inhibitory concentration (MIC) over controls" — while CARD
 Prevalence is in silico only and "not included in CARD's primary curation".
 Alcock et al., NAR 48:D517 (2020); CARD 2023, NAR 51:D690, PMC9825576.
 
-**Can this graph answer it? NO — `pending: CARD`.** Four conditions apply when
-it lands, all from `source-formats.md`: key models on `Model ID` (6,463 unique;
+**Can this graph answer it? YES — CARD landed 2026-09-03** (6,451
+`ResistanceGene`s, 6,415 carriage edges, 539 taxa; D7). Four conditions applied
+and all four were met, all from `source-formats.md`: key models on `Model ID`
+(6,463 unique;
 `ARO Accession` is duplicated on 5 rows of `aro_index.tsv`), prefer the CC BY 4.0
 `aro.obo` half over the non-redistributable `card-data/` half and carry the
 licence per edge, never use `card-ontology/ncbi_taxonomy.obo` as a source of
 taxon labels (it renames `NCBITaxon:2` to CARD's editorial string), and say
 plainly what the taxon edge means — the taxid on a model is the *reference
 sequence's* organism, not the organism the gene is claimed for (132 models are
-keyed on taxid 2, "Bacteria"). A "276k AMR links" figure sourced from Prevalence
-is predicted, not curated (D7).
+keyed on taxid 2, "Bacteria" — and 264 carriage edges are above species rank in
+total). A "276k AMR links" figure sourced from Prevalence is predicted, not
+curated; the predicted layer here is 104 of 13,691 drug-class edges and one
+`WHERE` drops it (D7). The one field this workflow asked for that no download
+can supply is the RGI hit category: Perfect / Strict / Loose is produced by
+*running* RGI against a sample.
 
 ### W7. Drug–microbiome interaction lookup
 
@@ -307,13 +320,15 @@ drugs, of which 176 (65%) were metabolised by at least one strain (Nature
 49:D776, 2021, PMC7779062), the only drug resource with a directed, typed edge —
 bacteria→substance 4,001 pairs, substance→bacteria 7,770 pairs, genus-level.
 
-**Can this graph answer it? NO — `pending: MASI`.** ChEMBL, which *is* fetched,
-supplies the `Drug` and `ProteinTarget` nodes and its targets' taxids, but no
-drug↔gut-taxon edge exists in it at all. This gap is load-bearing twice over:
-it blocks W7 directly, and it is the *defence* against W2's confounding trap —
-without a drug→taxon layer the graph cannot offer "metformin" as a competing
-explanation for a T2D edge, which is exactly the error Forslund et al.
-documented (D18).
+**Can this graph answer it? PARTIAL — two narrow legs, neither MASI's.**
+ChEMBL supplies 95 drugs acting on a protein of 28 bacterial taxa (leg 1), and
+gutMDisorder's interventions joined to ChEMBL by an exact name match supply 85
+`ABUNDANCE_CHANGED_BY` edges over 15 drugs and 57 taxa (leg 2) — D8. **No
+drug↔taxon edge exists in ChEMBL itself**, and 15 of 222 interventions is the
+width of the join. That is enough to offer "metformin" as a competing
+explanation for **17** T2D taxa (D18) and not enough for the three taxa Forslund
+et al. actually named, none of which gutMDisorder curates a metformin edge for.
+MASI's 4,001 + 7,770 typed pairs are still what closes it.
 
 ### Evidence grading adopted
 
@@ -1211,12 +1226,15 @@ proposed in `docs/research/source-formats.md`'s extraction tables; where that
 document has no table yet (MiMeDB, NJC19, MASI) the names are proposed here and
 are the loader's contract.
 
-Measurements quoted as "measured" were taken from `data/csv/` on 2026-09-03,
-against the full BugSigDB dump of 2026-09-02 **and gutMDisorder v1**. Where the
-second source moved a number, the one-source value is kept beside it: a golden
-that moves when a source lands is the expected outcome, and the pair is what
-says by how much. `tests/test_acceptance.py` runs every `answerable-now` query
-below and asserts these numbers.
+Measurements quoted as "measured" were taken on 2026-09-03 from a clean
+`scripts/build.py` run over **six** sources — BugSigDB (`full_dump` 2026-09-02),
+gutMDisorder v1, CARD 4.0.2, HMDB 5.0, Reactome (2026-09-02) and ChEMBL 37 —
+against NCBI `new_taxdump` 2026-09-02 at `--scope microbial`. KEGG is
+licence-gated and **not** in any number here: a default build carries none of
+it. Where a later source moved a number the earlier value is kept beside it: a
+golden that moves when a source lands is the expected outcome, and the pair is
+what says by how much. `tests/test_acceptance.py` runs every `answerable-now`
+and `partial` query below and asserts these numbers.
 
 ---
 
@@ -1371,7 +1389,8 @@ This is A5.2. *Fields:* production direction · evidence tier · pathway/gene ·
 rank at which the claim holds · citation · replication count.
 
 ```cypher
--- pending: HMDB (224 microbial-origin edges), MiMeDB (per-taxon, with enzyme)
+// HMDB is loaded (578 edges from 224 microbial-origin records); MiMeDB —
+// per-taxon, with the enzyme — is what the status below is still waiting on.
 MATCH (t:Taxon {id: 239935})-[p:PRODUCES]->(m:Metabolite)
 RETURN m.title AS metabolite, m.chebi_id AS chebi, m.hmdb_status AS hmdb_status,
        p.evidence_level AS level, p.knowledge_level AS knowledge_level,
@@ -1379,13 +1398,36 @@ RETURN m.title AS metabolite, m.chebi_id AS chebi, m.hmdb_status AS hmdb_status,
        p.publications AS refs, p.primary_source AS source
 ORDER BY level, metabolite
 
--- the reverse (A5.2's second half): who makes butyrate?
-MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite {id: 'CHEBI:17968'})
+// the reverse (A5.2's second half): who makes butyrate?
+// CHEBI:30772 is butyric *acid*, which is what HMDB's record carries. See the
+// key note below: CHEBI:17968 is the conjugate base and matches nothing here.
+MATCH (t:Taxon)-[p:PRODUCES]->(m:Metabolite {id: 'CHEBI:30772'})
 WHERE t.placeholder = false
 RETURN t.title AS producer, t.rank AS rank, p.evidence_level AS level,
        count(DISTINCT p.source_record_id) AS n_records
 ORDER BY level, n_records DESC
 ```
+
+*Golden check (measured), and it is the HMDB half of a query whose status is
+still `pending-source`:* **578 `PRODUCES` edges over 272 organisms and 154
+metabolites**, `in-vitro` 543 / `computational-predicted` 35, and the
+replication count is **1** for every (taxon, metabolite) pair — which is the
+required qualifier below answered, not a shortfall. The reverse query returns
+**six butyrate producers, all `in-vitro`**: *Roseburia*, *Eubacterium*,
+*Anaerostipes*, *Coprococcus eutactus*, *Allocoprococcus comes* and
+*Faecalibacterium prausnitzii*.
+
+**The key in the reverse query is a contract statement the data made
+untenable.** It addressed butyrate as `CHEBI:17968`, the conjugate base; HMDB's
+butyric acid record carries `chebi_id` **30772**, the acid, and ChEBI holds
+those as two terms. `Metabolite` is keyed on HMDB's own `chebi_id`, so the
+acid/base distinction survives as two identities and the query as first written
+returned **nothing at all** — which looks exactly like "no source has this".
+
+**And the taxon the forward query names has no answer.** *Akkermansia
+muciniphila* (239935) is in the graph and HMDB attributes **no** metabolite to
+it: zero rows, on the source that is supposed to answer half of D5. That is
+this query's `pending-source` status as a number rather than a label.
 
 *Shape:* one row per (taxon, metabolite, source record). *Expected size, stated
 so nobody plans on a bigger number:* HMDB's microbial branch is **224
@@ -1412,7 +1454,7 @@ appearing as a *product*, so it does not fill it either. *Fields:* a `CONSUMES`
 edge with an evidence tier and a rank.
 
 ```cypher
--- pending: NJC19 (8,224 directed import/export/degrade events, 838 species, CC0)
+// pending: NJC19 (8,224 directed import/export/degrade events, 838 species, CC0)
 MATCH (m:Metabolite)
 OPTIONAL MATCH (p:Taxon)-[:PRODUCES]->(m) WHERE p.placeholder = false
 OPTIONAL MATCH (c:Taxon)-[:CONSUMES]->(m) WHERE c.placeholder = false
@@ -1442,69 +1484,135 @@ have both a non-zero producer and a non-zero consumer count.
 
 ### D7 — "Which AMR genes does taxon X carry, to which drug class, by which mechanism, and at what call confidence?"
 
-*Status:* **`pending-source`: CARD**. *Fields:* ARO id · detection model type ·
-RGI hit category · drug class · resistance mechanism · curated-vs-prevalence
-provenance flag.
+*Status:* **`answerable-now`** (was `pending-source: CARD`; the source landed
+2026-09-03). *Fields:* ARO id · detection model type · drug class · resistance
+mechanism · what the taxon edge actually claims. **The one field in the original
+list that is not here is the RGI hit category, and it cannot be:** Perfect /
+Strict / Loose is produced by *running* RGI against a sample, so it is a
+per-sample output and no CARD download carries it. It is not written as an empty
+placeholder; `taxon_specificity` carries the call-confidence information CARD
+*does* have, on every carriage edge.
 
 ```cypher
--- pending: CARD
-MATCH (t:Taxon {id: 562})-[c:CARRIES_DETERMINANT]->(a:AROTerm)
-OPTIONAL MATCH (a)-[:CONFERS_RESISTANCE_TO]->(dc:DrugClass)
-RETURN a.title AS determinant, a.id AS aro,
-       a.resistance_mechanism AS mechanism, dc.title AS drug_class,
-       c.model_type AS model_type, c.hit_category AS rgi_hit,
+MATCH (t:Taxon {id: 562})-[c:CARRIES_RESISTANCE_GENE]->(g:ResistanceGene)
+OPTIONAL MATCH (g)-[:CONFERS_RESISTANCE_TO]->(dc:DrugClass)
+OPTIONAL MATCH (g)-[:VIA_MECHANISM]->(m:ResistanceMechanism)
+RETURN g.title AS determinant, g.id AS aro, m.title AS mechanism,
+       dc.title AS drug_class, c.model_type AS model_type,
        c.sequence_derived AS from_reference_sequence,
-       c.evidence_level AS level, c.primary_source AS source,
-       c.source_licence AS licence
+       c.taxon_specificity AS taxon_specificity,
+       c.evidence_level AS level, c.knowledge_level AS knowledge,
+       c.primary_source AS source, c.source_licence AS licence
 ORDER BY drug_class, determinant
 ```
 
-*Four conditions the loader must satisfy, all from the source profile:* key
-models on `Model ID` (6,463 unique — `ARO Accession` is duplicated on 5 rows of
-`aro_index.tsv`, and keying on it silently drops half of each pair); take
-`card.json` as the model authority, not `aro_index.tsv` (they disagree on 84
-models); carry the licence per edge (`CC-BY-4.0` for `aro.obo`,
-`card-data-noncommercial` for `card-data/`); and never use
-`card-ontology/ncbi_taxonomy.obo` as a source of taxon labels — it renames
-`NCBITaxon:2` to CARD's own editorial string. *The claim the edge makes, stated
-on the edge:* `sequence_derived = true` means the taxid is the **reference
-sequence's** organism, which is "this sequence was cloned from this organism",
-not "this organism is resistant" — 132 models are keyed on taxid 2 (Bacteria).
-And gene presence is not phenotype: even a Perfect RGI hit "does not indicate if
-the AMR gene is expressed or if it results in elevated MIC", while AMRFinderPlus
-and ResFinder score 54–58% balanced accuracy against measured resistance. A
-"276k AMR links" figure sourced from CARD Prevalence is `computational-predicted`
-and must be excludable with one `WHERE`.
+**Three names differ from the extraction table this query was first written
+against, and each difference is a fact about the data rather than a
+preference.** `AROTerm` is `ResistanceGene` and `CARRIES_DETERMINANT` is
+`CARRIES_RESISTANCE_GENE`, because the node is one CARD *model* and
+`model_type` is the thing W6 asks for. The resistance mechanism is a
+`ResistanceMechanism` node behind `VIA_MECHANISM` rather than a string
+property, because a model may carry two of them — `MexR` is `antibiotic efflux`
+**and** `antibiotic target alteration` — which one property cannot hold.
+
+*Golden check (measured over CARD 4.0.2, `_timestamp` 2026-08-11):* **6,451
+`ResistanceGene`s, 50 `DrugClass`es and 8 `ResistanceMechanism`s**, joined by
+**6,415 `CARRIES_RESISTANCE_GENE`, 13,691 `CONFERS_RESISTANCE_TO` and 6,513
+`VIA_MECHANISM`** edges, with **539 taxa** carrying a determinant. The query
+above returns **1,535 rows for *E. coli*: 646 determinants, 31 drug classes,
+7 mechanisms**, every row `sequence_derived = true` and every row carrying its
+licence and model type. `protein variant model` is among them, which is W6's
+"detection model type" requirement populated rather than declared.
+
+*Four conditions the loader had to satisfy, all from the source profile, all
+met:* models are keyed on `Model ID` (6,463 unique — `ARO Accession` is
+duplicated on 5 rows of `aro_index.tsv`, and keying on it silently drops half
+of each pair); `card.json` is the model authority, not `aro_index.tsv` (they
+disagree on 84 models, and the disagreements are a ledger rather than a silent
+resolution); the licence rides **per edge** (`CC-BY-4.0` for `aro.obo`,
+`CARD-noncommercial` for `card-data/`); and `card-ontology/ncbi_taxonomy.obo`
+is never a source of taxon labels — it renames `NCBITaxon:2` to CARD's own
+editorial string, and taxid 2 in this graph is `Bacteria`.
+
+*The claim the edge makes, stated on the edge, and each caveat now a count:*
+`sequence_derived = true` means the taxid is the **reference sequence's**
+organism — "this sequence was cloned from this organism", not "this organism is
+resistant". **132 carriage edges are keyed on taxid 2 (Bacteria) alone, 264 are
+above species rank in total, and 18 point at something that is not an organism**
+(plasmids, a transposon, a synthetic construct); all are kept, flagged by
+`taxon_specificity`, and excludable with one clause. Gene presence is not
+phenotype: even a Perfect RGI hit "does not indicate if the AMR gene is
+expressed or if it results in elevated MIC", while AMRFinderPlus and ResFinder
+score 54–58% balanced accuracy against measured resistance. **The predicted
+layer is 104 of the 13,691 `CONFERS_RESISTANCE_TO` edges** — the 36 meta-models
+with no reference sequence — carrying `evidence_level =
+'computational-predicted'`, so a "276k AMR links" figure sourced from CARD
+Prevalence would be excluded by one `WHERE`. *And the licence finding, which is
+not a rounding error:* only **42 of 13,691** drug-class edges are `CC-BY-4.0`,
+because `aro.obo` names every term but states only 37 models' drug classes — so
+D7's answer lives in the non-redistributable half of the download.
 
 ### D8 — "Does drug D inhibit gut bacteria, or get metabolised by them, and which strains?"
 
-*Status:* **`pending-source`: MASI**. ChEMBL, which *is* fetched, supplies the
-`Drug` and `ProteinTarget` nodes and 125 target taxids, but **no drug↔gut-taxon
-edge exists in it at all**. *Fields:* drug id · taxon at strain resolution ·
-assay and readout · direction (inhibits / metabolises / no effect — the
-negatives matter) · gene.
+*Status:* **`partial`** (was `pending-source: MASI`). Two legs exist and
+neither is the one MASI would bring. *Fields:* drug id · taxon · assay and
+readout · direction · the route the claim travelled.
+
+**Leg 1 — the drug acts on a bacterial protein (ChEMBL).**
 
 ```cypher
--- pending: MASI (bacteria->substance 4,001 pairs; substance->bacteria 7,770)
-MATCH (t:Taxon)-[a:ALTERS_SUBSTANCE|ALTERS_TAXON]-(d:Drug {id: 'CHEMBL:CHEMBL1431'})
-RETURN t.title AS taxon, t.rank AS rank,
-       type(a) AS edge_direction,
-       a.alteration_effect AS effect, a.exposure_dose AS dose,
-       a.exposure_duration AS duration, a.pmid AS pmid,
-       a.evidence_level AS level, a.primary_source AS source
-ORDER BY edge_direction, taxon
+MATCH (d:Drug)-[m:HAS_MECHANISM]->(p:ProteinTarget)-[:OF_ORGANISM]->(t:Taxon)
+WHERE t.lineage_domain = 'Bacteria'
+RETURN d.title AS drug, d.approved AS approved, p.title AS target,
+       p.uniprot AS uniprot, t.title AS organism, m.action_type AS action,
+       m.evidence_level AS level, m.source_licence AS licence
+ORDER BY organism, drug
 ```
 
-*Shape:* two edge types, never one — `ALTERS_TAXON` (the drug changes the
-bacterium: Maier's 24% of human-targeted drugs inhibiting at least one of 40
-strains) and `ALTERS_SUBSTANCE` (the bacterium changes the drug: Zimmermann's
-176 of 271 oral drugs metabolised by at least one of 76 strains). Collapsing
-them into one `ASSOCIATED_WITH` conflates antimicrobial killing with drug
-metabolism, which is MDAD's documented weakness. *Rank caveat:* MASI resolves
-"down to genus level" while both landmark screens are strain-level, so the
-strain half is only available from the Maier/Zimmermann supplementary matrices
-directly. *Liveness caveat recorded in the research:* MASI's site has an expired
-TLS certificate and declares no separate database licence.
+*Golden check (measured over the ChEMBL 37 REST subset):* **95 drugs reach 28
+bacterial taxa through 1,493 `OF_ORGANISM` edges over 94 target organisms; 65
+of the 95 are approved.** Approved and unapproved are counted apart because
+they answer different questions — the other 30 are molecules the max_phase-4
+file does not carry, which a clinical reading must exclude and a mechanism
+reading must not. The whole ChEMBL layer is 6,030 `Drug`s (3,120 approved, 297
+withdrawn), 1,518 `ProteinTarget`s and 6,984 `HAS_MECHANISM` edges split
+`in-vitro` 3,153 / `interventional-rct` 2,059 / `unknown` 1,772.
+
+**Leg 2 — the drug changed a taxon's abundance (gutMDisorder, joined to ChEMBL
+by name).**
+
+```cypher
+MATCH (t:Taxon)-[r:ABUNDANCE_CHANGED_BY]->(i:Intervention)-[:IS_DRUG]->(d:Drug)
+RETURN d.title AS drug, i.title AS intervention, t.title AS taxon,
+       r.direction AS direction, r.evidence_level AS level,
+       r.host_species AS host, r.pmid AS pmid
+ORDER BY drug, taxon
+```
+
+*Golden check (measured):* **85 edges over 15 drugs and 57 taxa.** The join is
+thin on purpose: gutMDisorder mints `Intervention` nodes with DrugBank ids and
+the fetched ChEMBL molecule subset carries no cross-references at all, so the
+only available join is an **exact, casefolded, whole-label name match** — 15 of
+222 interventions. Every near miss is a ledger row naming the drugs it would
+have reached; accepting `Acetylsalicylic acid` as ASPIRIN would invent an
+intervention gutMDisorder never curated.
+
+*What is still missing, and why the status is not `answerable-now`:* **ChEMBL
+carries no drug↔taxon edge at all** — leg 1 is "this drug acts on a protein of
+this organism", which for 28 mostly-pathogen taxa is an antibacterial's target,
+not a gut-commensal effect. MASI's shape is the missing one: `ALTERS_TAXON`
+(the drug changes the bacterium: Maier's 24% of human-targeted drugs inhibiting
+at least one of 40 strains) and `ALTERS_SUBSTANCE` (the bacterium changes the
+drug: Zimmermann's 176 of 271 oral drugs metabolised by at least one of 76
+strains), **two edge types, never one** — collapsing them conflates
+antimicrobial killing with drug metabolism, which is MDAD's documented
+weakness. A graph that grew a `Drug`–`Taxon` shortcut through a shared organism
+would answer D8 wrongly, and there is none: `MATCH (d:Drug)-[r]-(t:Taxon)`
+returns **0**. *Rank caveat:* MASI resolves "down to genus level" while both
+landmark screens are strain-level, so the strain half is only available from the
+Maier/Zimmermann supplementary matrices directly. *Liveness caveat recorded in
+the research:* MASI's site has an expired TLS certificate and declares no
+separate database licence.
 
 ### D9 — "Show me every association for taxon X where the evidence is 16S-only, so I can down-weight it."
 
@@ -1520,7 +1628,7 @@ RETURN d.title AS disease, count(r) AS edges, sum(is16s) AS edges_16S,
        collect(DISTINCT r.sequencing_type) AS assays
 ORDER BY edges DESC LIMIT 20
 
--- the variable region and platform live on the Signature, not the edge:
+// the variable region and platform live on the Signature, not the edge:
 MATCH (t:Taxon {id: 851})-[:REPORTED_BY]->(s:Signature)-[:IN_CONDITION]->(d:Disease)
 WHERE s.sequencing_type = '16S'
 RETURN d.title AS disease, s.variable_region AS region,
@@ -1539,8 +1647,9 @@ species-level claim resting only on `observational-16S` edges must say so.
 
 ### D10 — "For disease Y, which depleted taxa are plausible probiotic candidates?"
 
-*Status:* **`partial`** — the depletion leg works, the AMR and metabolite legs
-do not. This is A5.4's second half. *Fields:* D2 ∪ D5 ∪ D7, joined on taxon.
+*Status:* **`partial`** — the depletion and AMR legs work, the metabolite leg
+is as wide as HMDB and no wider. This is A5.4's second half. *Fields:* D2 ∪ D5
+∪ D7, joined on taxon.
 
 ```cypher
 MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005265'})
@@ -1548,8 +1657,8 @@ WHERE r.direction = 'decreased' AND t.placeholder = false
 WITH t, count(DISTINCT r.study_id) AS n_studies,
      collect(DISTINCT r.evidence_level) AS levels
 WHERE n_studies >= 2
-OPTIONAL MATCH (t)-[:CARRIES_DETERMINANT]->(a:AROTerm)   -- pending: CARD
-OPTIONAL MATCH (t)-[p:PRODUCES]->(m:Metabolite)          -- pending: MiMeDB
+OPTIONAL MATCH (t)-[:CARRIES_RESISTANCE_GENE]->(a:ResistanceGene)
+OPTIONAL MATCH (t)-[p:PRODUCES]->(m:Metabolite)          // HMDB; MiMeDB pending
 RETURN t.title AS candidate, t.rank AS rank, n_studies, levels,
        count(DISTINCT a) AS amr_determinants,
        collect(DISTINCT m.title) AS metabolites
@@ -1557,11 +1666,17 @@ ORDER BY n_studies DESC LIMIT 20
 ```
 
 *Shape:* one row per candidate with its replication count, the strongest tier
-reached, its AMR burden and its claimed metabolites. Today the last two columns
-return `0` and `[]` for every row — that is the honest answer, not a bug, and
-D15 reports it. *The `n_studies >= 2` clause is G4, not a nicety:* 84.4% of
+reached, its AMR burden and its claimed metabolites. *Golden check (measured for
+inflammatory bowel disease, `MONDO:0005265`):* **26 candidates at
+`n_studies >= 2`; 4 of them carry an AMR determinant and 7 have at least one
+HMDB metabolite.** Both of those columns read `0` and `[]` for every row before
+CARD and HMDB landed, and the two that are populated are the reason the status
+is `partial` rather than `pending-source`: the remaining gap is coverage —
+HMDB attributes a metabolite to 272 organisms in total — not a missing
+relationship. *The `n_studies >= 2` clause is G4, not a nicety:* 84.2% of
 (taxon, condition) pairs in the current build rest on a single study, and the
-sign of a single-study association flips about one time in three. *The chain
+sign of a single-study association flips about one time in three — here the
+clause drops **92 of 118** depleted taxa, leaving the 26. *The chain
 this query is a proxy for* — observational correlation → mouse → a randomised,
 double-blind, placebo-controlled human pilot, as in the *Akkermansia muciniphila*
 case — is not recorded end-to-end by any single database, so the query returns
@@ -1614,16 +1729,18 @@ assumes. *Fields:* `merged.dmp` ids · `names.dmp` synonym classes · rank · an
 LPSN's correct-name/synonym status, which NCBI does not carry.
 
 ```cypher
--- the easy half: an obsolete binomial through the synonym index
+// the easy half: an obsolete binomial through the synonym index.
+// The rank filter is not cosmetic — see the golden check below.
 MATCH (t:Taxon)
 WHERE text_bm25(t, 'synonyms', 'Lactobacillus reuteri') > 0
+  AND t.rank = 'species'
 RETURN t.id AS tax_id, t.title AS current_name, t.rank AS rank,
        t.synonyms AS synonyms,
        text_bm25(t, 'synonyms', 'Lactobacillus reuteri') AS score
 ORDER BY score DESC LIMIT 3
 
--- and the audit trail: how did each spelling actually resolve?
-MATCH (t:Taxon {id: 47715})-[r:REPORTED_BY]->(s:Signature)
+// and the audit trail: how did each spelling actually resolve?
+MATCH (t:Taxon {id: 1598})-[r:REPORTED_BY]->(s:Signature)
 RETURN r.reported_name AS as_printed, r.reported_tax_id AS as_given,
        r.resolution_status AS status,
        r.resolution_normalized AS needed_authority_stripping,
@@ -1631,11 +1748,30 @@ RETURN r.reported_name AS as_printed, r.reported_tax_id AS as_given,
 ORDER BY as_printed
 ```
 
-*Golden check:* `Lactobacillus reuteri` → **1598** with
-`status = "synonym"` and `needed_authority_stripping = true`, because NCBI keeps
-that binomial **only** in authority-decorated form (C4) — a resolver that indexes
-name classes literally returns `unresolved` for it and for *Clostridium
-difficile*, and the failure looks like a data gap.
+*Golden check (measured), and both halves came out other than this document
+first claimed:*
+
+**The lookup finds 1598 only if it says which rank it wants.** Unfiltered, the
+top three BM25 hits for `Lactobacillus reuteri` are *strains* — 491077, 299033
+and 1273150 — because a strain's synonym string repeats the binomial in a
+shorter document and BM25 scores that higher. Filtered to `rank = 'species'`
+the answer is **1598 (*Limosilactobacillus reuteri*, score 14.16)**, whose
+synonym list carries `Lactobacillus reuteri Kandler et al. 1982` and **not** the
+bare binomial — which is C4 confirmed in the built graph: NCBI keeps that name
+only in authority-decorated form, so a resolver indexing name classes literally
+returns `unresolved` for it and for *Clostridium difficile*, and the failure
+looks like a data gap. 726 taxa score above zero on that query; the rank filter
+is what makes it an answer.
+
+**The audit trail has nothing to strip.** Every one of taxon 1598's 69
+`REPORTED_BY` edges reads `as_printed = 'Limosilactobacillus reuteri'`,
+`status = 'exact'`, `needed_authority_stripping = false` — BugSigDB prints the
+*current* name. Across the whole graph the resolution statuses are `exact`
+114,161 / `merged` 413 / `promoted` 152 / `deleted` 16, and
+`resolution_normalized` is **true on no edge at all**. Authority stripping is a
+resolver path this corpus never exercises (`tests/test_reconcile.py` is where it
+is tested), and the honest reading of the audit trail here is that the graph
+records how each spelling resolved, not that any of them needed rescuing.
 
 > **The Lacticaseibacillus rhamnosus note — why this query is `partial`.** NCBI
 > taxid **47715** has scientific name ***Lacticaseibacillus rhamnosus***, and
@@ -1657,33 +1793,57 @@ difficile*, and the failure looks like a data gap.
 
 ### D13 — "Which pathway or gene carries the production claim for taxon X → metabolite M?"
 
-*Status:* **`pending-source`: KEGG / Reactome — and misleading if unqualified.**
-*Fields:* pathway id · gene · organism rank · whether the assignment is
-genome-inferred.
+*Status:* **`partial`** (was `pending-source: KEGG / Reactome`) — the pathway
+half resolves and is **misleading if unqualified**; the *gene* half has no
+source at all. *Fields:* pathway id · gene · organism rank · whether the
+assignment is genome-inferred.
 
 ```cypher
--- pending: HMDB/MiMeDB for PRODUCES, KEGG + Reactome for PARTICIPATES_IN
-MATCH (t:Taxon {id: 239935})-[p:PRODUCES]->(m:Metabolite)-[:PARTICIPATES_IN]->(pw:Pathway)
+MATCH (t:Taxon {id: 562})-[p:PRODUCES]->(m:Metabolite)-[i:IN_PATHWAY]->(pw:Pathway)
 RETURN m.title AS metabolite, pw.id AS pathway, pw.title AS pathway_name,
-       pw.source AS pathway_source, pw.species AS pathway_species,
+       pw.pathway_source AS pathway_source, pw.species AS pathway_species,
+       i.evidence_code AS pathway_evidence, i.knowledge_level AS pathway_knowledge,
        p.evidence_level AS production_level,
        p.knowledge_level AS production_knowledge,
        'capability, not production' AS reading
 ORDER BY pathway_source, pathway
 ```
 
-*The qualifier is part of the answer.* Reactome's 23,603 pathways span **16
-model organisms and not one gut commensal**, so a Reactome hit says the
-*metabolite* participates in a human pathway, never that the taxon runs it.
-KEGG carries microbial maps but **no taxid at all** (its organism route was
-retired upstream) and ships under a restrictive licence that keeps the whole
-slice behind a build flag. So the taxon→pathway assignment is genome-inferred in
-every case available here, and gutSMASH *measured* gene abundance to be "almost
-completely uncorrelated" with metabolite level in 1,135 individuals; PICRUSt2's
-overlap with true metagenome results collapses from 654 to 66 KO terms. The row
-is labelled `capability, not production` for that reason, and gutSMASH's MGC
-types (which encode substrate and product in the type name) are the source that
-would make the claim direct — not fetched.
+*Golden check (measured, Reactome only — KEGG is licence-gated and a default
+build has none of it):* the three-hop path resolves for **4,806 rows over 95
+organisms and 635 pathways**, out of **23,604 `Pathway` nodes** and a **23,717-edge
+`PART_OF_PATHWAY` DAG in which 388 children have more than one parent** (a
+loader modelling it as a tree loses those silently). *E. coli* alone reaches 387
+rows. The `IN_PATHWAY` edges split **`IEA` 31,773 / `TAS` 4,357** — 87.7% of
+`ChEBI2Reactome.txt` is an orthology projection from human rather than a read
+paper, carried as `knowledge_level = logical_entailment` against
+`knowledge_assertion`, and it is the cleanest knowledge-level signal in the
+whole increment. Without it on the edge, D13's answer would read as curated
+throughout. Part D's D5 example, *Akkermansia muciniphila*, returns **zero
+rows** here for the reason D5 gives: HMDB attributes no metabolite to it, so
+there is no production claim for a pathway to carry.
+
+*The qualifier is part of the answer.* Reactome's 23,603 pathways span **16 model
+organisms and not one gut commensal**, and the built graph reproduces exactly
+that: every species a `PRODUCES → IN_PATHWAY` walk reaches is one of the 16, led
+by *Homo sapiens* (654 rows). So a Reactome hit says the *metabolite*
+participates in a human — or bovine, or zebrafish — pathway, never that the
+taxon runs it. **There is one exception the plan did not name:** of the 272
+organisms HMDB attributes a metabolite to, exactly one is also a species
+Reactome models, *Mycobacterium tuberculosis*, which Reactome carries for its
+infection pathways — and a tuberculosis bacillus is a pathogen, not a gut
+commensal, so "not one gut commensal" survives intact.
+
+*Why the gene half is `pending` rather than absent by choice.* KEGG carries
+microbial maps but **no taxid at all** (its organism route was retired upstream)
+and ships under a licence that keeps the whole slice behind `--with-kegg`. So
+the taxon→pathway assignment is genome-inferred in every case available here,
+and gutSMASH *measured* gene abundance to be "almost completely uncorrelated"
+with metabolite level in 1,135 individuals; PICRUSt2's overlap with true
+metagenome results collapses from 654 to 66 KO terms. The row is labelled
+`capability, not production` for that reason, and gutSMASH's MGC types (which
+encode substrate and product in the type name) are the source that would make
+the claim direct — not fetched.
 
 ### D14 — "Which of my changed taxa are just generic dysbiosis markers rather than disease-specific?"
 
@@ -1728,9 +1888,9 @@ RETURN rule, severity, violations, total, pct ORDER BY pct DESC
 ```
 
 ```cypher
--- the per-field census the audit's single percentage rolls up (C17: the
--- edge_property_violation procedure names only the FIRST missing property,
--- so a breakdown built from it under-counts every field but one)
+// the per-field census the audit's single percentage rolls up (C17: the
+// edge_property_violation procedure names only the FIRST missing property,
+// so a breakdown built from it under-counts every field but one)
 MATCH (:Taxon)-[r:ASSOCIATED_WITH]->(:Disease)
 RETURN r.primary_source AS source, count(r) AS edges,
        sum(CASE WHEN r.direction        IS NULL THEN 1 ELSE 0 END) AS no_direction,
@@ -1746,7 +1906,9 @@ ORDER BY edges DESC
 *Golden check (measured, and this is the project's headline number):*
 `ontology_audit()` must return an `ASSOCIATED_WITH.required_properties` row at
 `severity = warn` with a **non-zero denominator** and a violation fraction of
-**15,985 of 105,097 edges = 15.20%** on the 2026-09-03 two-source build
+**15,985 of 105,097 edges = 15.20%** on the 2026-09-03 six-source build
+(the association layer is still BugSigDB + gutMDisorder; the other four sources
+bring their own relationships and their own rules)
 (BugSigDB alone: 14,349 of 103,461 = 13.87%). **The rise is the audit working,
 not a regression:** all 1,636 gutMDisorder edges are violations, because that
 source records no `study_design` and its association rows carry no link to a
@@ -1762,8 +1924,13 @@ denominator means the rule is auditing property names nothing writes (C20); a
 `"unknown"` — so 17 further edges carry a level that means nothing and no
 required-property check can see them. That is deliberate (never silently
 "observational") and it is why `level_unknown` is a column here.
-*G10's expansion factor* belongs in this report too: edges per source record,
-per source, published rather than assumed.
+*G10's expansion factor* belongs in this report too, and `scripts/build.py`
+prints it for **every relationship the fragments declare** rather than for the
+three association names it once listed: edges per source record where the edge
+carries one, edges per input row where it does not, and a line of its own for a
+declared relationship that loaded **no** edges — which is the shape the
+`IS_DRUG` defect had, zero edges and a rule auditing 0 of 0, for a whole
+release.
 
 ### D16 — "Shortest path between any two entities" (A5.3)
 
@@ -1775,7 +1942,7 @@ RETURN length(p) AS hops,
        [n IN nodes(p) | labels(n)[0]] AS types,
        [n IN nodes(p) | n.title]      AS names
 
--- the evidence path, asked for explicitly rather than inferred from the shortcut
+// the evidence path, asked for explicitly rather than inferred from the shortcut
 MATCH p = (t:Taxon {id: 853})-[:REPORTED_BY]->(s:Signature)-[:IN_CONDITION]->(d:Disease {id: 'MONDO:0005011'})
 RETURN s.id AS signature, s.evidence_level AS level, s.study_design AS design,
        s.group_0_size AS n0, s.group_1_size AS n1, s.pmid AS pmid LIMIT 5
@@ -1816,34 +1983,51 @@ published findings for both were nonrobust to model specification.
 
 ### D18 — "Is this T2D association a drug effect?" — the metformin confounding check
 
-*Status:* **`pending-source`: MASI**. *Fields:* D2's, joined to a drug→taxon
-layer, plus D11's confounder columns once they are loaded.
+*Status:* **`partial`** (was `pending-source: MASI`). The competing explanation
+can be *offered* now, for the drugs gutMDisorder curates as interventions and
+ChEMBL knows by name; it cannot be offered for a drug outside those 15.
+*Fields:* D2's, joined to a drug→taxon layer, plus D11's confounder columns.
 
 ```cypher
--- pending: MASI (drug->taxon); metformin is CHEMBL:CHEMBL1431
+// metformin is CHEMBL:CHEMBL1431; the route is gutMDisorder's intervention
+// edge joined to ChEMBL's drug identity by IS_DRUG.
 MATCH (t:Taxon)-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005148'})
-MATCH (drug:Drug {id: 'CHEMBL:CHEMBL1431'})-[a:ALTERS_TAXON]->(t)
-WITH t, r.direction AS direction_in_t2d, r.evidence_level AS t2d_level,
-     a.alteration_effect AS metformin_effect, a.pmid AS metformin_pmid,
+MATCH (t)-[a:ABUNDANCE_CHANGED_BY]->(i:Intervention)-[:IS_DRUG]->(drug:Drug {id: 'CHEMBL:CHEMBL1431'})
+WITH t, collect(DISTINCT r.direction) AS direction_in_t2d,
+     collect(DISTINCT a.direction) AS metformin_effect,
+     a.evidence_level AS metformin_level, a.pmid AS metformin_pmid,
      count(DISTINCT r.study_id) AS t2d_studies
-RETURN t.title AS taxon, direction_in_t2d, t2d_studies, t2d_level,
-       metformin_effect, metformin_pmid,
+RETURN t.title AS taxon, direction_in_t2d, t2d_studies,
+       metformin_effect, metformin_level, metformin_pmid,
        'competing explanation' AS reading
 ORDER BY t2d_studies DESC
 ```
 
-*Fixtures, from Forslund et al. (Nature 528:262, 2015, PMID 26633628; 784
-metagenomes across three countries):* an ***Escherichia*** increase and an
+*Golden check (measured):* metformin reaches **21 taxa over 24
+`ABUNDANCE_CHANGED_BY` edges**, in both directions, and **17 of those taxa also
+carry a T2D association** — the query returns **19 rows**, because two taxa
+carry a metformin record from two papers. Seventeen T2D rows can be handed
+their competing explanation, which is seventeen more than before gutMDisorder
+and ChEMBL were joined. The join itself is the limit: **15 of 222 interventions** reach a
+`Drug`, by exact name match (D8, leg 2).
+
+*What the partial does not cover, and it includes two of the three named
+fixtures.* From Forslund et al. (Nature 528:262, 2015, PMID 26633628; 784
+metagenomes across three countries): an ***Escherichia*** increase and an
 ***Intestinibacter*** decrease are **metformin effects, not T2D signals** — the
 latter consistent across all three cohorts; a ***Lactobacillus*** increase
 attributed to unstratified T2D was "eliminated or reversed" when controlling for
 metformin; and increased butyrate/propionate production potential — a "beneficial
 SCFA producer" signal — was the drug, not the disease, which bears directly on
-D5 and D10. Verbatim: "metformin treatment status could be reliably recovered
-from microbial composition using SVMs, **metformin-untreated T2D status itself
-could not**". *Why the status is `pending` and not `descoped`:* without the
-drug→taxon layer the graph physically cannot offer metformin as a competing
-explanation, which is the second independent argument for closing Gap 3.
+D5 and D10. **gutMDisorder curates a metformin edge for none of *Escherichia*,
+*Intestinibacter* or *Lactobacillus*** — of the named set only *Bifidobacterium*
+appears (increased, PMID 27999002) — so the query answers with the taxa this
+corpus happens to have rather than with the ones the confounding literature
+names. That is the second independent argument for MASI (4,001 bacteria→substance
+and 7,770 substance→bacteria pairs, against 24 edges here), and it is why the
+status is `partial` and not `answerable-now`. Verbatim, and unchanged by any of
+this: "metformin treatment status could be reliably recovered from microbial
+composition using SVMs, **metformin-untreated T2D status itself could not**".
 Generalised: of 41 drug categories, 19 associated singly with the microbiome and
 only **6** survived multi-drug correction; taxonomic associations fell 154 → 47.
 
@@ -1879,17 +2063,23 @@ interactions "naturally unable to predict all organism-specific traits".
 
 | Status | Count | Queries |
 |---|---:|---|
-| `answerable-now` | **9** | D1, D2, D3, D4, D9, D11, D15, D16, D17 |
-| `partial` | **3** | D10, D12, D14 |
-| `pending-source` | **6** | D5, D6, D7, D8, D13, D18 |
+| `answerable-now` | **10** | D1, D2, D3, D4, D7, D9, D11, D15, D16, D17 |
+| `partial` | **6** | D8, D10, D12, D13, D14, D18 |
+| `pending-source` | **2** | D5, D6 |
 | `descoped` | **2** | D19, D20 |
 | **total** | **20** | |
 
-Which source closes which pending query: **MiMeDB** → D5 (and D10's, D13's
-metabolite legs); **NJC19** → D6; **CARD** → D7 (and D10's AMR leg); **MASI** →
-D8, D18; **KEGG/Reactome** → D13's pathway leg. **gutMDisorder has landed**
-and closed D4's intervention leg. Of the original five `partial` queries, **two
-needed no new source at all** — D11 is closed (three column names declared, one
-more extracted), and D14's non-specificity half already works. The remaining
-two (D10, D12) each split cleanly into an answerable leg and a named pending
-one.
+Which source closes which remaining query: **MiMeDB** → D5 (and D10's and
+D13's metabolite legs); **NJC19** → D6; **MASI** → D8's and D18's drug↔taxon
+layer; **gutSMASH** → D13's gene leg; **GMrepo**/`bugphyzz` → D14's
+healthy-prevalence half; **LPSN** → D12's nomenclatural half.
+
+Six sources have landed and moved eight queries. **gutMDisorder** closed D4's
+intervention leg; **CARD** closed D7 outright and D10's AMR leg; **HMDB +
+Reactome** moved D13 from `pending-source` to `partial` and gave D5 its first
+578 edges; **ChEMBL**, joined to gutMDisorder's interventions by `IS_DRUG`,
+moved D8 and D18 off `pending-source`. Of the original five `partial` queries,
+**two needed no new source at all** — D11 is closed (three column names
+declared, one more extracted) and D14's non-specificity half already worked.
+Every `partial` above now names the leg that works and the leg that does not,
+and each is a measured number rather than a label.
