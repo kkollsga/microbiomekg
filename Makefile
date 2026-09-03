@@ -24,7 +24,7 @@ RUFF   := $(VENV)/bin/ruff
 # Everything the gate itself needs, plus the engine. One list, so a tool added
 # to a gate is installed by `make venv` in the same change and the gate cannot
 # no-op for whoever has not installed it by hand.
-DEV_DEPS := pytest pytest-timeout ruff "kglite>=0.16.22" pandas openpyxl requests
+DEV_DEPS := pytest pytest-timeout ruff build "kglite>=0.16.22" pandas openpyxl requests
 # Every Python path ruff owns. Referenced by check and format alike so the two
 # cannot drift apart and silently stop covering a directory.
 PY_PATHS := microbiomekg scripts tests bench
@@ -33,7 +33,7 @@ GRAPH := graph/microbiomekg.kgl
 
 .PHONY: gate lint ruff-check ruff-fix fragments claims test build serve venv \
         check-adapters sync-adapters check-dev-docs check-data-bounds \
-        prune-dev check-graph
+        prune-dev check-graph check-install
 
 ## The gate. Order is cheapest-first so a trivial failure costs a second.
 gate: check-adapters check-dev-docs check-data-bounds lint fragments claims
@@ -184,10 +184,20 @@ venv:
 	fi
 	@if command -v uv >/dev/null 2>&1; then \
 		uv pip install --python $(PY) --upgrade $(DEV_DEPS); \
+		uv pip install --python $(PY) --no-deps -e .; \
 	else \
 		$(PY) -m pip install --upgrade $(DEV_DEPS); \
+		$(PY) -m pip install --no-deps -e .; \
 	fi
-	@echo "== venv: $(VENV) provisioned =="
+	@echo "== venv: $(VENV) provisioned (package installed editable) =="
+
+## The install proof (docs/design/release-readiness.md §3): build a wheel and
+## an sdist into a scratch dir, install the wheel into a CLEAN venv outside
+## the repo root so the checkout cannot shadow it, and run the three verbs
+## against an empty data directory. Not part of `make gate` — it provisions a
+## venv — but it is the check that the package is a package.
+check-install:
+	$(PY) scripts/check_install.py
 
 ## The regenerable tiers, and only those (R4). Never touches data/raw/ (the
 ## operator owns it and three of its sources are browser-only), data/csv/ or

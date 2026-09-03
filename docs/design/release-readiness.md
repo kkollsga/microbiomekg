@@ -90,13 +90,20 @@ the skip accounting is visible in the summary. Everything but the push is done.
   is a reason not to. The licence covers **the code only** — no data and no
   built graph ships, because 26% of evidence-bearing edges have no
   redistribution permission (`docs/evaluation.md` §4).
-- **The PyPI name `microbiomekg` is unverified.** It could not be checked on
-  2026-09-03. Check it before anything else in item 4, and have a second name
-  ready.
+- ~~The PyPI name `microbiomekg` is unverified.~~ Checked 2026-09-03:
+  `https://pypi.org/pypi/microbiomekg/json` → 404. Unclaimed; re-check on the
+  day of item 4, since nothing here reserves it.
 
-**Done when:** `import microbiomekg; microbiomekg.status("./data")` works on a
-fresh clone with an empty data directory, the console script runs the three
-verbs, and the name is confirmed available.
+**Done 2026-09-03**, except the push: `microbiomekg/api.py` (`status` /
+`fetch` / `build` over one data directory, `build` returning a `BuildResult`
+with the kglite graph and a `BuildReport`), `microbiomekg/sources.py`
+(`SourceStatus`), `microbiomekg/cli.py` behind the `microbiomekg` console
+script with `fetch` / `status` / `build` / `serve`, hatchling metadata, MIT
+`LICENSE`, and `make check-install` — the wheel + sdist built, installed into a
+clean venv outside the repo root, and the three verbs run there against an
+empty directory. The PyPI name `microbiomekg` answered 404 on 2026-09-03:
+unclaimed, not reserved. Project URLs are deliberately absent until §1 gives
+them something to point at.
 
 ## 4. PyPI publishing
 

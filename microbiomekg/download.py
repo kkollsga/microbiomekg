@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch every raw source for MicrobiomeKG into data/raw/<source>/.
 
-Run with:  python3 scripts/fetch.py   (or python -m microbiomekg.fetch)
+Run with:  python3 scripts/fetch.py   (or microbiomekg fetch)
 
 Behaviour:
   * A file already present at its full expected size is skipped (status "cached").
@@ -34,9 +34,18 @@ from pathlib import Path
 import requests
 
 # Relative to the working directory, like every prep's ``--raw`` default;
-# the data directory is the operator's, not the package's.
+# the data directory is the operator's, not the package's. Every fetcher reads
+# these at call time, so :func:`bind` points a whole run at another root.
 RAW = Path("data/raw")
 MANIFEST = RAW / "manifest.json"
+
+
+def bind(raw: Path) -> None:
+    """Point this module at ``raw`` — the one place the root is decided."""
+    global RAW, MANIFEST
+    RAW = Path(raw)
+    MANIFEST = RAW / "manifest.json"
+
 
 # A full browser header set is the session default, not a retry-only fallback:
 # HMDB sits behind Cloudflare and Disbiome/gutMDisorder have both refused
@@ -1313,11 +1322,11 @@ MANUAL: dict[str, str] = {
 }
 
 
-def how_to_get(source: str) -> str:
+def how_to_get(source: str, data_dir: str | Path = "data") -> str:
     """The fix for an absent source, as one line an operator can act on."""
     if source in MANUAL:
         return MANUAL[source]
-    return f"python -m microbiomekg.fetch --only {FETCHES[source]}"
+    return f"microbiomekg fetch --data {data_dir} --only {FETCHES[source]}"
 
 
 SOURCES = {
@@ -1338,10 +1347,43 @@ SOURCES = {
 }
 
 
-def main() -> int:
+def run(
+    raw: Path | None = None,
+    *,
+    only: list[str] | None = None,
+    force: bool = False,
+    chembl_sqlite: bool = False,
+) -> list[str]:
+    """Fetch ``only`` (default: every source) into ``raw``; return the sources
+    that raised. A dead source must not abort the rest, so each is caught and
+    recorded in the manifest as ``error``."""
+    if raw is not None:
+        bind(raw)
+    args = argparse.Namespace(force=force, chembl_sqlite=chembl_sqlite)
+    RAW.mkdir(parents=True, exist_ok=True)
+    load_manifest()
+
+    failures = []
+    for name in only or list(SOURCES):
+        try:
+            SOURCES[name](args)
+        except Exception as exc:
+            log(f"!! {name} raised {type(exc).__name__}: {exc}")
+            record_problem(name, "_source", "", "error", f"{type(exc).__name__}: {exc}")
+            failures.append(name)
+
+    save_manifest()
+    log(f"manifest written to {MANIFEST} ({len(MANIFEST_DATA)} entries)")
+    if failures:
+        log(f"sources that raised: {', '.join(failures)}")
+    return failures
+
+
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    ap.add_argument("--raw", type=Path, default=RAW, help="where the sources go")
     ap.add_argument(
         "--chembl-sqlite",
         action="store_true",
@@ -1358,24 +1400,8 @@ def main() -> int:
         action="store_true",
         help="re-download even when a complete file is present",
     )
-    args = ap.parse_args()
-
-    RAW.mkdir(parents=True, exist_ok=True)
-    load_manifest()
-
-    failures = []
-    for name in args.only or list(SOURCES):
-        try:
-            SOURCES[name](args)
-        except Exception as exc:  # a dead source must not abort the rest
-            log(f"!! {name} raised {type(exc).__name__}: {exc}")
-            record_problem(name, "_source", "", "error", f"{type(exc).__name__}: {exc}")
-            failures.append(name)
-
-    save_manifest()
-    log(f"manifest written to {MANIFEST} ({len(MANIFEST_DATA)} entries)")
-    if failures:
-        log(f"sources that raised: {', '.join(failures)}")
+    args = ap.parse_args(argv)
+    run(args.raw, only=args.only, force=args.force, chembl_sqlite=args.chembl_sqlite)
     return 0
 
 

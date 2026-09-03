@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from microbiomekg import fetch, sources
-from microbiomekg.build import LICENCE_GATED, PREPS_DIR
+from microbiomekg import download, sources
+from microbiomekg.pipeline import LICENCE_GATED, PREPS_DIR
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = sources.discover()
@@ -39,11 +39,11 @@ def test_every_prep_declares_its_inputs_as_relative_posix_paths():
 def test_the_three_tables_cover_the_same_sources():
     """A source known to the preps but not to fetch — or the reverse — is a
     source the operator cannot be told how to complete."""
-    assert set(fetch.FETCHES) == set(SOURCES)
-    assert fetch.MANUAL.keys() == BROWSER_ONLY
+    assert set(download.FETCHES) == set(SOURCES)
+    assert download.MANUAL.keys() == BROWSER_ONLY
     assert BROWSER_ONLY <= set(SOURCES)
     for name in SOURCES:
-        assert fetch.how_to_get(name).strip(), name
+        assert download.how_to_get(name).strip(), name
     assert set(LICENCE_GATED) <= set(SOURCES)
 
 

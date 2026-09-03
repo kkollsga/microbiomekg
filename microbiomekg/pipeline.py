@@ -55,6 +55,7 @@ import os
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
@@ -241,7 +242,7 @@ def order_preps(scripts: Path) -> list[Path]:
     return ordered
 
 
-def prep_arguments(source: str, args: argparse.Namespace) -> list[str]:
+def prep_arguments(source: str, scope: str, csv: Path) -> list[str]:
     """What a prep needs beyond ``--raw`` and ``--out``.
 
     Only the taxonomy has any: it emits a *scope* of the 3M-row dump rather
@@ -250,12 +251,7 @@ def prep_arguments(source: str, args: argparse.Namespace) -> list[str]:
     """
     if source != "taxonomy":
         return []
-    return [
-        "--scope",
-        args.scope,
-        "--cited-from",
-        str(args.csv / "cited_taxa.csv"),
-    ]
+    return ["--scope", scope, "--cited-from", str(csv / "cited_taxa.csv")]
 
 
 def clear_csv(csv_dir: Path) -> int:
@@ -493,33 +489,50 @@ def prune_ontology(ontology: dict, dropped: list[str]) -> dict:
     return {**ontology, "classes": classes, "relationships": relationships}
 
 
-def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
+@dataclass
+class BuildReport:
+    """What :func:`measure` read off a finished graph — data, printed by
+    :func:`print_report`, so :func:`build` can hand it back as an object."""
+
+    sources: list[str]
+    nodes: list[dict]
+    edges: list[dict]
+    audit: list[dict]
+    census: list[dict]
+    expansion: list[dict]
+
+    def node_count(self, label: str) -> int:
+        return next((r["n"] for r in self.nodes if r["t"] == label), 0)
+
+    def edge_count(self, relationship: str) -> int:
+        return next((r["n"] for r in self.edges if r["t"] == relationship), 0)
+
+
+@dataclass
+class BuildResult:
+    """What a build produced. ``graph`` is ``None`` when nothing loaded — the
+    empty-directory case — and then ``skipped`` names every source."""
+
+    graph: object | None
+    report: BuildReport | None
+    loaded: list[str]
+    skipped: list[str]
+    out: Path | None
+    taxonomy_only: bool = False
+
+
+def measure(graph, sources: list[str], fragments: Path, csv_dir: Path) -> BuildReport:
+    """Read the counts, the audit, the per-field census and G10 off ``graph``."""
+
     def rows(query):
         return list(graph.cypher(query))
 
-    print("\n--- nodes")
-    for r in rows("MATCH (n) RETURN labels(n)[0] AS t, count(n) AS n ORDER BY n DESC"):
-        print(f"  {r['t']:<20s} {r['n']:>10,}")
-    print("\n--- edges")
-    for r in rows(
-        "MATCH ()-[r]->() RETURN type(r) AS t, count(r) AS n ORDER BY n DESC"
-    ):
-        print(f"  {r['t']:<28s} {r['n']:>10,}")
-
-    print("\n--- ontology_audit()")
+    nodes = rows("MATCH (n) RETURN labels(n)[0] AS t, count(n) AS n ORDER BY n DESC")
+    edges = rows("MATCH ()-[r]->() RETURN type(r) AS t, count(r) AS n ORDER BY n DESC")
     audit = rows(
         "CALL ontology_audit() YIELD rule, severity, violations, exempted, total, pct "
         "RETURN rule, severity, violations, exempted, total, pct ORDER BY pct DESC, rule"
     )
-    for r in audit:
-        if r["violations"] or r["severity"] == "error":
-            print(
-                f"  {r['rule']:<46s} {r['severity']:<6s} "
-                f"{r['violations']:>8,} / {r['total']:>8,}  {r['pct']:>6.2f}%"
-            )
-    quiet = sum(1 for r in audit if not r["violations"] and r["severity"] != "error")
-    print(f"  … {quiet} further rules at 0 violations")
-
     # The number the whole project rests on, per field rather than per edge.
     # A `required_properties` rule reports one percentage over a fourteen-field
     # contract, and a reader who takes it for "14% of the fields are missing"
@@ -531,10 +544,6 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
     # It is a **census, not a partition**: an edge missing `group_0_size` and
     # `group_1_size` is counted under both, so these rows sum to more than the
     # aggregate above and adding them up is a mistake.
-    print("\n--- per-field census (ontology_audit({by: 'property'}))")
-    print("    One row per declared property, including the ones nothing fails.")
-    print("    A census, not a partition: an edge missing three fields is in")
-    print("    three rows, so these do not sum back to the rule's violations.")
     census = rows(
         "CALL ontology_audit({by: 'property'}) "
         "YIELD rule, property, violations, total, pct "
@@ -542,6 +551,74 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
         "RETURN rule, property, violations, total, pct "
         "ORDER BY rule, violations DESC, property"
     )
+    # G10: edges per source record, published rather than assumed. An
+    # expansion factor is how a curated source turns into a big-looking graph,
+    # and it is the number that says whether "N million edges" means anything.
+    # Every relationship the fragments declare gets a row, including one the
+    # build loaded no edges for — that absence is the finding, and it is how
+    # `IS_DRUG` sat at zero through a release with its audit reporting 0 / 0.
+    expansion: list[dict] = []
+    for rel, spec in declared_relationships(fragments, sources).items():
+        if not any((csv_dir / name).is_file() for name in spec.csvs):
+            # Not the zero-edge finding above: no source wrote this CSV, so
+            # the loader was never asked for the relationship. A taxonomy-only
+            # build has no `taxon_condition.csv`, and querying the type it
+            # would have made only draws an unknown-type warning.
+            expansion.append({"rel": rel, "no_csv": list(spec.csvs)})
+            continue
+        rows_in = sum(max(csv_rows(csv_dir / name), 0) for name in spec.csvs)
+        breakdown = rows(
+            f"MATCH ()-[r:{rel}]->() "
+            "RETURN r.primary_source AS source, count(r) AS edges, "
+            "count(DISTINCT r.source_record_id) AS records ORDER BY edges DESC"
+        )
+        if not breakdown:
+            expansion.append(
+                {"rel": rel, "rows": rows_in, "fragments": list(spec.fragments)}
+            )
+            continue
+        for r in breakdown:
+            records, unit = (
+                (r["records"], "records") if r["records"] else (rows_in, "rows")
+            )
+            expansion.append(
+                {
+                    "rel": rel,
+                    "source": r["source"],
+                    "edges": r["edges"],
+                    "records": records,
+                    "unit": unit,
+                    "ratio": r["edges"] / records if records else 0.0,
+                }
+            )
+    return BuildReport(list(sources), nodes, edges, audit, census, expansion)
+
+
+def print_report(report: BuildReport) -> None:
+    print("\n--- nodes")
+    for r in report.nodes:
+        print(f"  {r['t']:<20s} {r['n']:>10,}")
+    print("\n--- edges")
+    for r in report.edges:
+        print(f"  {r['t']:<28s} {r['n']:>10,}")
+
+    print("\n--- ontology_audit()")
+    for r in report.audit:
+        if r["violations"] or r["severity"] == "error":
+            print(
+                f"  {r['rule']:<46s} {r['severity']:<6s} "
+                f"{r['violations']:>8,} / {r['total']:>8,}  {r['pct']:>6.2f}%"
+            )
+    quiet = sum(
+        1 for r in report.audit if not r["violations"] and r["severity"] != "error"
+    )
+    print(f"  … {quiet} further rules at 0 violations")
+
+    print("\n--- per-field census (ontology_audit({by: 'property'}))")
+    print("    One row per declared property, including the ones nothing fails.")
+    print("    A census, not a partition: an edge missing three fields is in")
+    print("    three rows, so these do not sum back to the rule's violations.")
+    census = report.census
     for rule in dict.fromkeys(r["rule"] for r in census):
         fields = [r for r in census if r["rule"] == rule]
         if not any(r["violations"] for r in fields):
@@ -562,100 +639,77 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
         f"  … {len(clean)} further required_properties rules with every field complete"
     )
 
-    # G10: edges per source record, published rather than assumed. An
-    # expansion factor is how a curated source turns into a big-looking graph,
-    # and it is the number that says whether "N million edges" means anything.
-    # Every relationship the fragments declare gets a line, including one the
-    # build loaded no edges for — that absence is the finding, and it is how
-    # `IS_DRUG` sat at zero through a release with its audit reporting 0 / 0.
     print("\n--- expansion factor (G10): edges per source record, for every")
     print("    relationship the fragments declare. `records` is the distinct")
     print("    source_record_id where the edge carries one, else the input rows")
     print("    of the CSV(s) it was loaded from, marked `rows`.")
-    for rel, spec in declared_relationships(fragments, sources).items():
-        if not any((csv_dir / name).is_file() for name in spec.csvs):
-            # Not the zero-edge finding above: no source wrote this CSV, so
-            # the loader was never asked for the relationship. A taxonomy-only
-            # build has no `taxon_condition.csv`, and querying the type it
-            # would have made only draws an unknown-type warning.
-            print(f"  {rel:<28s} no CSV in this build ({', '.join(spec.csvs)})")
-            continue
-        rows_in = sum(max(csv_rows(csv_dir / name), 0) for name in spec.csvs)
-        breakdown = rows(
-            f"MATCH ()-[r:{rel}]->() "
-            "RETURN r.primary_source AS source, count(r) AS edges, "
-            "count(DISTINCT r.source_record_id) AS records ORDER BY edges DESC"
-        )
-        if not breakdown:
+    for r in report.expansion:
+        rel = r["rel"]
+        if "no_csv" in r:
+            print(f"  {rel:<28s} no CSV in this build ({', '.join(r['no_csv'])})")
+        elif "edges" not in r:
             print(
-                f"  {rel:<28s} {'-':<14s} {0:>9,} edges / {rows_in:>9,} rows "
-                f"— declared by {', '.join(spec.fragments)}, loaded nothing"
+                f"  {rel:<28s} {'-':<14s} {0:>9,} edges / {r['rows']:>9,} rows "
+                f"— declared by {', '.join(r['fragments'])}, loaded nothing"
             )
-            continue
-        for r in breakdown:
-            records, unit = (
-                (r["records"], "records") if r["records"] else (rows_in, "rows")
-            )
-            ratio = r["edges"] / records if records else 0.0
+        else:
             print(
                 f"  {rel:<28s} {str(r['source'] or '-'):<14s} "
-                f"{r['edges']:>9,} edges / {records:>9,} {unit:<7s} = {ratio:5.1f}x"
+                f"{r['edges']:>9,} edges / {r['records']:>9,} {r['unit']:<7s} "
+                f"= {r['ratio']:5.1f}x"
             )
-    print(f"\nsources loaded: {', '.join(sources) or '(none detected)'}")
+    print(f"\nsources loaded: {', '.join(report.sources) or '(none detected)'}")
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--csv", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--scope", default="microbial", choices=("cited", "microbial", "all")
-    )
-    ap.add_argument("--out", type=Path, default=Path("graph/microbiomekg.kgl"))
-    ap.add_argument(
-        "--skip-prep",
-        action="store_true",
-        help="Load the CSVs already in --csv. For iterating on the blueprint or "
-        "the ontology without re-reading 3M taxonomy rows.",
-    )
-    ap.add_argument("--no-save", action="store_true")
-    ap.add_argument(
-        "--with-vectors",
-        action="store_true",
-        help="Include the character-n-gram vector lane (VECTOR_INDEXES). Off by "
-        "default: it serves query-time misspelling tolerance only, and "
-        "costs +82.6 s of build, +165.9 MB of .kgl and +2.5 GB of "
-        "serving RSS. Reconciliation at load time never uses it.",
-    )
-    for source, flag in LICENCE_GATED.items():
-        ap.add_argument(
-            flag,
-            action="store_true",
-            help=f"Include the {source} slice. Off by default: its licence "
-            f"forbids redistributing a graph that carries it.",
-        )
-    args = ap.parse_args(argv)
+def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> BuildReport:
+    """Measure and print, and hand the measurement back."""
+    measured = measure(graph, sources, fragments, csv_dir)
+    print_report(measured)
+    return measured
 
+
+def build(
+    raw: Path,
+    csv: Path,
+    *,
+    scope: str = "microbial",
+    out: Path | None = None,
+    skip_prep: bool = False,
+    save: bool = True,
+    with_vectors: bool = False,
+    gates: frozenset[str] = frozenset(),
+) -> BuildResult:
+    """The whole build, as a function: raw files in, a graph and a report out.
+
+    ``gates`` names the licence-gated sources opted into (``{"kegg"}`` for
+    ``--with-kegg``). ``save`` writes ``out`` (default
+    ``graph/microbiomekg.kgl``) after the report; ``skip_prep`` loads the CSVs
+    already in ``csv`` instead of running the preps. Prints as it goes — the
+    build is minutes long and the report is its record — and returns what it
+    made, so :mod:`microbiomekg.api` can hand the graph to a caller.
+    """
+    raw, csv = Path(raw), Path(csv)
+    out = Path(out) if out is not None else Path("graph/microbiomekg.kgl")
     preps = order_preps(PREPS_DIR)
     sources = [
         p.stem.removeprefix("prep_") for p in preps if p.name != "prep_taxonomy.py"
     ]
-    skipped: set[str] = set()
+    skipped: list[str] = []
 
-    if not args.skip_prep:
-        args.csv.mkdir(parents=True, exist_ok=True)
-        removed = clear_csv(args.csv)
-        print(f"cleared {removed} CSV(s) from {args.csv}")
+    if not skip_prep:
+        csv.mkdir(parents=True, exist_ok=True)
+        removed = clear_csv(csv)
+        print(f"cleared {removed} CSV(s) from {csv}")
         for prep in preps:
             source = prep.stem.removeprefix("prep_")
-            gate = [LICENCE_GATED[source]] if opted_into(source, args) else []
+            gate = [LICENCE_GATED[source]] if source in gates else []
             code = run(
                 prep,
                 "--raw",
-                str(args.raw),
+                str(raw),
                 "--out",
-                str(args.csv),
-                *prep_arguments(source, args),
+                str(csv),
+                *prep_arguments(source, scope, csv),
                 *gate,
             )
             if code == MISSING_INPUT:
@@ -663,22 +717,22 @@ def main(argv: list[str] | None = None) -> int:
                     f"    ... {source}: raw input absent or not opted into, "
                     f"skipping this source"
                 )
-                skipped.add(source)
+                skipped.append(source)
 
     # Every prep needs the taxdump, so a build whose taxonomy prep skipped has
     # nothing at all — and an empty data directory is the fresh-clone state,
     # not an error. The answer to it is a to-do list: every source named as
     # skipped above, no graph written, exit 0. A graph file would have to be
     # either empty or stale, and both read as "built" to whoever opens it.
-    if not (args.csv / "taxon.csv").is_file():
+    if not (csv / "taxon.csv").is_file():
         print(
             f"\n=== nothing loaded: {len(skipped) or 'every'} source(s) skipped, "
             "no graph written"
         )
         print("    Each skipped source printed the file it wanted and where it")
-        print("    comes from. `scripts/fetch.py` fills what it can; docs/sources.md")
-        print("    has the rest.")
-        return 0
+        print("    comes from. `microbiomekg status` lists them; `microbiomekg fetch`")
+        print("    fills what it can, and docs/sources.md has the rest.")
+        return BuildResult(None, None, [], skipped, None)
 
     # A source that did not run, and a source whose tables are not in --csv,
     # are left out of both declarations for the same reason: a blueprint naming
@@ -691,9 +745,9 @@ def main(argv: list[str] | None = None) -> int:
         [
             s
             for s in sources
-            if s not in skipped and (s not in LICENCE_GATED or opted_into(s, args))
+            if s not in skipped and (s not in LICENCE_GATED or s in gates)
         ],
-        args.csv,
+        csv,
     )
 
     # The checked-in `blueprint.json` is the *whole* fragment set and is not
@@ -714,24 +768,24 @@ def main(argv: list[str] | None = None) -> int:
     from microbiomekg.ontology import ontology_for, write_json
 
     document, pruned = prune_absent_tables(
-        compose(fragments, loaded) if loaded != sources else full, args.csv
+        compose(fragments, loaded) if loaded != sources else full, csv
     )
     if pruned:
         print(f"=== spine tables absent, dropped from the load: {', '.join(pruned)}")
     if not loaded:
         print("=== taxonomy-only build: no association source loaded")
     ontology = write_json(
-        args.csv / "ontology.json", prune_ontology(ontology_for(loaded), pruned)
+        csv / "ontology.json", prune_ontology(ontology_for(loaded), pruned)
     )
     print(f"=== ontology -> {ontology}")
 
     import kglite
 
     blueprint = write_load_blueprint(
-        document, args.csv, ontology, args.csv / "blueprint.load.json"
+        document, csv, ontology, csv / "blueprint.load.json"
     )
     print("\n=== from_blueprint", flush=True)
-    print(f"    {blueprint} (root {args.csv})")
+    print(f"    {blueprint} (root {csv})")
     t0 = time.time()
     graph = kglite.from_blueprint(blueprint, verbose=True, save=False)
     print(f"loaded in {time.time() - t0:.1f}s")
@@ -748,7 +802,7 @@ def main(argv: list[str] | None = None) -> int:
             f"{stats.get('terms', 0):>8,} terms, {stats.get('skipped', 0):>5,} skipped"
         )
 
-    if args.with_vectors:
+    if with_vectors:
         # After the BM25 pass, because the two lanes index the same columns and
         # a `score_fuse` query needs both present; before `report`, so the audit
         # and the save see one finished graph.
@@ -790,12 +844,58 @@ def main(argv: list[str] | None = None) -> int:
         )
         print("    load 1.03 s -> 2.41 s and serving RSS 1.2 GB -> 3.7 GB.")
 
-    report(graph, loaded, fragments, args.csv)
+    measured = report(graph, loaded, fragments, csv)
 
-    if not args.no_save:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        graph.save(str(args.out))
-        print(f"\nsaved {args.out} ({args.out.stat().st_size / 1e6:.1f} MB)")
+    if save:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        graph.save(str(out))
+        print(f"\nsaved {out} ({out.stat().st_size / 1e6:.1f} MB)")
+    return BuildResult(
+        graph, measured, loaded, skipped, out if save else None, not loaded
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
+    ap.add_argument("--csv", type=Path, default=Path("data/csv"))
+    ap.add_argument(
+        "--scope", default="microbial", choices=("cited", "microbial", "all")
+    )
+    ap.add_argument("--out", type=Path, default=Path("graph/microbiomekg.kgl"))
+    ap.add_argument(
+        "--skip-prep",
+        action="store_true",
+        help="Load the CSVs already in --csv. For iterating on the blueprint or "
+        "the ontology without re-reading 3M taxonomy rows.",
+    )
+    ap.add_argument("--no-save", action="store_true")
+    ap.add_argument(
+        "--with-vectors",
+        action="store_true",
+        help="Include the character-n-gram vector lane (VECTOR_INDEXES). Off by "
+        "default: it serves query-time misspelling tolerance only, and "
+        "costs +82.6 s of build, +165.9 MB of .kgl and +2.5 GB of "
+        "serving RSS. Reconciliation at load time never uses it.",
+    )
+    for source, flag in LICENCE_GATED.items():
+        ap.add_argument(
+            flag,
+            action="store_true",
+            help=f"Include the {source} slice. Off by default: its licence "
+            f"forbids redistributing a graph that carries it.",
+        )
+    args = ap.parse_args(argv)
+    build(
+        args.raw,
+        args.csv,
+        scope=args.scope,
+        out=args.out,
+        skip_prep=args.skip_prep,
+        save=not args.no_save,
+        with_vectors=args.with_vectors,
+        gates=frozenset(s for s in LICENCE_GATED if opted_into(s, args)),
+    )
     return 0
 
 

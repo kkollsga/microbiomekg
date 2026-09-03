@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thin caller: the code lives in :mod:`microbiomekg.build`.
+"""Thin caller: the code lives in :mod:`microbiomekg.pipeline`.
 
 Kept so the documented command keeps working from a checkout without the
 package installed; it puts the package's parent on the path and defers.
@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from microbiomekg.build import main  # noqa: E402
+from microbiomekg.pipeline import main  # noqa: E402
 
 if __name__ == "__main__":
     raise SystemExit(main())

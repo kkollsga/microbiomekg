@@ -33,6 +33,10 @@ Layout:
   from here. `scripts/build.py`, `fetch.py`, `serve.py` and `build_blueprint.py`
   are thin callers into it, kept so the commands on this page work from a
   checkout.
+- `microbiomekg/api.py` — `status` / `fetch` / `build` over one data directory,
+  and `microbiomekg/cli.py` behind the `microbiomekg` command (`make venv`
+  installs it): `microbiomekg status --data data` is the to-do list a fresh
+  clone gets instead of a failed build.
 - `scripts/fetch.py`  — manifest-driven downloads into `data/raw/` (skip if present, resume).
 - `microbiomekg/preps/prep_*.py` — per-source preprocessing into flat CSVs in `data/csv/`.
   Each declares `DEPENDS_ON`: the preps whose tables it reads.

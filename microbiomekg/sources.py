@@ -6,7 +6,7 @@ hand and where to put them, which sources are optional and why
 (``docs/design/library-pipeline.md`` rule 6). Nothing here is listed by hand:
 the sources are the preps under :mod:`microbiomekg.preps`, the files each
 needs are its own ``RAW_INPUTS`` declaration, the way to get them is
-:data:`microbiomekg.fetch.FETCHES` / :data:`microbiomekg.fetch.MANUAL`, and
+:data:`microbiomekg.download.FETCHES` / :data:`microbiomekg.download.MANUAL`, and
 the licence is what the source's ontology module registered. A source present
 in one of those and absent from another is a test failure
 (``tests/test_sources.py``), which is the fifth check the four-file source
@@ -19,8 +19,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from microbiomekg import fetch
-from microbiomekg.build import LICENCE_GATED, PREPS_DIR, declared_inputs
+from microbiomekg import download
+from microbiomekg.pipeline import LICENCE_GATED, PREPS_DIR, declared_inputs
 from microbiomekg.ontology import SOURCE_LICENCE
 
 __all__ = ["STATES", "SourceStatus", "discover", "status"]
@@ -92,7 +92,7 @@ def status(data_dir: str | Path) -> dict[str, SourceStatus]:
         inputs = declared_inputs(PREPS_DIR / f"prep_{name}.py")
         missing = tuple(rel for rel in inputs if not (raw / rel).is_file())
         if missing:
-            state = "manual" if name in fetch.MANUAL else "absent"
+            state = "manual" if name in download.MANUAL else "absent"
         elif any(_stale(raw, rel, manifest) for rel in inputs):
             state = "stale"
         else:
@@ -103,7 +103,7 @@ def status(data_dir: str | Path) -> dict[str, SourceStatus]:
             path=raw / inputs[0].split("/", 1)[0],
             inputs=inputs,
             missing=missing,
-            how_to_get=fetch.how_to_get(name),
+            how_to_get=download.how_to_get(name, data_dir),
             licence=SOURCE_LICENCE.get(name) or _UNREGISTERED_LICENCES[name],
             gated_by=LICENCE_GATED.get(name),
         )

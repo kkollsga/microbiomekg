@@ -1,6 +1,7 @@
 # MicrobiomeKG as a library: the data-directory contract
 
-Status: design note, no rush (user direction 2026-09-03). Not scheduled.
+Status: the packaging half shipped 2026-09-03 (items 1–3 below); the remote,
+CI and PyPI halves wait on `release-readiness.md` §1.
 
 ## The decision already made
 
@@ -80,15 +81,16 @@ Rules that make it a contract rather than a convention:
 
 ## What the library release needs (in order, when there is time)
 
-1. A `microbiomekg/api.py` exposing `fetch` / `status` / `build` as the three
-   functions above, wrapping what `scripts/*.py` already do. The scripts become
-   thin callers of the API, not the other way round.
+1. ~~A `microbiomekg/api.py` exposing `fetch` / `status` / `build`~~ **Done
+   2026-09-03.** `scripts/*.py` are thin callers; the code is
+   `microbiomekg/pipeline.py` (build), `download.py` (fetch), `sources.py`
+   (status), `api.py` (the three verbs over one data directory).
 2. ~~`status` as a real object~~ **Done 2026-09-03**: `microbiomekg/sources.py`,
    `SourceStatus(state ∈ {absent, present, stale, manual}, path, inputs,
    missing, how_to_get, licence, gated_by)`; the manual-source text lives in
    `fetch.MANUAL` and the fetchers print the same strings.
-3. A console entry point (`microbiomekg = microbiomekg.cli:main`) so the three
-   verbs work from a shell without `python scripts/...`.
+3. ~~A console entry point~~ **Done 2026-09-03**: `microbiomekg fetch | status |
+   build | serve`, each taking `--data`.
 4. The README rewritten for a **human reader first** (Python API, then Cypher,
    then MCP) — the evaluation's own verdict was "a dataset worth having,
    packaged as an agent product", which is the critique the project set out to
@@ -97,8 +99,8 @@ Rules that make it a contract rather than a convention:
    machine; the 1,216-test suite plus a `status`-driven smoke build against an
    empty data directory (which must succeed and report every source as absent)
    is the CI shape.
-6. Name check on PyPI (`microbiomekg`), then release through the same flow as
-   the other siblings.
+6. ~~Name check on PyPI (`microbiomekg`)~~ — 404 on 2026-09-03, unclaimed. Then
+   release through the same flow as the other siblings.
 
 ## Open questions (decide at planning time, not now)
 

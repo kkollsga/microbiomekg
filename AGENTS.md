@@ -27,15 +27,19 @@ of that layer this repo last synced against is `dev-docs/.doctrine-synced`.
 ## Build & test
 
 ```bash
-make venv                 # provision .venv (pytest, pytest-timeout, ruff, kglite)
+make venv                 # provision .venv (pytest, pytest-timeout, ruff, build, kglite) + the package, editable
+make check-install        # wheel + sdist → clean venv outside the repo → the three verbs run
 make gate                 # the fast gate — adapters, bounds, ruff, blueprint, claim gate (~30 s)
 make test                 # the full suite: .venv/bin/python -m pytest -q
 make build                # .venv/bin/python scripts/build.py  (ARGS='--with-kegg' to add flags)
 make prune-dev            # bounded caches and scratch tiers, per R4
 ```
 
-Targets resolve `.venv/bin/…` themselves — no activation. There is **no build
-step for the code**: `make build` builds the *graph*, takes minutes and 7.5 GB
+Targets resolve `.venv/bin/…` themselves — no activation. `make venv` installs
+the package editable, so `.venv/bin/microbiomekg` (`fetch` / `status` /
+`build` / `serve`, each over `--data`) and `import microbiomekg` work from the
+checkout; `microbiomekg/api.py` is the Python form of the same three verbs.
+There is **no build step for the code**: `make build` builds the *graph*, takes minutes and 7.5 GB
 of operator-owned raw input, and is never part of a gate.
 
 `make gate` is the pre-commit ceiling: it runs the adapter mirror, the
@@ -113,7 +117,7 @@ half-loaded rather than rejected, and its test file is the thing that notices.
   withholds each declared file and expects the prep to refuse by name, so the
   declaration cannot drift from the check.
 - **`DEPENDS_ON` places a prep in the build**, not alphabetical order.
-  `microbiomekg/build.py` topologically sorts with cycle detection. Name order once
+  `microbiomekg/pipeline.py` topologically sorts with cycle detection. Name order once
   loaded `IS_DRUG` with zero edges (`docs/model.md` §8).
 - **Exit code 3 (`MISSING_INPUT`) means "my raw input is absent"** — a skip
   with a reason, never an error and never a half-load. A dependent of a skipped
@@ -222,7 +226,7 @@ operator expected is never silent.
 never rebuilt by a gate**. Re-fetching it costs hours and, for three origins,
 cannot be automated at all: **HMDB and MiMeDB are behind Cloudflare and MASI
 behind an expired certificate — those three are browser-only downloads.**
-`microbiomekg/fetch.py` reports them as `manual-present` / absent and prints the
+`microbiomekg/download.py` reports them as `manual-present` / absent and prints the
 precise steps; it never pretends to fetch them.
 
 So: no tool in this repo deletes anything under `data/raw/`. `make
@@ -265,7 +269,7 @@ pointing it at a bounded tier — **in the same change** — is not allowed.
 | path | size | bound | owner |
 |---|---|---|---|
 | `data/raw/` | 7.5 GB | **none — never pruned automatically** | the operator; `make check-data-bounds` reports only |
-| `data/csv/` | ~264 MB | regenerated per build; `microbiomekg/build.py` empties it first | the build |
+| `data/csv/` | ~264 MB | regenerated per build; `microbiomekg/pipeline.py` empties it first | the build |
 | `graph/*.kgl` | 47 MB (213 MB with `--with-vectors`) | one file, overwritten per build | the build |
 | `bench/results/` | small, **tracked** | the longitudinal record — never deleted; heavy capture output goes to the scratch dir `bench/README.md` names | `make check-data-bounds` warns past 5 MB |
 | `.venv/`, `.pytest_cache/`, `.ruff_cache/`, `__pycache__/` | 112 MB + caches | regenerable | `make prune-dev` |

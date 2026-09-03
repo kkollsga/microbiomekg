@@ -1,4 +1,4 @@
-"""``microbiomekg/build.py``'s own machinery: prep order, the CSV root, the report.
+"""``microbiomekg/pipeline.py``'s own machinery: prep order, the CSV root, the report.
 
 This is about the *build script*, not about a source. Each thing it tests
 failed silently before it was tested:
@@ -28,7 +28,7 @@ from pathlib import Path
 import pytest
 
 from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
-from microbiomekg import build
+from microbiomekg import pipeline
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -91,14 +91,14 @@ def test_every_prep_script_declares_its_dependencies():
     an accident of its filename. The declaration is required rather than
     defaulted to empty, so adding a source forces the question to be answered."""
     for script in sorted(PREPS_DIR.glob("prep_*.py")):
-        assert isinstance(build.declared_dependencies(script), tuple), script.name
+        assert isinstance(pipeline.declared_dependencies(script), tuple), script.name
 
 
 def test_chembl_runs_after_the_source_whose_table_it_reads():
     """``prep_chembl`` writes ``IS_DRUG`` by reading gutMDisorder's
     ``intervention.csv``. In name order it ran first, the table was not there,
     and the relationship loaded zero edges."""
-    order = names(build.order_preps(PREPS_DIR))
+    order = names(pipeline.order_preps(PREPS_DIR))
     assert order.index("gutmdisorder") < order.index("chembl")
 
 
@@ -113,23 +113,23 @@ def test_the_taxonomy_runs_after_every_source_that_writes_cited_taxa():
         and script.name != "prep_taxonomy.py"
     }
     assert writers, "no prep writes cited_taxa.csv — this test stopped measuring"
-    declared = set(build.declared_dependencies(PREPS_DIR / "prep_taxonomy.py"))
+    declared = set(pipeline.declared_dependencies(PREPS_DIR / "prep_taxonomy.py"))
     assert writers <= declared, (
         f"{sorted(writers - declared)} write cited_taxa.csv but prep_taxonomy "
         f"does not declare them, so the build may run the taxonomy first"
     )
-    order = names(build.order_preps(PREPS_DIR))
+    order = names(pipeline.order_preps(PREPS_DIR))
     assert all(order.index(w) < order.index("taxonomy") for w in writers)
 
 
 def test_the_order_respects_every_declared_edge():
-    order = names(build.order_preps(PREPS_DIR))
+    order = names(pipeline.order_preps(PREPS_DIR))
     assert sorted(order) == sorted(
         p.stem.removeprefix("prep_") for p in PREPS_DIR.glob("prep_*.py")
     )
     for script in PREPS_DIR.glob("prep_*.py"):
         source = script.stem.removeprefix("prep_")
-        for dep in build.declared_dependencies(script):
+        for dep in pipeline.declared_dependencies(script):
             assert order.index(dep) < order.index(source), f"{source} before {dep}"
 
 
@@ -138,8 +138,8 @@ def test_the_order_is_deterministic_and_breaks_ties_by_name(tmp_path):
     build picks one and always picks the same one: a build whose output depends
     on dictionary iteration is not reproducible."""
     write_preps(tmp_path, {"zulu": [], "alpha": [], "mike": ["zulu"]})
-    assert names(build.order_preps(tmp_path)) == ["alpha", "zulu", "mike"]
-    assert names(build.order_preps(tmp_path)) == ["alpha", "zulu", "mike"]
+    assert names(pipeline.order_preps(tmp_path)) == ["alpha", "zulu", "mike"]
+    assert names(pipeline.order_preps(tmp_path)) == ["alpha", "zulu", "mike"]
 
 
 def test_a_dependency_cycle_is_an_error_not_an_arbitrary_order(tmp_path):
@@ -147,7 +147,7 @@ def test_a_dependency_cycle_is_an_error_not_an_arbitrary_order(tmp_path):
     which half."""
     write_preps(tmp_path, {"one": ["two"], "two": ["one"], "free": []})
     with pytest.raises(SystemExit) as excinfo:
-        build.order_preps(tmp_path)
+        pipeline.order_preps(tmp_path)
     assert "one" in str(excinfo.value) and "two" in str(excinfo.value)
     assert "free" not in str(excinfo.value)
 
@@ -155,14 +155,14 @@ def test_a_dependency_cycle_is_an_error_not_an_arbitrary_order(tmp_path):
 def test_a_dependency_on_a_prep_that_does_not_exist_is_an_error(tmp_path):
     write_preps(tmp_path, {"one": ["ghost"]})
     with pytest.raises(SystemExit) as excinfo:
-        build.order_preps(tmp_path)
+        pipeline.order_preps(tmp_path)
     assert "ghost" in str(excinfo.value)
 
 
 def test_a_prep_without_the_declaration_is_an_error(tmp_path):
     (tmp_path / "prep_silent.py").write_text("X = 1\n", encoding="utf-8")
     with pytest.raises(SystemExit) as excinfo:
-        build.order_preps(tmp_path)
+        pipeline.order_preps(tmp_path)
     assert "DEPENDS_ON" in str(excinfo.value)
 
 
@@ -173,7 +173,7 @@ def test_reading_the_declaration_does_not_import_the_module(tmp_path):
     (tmp_path / "prep_explosive.py").write_text(
         "DEPENDS_ON = ['a']\nraise RuntimeError('imported')\n", encoding="utf-8"
     )
-    assert build.declared_dependencies(tmp_path / "prep_explosive.py") == ("a",)
+    assert pipeline.declared_dependencies(tmp_path / "prep_explosive.py") == ("a",)
 
 
 # --------------------------------------------------------------------------
@@ -193,7 +193,7 @@ def test_the_load_blueprint_binds_its_paths_to_this_builds_directories(tmp_path)
     }
     csv_dir = tmp_path / "elsewhere"
     csv_dir.mkdir()
-    out = build.write_load_blueprint(
+    out = pipeline.write_load_blueprint(
         composed, csv_dir, csv_dir / "ontology.json", tmp_path / "load.json"
     )
     loaded = json.loads(out.read_text())
@@ -318,7 +318,7 @@ def test_the_expansion_report_covers_every_declared_relationship():
     it was written and is a fifth of it now — so the number that says what an
     edge count means was missing for every relationship four later sources
     added, including the one that was loading zero edges."""
-    declared = build.declared_relationships(FRAGMENTS)
+    declared = pipeline.declared_relationships(FRAGMENTS)
     assert {
         "ASSOCIATED_WITH",
         "IN_CONDITION",
@@ -340,7 +340,7 @@ def test_the_expansion_report_covers_every_declared_relationship():
     # One relationship name, two CSVs: a taxon mention that resolved and one
     # that did not are the same edge type from two tables, and a report keyed
     # on the name alone would count the rows of whichever it saw last.
-    assert build.declared_relationships(FRAGMENTS)["REPORTED_BY"].csvs == (
+    assert pipeline.declared_relationships(FRAGMENTS)["REPORTED_BY"].csvs == (
         "taxon_signature.csv",
         "unresolved_taxon_signature.csv",
     )
@@ -358,7 +358,7 @@ def test_every_csv_a_fragment_names_is_one_the_report_can_count():
         pytest.skip("no built CSVs — run scripts/build.py first")
     missing = sorted(
         name
-        for spec in build.declared_relationships(FRAGMENTS).values()
+        for spec in pipeline.declared_relationships(FRAGMENTS).values()
         for name in spec.csvs
         if not (csv_dir / name).is_file()
     )
@@ -380,17 +380,17 @@ def test_a_licence_gated_source_is_not_reported_as_loaded_without_its_flag(
     import argparse
 
     args = argparse.Namespace(with_kegg=False)
-    assert not build.opted_into("kegg", args)
-    assert "kegg" not in build.sources_with_tables(
+    assert not pipeline.opted_into("kegg", args)
+    assert "kegg" not in pipeline.sources_with_tables(
         FRAGMENTS,
         [
             s
             for s in ("bugsigdb", "reactome", "kegg")
-            if s not in build.LICENCE_GATED or build.opted_into(s, args)
+            if s not in pipeline.LICENCE_GATED or pipeline.opted_into(s, args)
         ],
         fixture_csvs,
     )
-    assert build.opted_into("kegg", argparse.Namespace(with_kegg=True))
+    assert pipeline.opted_into("kegg", argparse.Namespace(with_kegg=True))
 
 
 def test_the_record_count_is_rows_and_not_newlines(tmp_path):
@@ -419,7 +419,7 @@ def test_the_record_count_is_rows_and_not_newlines(tmp_path):
     assert path.read_bytes().count(b"\n") - 1 > real, (
         "this fixture must contain quoted newlines or it measures nothing"
     )
-    assert build.csv_rows(path) == real
+    assert pipeline.csv_rows(path) == real
 
 
 def test_the_record_count_survives_a_chunk_boundary(tmp_path):
@@ -431,7 +431,7 @@ def test_the_record_count_survives_a_chunk_boundary(tmp_path):
         writer.writerows([(i, "pad " * 8 + "two\nlines") for i in range(40_000)])
     assert path.stat().st_size > (1 << 20), "smaller than one chunk: no boundary"
     with path.open(encoding="utf-8", newline="") as fh:
-        assert build.csv_rows(path) == sum(1 for _ in csv.reader(fh)) - 1
+        assert pipeline.csv_rows(path) == sum(1 for _ in csv.reader(fh)) - 1
 
 
 def test_the_expansion_report_names_every_relationship_it_declared(
@@ -551,11 +551,11 @@ def test_the_default_build_carries_the_bm25_lane_and_no_vectors(both_builds):
     graph = kglite.load(str(path))
 
     assert graph.list_embeddings() == []
-    for node_type, prop, _ef in build.VECTOR_INDEXES:
+    for node_type, prop, _ef in pipeline.VECTOR_INDEXES:
         assert graph.embedding_dim(node_type, prop) is None, f"{node_type}.{prop}"
         assert not graph.has_vector_index(node_type, prop), f"{node_type}.{prop}"
     # The BM25 lane is not gated: five indexes for 276 ms and 14.3 MB.
-    for node_type, prop in build.TEXT_INDEXES:
+    for node_type, prop in pipeline.TEXT_INDEXES:
         assert graph.has_text_index(node_type, prop), f"{node_type}.{prop}"
 
     # And the report says which flag turns the missing lane on, because the
@@ -569,11 +569,13 @@ def test_the_flagged_build_carries_both_lanes(both_builds):
     graph = kglite.load(str(path))
 
     stores = {(s["node_type"], s["text_column"]) for s in graph.list_embeddings()}
-    assert stores == {(node_type, prop) for node_type, prop, _ in build.VECTOR_INDEXES}
-    for node_type, prop, _ef in build.VECTOR_INDEXES:
+    assert stores == {
+        (node_type, prop) for node_type, prop, _ in pipeline.VECTOR_INDEXES
+    }
+    for node_type, prop, _ef in pipeline.VECTOR_INDEXES:
         assert graph.embedding_dim(node_type, prop) == 256, f"{node_type}.{prop}"
         assert graph.has_vector_index(node_type, prop), f"{node_type}.{prop}"
-    for node_type, prop in build.TEXT_INDEXES:
+    for node_type, prop in pipeline.TEXT_INDEXES:
         assert graph.has_text_index(node_type, prop), f"{node_type}.{prop}"
     assert "vector indexes: skipped" not in stdout, stdout
 
@@ -636,8 +638,8 @@ def test_every_prep_reports_an_absent_input_as_missing_input(tmp_path, prep):
         text=True,
         cwd=ROOT,
     )
-    assert proc.returncode == build.MISSING_INPUT, (
-        f"{prep.name} exited {proc.returncode}, not {build.MISSING_INPUT}:\n"
+    assert proc.returncode == pipeline.MISSING_INPUT, (
+        f"{prep.name} exited {proc.returncode}, not {pipeline.MISSING_INPUT}:\n"
         f"{proc.stderr}"
     )
     assert proc.stderr.strip(), f"{prep.name} said nothing about what it wanted"
@@ -669,7 +671,7 @@ def test_a_prep_with_its_own_file_but_no_taxdump_exits_missing_input(tmp_path):
         text=True,
         cwd=ROOT,
     )
-    assert proc.returncode == build.MISSING_INPUT, proc.stderr
+    assert proc.returncode == pipeline.MISSING_INPUT, proc.stderr
     assert "nodes.dmp" in proc.stderr
     assert "usage:" not in proc.stderr
 

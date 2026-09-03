@@ -678,7 +678,7 @@ def child_build_graph(args: argparse.Namespace) -> None:
     os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
     import kglite
 
-    from microbiomekg.build import TEXT_INDEXES, VECTOR_INDEXES  # noqa: PLC0415
+    from microbiomekg.pipeline import TEXT_INDEXES, VECTOR_INDEXES  # noqa: PLC0415
     from microbiomekg.embedder import CharGramEmbedder  # noqa: PLC0415
 
     result: dict[str, Any] = {"indexes": [], "saves": []}

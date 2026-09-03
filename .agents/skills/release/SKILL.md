@@ -14,9 +14,9 @@ invoking this skill.
 
 ## Why there is nothing to release
 
-- **No package.** `pyproject.toml` declares `version = "0.1.0"` as a
-  placeholder for local installs. Nothing is published under the name
-  `microbiomekg`, and the name has not been checked on PyPI.
+- **No published package.** The wheel builds and installs (`make
+  check-install`), but `version = "0.1.0"` is a placeholder and nothing is
+  on PyPI under `microbiomekg` — the name answered 404 on 2026-09-03.
 - **No remote.** The git history is local-only. There is no CI:
   `.github/workflows/ci.yml` is written so it is correct the day a remote
   exists, but nothing runs it.
@@ -38,9 +38,10 @@ design the packaging items implement.
    succeed and report every source as absent. `.github/workflows/ci.yml` is
    written and inert until then. CI skips the 259 graph-backed tests, and a
    skip is not a pass.
-3. **Package surface** — `microbiomekg/api.py` (`fetch` / `status` / `build`),
-   `SourceStatus` with `how_to_get` as data, a console entry point, pyproject
-   metadata, and a code licence. **The PyPI name is unverified.**
+3. **Package surface** — done 2026-09-03: `microbiomekg/api.py`, `SourceStatus`,
+   the `microbiomekg` console script, hatchling metadata, MIT `LICENSE`, and
+   `make check-install`. The PyPI name answered 404 that day — unclaimed, not
+   reserved.
 4. **PyPI publishing** — trusted publishing on a `v*` tag, wheel + sdist,
    artifact-set verification (`R9`), a clean-venv install of the *published*
    artifact. **This skill is un-stubbed only when this item lands.**

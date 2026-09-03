@@ -1,8 +1,43 @@
+# The package: pure Python on the kglite wheel. The licence covers the code
+# only — no data and no built graph ships, because 26% of evidence-bearing
+# edges have no redistribution permission (docs/evaluation.md §4). Nothing is
+# published yet: the version is a placeholder until the release train reaches
+# PyPI (docs/design/release-readiness.md §4), and there are no project URLs
+# because there is no remote to point at (§1).
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
 [project]
 name = "microbiomekg"
 version = "0.1.0"
 description = "A microbiome knowledge graph on kglite, with the evidence model as the point."
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Kristian dF Kollsgård"}
+]
+keywords = [
+    "microbiome", "knowledge-graph", "cypher", "kglite", "evidence",
+    "bugsigdb", "ncbi-taxonomy", "mcp", "llm-agents",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
     "kglite>=0.16.22",
     "pandas>=2.0",
@@ -14,6 +49,26 @@ dependencies = [
 test = [
     "pytest>=8.0",
     "pytest-timeout>=2.3",
+]
+
+[project.scripts]
+microbiomekg = "microbiomekg.cli:main"
+
+# The blueprint fragments and the MCP manifest + skills are data inside the
+# package directory; hatchling ships everything under it that git tracks, so
+# adding a source's fragment is adding a file, never editing this.
+[tool.hatch.build.targets.wheel]
+packages = ["microbiomekg"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "microbiomekg/**",
+    "scripts/**",
+    "tests/**",
+    "docs/**",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
 ]
 
 [tool.pytest.ini_options]

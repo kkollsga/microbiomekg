@@ -156,7 +156,7 @@ def compose(directory: Path = FRAGMENTS_DIR, sources: list[str] | None = None) -
     A partial blueprint is not a convenience: a blueprint declaring a node type
     whose CSV is not there loads it as empty, and an ontology rule over an
     empty type is a gate that cannot fail. So a build that prepped only some
-    sources declares only those (:mod:`microbiomekg.build` does this for a
+    sources declares only those (:mod:`microbiomekg.pipeline` does this for a
     source whose raw input is absent), and a per-source test builds its own.
     """
     directory = Path(directory)
