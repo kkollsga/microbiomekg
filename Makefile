@@ -24,7 +24,7 @@ RUFF   := $(VENV)/bin/ruff
 # Everything the gate itself needs, plus the engine. One list, so a tool added
 # to a gate is installed by `make venv` in the same change and the gate cannot
 # no-op for whoever has not installed it by hand.
-DEV_DEPS := pytest pytest-timeout ruff build "kglite>=0.16.22" pandas openpyxl requests
+DEV_DEPS := pytest pytest-timeout ruff build sphinx furo myst-parser sphinx-autoapi sphinx-copybutton "kglite>=0.16.22" pandas openpyxl requests
 # Every Python path ruff owns. Referenced by check and format alike so the two
 # cannot drift apart and silently stop covering a directory.
 PY_PATHS := microbiomekg scripts tests bench
@@ -33,7 +33,7 @@ GRAPH := graph/microbiomekg.kgl
 
 .PHONY: gate lint ruff-check ruff-fix fragments claims test build serve venv \
         check-adapters sync-adapters check-dev-docs check-data-bounds \
-        prune-dev check-graph check-install
+        prune-dev check-graph check-install docs
 
 ## The gate. Order is cheapest-first so a trivial failure costs a second.
 gate: check-adapters check-dev-docs check-data-bounds lint fragments claims
@@ -199,12 +199,18 @@ venv:
 check-install:
 	$(PY) scripts/check_install.py
 
+## The docs, under -W: a warning is a broken cross-reference or a docstring
+## that no longer parses. Not in `make gate` (tens of seconds); run at a
+## program's completion, and it is the inert CI's `docs` job.
+docs:
+	$(PY) -m sphinx -W --keep-going -b html docs docs/_build/html
+
 ## The regenerable tiers, and only those (R4). Never touches data/raw/ (the
 ## operator owns it and three of its sources are browser-only), data/csv/ or
 ## graph/ (a build owns those), or bench/results/ (the tracked record).
 prune-dev:
 	@echo "purging regenerable caches and the time-boxed dev-docs tiers"
-	@rm -rf .pytest_cache .ruff_cache
+	@rm -rf .pytest_cache .ruff_cache docs/_build
 	@find . -name '__pycache__' -type d -not -path './.venv/*' -prune -print -exec rm -rf {} + 2>/dev/null || true
 	@find . -name '.DS_Store' -not -path './.venv/*' -print -delete 2>/dev/null || true
 	@mkdir -p dev-docs/temp dev-docs/bin

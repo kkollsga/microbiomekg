@@ -10,6 +10,7 @@ graph/
 # Written by scripts/build.py beside the graph; a pure function of the sources.
 ontology.json
 
+docs/_build/
 .venv/
 __pycache__/
 .pytest_cache/

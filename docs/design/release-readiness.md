@@ -141,7 +141,14 @@ for the reference being worth anything.
 like KGLite's: a warning is a broken cross-reference or a docstring that no
 longer parses, and a docs job that tolerates warnings tolerates rot.
 
-**Done when:** the build is green under `-W` in CI and the site serves the four
+**Local half done 2026-09-03:** `docs/conf.py` (furo, myst-parser,
+sphinx-autoapi over `microbiomekg/`, copybutton), `docs/index.md` with the
+five guides, the design notes and the research pages, `docs/requirements.txt`,
+`.readthedocs.yaml`, and `make docs` = `sphinx-build -W --keep-going`, green.
+The inert CI has a `docs` job. What remains is the project on
+readthedocs.org, which needs the remote.
+
+**Done when:** the build is green under `-W` in CI and the site serves the
 guides plus a generated reference.
 
 ## 6. README, human-first

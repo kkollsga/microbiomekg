@@ -96,6 +96,21 @@ jobs:
           echo "claim gate) self-skip here: CI has no graph/microbiomekg.kgl."
           echo "A skip is NOT a pass — see docs/design/release-readiness.md §2."
 
+  docs:
+    name: sphinx -W (the guides and the generated reference)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Provision the venv
+        run: make venv
+      # A warning is a broken cross-reference or a docstring that no longer
+      # parses; -W --keep-going reports every one and fails.
+      - name: Build the docs
+        run: make docs
+
   smoke:
     name: build against an empty data directory
     runs-on: ubuntu-latest
