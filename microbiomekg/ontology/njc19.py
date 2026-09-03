@@ -165,14 +165,16 @@ NEGATIVE_MARKER: str = "(-)"
 #: scale line is "838 microbial species + 6 host cell types"; these are the six,
 #: and they are excluded by name rather than left to fail reconciliation, which
 #: would file them as six taxa NCBI lost.
-HOST_CELL_TYPES: frozenset[str] = frozenset({
-    "human colonocyte",
-    "human goblet cell",
-    "human hepatocyte",
-    "mouse goblet cell",
-    "mouse hepatocyte",
-    "mouse intestinal cell",
-})
+HOST_CELL_TYPES: frozenset[str] = frozenset(
+    {
+        "human colonocyte",
+        "human goblet cell",
+        "human hepatocyte",
+        "mouse goblet cell",
+        "mouse hepatocyte",
+        "mouse intestinal cell",
+    }
+)
 
 #: Broadest NCBI rank an exchange claim may be made at. NJC19 files every row
 #: against a species and 823 of its 844 organism strings resolve at exactly that
@@ -234,7 +236,9 @@ def activity_relations(activity: str | None) -> list[tuple[str, bool]]:
     return out
 
 
-def split_references(cell: str | int | None, relationship: str) -> tuple[list[str], bool]:
+def split_references(
+    cell: str | int | None, relationship: str
+) -> tuple[list[str], bool]:
     """The reference ids for one relationship, and whether all of them are ``(G)``.
 
     NJC19's ``Ref. #`` is a comma-joined list of numbers indexing the paper's
@@ -316,8 +320,10 @@ def name_variants(compound: str) -> list[tuple[str, str]]:
             push(bare, f"{prefix}stereo" if prefix else "stereo")
             bare_conjugate = _conjugate(bare)
             if bare_conjugate:
-                push(bare_conjugate, f"{prefix}stereo-conjugate" if prefix
-                     else "stereo-conjugate")
+                push(
+                    bare_conjugate,
+                    f"{prefix}stereo-conjugate" if prefix else "stereo-conjugate",
+                )
 
     expand(head, "")
     for synonym in synonyms:

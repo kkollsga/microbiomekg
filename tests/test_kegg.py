@@ -59,7 +59,7 @@ SOURCE = "kegg"
 MISSING_INPUT = 3
 
 KEGG_PATHWAY_NODES = 4
-KEGG_IN_PATHWAY = 6      # 8 link rows: one undeclared map, one unselected compound
+KEGG_IN_PATHWAY = 6  # 8 link rows: one undeclared map, one unselected compound
 KEGG_LEDGER_ROWS = 2
 
 
@@ -78,18 +78,42 @@ def prep_sources(csv_dir: Path, with_kegg: bool) -> str:
     """HMDB, Reactome and (optionally) KEGG, in the order the build runs them."""
     run(
         SCRIPTS / "prep_hmdb.py",
-        "--xml", str(HMDB_MINI), "--taxdump", str(TAXDUMP_MINI),
-        "--reactome", str(REACTOME_MINI), "--out", str(csv_dir),
+        "--xml",
+        str(HMDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
     )
     gate = ["--with-kegg"] if with_kegg else []
-    kegg = run(PREP, "--kegg", str(KEGG_MINI), "--out", str(csv_dir), *gate,
-               expect=0 if with_kegg else MISSING_INPUT)
-    run(SCRIPTS / "prep_reactome.py", "--reactome", str(REACTOME_MINI),
-        "--out", str(csv_dir))
+    kegg = run(
+        PREP,
+        "--kegg",
+        str(KEGG_MINI),
+        "--out",
+        str(csv_dir),
+        *gate,
+        expect=0 if with_kegg else MISSING_INPUT,
+    )
     run(
-        SCRIPTS / "prep_taxonomy.py", "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir), "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        SCRIPTS / "prep_reactome.py",
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
+    )
+    run(
+        SCRIPTS / "prep_taxonomy.py",
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
     return kegg.stdout + kegg.stderr
 
@@ -182,10 +206,14 @@ def test_the_flag_adds_kegg_rows_and_nothing_else(gated, opted_in):
     rule deliberately never consults KEGG, because a metabolite kept because
     KEGG links it would be a KEGG-derived row in a graph built without the
     flag."""
-    before = {(r["metabolite_id"], r["selection_rule"])
-              for r in table(gated[1], "metabolite.csv")}
-    after = {(r["metabolite_id"], r["selection_rule"])
-             for r in table(opted_in[1], "metabolite.csv")}
+    before = {
+        (r["metabolite_id"], r["selection_rule"])
+        for r in table(gated[1], "metabolite.csv")
+    }
+    after = {
+        (r["metabolite_id"], r["selection_rule"])
+        for r in table(opted_in[1], "metabolite.csv")
+    }
     assert before == after and before
 
     def counts(graph):
@@ -197,8 +225,9 @@ def test_the_flag_adds_kegg_rows_and_nothing_else(gated, opted_in):
     off, on = counts(gated[0]), counts(opted_in[0])
     assert set(off) == set(on)
     assert on["Pathway"] - off["Pathway"] == KEGG_PATHWAY_NODES
-    assert {t: n for t, n in on.items() if t != "Pathway"} == \
-           {t: n for t, n in off.items() if t != "Pathway"}
+    assert {t: n for t, n in on.items() if t != "Pathway"} == {
+        t: n for t, n in off.items() if t != "Pathway"
+    }
 
 
 def test_every_kegg_row_carries_the_restricted_licence(opted_in):
@@ -211,16 +240,18 @@ def test_every_kegg_row_carries_the_restricted_licence(opted_in):
         "RETURN DISTINCT r.source_licence AS licence, r.evidence_level AS level, "
         "r.knowledge_level AS kl, r.agent_type AS agent, r.evidence_code AS code",
     )
-    assert edges == [{
-        "licence": "KEGG-restricted",
-        # KEGG ships no per-link evidence field of any kind; `unknown` is a
-        # countable value where a fabricated code would be indistinguishable
-        # from Reactome's real one.
-        "level": "unknown",
-        "kl": "knowledge_assertion",
-        "agent": "manual_agent",
-        "code": None,
-    }]
+    assert edges == [
+        {
+            "licence": "KEGG-restricted",
+            # KEGG ships no per-link evidence field of any kind; `unknown` is a
+            # countable value where a fabricated code would be indistinguishable
+            # from Reactome's real one.
+            "level": "unknown",
+            "kl": "knowledge_assertion",
+            "agent": "manual_agent",
+            "code": None,
+        }
+    ]
     assert SOURCE_LICENCE[SOURCE] == "KEGG-restricted"
     nodes = rows(
         graph,
@@ -266,11 +297,16 @@ def test_the_hsa_pathway_list_is_not_loaded_beside_the_map_list(opted_in):
     name. Loading both yields two Pathway nodes for one biological pathway, and
     a query that counts pathways then double-counts silently."""
     graph = opted_in[0]
-    assert not rows(graph, "MATCH (p:Pathway) WHERE p.id STARTS WITH 'KEGG:hsa' RETURN p")
-    assert one(
-        graph,
-        "MATCH (p:Pathway) WHERE p.pathway_source = 'kegg' RETURN count(p) AS n",
-    )["n"] == KEGG_PATHWAY_NODES
+    assert not rows(
+        graph, "MATCH (p:Pathway) WHERE p.id STARTS WITH 'KEGG:hsa' RETURN p"
+    )
+    assert (
+        one(
+            graph,
+            "MATCH (p:Pathway) WHERE p.pathway_source = 'kegg' RETURN count(p) AS n",
+        )["n"]
+        == KEGG_PATHWAY_NODES
+    )
     assert not rows(
         graph,
         "MATCH (p:Pathway) WHERE p.title CONTAINS 'Homo sapiens (human)' RETURN p",
@@ -308,8 +344,10 @@ def test_withdrawn_and_wrong_namespace_ids_are_counted_apart(opted_in):
     to be in a *compound* list, so counting it as withdrawn overstates the
     decay by 10 ids that are simply in another namespace."""
     output = opted_in[2]
-    assert "no longer in list_compound.tsv (withdrawn upstream since HMDB 5.0): C00626" \
+    assert (
+        "no longer in list_compound.tsv (withdrawn upstream since HMDB 5.0): C00626"
         in output
+    )
     assert "not compound ids at all (D = drug, G = glycan)" in output
     assert ": D00109" in output
     # And the third bucket, which the real data made necessary: HMDB's one
@@ -323,17 +361,23 @@ def test_a_link_whose_compound_is_not_selected_reaches_the_ledger(opted_in):
     """The consequence of not letting KEGG steer the selection rule: KEGG links
     6,688 compounds and the graph has metabolites for a fraction of them. The
     shortfall is a count, not a silent difference between two builds."""
-    ledger = [r for r in table(opted_in[1], "unresolved_pathway_links.csv")
-              if r["primary_source"] == SOURCE]
+    ledger = [
+        r
+        for r in table(opted_in[1], "unresolved_pathway_links.csv")
+        if r["primary_source"] == SOURCE
+    ]
     assert len(ledger) == KEGG_LEDGER_ROWS
     reasons = {r["source_id"]: r["reason"] for r in ledger}
     assert "no Metabolite node" in reasons["KEGG:C00031"]
     assert "does not declare" in reasons["KEGG:map00999"]
-    assert one(
-        opted_in[0],
-        "MATCH ()-[r:IN_PATHWAY]->() WHERE r.primary_source = 'kegg' "
-        "RETURN count(r) AS n",
-    )["n"] == KEGG_IN_PATHWAY
+    assert (
+        one(
+            opted_in[0],
+            "MATCH ()-[r:IN_PATHWAY]->() WHERE r.primary_source = 'kegg' "
+            "RETURN count(r) AS n",
+        )["n"]
+        == KEGG_IN_PATHWAY
+    )
 
 
 def test_no_taxon_reaches_a_kegg_pathway(opted_in):

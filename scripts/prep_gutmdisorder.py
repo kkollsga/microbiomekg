@@ -139,7 +139,11 @@ def as_int(value) -> str:
         number = float(value)
     except (TypeError, ValueError):
         return ""
-    return str(int(round(number))) if abs(number - round(number)) <= INDEX_TOLERANCE else ""
+    return (
+        str(int(round(number)))
+        if abs(number - round(number)) <= INDEX_TOLERANCE
+        else ""
+    )
 
 
 def as_float(value) -> str:
@@ -153,15 +157,34 @@ def as_float(value) -> str:
 
 ASSOCIATION_FIELDS = [
     # The evidence contract, in the order docs/model.md states it.
-    "direction", "study_design", "evidence_level", "sequencing_type",
-    "statistical_test", "group_0_size", "group_1_size", "pmid",
-    "knowledge_level", "agent_type", "primary_source", "source_record_id",
-    "source_licence", "source_relation",
+    "direction",
+    "study_design",
+    "evidence_level",
+    "sequencing_type",
+    "statistical_test",
+    "group_0_size",
+    "group_1_size",
+    "pmid",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
     # Context, deliberately outside the audited contract.
-    "study_id", "host_species", "p_value", "research_type",
-    "study_sample_size", "study_arm_sizes", "sample_size_scope",
-    "reported_name", "reported_rank", "original_rank", "reported_tax_id",
-    "resolution_status", "duplicate_rows",
+    "study_id",
+    "host_species",
+    "p_value",
+    "research_type",
+    "study_sample_size",
+    "study_arm_sizes",
+    "sample_size_scope",
+    "reported_name",
+    "reported_rank",
+    "original_rank",
+    "reported_tax_id",
+    "resolution_status",
+    "duplicate_rows",
 ]
 
 
@@ -210,8 +233,10 @@ def main(argv: list[str] | None = None) -> int:
         # different fact from "this script was called wrong", and
         # scripts/build.py acts on the difference by skipping the source and
         # leaving it out of the blueprint rather than declaring an empty one.
-        print(f"no {', '.join(w + '.xlsx' for w in missing)} under {books}",
-              file=sys.stderr)
+        print(
+            f"no {', '.join(w + '.xlsx' for w in missing)} under {books}",
+            file=sys.stderr,
+        )
         return 3
     try:
         taxdump = args.taxdump or find_taxdump(args.raw)
@@ -226,59 +251,125 @@ def main(argv: list[str] | None = None) -> int:
     mondo_path = args.mondo or (args.raw / "mondo" / "mondo.obo")
     if mondo_path.is_file():
         mondo = MondoIndex.from_obo(mondo_path)
-        print(f"loaded MONDO: {len(mondo.label):,} live terms, "
-              f"{len(mondo.equivalent):,} equivalences", flush=True)
+        print(
+            f"loaded MONDO: {len(mondo.label):,} live terms, "
+            f"{len(mondo.equivalent):,} equivalences",
+            flush=True,
+        )
     else:
         mondo = MondoIndex()
-        print(f"no mondo.obo at {mondo_path}; every DOID keeps its own CURIE "
-              f"as key and mondo_id will be null", flush=True)
+        print(
+            f"no mondo.obo at {mondo_path}; every DOID keeps its own CURIE "
+            f"as key and mondo_id will be null",
+            flush=True,
+        )
 
     out = args.out
     studies = Writer(
         out / "study.csv",
-        ["study_id", "study_number", "title", "journal", "year", "doi", "url",
-         "authors", "keywords", "pmid", "pmid_raw", "source", "workbook",
-         "research_type", "intervention", "intervention_type", "conclusion",
-         "host_species", "experiment_id", "n_arms", "sample_size_total",
-         "arm_sizes", "sample_source", "sample_conditions",
-         "sequencing_technology", "sequencing_platform"],
-        key="study_id", merge=True, owner=("source", SOURCE),
+        [
+            "study_id",
+            "study_number",
+            "title",
+            "journal",
+            "year",
+            "doi",
+            "url",
+            "authors",
+            "keywords",
+            "pmid",
+            "pmid_raw",
+            "source",
+            "workbook",
+            "research_type",
+            "intervention",
+            "intervention_type",
+            "conclusion",
+            "host_species",
+            "experiment_id",
+            "n_arms",
+            "sample_size_total",
+            "arm_sizes",
+            "sample_source",
+            "sample_conditions",
+            "sequencing_technology",
+            "sequencing_platform",
+        ],
+        key="study_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     papers = Writer(
-        out / "paper.csv", ["pmid", "title", "journal", "year", "doi"],
-        key="pmid", merge=True,
+        out / "paper.csv",
+        ["pmid", "title", "journal", "year", "doi"],
+        key="pmid",
+        merge=True,
     )
-    condition_fields = ["condition_id", "label", "mondo_id", "mondo_label",
-                        "source_id", "source_vocabulary", "source_condition"]
+    condition_fields = [
+        "condition_id",
+        "label",
+        "mondo_id",
+        "mondo_label",
+        "source_id",
+        "source_vocabulary",
+        "source_condition",
+    ]
     diseases = Writer(
         out / "disease.csv", condition_fields, key="condition_id", merge=True
     )
     interventions = Writer(
         out / "intervention.csv",
         ["intervention_id", "label", "intervention_type", "drugbank_id", "source"],
-        key="intervention_id", merge=True, owner=("source", SOURCE),
+        key="intervention_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     assoc = Writer(
         out / "taxon_condition.csv",
         ["tax_id", "condition_id", "condition_type", *ASSOCIATION_FIELDS],
-        dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+        dedupe_full=True,
+        merge=True,
+        owner=("primary_source", SOURCE),
     )
     changed_by = Writer(
         out / "taxon_intervention.csv",
         ["tax_id", "intervention_id", *ASSOCIATION_FIELDS],
-        dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+        dedupe_full=True,
+        merge=True,
+        owner=("primary_source", SOURCE),
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
-         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
-        key="unresolved_id", merge=True, owner=("source", SOURCE),
+        [
+            "unresolved_id",
+            "raw_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "source",
+            "status",
+            "candidates",
+            "note",
+            "n_signatures",
+        ],
+        key="unresolved_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     unresolved_conditions = Writer(
         out / "unresolved_conditions.csv",
-        ["signature_id", "source_id", "source_vocabulary", "raw_condition",
-         "pairing_method", "reason", "source"],
-        dedupe_full=True, merge=True, owner=("source", SOURCE),
+        [
+            "signature_id",
+            "source_id",
+            "source_vocabulary",
+            "raw_condition",
+            "pairing_method",
+            "reason",
+            "source",
+        ],
+        dedupe_full=True,
+        merge=True,
+        owner=("source", SOURCE),
     )
     # C18's accounting, for the rows that become no edge at all. gutMDisorder
     # has no Signature node to hang an unresolved taxon off — BugSigDB's
@@ -286,13 +377,24 @@ def main(argv: list[str] | None = None) -> int:
     # would have carried is recorded here instead of vanishing.
     unresolved_assoc = Writer(
         out / "unresolved_associations.csv",
-        ["workbook", "study_index", "source_record_id", "reported_name",
-         "reported_tax_id", "reason", "source"],
-        merge=True, owner=("source", SOURCE),
+        [
+            "workbook",
+            "study_index",
+            "source_record_id",
+            "reported_name",
+            "reported_tax_id",
+            "reason",
+            "source",
+        ],
+        merge=True,
+        owner=("source", SOURCE),
     )
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -327,56 +429,81 @@ def main(argv: list[str] | None = None) -> int:
                 "research_type": research_type,
                 "host_species": host,
                 "sequencing_type": gmd.sequencing_type(technology),
-                "evidence_level": gmd.evidence_level(workbook, research_type, technology),
-                "sample_size_total": str(sum(int(s) for s in sizes if s)) if any(sizes) else "",
+                "evidence_level": gmd.evidence_level(
+                    workbook, research_type, technology
+                ),
+                "sample_size_total": str(sum(int(s) for s in sizes if s))
+                if any(sizes)
+                else "",
                 "arm_sizes": as_list(sizes),
             }
             study_meta[index] = meta
             levels[meta["evidence_level"]] += 1
 
-            studies.add({
-                "study_id": key,
-                "study_number": str(index),
-                "title": text(row.get("Title")),
-                "journal": text(row.get("Journal")),
-                "year": "",
-                "doi": "",
-                "url": text(row.get("Experiment web site")),
-                "authors": text(row.get("Authors")),
-                "keywords": "",
-                "pmid": pmid,
-                "pmid_raw": text(row.get("PMID")),
-                "source": SOURCE,
-                "workbook": workbook,
-                "research_type": research_type,
-                "intervention": text(row.get("Intervention")),
-                "intervention_type": text(row.get("Intervention Type")),
-                "conclusion": text(row.get("Conclusion")),
-                "host_species": host,
-                "experiment_id": text(row.get("Experiment ID")),
-                "n_arms": str(len(group)),
-                "sample_size_total": meta["sample_size_total"],
-                "arm_sizes": meta["arm_sizes"],
-                "sample_source": "; ".join(sorted({
-                    text(a.get("Sample Source")) for a in group if text(a.get("Sample Source"))
-                })),
-                "sample_conditions": "; ".join(sorted({
-                    text(a.get("Condition")) for a in group if text(a.get("Condition"))
-                })),
-                "sequencing_technology": technology,
-                "sequencing_platform": "; ".join(sorted({
-                    text(a.get("Sequencing Platform")) for a in group
-                    if text(a.get("Sequencing Platform"))
-                })),
-            })
-            if pmid:
-                papers.add({
-                    "pmid": pmid,
+            studies.add(
+                {
+                    "study_id": key,
+                    "study_number": str(index),
                     "title": text(row.get("Title")),
                     "journal": text(row.get("Journal")),
                     "year": "",
                     "doi": "",
-                })
+                    "url": text(row.get("Experiment web site")),
+                    "authors": text(row.get("Authors")),
+                    "keywords": "",
+                    "pmid": pmid,
+                    "pmid_raw": text(row.get("PMID")),
+                    "source": SOURCE,
+                    "workbook": workbook,
+                    "research_type": research_type,
+                    "intervention": text(row.get("Intervention")),
+                    "intervention_type": text(row.get("Intervention Type")),
+                    "conclusion": text(row.get("Conclusion")),
+                    "host_species": host,
+                    "experiment_id": text(row.get("Experiment ID")),
+                    "n_arms": str(len(group)),
+                    "sample_size_total": meta["sample_size_total"],
+                    "arm_sizes": meta["arm_sizes"],
+                    "sample_source": "; ".join(
+                        sorted(
+                            {
+                                text(a.get("Sample Source"))
+                                for a in group
+                                if text(a.get("Sample Source"))
+                            }
+                        )
+                    ),
+                    "sample_conditions": "; ".join(
+                        sorted(
+                            {
+                                text(a.get("Condition"))
+                                for a in group
+                                if text(a.get("Condition"))
+                            }
+                        )
+                    ),
+                    "sequencing_technology": technology,
+                    "sequencing_platform": "; ".join(
+                        sorted(
+                            {
+                                text(a.get("Sequencing Platform"))
+                                for a in group
+                                if text(a.get("Sequencing Platform"))
+                            }
+                        )
+                    ),
+                }
+            )
+            if pmid:
+                papers.add(
+                    {
+                        "pmid": pmid,
+                        "title": text(row.get("Title")),
+                        "journal": text(row.get("Journal")),
+                        "year": "",
+                        "doi": "",
+                    }
+                )
                 counters["papers"] += 1
 
             # --- the disease endpoint, through the MONDO hub
@@ -394,22 +521,31 @@ def main(argv: list[str] | None = None) -> int:
             for curie, verbatim in paired.pairs:
                 if malformed_curie(curie):
                     counters["malformed_doid"] += 1
-                    unresolved_conditions.add({
-                        "signature_id": key, "source_id": curie,
-                        "source_vocabulary": curie_vocabulary(curie),
-                        "raw_condition": verbatim, "pairing_method": paired.method,
-                        "reason": "malformed id for its vocabulary", "source": SOURCE,
-                    })
+                    unresolved_conditions.add(
+                        {
+                            "signature_id": key,
+                            "source_id": curie,
+                            "source_vocabulary": curie_vocabulary(curie),
+                            "raw_condition": verbatim,
+                            "pairing_method": paired.method,
+                            "reason": "malformed id for its vocabulary",
+                            "source": SOURCE,
+                        }
+                    )
                     continue
                 if condition_node_type(curie) != "Disease":
                     counters["unroutable_condition"] += 1
-                    unresolved_conditions.add({
-                        "signature_id": key, "source_id": curie,
-                        "source_vocabulary": curie_vocabulary(curie),
-                        "raw_condition": verbatim, "pairing_method": paired.method,
-                        "reason": "no Disease node type for this vocabulary",
-                        "source": SOURCE,
-                    })
+                    unresolved_conditions.add(
+                        {
+                            "signature_id": key,
+                            "source_id": curie,
+                            "source_vocabulary": curie_vocabulary(curie),
+                            "raw_condition": verbatim,
+                            "pairing_method": paired.method,
+                            "reason": "no Disease node type for this vocabulary",
+                            "source": SOURCE,
+                        }
+                    )
                     continue
                 hub = mondo.mondo_id(curie)
                 if hub is None:
@@ -419,44 +555,57 @@ def main(argv: list[str] | None = None) -> int:
                 # MONDO's own name wins wherever there is one; the source's
                 # string is one observed spelling among several and is kept in
                 # `source_condition` either way.
-                diseases.add({
-                    "condition_id": node,
-                    "label": mondo.label_for(curie) or verbatim or curie,
-                    "mondo_id": hub or "",
-                    "mondo_label": mondo.label_for(curie) or "",
-                    "source_id": curie,
-                    "source_vocabulary": curie_vocabulary(curie),
-                    "source_condition": verbatim,
-                })
+                diseases.add(
+                    {
+                        "condition_id": node,
+                        "label": mondo.label_for(curie) or verbatim or curie,
+                        "mondo_id": hub or "",
+                        "mondo_label": mondo.label_for(curie) or "",
+                        "source_id": curie,
+                        "source_vocabulary": curie_vocabulary(curie),
+                        "source_condition": verbatim,
+                    }
+                )
             for curie in paired.unpaired_ids:
                 counters["unpaired_condition"] += 1
-                unresolved_conditions.add({
-                    "signature_id": key, "source_id": curie,
-                    "source_vocabulary": curie_vocabulary(curie), "raw_condition": "",
-                    "pairing_method": paired.method,
-                    "reason": "no disorder name could be paired to this id",
-                    "source": SOURCE,
-                })
+                unresolved_conditions.add(
+                    {
+                        "signature_id": key,
+                        "source_id": curie,
+                        "source_vocabulary": curie_vocabulary(curie),
+                        "raw_condition": "",
+                        "pairing_method": paired.method,
+                        "reason": "no disorder name could be paired to this id",
+                        "source": SOURCE,
+                    }
+                )
             for spare in paired.unpaired_labels:
                 counters["unpaired_condition"] += 1
-                unresolved_conditions.add({
-                    "signature_id": key, "source_id": "", "source_vocabulary": "",
-                    "raw_condition": spare, "pairing_method": paired.method,
-                    "reason": "no id could be paired to this disorder name",
-                    "source": SOURCE,
-                })
+                unresolved_conditions.add(
+                    {
+                        "signature_id": key,
+                        "source_id": "",
+                        "source_vocabulary": "",
+                        "raw_condition": spare,
+                        "pairing_method": paired.method,
+                        "reason": "no id could be paired to this disorder name",
+                        "source": SOURCE,
+                    }
+                )
             study_diseases[index] = keys
 
             name = text(row.get("Intervention"))
             if name:
                 iid = f"INTERVENTION:{slug(name)}"
-                interventions.add({
-                    "intervention_id": iid,
-                    "label": name,
-                    "intervention_type": text(row.get("Intervention Type")),
-                    "drugbank_id": text(row.get("Intervention ID")),
-                    "source": SOURCE,
-                })
+                interventions.add(
+                    {
+                        "intervention_id": iid,
+                        "label": name,
+                        "intervention_type": text(row.get("Intervention Type")),
+                        "drugbank_id": text(row.get("Intervention ID")),
+                        "source": SOURCE,
+                    }
+                )
                 study_interventions[index] = [iid]
 
         # --- associations. Exact duplicates are counted, not repeated.
@@ -488,13 +637,17 @@ def main(argv: list[str] | None = None) -> int:
             raw_id = as_int(row.get("Gut Microbiata NCBI ID"))
             if meta is None:
                 counters["association_without_study"] += 1
-                unresolved_assoc.add({
-                    "workbook": workbook, "study_index": str(index),
-                    "source_record_id": record, "reported_name": reported_name,
-                    "reported_tax_id": raw_id,
-                    "reason": "no Literature row carries this index",
-                    "source": SOURCE,
-                })
+                unresolved_assoc.add(
+                    {
+                        "workbook": workbook,
+                        "study_index": str(index),
+                        "source_record_id": record,
+                        "reported_name": reported_name,
+                        "reported_tax_id": raw_id,
+                        "reason": "no Literature row carries this index",
+                        "source": SOURCE,
+                    }
+                )
                 continue
 
             if raw_id:
@@ -504,25 +657,32 @@ def main(argv: list[str] | None = None) -> int:
             if res.tax_id is None:
                 counters["unresolved_taxa"] += 1
                 uid = f"unresolved:{SOURCE}:{raw_id or slug(reported_name)}"
-                unresolved_nodes.add({
-                    "unresolved_id": uid,
-                    "raw_name": reported_name or raw_id,
-                    "reported_rank": text(row.get("Classification")),
-                    "original_rank": res.original_rank or "",
-                    "reported_tax_id": raw_id,
-                    "source": SOURCE,
-                    "status": res.status,
-                    "candidates": as_list(str(c) for c in res.candidates),
-                    "note": res.note,
-                    "n_signatures": "0",
-                })
+                unresolved_nodes.add(
+                    {
+                        "unresolved_id": uid,
+                        "raw_name": reported_name or raw_id,
+                        "reported_rank": text(row.get("Classification")),
+                        "original_rank": res.original_rank or "",
+                        "reported_tax_id": raw_id,
+                        "source": SOURCE,
+                        "status": res.status,
+                        "candidates": as_list(str(c) for c in res.candidates),
+                        "note": res.note,
+                        "n_signatures": "0",
+                    }
+                )
                 unresolved_hits[uid] += 1
-                unresolved_assoc.add({
-                    "workbook": workbook, "study_index": str(index),
-                    "source_record_id": record, "reported_name": reported_name,
-                    "reported_tax_id": raw_id,
-                    "reason": f"taxon {res.status}: {res.note}", "source": SOURCE,
-                })
+                unresolved_assoc.add(
+                    {
+                        "workbook": workbook,
+                        "study_index": str(index),
+                        "source_record_id": record,
+                        "reported_name": reported_name,
+                        "reported_tax_id": raw_id,
+                        "reason": f"taxon {res.status}: {res.note}",
+                        "source": SOURCE,
+                    }
+                )
                 continue
 
             direction = DIRECTIONS.get(text(row.get("Alteration")).casefold(), "")
@@ -575,34 +735,51 @@ def main(argv: list[str] | None = None) -> int:
                 # routed all 1,636 of them to `Disease`. The column is still
                 # written rather than assumed, because it is what the loader
                 # reads to pick this row's target type.
-                assoc.add({"tax_id": str(res.tax_id), "condition_id": condition,
-                           "condition_type": "Disease", **edge})
+                assoc.add(
+                    {
+                        "tax_id": str(res.tax_id),
+                        "condition_id": condition,
+                        "condition_type": "Disease",
+                        **edge,
+                    }
+                )
                 counters["associated_with"] += 1
                 targets += 1
             for iid in study_interventions.get(index, []):
-                changed_by.add({"tax_id": str(res.tax_id), "intervention_id": iid, **edge})
+                changed_by.add(
+                    {"tax_id": str(res.tax_id), "intervention_id": iid, **edge}
+                )
                 counters["abundance_changed_by"] += 1
                 targets += 1
             if not targets:
                 counters["association_without_endpoint"] += 1
-                unresolved_assoc.add({
-                    "workbook": workbook, "study_index": str(index),
-                    "source_record_id": record, "reported_name": reported_name,
-                    "reported_tax_id": raw_id,
-                    "reason": "study has neither a usable DOID nor an intervention",
-                    "source": SOURCE,
-                })
+                unresolved_assoc.add(
+                    {
+                        "workbook": workbook,
+                        "study_index": str(index),
+                        "source_record_id": record,
+                        "reported_name": reported_name,
+                        "reported_tax_id": raw_id,
+                        "reason": "study has neither a usable DOID nor an intervention",
+                        "source": SOURCE,
+                    }
+                )
 
         for sheet, value in sheets.bad_index:
             counters["non_integral_index"] += 1
-            unresolved_assoc.add({
-                "workbook": workbook, "study_index": text(value),
-                "source_record_id": "", "reported_name": "", "reported_tax_id": "",
-                "reason": f"{sheet} row index is not an integer within "
-                          f"{INDEX_TOLERANCE:g} — rounding it would attach the row "
-                          f"to some other study",
-                "source": SOURCE,
-            })
+            unresolved_assoc.add(
+                {
+                    "workbook": workbook,
+                    "study_index": text(value),
+                    "source_record_id": "",
+                    "reported_name": "",
+                    "reported_tax_id": "",
+                    "reason": f"{sheet} row index is not an integer within "
+                    f"{INDEX_TOLERANCE:g} — rounding it would attach the row "
+                    f"to some other study",
+                    "source": SOURCE,
+                }
+            )
 
     for row in unresolved_nodes.rows:
         if row["source"] == SOURCE:
@@ -610,31 +787,53 @@ def main(argv: list[str] | None = None) -> int:
     for tid, n in sorted(taxa_seen.items()):
         cited.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
-    tables = (studies, papers, diseases, interventions, assoc, changed_by,
-              unresolved_nodes, unresolved_conditions, unresolved_assoc, cited)
+    tables = (
+        studies,
+        papers,
+        diseases,
+        interventions,
+        assoc,
+        changed_by,
+        unresolved_nodes,
+        unresolved_conditions,
+        unresolved_assoc,
+        cited,
+    )
     counts = {w.path.name: w.flush() for w in tables}
 
-    print(f"\nread {counters['association_rows']:,} association rows across "
-          f"{counters['studies']:,} studies "
-          f"({counters['duplicate_rows']:,} exact duplicates collapsed)")
-    print(f"  edges: {counters['associated_with']:,} ASSOCIATED_WITH, "
-          f"{counters['abundance_changed_by']:,} ABUNDANCE_CHANGED_BY")
-    print(f"  not loaded: {counters['association_without_endpoint']:,} rows whose "
-          f"study has no DOID and no intervention, "
-          f"{counters['unresolved_taxa']:,} unresolved taxa, "
-          f"{counters['non_integral_index']:,} non-integral index cells, "
-          f"{counters['association_without_study']:,} orphan indexes")
-    print(f"  conditions: {counters['malformed_doid']:,} malformed DOIDs, "
-          f"{counters['doid_without_mondo']:,} DOID mentions with no MONDO "
-          f"equivalence (own CURIE as key)")
-    print("  evidence levels: " + ", ".join(
-        f"{lvl} {n:,}" for lvl, n in sorted(levels.items())))
+    print(
+        f"\nread {counters['association_rows']:,} association rows across "
+        f"{counters['studies']:,} studies "
+        f"({counters['duplicate_rows']:,} exact duplicates collapsed)"
+    )
+    print(
+        f"  edges: {counters['associated_with']:,} ASSOCIATED_WITH, "
+        f"{counters['abundance_changed_by']:,} ABUNDANCE_CHANGED_BY"
+    )
+    print(
+        f"  not loaded: {counters['association_without_endpoint']:,} rows whose "
+        f"study has no DOID and no intervention, "
+        f"{counters['unresolved_taxa']:,} unresolved taxa, "
+        f"{counters['non_integral_index']:,} non-integral index cells, "
+        f"{counters['association_without_study']:,} orphan indexes"
+    )
+    print(
+        f"  conditions: {counters['malformed_doid']:,} malformed DOIDs, "
+        f"{counters['doid_without_mondo']:,} DOID mentions with no MONDO "
+        f"equivalence (own CURIE as key)"
+    )
+    print(
+        "  evidence levels: "
+        + ", ".join(f"{lvl} {n:,}" for lvl, n in sorted(levels.items()))
+    )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     return 0
 
 

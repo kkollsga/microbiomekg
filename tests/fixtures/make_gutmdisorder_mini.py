@@ -77,23 +77,36 @@ KEEP = {"human": [201, 231, 81, 234], "mouse": [2, 3]}
 EXTRA_LITERATURE = {
     "human": [
         {
-            "Index": 900, "PMID": 30000001, "Journal": "Journal of Fixtures",
+            "Index": 900,
+            "PMID": 30000001,
+            "Journal": "Journal of Fixtures",
             "Title": "A study whose only disease id is malformed",
-            "Authors": "Fixture A", "Research Type": "Gut microbiota associated with disorder",
-            "Intervention": None, "Intervention Type": None, "Intervention ID": None,
-            "Disorder Name": "an unmappable disorder", "DOID": "DOID:00400085",
+            "Authors": "Fixture A",
+            "Research Type": "Gut microbiota associated with disorder",
+            "Intervention": None,
+            "Intervention Type": None,
+            "Intervention ID": None,
+            "Disorder Name": "an unmappable disorder",
+            "DOID": "DOID:00400085",
             "Conclusion": "Nothing here should reach a Disease node.",
-            "Experiment ID": None, "Experiment web site": None,
+            "Experiment ID": None,
+            "Experiment web site": None,
         },
         {
-            "Index": 901, "PMID": 30000002, "Journal": "Journal of Fixtures",
+            "Index": 901,
+            "PMID": 30000002,
+            "Journal": "Journal of Fixtures",
             "Title": "A study naming two diseases in one cell",
-            "Authors": "Fixture B", "Research Type": "Gut microbiota associated with disorder",
-            "Intervention": None, "Intervention Type": None, "Intervention ID": None,
+            "Authors": "Fixture B",
+            "Research Type": "Gut microbiota associated with disorder",
+            "Intervention": None,
+            "Intervention Type": None,
+            "Intervention ID": None,
             "Disorder Name": "Crohn's disease,ulcerative colitis",
             "DOID": "DOID:8878,DOID:8577",
             "Conclusion": "Two ids in one cell, neither mapped by MONDO.",
-            "Experiment ID": None, "Experiment web site": None,
+            "Experiment ID": None,
+            "Experiment web site": None,
         },
     ],
     "mouse": [],
@@ -101,21 +114,54 @@ EXTRA_LITERATURE = {
 
 EXTRA_SAMPLE = {
     "human": [
-        {"Index": 900, "Sample Number": 1, "Sample Size": 12.0, "Sample Source": "stool",
-         "Sex (male, female)": "6,6", "Age": "40 years old", "BMI": None,
-         "Human/Mouse": "human", "Nation/Race": "Fixture", "Condition": "cases",
-         "Sequencing Technology": "16S rRNA sequences", "Sequencing Platform": None,
-         "Unnamed: 12": None, "Unnamed: 13": None},
-        {"Index": 901, "Sample Number": 1, "Sample Size": 20.0, "Sample Source": "stool",
-         "Sex (male, female)": "10,10", "Age": "40 years old", "BMI": None,
-         "Human/Mouse": "human", "Nation/Race": "Fixture", "Condition": "cases",
-         "Sequencing Technology": "16S rRNA sequences", "Sequencing Platform": None,
-         "Unnamed: 12": None, "Unnamed: 13": None},
-        {"Index": 901, "Sample Number": 2, "Sample Size": 21.0, "Sample Source": "stool",
-         "Sex (male, female)": "11,10", "Age": "41 years old", "BMI": None,
-         "Human/Mouse": "human", "Nation/Race": "Fixture", "Condition": "healthy",
-         "Sequencing Technology": "16S rRNA sequences", "Sequencing Platform": None,
-         "Unnamed: 12": None, "Unnamed: 13": None},
+        {
+            "Index": 900,
+            "Sample Number": 1,
+            "Sample Size": 12.0,
+            "Sample Source": "stool",
+            "Sex (male, female)": "6,6",
+            "Age": "40 years old",
+            "BMI": None,
+            "Human/Mouse": "human",
+            "Nation/Race": "Fixture",
+            "Condition": "cases",
+            "Sequencing Technology": "16S rRNA sequences",
+            "Sequencing Platform": None,
+            "Unnamed: 12": None,
+            "Unnamed: 13": None,
+        },
+        {
+            "Index": 901,
+            "Sample Number": 1,
+            "Sample Size": 20.0,
+            "Sample Source": "stool",
+            "Sex (male, female)": "10,10",
+            "Age": "40 years old",
+            "BMI": None,
+            "Human/Mouse": "human",
+            "Nation/Race": "Fixture",
+            "Condition": "cases",
+            "Sequencing Technology": "16S rRNA sequences",
+            "Sequencing Platform": None,
+            "Unnamed: 12": None,
+            "Unnamed: 13": None,
+        },
+        {
+            "Index": 901,
+            "Sample Number": 2,
+            "Sample Size": 21.0,
+            "Sample Source": "stool",
+            "Sex (male, female)": "11,10",
+            "Age": "41 years old",
+            "BMI": None,
+            "Human/Mouse": "human",
+            "Nation/Race": "Fixture",
+            "Condition": "healthy",
+            "Sequencing Technology": "16S rRNA sequences",
+            "Sequencing Platform": None,
+            "Unnamed: 12": None,
+            "Unnamed: 13": None,
+        },
     ],
     "mouse": [],
 }
@@ -123,9 +169,14 @@ EXTRA_SAMPLE = {
 
 def association(index, name, gm, taxid, rank, p, method, description, alteration):
     return {
-        "index": index, "Gut Microbiota": name, "Gut Microbiata ID": gm,
-        "Gut Microbiata NCBI ID": taxid, "Classification": rank, "P Value": p,
-        "Statistical Method": method, "Description": description,
+        "index": index,
+        "Gut Microbiota": name,
+        "Gut Microbiata ID": gm,
+        "Gut Microbiata NCBI ID": taxid,
+        "Classification": rank,
+        "P Value": p,
+        "Statistical Method": method,
+        "Description": description,
         "Alteration": alteration,
     }
 
@@ -137,8 +188,11 @@ def echo(frame: pd.DataFrame, index: int, gm: str, **changes) -> dict:
     one character is a near-duplicate, which this loader deliberately keeps as
     a separate edge — so it is copied from the cut rather than retyped.
     """
-    row = frame[(frame["index"].round() == index) &
-                (frame["Gut Microbiata ID"] == gm)].iloc[0].to_dict()
+    row = (
+        frame[(frame["index"].round() == index) & (frame["Gut Microbiata ID"] == gm)]
+        .iloc[0]
+        .to_dict()
+    )
     row.update(changes)
     return row
 
@@ -152,10 +206,15 @@ def injected_associations(workbook: str, real: pd.DataFrame) -> list[dict]:
         echo(real, 231, "gm0077"),
         # The same taxon in the same study, the other way. Two edges (G4):
         # a contradiction is exposed, never resolved by a majority.
-        echo(real, 231, "gm0535", **{
-            "Alteration": "decrease",
-            "Description": "Prevotella was less abundant in a second cohort.",
-        }),
+        echo(
+            real,
+            231,
+            "gm0535",
+            **{
+                "Alteration": "decrease",
+                "Description": "Prevotella was less abundant in a second cohort.",
+            },
+        ),
         *EXTRA_ASSOCIATION[workbook],
     ]
 
@@ -163,22 +222,64 @@ def injected_associations(workbook: str, real: pd.DataFrame) -> list[dict]:
 EXTRA_ASSOCIATION = {
     "human": [
         # Deleted taxid: a tombstone and a ledger row, never a silent drop.
-        association(901, "A deleted organism", "gm9001", 1036.0, "genus", 0.01,
-                    "Student's t test", "Reported under an id NCBI has deleted.",
-                    "increase"),
+        association(
+            901,
+            "A deleted organism",
+            "gm9001",
+            1036.0,
+            "genus",
+            0.01,
+            "Student's t test",
+            "Reported under an id NCBI has deleted.",
+            "increase",
+        ),
         # Merged taxid: the edge lands on the survivor, 216572.
-        association(901, "An organism under an old id", "gm9002", 541000.0, "family",
-                    0.02, "Student's t test", "Reported under a merged id.", "decrease"),
+        association(
+            901,
+            "An organism under an old id",
+            "gm9002",
+            541000.0,
+            "family",
+            0.02,
+            "Student's t test",
+            "Reported under a merged id.",
+            "decrease",
+        ),
         # No id at all: resolved by name.
-        association(901, "Escherichia coli", "gm9003", None, "species", 0.03,
-                    "Student's t test", "Reported by name with no id column.",
-                    "increase"),
+        association(
+            901,
+            "Escherichia coli",
+            "gm9003",
+            None,
+            "species",
+            0.03,
+            "Student's t test",
+            "Reported by name with no id column.",
+            "increase",
+        ),
         # Not an integer within 1e-6: rounding it would pick a study.
-        association(2.5, "Bacteroides", "gm0077", 816.0, "genus", 0.04,
-                    "Student's t test", "An index that is not an integer.", "increase"),
-        association(900, "Bacteroides", "gm0077", 816.0, "genus", 0.05,
-                    "Student's t test",
-                    "The study this belongs to has no usable disease id.", "increase"),
+        association(
+            2.5,
+            "Bacteroides",
+            "gm0077",
+            816.0,
+            "genus",
+            0.04,
+            "Student's t test",
+            "An index that is not an integer.",
+            "increase",
+        ),
+        association(
+            900,
+            "Bacteroides",
+            "gm0077",
+            816.0,
+            "genus",
+            0.05,
+            "Student's t test",
+            "The study this belongs to has no usable disease id.",
+            "increase",
+        ),
     ],
     "mouse": [],
 }
@@ -201,10 +302,16 @@ def mini_taxids() -> set[int]:
     loader — while the tombstone path is exercised deliberately, by the
     injected deleted id.
     """
-    live = {int(line.split("\t|")[0].strip())
-            for line in (TAXDUMP / "nodes.dmp").read_text().splitlines() if line.strip()}
-    merged = {int(line.split("\t|")[0].strip())
-              for line in (TAXDUMP / "merged.dmp").read_text().splitlines() if line.strip()}
+    live = {
+        int(line.split("\t|")[0].strip())
+        for line in (TAXDUMP / "nodes.dmp").read_text().splitlines()
+        if line.strip()
+    }
+    merged = {
+        int(line.split("\t|")[0].strip())
+        for line in (TAXDUMP / "merged.dmp").read_text().splitlines()
+        if line.strip()
+    }
     return live | merged
 
 
@@ -213,8 +320,11 @@ def cut(workbook: str) -> dict[str, pd.DataFrame]:
     keep = KEEP[workbook]
     known = mini_taxids()
     sheets = {}
-    for sheet, column in (("Literature", "Index"), ("Sample", "Index"),
-                          ("Association", "index")):
+    for sheet, column in (
+        ("Literature", "Index"),
+        ("Sample", "Index"),
+        ("Association", "index"),
+    ):
         frame = book.parse(sheet)
         index = frame[column].astype(float).round().astype(int)
         frame = frame[index.isin(keep)].copy()
@@ -228,7 +338,9 @@ def cut(workbook: str) -> dict[str, pd.DataFrame]:
         extra = (
             injected_associations(workbook, frame)
             if sheet == "Association"
-            else {"Literature": EXTRA_LITERATURE, "Sample": EXTRA_SAMPLE}[sheet][workbook]
+            else {"Literature": EXTRA_LITERATURE, "Sample": EXTRA_SAMPLE}[sheet][
+                workbook
+            ]
         )
         if extra:
             frame = pd.concat([frame, pd.DataFrame(extra)], ignore_index=True)

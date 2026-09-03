@@ -60,18 +60,18 @@ SOURCE = "gutmdisorder"
 # --------------------------------------------------------------------------
 
 #: gutMDisorder's own rows, before any join.
-ASSOCIATION_ROWS = 29          # 25 human + 4 mouse as written in the workbooks
-NON_INTEGRAL_INDEX = 1         # the 2.5 row: never rounded into a study
-EXACT_DUPLICATES = 1           # the byte-identical repeat of one human row
-GUTMD_STUDIES = 8              # 6 human Literature rows + 2 mouse
+ASSOCIATION_ROWS = 29  # 25 human + 4 mouse as written in the workbooks
+NON_INTEGRAL_INDEX = 1  # the 2.5 row: never rounded into a study
+EXACT_DUPLICATES = 1  # the byte-identical repeat of one human row
+GUTMD_STUDIES = 8  # 6 human Literature rows + 2 mouse
 GUTMD_ASSOCIATED_WITH = 27
 GUTMD_ABUNDANCE_CHANGED_BY = 6
-GUTMD_LEDGER_ROWS = 3          # deleted taxon, no-endpoint study, non-integral index
+GUTMD_LEDGER_ROWS = 3  # deleted taxon, no-endpoint study, non-integral index
 
 #: Nodes that must be **one** node although two sources name them.
-SHARED_PMID = 27007700         # cited by bugsigdb_mini and by gutmdisorder human 201
-SHARED_DISEASE = "MONDO:0011122"   # obesity disorder: DOID:9970 and BugSigDB's MONDO id
-MERGED_TAXON = 216572          # the survivor of 541000
+SHARED_PMID = 27007700  # cited by bugsigdb_mini and by gutmdisorder human 201
+SHARED_DISEASE = "MONDO:0011122"  # obesity disorder: DOID:9970 and BugSigDB's MONDO id
+MERGED_TAXON = 216572  # the survivor of 541000
 DELETED_TAXID = "1036"
 
 
@@ -84,9 +84,14 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     # BugSigDB first, so every shared table is one another source merges into
@@ -94,24 +99,36 @@ def built(tmp_path_factory):
     # "one paper, two sources" testable.
     run(
         SCRIPTS / "prep_bugsigdb.py",
-        "--raw", str(BUGSIGDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--raw",
+        str(BUGSIGDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(
         PREP,
-        "--workbooks", str(FIXTURE),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--workbooks",
+        str(FIXTURE),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -172,9 +189,9 @@ def table(csv_dir, name):
     [
         (2, 2),
         (2.0, 2),
-        (1.9999999999999, 2),      # the real mouse noise
-        (3.0000000000001, 3),      # and the other direction
-        (33.9999999999999, 34),    # source-formats.md's worked example
+        (1.9999999999999, 2),  # the real mouse noise
+        (3.0000000000001, 3),  # and the other direction
+        (33.9999999999999, 34),  # source-formats.md's worked example
     ],
 )
 def test_binary_noise_rounds_to_the_index_it_means(value, expected):
@@ -197,8 +214,11 @@ def test_a_value_that_is_not_an_integer_is_rejected_not_rounded(value):
 
 
 def test_the_non_integral_row_reaches_the_ledger_and_no_edge(csv_dir, graph):
-    ledger = [r for r in table(csv_dir, "unresolved_associations.csv")
-              if "not an integer" in r["reason"]]
+    ledger = [
+        r
+        for r in table(csv_dir, "unresolved_associations.csv")
+        if "not an integer" in r["reason"]
+    ]
     assert len(ledger) == NON_INTEGRAL_INDEX
     assert ledger[0]["study_index"] == "2.5"
     assert not rows(
@@ -307,8 +327,11 @@ def test_a_deleted_taxid_becomes_a_tombstone_and_a_ledger_row(graph, csv_dir):
     assert tombstone["status"] == "deleted"
     assert tombstone["tax_id"] == int(DELETED_TAXID)
     assert "delnodes" in tombstone["note"]
-    ledger = [r for r in table(csv_dir, "unresolved_associations.csv")
-              if r["reported_tax_id"] == DELETED_TAXID]
+    ledger = [
+        r
+        for r in table(csv_dir, "unresolved_associations.csv")
+        if r["reported_tax_id"] == DELETED_TAXID
+    ]
     assert len(ledger) == 1 and "deleted" in ledger[0]["reason"]
     assert not rows(
         graph,
@@ -339,8 +362,9 @@ def test_a_malformed_doid_reaches_the_ledger_and_no_disease_node(graph, csv_dir)
     """`DOID:00400085` is 8 digits with a leading double zero where DOID ids
     are 1–7 — a typo at the source, not a coverage gap, and the difference has
     to survive into the ledger's reason."""
-    ledger = [r for r in table(csv_dir, "unresolved_conditions.csv")
-              if r["source"] == SOURCE]
+    ledger = [
+        r for r in table(csv_dir, "unresolved_conditions.csv") if r["source"] == SOURCE
+    ]
     assert [r["source_id"] for r in ledger] == ["DOID:00400085"]
     assert "malformed" in ledger[0]["reason"]
     assert not rows(graph, "MATCH (d:Disease {id: 'DOID:00400085'}) RETURN d")
@@ -419,25 +443,55 @@ def test_the_free_text_assay_maps_onto_the_graphs_vocabulary(technology, expecte
 @pytest.mark.parametrize(
     "workbook, research_type, technology, expected",
     [
-        ("mouse", "Gut microbiota associated with disorder", "16S rRNA sequences",
-         "in-vivo-model"),
+        (
+            "mouse",
+            "Gut microbiota associated with disorder",
+            "16S rRNA sequences",
+            "in-vivo-model",
+        ),
         # G6: a mouse intervention is still animal evidence.
-        ("mouse", "Interventions change the composition of gut microbiota",
-         "16S rRNA sequences", "in-vivo-model"),
-        ("human", "Interventions change the composition of gut microbiota",
-         "16S rRNA sequences", "interventional-rct"),
+        (
+            "mouse",
+            "Interventions change the composition of gut microbiota",
+            "16S rRNA sequences",
+            "in-vivo-model",
+        ),
+        (
+            "human",
+            "Interventions change the composition of gut microbiota",
+            "16S rRNA sequences",
+            "interventional-rct",
+        ),
         ("human", "Gut microbiota for adjuvant therapy", "qPCR", "interventional-rct"),
-        ("human", "Gut microbiota associated with disorder", "16S rRNA sequences",
-         "observational-16S"),
-        ("human", "Gut microbiota associated with disorder",
-         "quantitative metagenomics by shotgun sequencing", "observational-shotgun"),
-        ("human", "Gut microbiota associated with disorder", "qPCR",
-         "observational-targeted"),
-        ("human", "Gut microbiota associated with disorder", "",
-         "observational-unspecified"),
+        (
+            "human",
+            "Gut microbiota associated with disorder",
+            "16S rRNA sequences",
+            "observational-16S",
+        ),
+        (
+            "human",
+            "Gut microbiota associated with disorder",
+            "quantitative metagenomics by shotgun sequencing",
+            "observational-shotgun",
+        ),
+        (
+            "human",
+            "Gut microbiota associated with disorder",
+            "qPCR",
+            "observational-targeted",
+        ),
+        (
+            "human",
+            "Gut microbiota associated with disorder",
+            "",
+            "observational-unspecified",
+        ),
     ],
 )
-def test_evidence_level_follows_part_bs_table(workbook, research_type, technology, expected):
+def test_evidence_level_follows_part_bs_table(
+    workbook, research_type, technology, expected
+):
     assert evidence_level(workbook, research_type, technology) == expected
 
 
@@ -511,11 +565,13 @@ def test_every_edge_carries_its_provenance_and_an_unknown_licence(graph):
         "RETURN DISTINCT r.source_licence AS licence, r.knowledge_level AS kl, "
         "r.agent_type AS agent",
     )
-    assert result == [{
-        "licence": "unknown",
-        "kl": "statistical_association",
-        "agent": "manual_agent",
-    }]
+    assert result == [
+        {
+            "licence": "unknown",
+            "kl": "statistical_association",
+            "agent": "manual_agent",
+        }
+    ]
 
 
 def test_the_source_records_no_study_design_and_says_so(graph):
@@ -555,7 +611,7 @@ def test_an_intervention_is_its_own_node_with_its_drugbank_id(graph):
 
 
 def test_the_intervention_edge_is_not_an_association(graph):
-    """"This drug changed this taxon" and "this taxon is associated with this
+    """ "This drug changed this taxon" and "this taxon is associated with this
     disease" are different claims with different directions. Collapsing them
     into one relationship is MDAD's documented weakness."""
     result = one(
@@ -594,7 +650,10 @@ def test_a_paper_cited_by_both_sources_is_one_node(graph):
     )
     assert result["studies"] >= 2
     assert sorted(x for x in result["sources"] if x) == [SOURCE]
-    assert one(graph, f"MATCH (p:Paper {{id: {SHARED_PMID}}}) RETURN count(p) AS n")["n"] == 1
+    assert (
+        one(graph, f"MATCH (p:Paper {{id: {SHARED_PMID}}}) RETURN count(p) AS n")["n"]
+        == 1
+    )
 
 
 def test_a_disease_cited_by_both_sources_is_one_node_with_both_sources_edges(graph):
@@ -658,7 +717,9 @@ def test_every_association_row_is_accounted_for(graph, csv_dir, prep_output):
     assert len(ledger) == GUTMD_LEDGER_ROWS
     # One edge per surviving row; a row reaching two diseases is still one row.
     surviving = ASSOCIATION_ROWS - EXACT_DUPLICATES - len(ledger)
-    assert edges + intervention_only == surviving + 1  # mouse-3's rows are intervention+disease
+    assert (
+        edges + intervention_only == surviving + 1
+    )  # mouse-3's rows are intervention+disease
     assert f"{EXACT_DUPLICATES} exact duplicates collapsed" in prep_output
 
 
@@ -679,7 +740,5 @@ def test_the_study_count_is_one_per_literature_row(graph):
 def test_the_audit_has_no_vacuous_rule_for_this_build(graph):
     """A rule with a zero denominator is a gate that cannot fail — which is how
     a second source's relationship silently audits nothing."""
-    for r in rows(
-        graph, "CALL ontology_audit() YIELD rule, total RETURN rule, total"
-    ):
+    for r in rows(graph, "CALL ontology_audit() YIELD rule, total RETURN rule, total"):
         assert r["total"] > 0, f"{r['rule']} audits nothing"

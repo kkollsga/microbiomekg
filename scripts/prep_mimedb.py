@@ -105,16 +105,40 @@ DEPENDS_ON: list[str] = ["hmdb"]
 NULL = "NULL"
 
 METABOLITE_FIELDS = [
-    "metabolite_id", "name", "hmdb_id", "chebi_id", "kegg_id", "pubchem_cid",
-    "inchikey", "status", "biospecimens", "microbial_origin", "origin",
-    "chemical_formula", "secondary_accessions", "selection_rule", "source",
-    "mimedb_id", "mimedb_origin", "cas", "average_mass", "mimedb_release",
-    "vmh_id", "cmmc_inchikey", "epa_substance_id", "epa_compound_id",
+    "metabolite_id",
+    "name",
+    "hmdb_id",
+    "chebi_id",
+    "kegg_id",
+    "pubchem_cid",
+    "inchikey",
+    "status",
+    "biospecimens",
+    "microbial_origin",
+    "origin",
+    "chemical_formula",
+    "secondary_accessions",
+    "selection_rule",
+    "source",
+    "mimedb_id",
+    "mimedb_origin",
+    "cas",
+    "average_mass",
+    "mimedb_release",
+    "vmh_id",
+    "cmmc_inchikey",
+    "epa_substance_id",
+    "epa_compound_id",
     mm.MICROBE_RELATION_COUNT,
 ]
 
 LEDGER_FIELDS = [
-    "mimedb_id", "name", "hmdb_id", "metabolite_id", "reason", "source",
+    "mimedb_id",
+    "name",
+    "hmdb_id",
+    "metabolite_id",
+    "reason",
+    "source",
 ]
 
 
@@ -155,7 +179,10 @@ def load_metabolite_index(
             # through the index instead of the writer.
             if not key or (row.get("source") or "") == SOURCE:
                 continue
-            for accession in (row.get("hmdb_id") or "", *from_list(row.get("secondary_accessions"))):
+            for accession in (
+                row.get("hmdb_id") or "",
+                *from_list(row.get("secondary_accessions")),
+            ):
                 normalised = mm.normalise_hmdb_id(accession)
                 if normalised:
                     accessions.setdefault(normalised, key)
@@ -232,8 +259,10 @@ def default_inputs(raw: Path) -> tuple[Path, Path]:
     # Nothing on disk: name the preferred location, so the message a fresh
     # clone prints is the one that tells the operator where to put v2.
     base = raw / SOURCE / RELEASE_DIRS[0][0]
-    return (base / f"mimedb_metabolites_{RELEASE_DIRS[0][1]}.csv",
-            base / f"mimedb_microbes_{RELEASE_DIRS[0][1]}.csv")
+    return (
+        base / f"mimedb_metabolites_{RELEASE_DIRS[0][1]}.csv",
+        base / f"mimedb_microbes_{RELEASE_DIRS[0][1]}.csv",
+    )
 
 
 def microbe_report(
@@ -275,18 +304,30 @@ def microbe_report(
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--metabolites", type=Path, default=None,
-                    help="MiMeDB metabolites CSV (default: the newest release present, "
-                         "<raw>/mimedb/v2/mimedb_metabolites_v2.csv falling back to "
-                         "<raw>/mimedb/mimedb_metabolites_v1.csv).")
-    ap.add_argument("--microbes", type=Path, default=None,
-                    help="MiMeDB microbes CSV (default: from the same release directory "
-                         "as --metabolites). Reported on, never loaded: no published "
-                         "release carries a link between the two tables.")
-    ap.add_argument("--njc19", type=Path, default=None,
-                    help="NJC19's Online-only Table 5 xlsx (default: "
-                         "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx). Absent means the "
-                         "njc19-compound selection rule selects nothing.")
+    ap.add_argument(
+        "--metabolites",
+        type=Path,
+        default=None,
+        help="MiMeDB metabolites CSV (default: the newest release present, "
+        "<raw>/mimedb/v2/mimedb_metabolites_v2.csv falling back to "
+        "<raw>/mimedb/mimedb_metabolites_v1.csv).",
+    )
+    ap.add_argument(
+        "--microbes",
+        type=Path,
+        default=None,
+        help="MiMeDB microbes CSV (default: from the same release directory "
+        "as --metabolites). Reported on, never loaded: no published "
+        "release carries a link between the two tables.",
+    )
+    ap.add_argument(
+        "--njc19",
+        type=Path,
+        default=None,
+        help="NJC19's Online-only Table 5 xlsx (default: "
+        "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx). Absent means the "
+        "njc19-compound selection rule selects nothing.",
+    )
     ap.add_argument("--taxdump", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
     args = ap.parse_args(argv)
@@ -299,11 +340,13 @@ def main(argv: list[str] | None = None) -> int:
         # behind an interactive Cloudflare challenge, so an absent file is the
         # expected state of a fresh clone — and the message names the four files
         # an operator has to place, because no script can fetch them.
-        print(f"no MiMeDB metabolites dump at {metabolites_csv}\n"
-              f"  place mimedb_metabolites_v2.csv and mimedb_microbes_v2.csv "
-              f"(with their .xml siblings) from https://mimedb.org/downloads into "
-              f"{args.raw / SOURCE / 'v2'}/ — see data/raw/mimedb/v2/PROVENANCE.md",
-              file=sys.stderr)
+        print(
+            f"no MiMeDB metabolites dump at {metabolites_csv}\n"
+            f"  place mimedb_metabolites_v2.csv and mimedb_microbes_v2.csv "
+            f"(with their .xml siblings) from https://mimedb.org/downloads into "
+            f"{args.raw / SOURCE / 'v2'}/ — see data/raw/mimedb/v2/PROVENANCE.md",
+            file=sys.stderr,
+        )
         return 3
     microbes_csv = args.microbes or default_microbes
     njc19_xlsx = args.njc19 or (args.raw / "njc19" / "41597_2020_516_MOESM1_ESM.xlsx")
@@ -317,9 +360,11 @@ def main(argv: list[str] | None = None) -> int:
     accessions, existing_names, existing_keys = load_metabolite_index(
         out / "metabolite.csv"
     )
-    print(f"metabolite.csv: {len(accessions):,} HMDB accessions, "
-          f"{len(existing_names):,} names and {len(existing_keys):,} InChIKeys "
-          f"already have a node")
+    print(
+        f"metabolite.csv: {len(accessions):,} HMDB accessions, "
+        f"{len(existing_names):,} names and {len(existing_keys):,} InChIKeys "
+        f"already have a node"
+    )
 
     wanted = njc19_wanted_names(njc19_xlsx, existing_names)
     if wanted:
@@ -338,8 +383,10 @@ def main(argv: list[str] | None = None) -> int:
         # `microbiomekg.ontology.mimedb.release_of`.
         release = mm.release_of(reader.fieldnames)
         records = list(reader)
-    print(f"MiMeDB {release}: read {len(records):,} metabolite records "
-          f"from {metabolites_csv}")
+    print(
+        f"MiMeDB {release}: read {len(records):,} metabolite records "
+        f"from {metabolites_csv}"
+    )
 
     #: normalised accession -> the MiMeDB ids claiming it. An accession two
     #: records claim is not a join key; see the module docstring.
@@ -351,12 +398,17 @@ def main(argv: list[str] | None = None) -> int:
     contested = {a for a, ids in claimants.items() if len(ids) > 1}
 
     metabolites = Writer(
-        out / "metabolite.csv", METABOLITE_FIELDS,
-        key="metabolite_id", merge=True, owner=("source", SOURCE),
+        out / "metabolite.csv",
+        METABOLITE_FIELDS,
+        key="metabolite_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     ledger = Writer(
-        out / "unresolved_mimedb.csv", LEDGER_FIELDS,
-        merge=True, owner=("source", SOURCE),
+        out / "unresolved_mimedb.csv",
+        LEDGER_FIELDS,
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -383,15 +435,19 @@ def main(argv: list[str] | None = None) -> int:
 
         if accession and accession in contested:
             counters["contested_accession"] += 1
-            ledger.add({
-                "mimedb_id": mime_id, "name": name, "hmdb_id": accession,
-                "metabolite_id": "",
-                "reason": f"HMDB accession {accession} is claimed by "
-                          f"{len(claimants[accession])} MiMeDB records "
-                          f"({', '.join(claimants[accession])}): it is not a join key, "
-                          f"and this record keeps its own MiMeDB identity",
-                "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "mimedb_id": mime_id,
+                    "name": name,
+                    "hmdb_id": accession,
+                    "metabolite_id": "",
+                    "reason": f"HMDB accession {accession} is claimed by "
+                    f"{len(claimants[accession])} MiMeDB records "
+                    f"({', '.join(claimants[accession])}): it is not a join key, "
+                    f"and this record keeps its own MiMeDB identity",
+                    "source": SOURCE,
+                }
+            )
             accession = ""
 
         inchikey = cell(row, "moldb_inchikey")
@@ -402,15 +458,19 @@ def main(argv: list[str] | None = None) -> int:
             held = existing_names.get(name.casefold())
         if held is not None:
             counters["already_held"] += 1
-            ledger.add({
-                "mimedb_id": mime_id, "name": name, "hmdb_id": accession,
-                "metabolite_id": held,
-                "reason": f"{held} already holds this compound: a second node would "
-                          f"split the pathway and production edges that point at it, "
-                          f"and Writer's first-row-per-key rule would discard these "
-                          f"properties anyway",
-                "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "mimedb_id": mime_id,
+                    "name": name,
+                    "hmdb_id": accession,
+                    "metabolite_id": held,
+                    "reason": f"{held} already holds this compound: a second node would "
+                    f"split the pathway and production edges that point at it, "
+                    f"and Writer's first-row-per-key rule would discard these "
+                    f"properties anyway",
+                    "source": SOURCE,
+                }
+            )
             continue
 
         for rule in keep:
@@ -430,47 +490,49 @@ def main(argv: list[str] | None = None) -> int:
             existing_names.setdefault(name.casefold(), f"MIMEDB:{mime_id}")
         if inchikey:
             existing_keys.setdefault(inchikey, f"MIMEDB:{mime_id}")
-        metabolites.add({
-            "metabolite_id": f"MIMEDB:{mime_id}",
-            "name": name,
-            "hmdb_id": accession,
-            "chebi_id": "",
-            "kegg_id": "",
-            "pubchem_cid": "",
-            "inchikey": inchikey,
-            # MiMeDB has no `status` column: HMDB's four-value detection status
-            # is not this file's vocabulary, and writing a plausible-looking
-            # value into a column another source's evidence rule reads would be
-            # inventing evidence. `mimedb_origin` carries what this file does
-            # grade on.
-            "status": "",
-            "biospecimens": "",
-            "microbial_origin": "false",
-            "origin": "",
-            "chemical_formula": cell(row, "moldb_formula"),
-            "secondary_accessions": "",
-            "selection_rule": as_list(keep),
-            "source": SOURCE,
-            "mimedb_id": mime_id,
-            "mimedb_origin": origin,
-            "cas": cell(row, "cas"),
-            "average_mass": cell(row, "moldb_average_mass"),
-            "mimedb_release": release,
-            # Carried verbatim, never parsed: 83 rows of the real v2 file hold
-            # several VMH ids joined by "; ", so this is a list in a string and
-            # a consumer that wants one has to say which.
-            "vmh_id": cell(row, "vmh_id"),
-            # A cross-reference, and deliberately not one of the three
-            # "already holds" tests above — on 428 rows it is a *different*
-            # compound's key. See mimedb.V2_ONLY_COLUMNS.
-            "cmmc_inchikey": cell(row, "cmmc_inchikey"),
-            "epa_substance_id": cell(row, "epa_substance_id"),
-            "epa_compound_id": cell(row, "epa_compound_id"),
-            # Empty on v1, which has no such column, and empty on a v2 row that
-            # leaves it NULL. Never 0: that would be MiMeDB asserting no related
-            # microbe, which only a filled cell says.
-            mm.MICROBE_RELATION_COUNT: relation_count,
-        })
+        metabolites.add(
+            {
+                "metabolite_id": f"MIMEDB:{mime_id}",
+                "name": name,
+                "hmdb_id": accession,
+                "chebi_id": "",
+                "kegg_id": "",
+                "pubchem_cid": "",
+                "inchikey": inchikey,
+                # MiMeDB has no `status` column: HMDB's four-value detection status
+                # is not this file's vocabulary, and writing a plausible-looking
+                # value into a column another source's evidence rule reads would be
+                # inventing evidence. `mimedb_origin` carries what this file does
+                # grade on.
+                "status": "",
+                "biospecimens": "",
+                "microbial_origin": "false",
+                "origin": "",
+                "chemical_formula": cell(row, "moldb_formula"),
+                "secondary_accessions": "",
+                "selection_rule": as_list(keep),
+                "source": SOURCE,
+                "mimedb_id": mime_id,
+                "mimedb_origin": origin,
+                "cas": cell(row, "cas"),
+                "average_mass": cell(row, "moldb_average_mass"),
+                "mimedb_release": release,
+                # Carried verbatim, never parsed: 83 rows of the real v2 file hold
+                # several VMH ids joined by "; ", so this is a list in a string and
+                # a consumer that wants one has to say which.
+                "vmh_id": cell(row, "vmh_id"),
+                # A cross-reference, and deliberately not one of the three
+                # "already holds" tests above — on 428 rows it is a *different*
+                # compound's key. See mimedb.V2_ONLY_COLUMNS.
+                "cmmc_inchikey": cell(row, "cmmc_inchikey"),
+                "epa_substance_id": cell(row, "epa_substance_id"),
+                "epa_compound_id": cell(row, "epa_compound_id"),
+                # Empty on v1, which has no such column, and empty on a v2 row that
+                # leaves it NULL. Never 0: that would be MiMeDB asserting no related
+                # microbe, which only a filled cell says.
+                mm.MICROBE_RELATION_COUNT: relation_count,
+            }
+        )
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
@@ -482,37 +544,58 @@ def main(argv: list[str] | None = None) -> int:
     counts = {w.path.name: w.flush() for w in tables}
 
     print(f"\nmetabolites: {len(records):,} records read from MiMeDB {release}")
-    print("  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items())))
-    print(f"  loaded {counters['loaded']:,} new Metabolite nodes, "
-          f"skipped {counters['not_selected']:,} that no rule selected")
-    print(f"  not written because the compound already has a node: "
-          f"{counters['already_held']:,}")
-    print(f"  HMDB accessions two MiMeDB records claim, so not used as a join key: "
-          f"{counters['contested_accession']:,} records over "
-          f"{len(contested):,} accessions")
+    print(
+        "  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items()))
+    )
+    print(
+        f"  loaded {counters['loaded']:,} new Metabolite nodes, "
+        f"skipped {counters['not_selected']:,} that no rule selected"
+    )
+    print(
+        f"  not written because the compound already has a node: "
+        f"{counters['already_held']:,}"
+    )
+    print(
+        f"  HMDB accessions two MiMeDB records claim, so not used as a join key: "
+        f"{counters['contested_accession']:,} records over "
+        f"{len(contested):,} accessions"
+    )
     if origins:
-        print("  mimedb_origin: " + ", ".join(f"{o} {n:,}" for o, n in origins.most_common()))
+        print(
+            "  mimedb_origin: "
+            + ", ".join(f"{o} {n:,}" for o, n in origins.most_common())
+        )
     # The one number in the whole download that sizes the association, stated
     # beside the zero it does not close. See mimedb.MICROBE_RELATION_COUNT.
-    print(f"  microbe_relations: {counters['relations_counted']:,} taxon-metabolite "
-          f"pairs counted, 0 enumerated — MiMeDB's own count over the loaded "
-          f"records, with no microbe id anywhere in any published file")
-    print(f"\nmicrobes: {microbe_rows:,} organisms, {with_taxid:,} with an NCBI taxid, "
-          + ", ".join(f"{s} {n:,}" for s, n in statuses.most_common())
-          + f" (MiMeDB {microbe_release})")
+    print(
+        f"  microbe_relations: {counters['relations_counted']:,} taxon-metabolite "
+        f"pairs counted, 0 enumerated — MiMeDB's own count over the loaded "
+        f"records, with no microbe id anywhere in any published file"
+    )
+    print(
+        f"\nmicrobes: {microbe_rows:,} organisms, {with_taxid:,} with an NCBI taxid, "
+        + ", ".join(f"{s} {n:,}" for s, n in statuses.most_common())
+        + f" (MiMeDB {microbe_release})"
+    )
     if activity:
-        print("  activity: "
-              + ", ".join(f"{n:,} {a}" for a, n in activity.most_common())
-              + " — names no compound, so neither an edge nor a Taxon property")
-    print("  PRODUCES edges from MiMeDB: 0 — no published release carries an "
-          "association between its two tables (microbiomekg/ontology/mimedb.py). "
-          "D5 is unchanged by this source.")
+        print(
+            "  activity: "
+            + ", ".join(f"{n:,} {a}" for a, n in activity.most_common())
+            + " — names no compound, so neither an edge nor a Taxon property"
+        )
+    print(
+        "  PRODUCES edges from MiMeDB: 0 — no published release carries an "
+        "association between its two tables (microbiomekg/ontology/mimedb.py). "
+        "D5 is unchanged by this source."
+    )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     return 0
 
 

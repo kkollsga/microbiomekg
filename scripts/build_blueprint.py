@@ -73,14 +73,19 @@ def compose(directory: Path, sources: list[str] | None = None) -> dict:
         wanted = {SPINE, *sources}
         unknown = wanted - {p.stem for p in paths}
         if unknown:
-            raise SystemExit(f"no fragment for {', '.join(sorted(unknown))} in {directory}")
+            raise SystemExit(
+                f"no fragment for {', '.join(sorted(unknown))} in {directory}"
+            )
         paths = [p for p in paths if p.stem in wanted]
     if not paths:
         raise SystemExit(f"no blueprint fragments under {directory}")
     # Stripped per fragment, before merging: two fragments' notes are two
     # different strings under one key, which is exactly what the merge refuses.
     return merge_fragments(
-        (str(p.relative_to(directory.parent)), strip_comments(json.loads(p.read_text())))
+        (
+            str(p.relative_to(directory.parent)),
+            strip_comments(json.loads(p.read_text())),
+        )
         for p in paths
     )
 

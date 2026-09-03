@@ -247,7 +247,12 @@ def is_placeholder_name(name: str | None) -> bool:
     low = text.casefold()
     if low.startswith("candidatus "):
         return True
-    if low.endswith(" sp.") or " sp. " in low or low.endswith(" spp.") or " spp. " in low:
+    if (
+        low.endswith(" sp.")
+        or " sp. " in low
+        or low.endswith(" spp.")
+        or " spp. " in low
+    ):
         return True
     return any(marker in low for marker in PLACEHOLDER_MARKERS)
 
@@ -488,7 +493,10 @@ class TaxonomyIndex:
         sedis`` (rank ``no rank``, parent a family) would be "promoted" to its
         family and a real intermediate node would vanish.
         """
-        if ceiling.strip().lower() not in _BELOW_CEILING and rank_depth(ceiling) is None:
+        if (
+            ceiling.strip().lower() not in _BELOW_CEILING
+            and rank_depth(ceiling) is None
+        ):
             return tax_id, False, f"unknown rank_ceiling {ceiling!r}; no promotion"
 
         own = below_ceiling(self.rank.get(tax_id), ceiling)
@@ -500,7 +508,8 @@ class TaxonomyIndex:
                 (
                     b
                     for a in self.lineage(tax_id)[1:]
-                    if (b := _at_or_below_ceiling(self.rank.get(a), ceiling)) is not None
+                    if (b := _at_or_below_ceiling(self.rank.get(a), ceiling))
+                    is not None
                 ),
                 None,
             )

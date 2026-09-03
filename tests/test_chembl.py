@@ -107,20 +107,38 @@ EVIDENCE_SPLIT = {"interventional-rct": 11, "in-vitro": 12, "unknown": 5}
 #: `intervention.csv` carries Metformin (DB00331) and Vancomycin, and without a
 #: drug-named intervention there is nothing for `IS_DRUG` to link.
 EXTRA_INTERVENTIONS = [
-    {"intervention_id": "INTERVENTION:metformin", "label": "Metformin",
-     "intervention_type": "Drug", "drugbank_id": "DB00331", "source": "gutmdisorder"},
-    {"intervention_id": "INTERVENTION:vancomycin", "label": "Vancomycin",
-     "intervention_type": "Drug", "drugbank_id": "DB00512", "source": "gutmdisorder"},
+    {
+        "intervention_id": "INTERVENTION:metformin",
+        "label": "Metformin",
+        "intervention_type": "Drug",
+        "drugbank_id": "DB00331",
+        "source": "gutmdisorder",
+    },
+    {
+        "intervention_id": "INTERVENTION:vancomycin",
+        "label": "Vancomycin",
+        "intervention_type": "Drug",
+        "drugbank_id": "DB00512",
+        "source": "gutmdisorder",
+    },
     # ChEMBL knows this molecule as ASPIRIN. An exact match is the whole rule,
     # so this is a ledger row, not a link — see the test that says why.
-    {"intervention_id": "INTERVENTION:acetylsalicylic-acid",
-     "label": "Acetylsalicylic acid", "intervention_type": "Drug",
-     "drugbank_id": "DB00945", "source": "gutmdisorder"},
+    {
+        "intervention_id": "INTERVENTION:acetylsalicylic-acid",
+        "label": "Acetylsalicylic acid",
+        "intervention_type": "Drug",
+        "drugbank_id": "DB00945",
+        "source": "gutmdisorder",
+    },
     # gutMDisorder's own comma-multivalued shape (`Clarithromycin,Metronidazole`
     # in the real workbook): two drugs in one label, both of which ChEMBL knows.
-    {"intervention_id": "INTERVENTION:ampicillin-vancomycin",
-     "label": "Ampicillin,Vancomycin", "intervention_type": "Drug",
-     "drugbank_id": "", "source": "gutmdisorder"},
+    {
+        "intervention_id": "INTERVENTION:ampicillin-vancomycin",
+        "label": "Ampicillin,Vancomycin",
+        "intervention_type": "Drug",
+        "drugbank_id": "",
+        "source": "gutmdisorder",
+    },
 ]
 
 
@@ -133,39 +151,59 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     run(
         SCRIPTS / "prep_bugsigdb.py",
-        "--raw", str(BUGSIGDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--raw",
+        str(BUGSIGDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_gutmdisorder.py",
-        "--workbooks", str(GUTMD_FIXTURE),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--workbooks",
+        str(GUTMD_FIXTURE),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     _append_interventions(csv_dir / "intervention.csv", EXTRA_INTERVENTIONS)
 
     prep = run(
         PREP,
-        "--chembl", str(FIXTURE),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--chembl",
+        str(FIXTURE),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -241,8 +279,17 @@ def ledger(csv_dir, kind=None):
 
 @pytest.mark.parametrize(
     "value, expected",
-    [(4, 4), ("4.0", 4), ("4", 4), (4.0, 4), (-1, -1), ("-1.0", -1),
-     (None, None), ("", None), ("NA", None)],
+    [
+        (4, 4),
+        ("4.0", 4),
+        ("4", 4),
+        (4.0, 4),
+        (-1, -1),
+        ("-1.0", -1),
+        (None, None),
+        ("", None),
+        ("NA", None),
+    ],
 )
 def test_max_phase_normalises_both_spellings(value, expected):
     assert max_phase(value) == expected
@@ -457,13 +504,15 @@ def test_every_edge_carries_its_provenance_and_the_share_alike_licence(graph):
         "r.source_licence AS licence, r.knowledge_level AS kl, r.agent_type AS agent, "
         "r.chembl_release AS release",
     )
-    assert result == [{
-        "source": SOURCE,
-        "licence": LICENCE,
-        "kl": "knowledge_assertion",
-        "agent": "manual_agent",
-        "release": RELEASE,
-    }]
+    assert result == [
+        {
+            "source": SOURCE,
+            "licence": LICENCE,
+            "kl": "knowledge_assertion",
+            "agent": "manual_agent",
+            "release": RELEASE,
+        }
+    ]
     assert LICENCE == "CC-BY-SA-3.0"
 
 
@@ -488,10 +537,18 @@ def test_the_chembl_ids_are_preserved_verbatim(graph):
     "ref, expected",
     [
         ({"ref_type": "PubMed", "ref_id": "18336310"}, "PMID:18336310"),
-        ({"ref_type": "DOI", "ref_id": "10.1056/NEJMra0907219"}, "DOI:10.1056/NEJMra0907219"),
+        (
+            {"ref_type": "DOI", "ref_id": "10.1056/NEJMra0907219"},
+            "DOI:10.1056/NEJMra0907219",
+        ),
         # The trap: two real rows put a PMC URL in a PubMed ref_id.
-        ({"ref_type": "PubMed",
-          "ref_id": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4804253/"}, None),
+        (
+            {
+                "ref_type": "PubMed",
+                "ref_id": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4804253/",
+            },
+            None,
+        ),
         ({"ref_type": "DailyMed", "ref_id": "setid=abc"}, None),
         ({"ref_type": "PubMed", "ref_id": ""}, None),
     ],
@@ -500,7 +557,9 @@ def test_a_pubmed_ref_id_is_a_pmid_only_when_it_is_digits(ref, expected):
     assert publication_curie(ref) == expected
 
 
-def test_the_url_shaped_pubmed_ref_reaches_the_ledger_and_no_publication(graph, csv_dir):
+def test_the_url_shaped_pubmed_ref_reaches_the_ledger_and_no_publication(
+    graph, csv_dir
+):
     """Writing it through would mint `PMID:https://www.ncbi.nlm.nih.gov/...`,
     which no PMID lookup resolves and no reader would notice."""
     entries = ledger(csv_dir, "malformed_reference")
@@ -542,11 +601,14 @@ def test_several_publications_are_a_list_property(graph):
         "RETURN r.publications AS pubs",
     )
     assert result["pubs"] == ["PMID:555", "DOI:10.1000/acarbose"]
-    assert one(
-        graph,
-        "MATCH ()-[r:HAS_MECHANISM]->() WHERE 'DOI:10.1000/acarbose' IN r.publications "
-        "RETURN count(r) AS n",
-    )["n"] == 1
+    assert (
+        one(
+            graph,
+            "MATCH ()-[r:HAS_MECHANISM]->() WHERE 'DOI:10.1000/acarbose' IN r.publications "
+            "RETURN count(r) AS n",
+        )["n"]
+        == 1
+    )
 
 
 # --------------------------------------------------------------------------
@@ -674,7 +736,9 @@ def test_the_drugbank_route_does_not_exist_in_this_subset(graph, csv_dir, prep_o
     assert "no DrugBank cross-reference" in prep_output
     methods = {
         r["method"]
-        for r in rows(graph, "MATCH ()-[r:IS_DRUG]->() RETURN DISTINCT r.match_method AS method")
+        for r in rows(
+            graph, "MATCH ()-[r:IS_DRUG]->() RETURN DISTINCT r.match_method AS method"
+        )
     }
     assert methods == {"pref_name"}
 

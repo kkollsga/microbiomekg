@@ -63,16 +63,29 @@ SOURCE = "hmdb"
 # Golden values, derived from the fixture by hand and asserted exactly.
 # --------------------------------------------------------------------------
 
-RECORDS = 62                  # metabolites in the fixture XML
-SELECTED = 20                 # Metabolite nodes: 21 records, two sharing one ChEBI
-NOT_SELECTED = 41             # records no rule kept — the shape of the real file
+RECORDS = 62  # metabolites in the fixture XML
+SELECTED = 20  # Metabolite nodes: 21 records, two sharing one ChEBI
+NOT_SELECTED = 41  # records no rule kept — the shape of the real file
 PRODUCES_EDGES = 13
-LEDGER_ROWS = 7               # 4 unresolved + 1 too broad + 1 duplicate + 1 ChEBI key
+LEDGER_ROWS = 7  # 4 unresolved + 1 too broad + 1 duplicate + 1 ChEBI key
 UNRESOLVED_TAXA = 4
-DISEASE_ROWS = 3              # counted, never loaded
-MICROBIAL_ORIGIN = 13         # 12 naming an organism + 1 naming none
-PRODUCING_TAXA = {853, 841, 239935, 816, 562, 1678, 29523, 239934, 1512, 1578,
-                  818, 572511, 1386}
+DISEASE_ROWS = 3  # counted, never loaded
+MICROBIAL_ORIGIN = 13  # 12 naming an organism + 1 naming none
+PRODUCING_TAXA = {
+    853,
+    841,
+    239935,
+    816,
+    562,
+    1678,
+    29523,
+    239934,
+    1512,
+    1578,
+    818,
+    572511,
+    1386,
+}
 
 #: The disease name that carries 72% of HMDB's disease layer.
 MEGA_DISEASE = "3-methylglutaconic aciduria type II, X-linked"
@@ -87,27 +100,46 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     prep = run(
         PREP,
-        "--xml", str(HMDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--reactome", str(REACTOME_MINI),
-        "--out", str(csv_dir),
+        "--xml",
+        str(HMDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
     )
     # Reactome too, because the metabolite selection rule reads its ChEBI set
     # and D13's path needs a Pathway on the far end of IN_PATHWAY.
-    run(SCRIPTS / "prep_reactome.py", "--reactome", str(REACTOME_MINI), "--out", str(csv_dir))
+    run(
+        SCRIPTS / "prep_reactome.py",
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
+    )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -206,8 +238,12 @@ def test_each_selection_rule_is_recorded_on_the_node_it_kept(graph):
         "MATCH (m:Metabolite {id: 'CHEBI:28834'}) RETURN m.selection_rule AS rule, "
         "m.status AS status, m.microbial_origin AS microbial, m.biospecimens AS bio",
     )
-    assert lone == {"rule": ["reactome-chebi"], "status": "predicted",
-                    "microbial": False, "bio": ["Blood"]}
+    assert lone == {
+        "rule": ["reactome-chebi"],
+        "status": "predicted",
+        "microbial": False,
+        "bio": ["Blood"],
+    }
 
 
 def test_a_feces_metabolite_is_kept_without_microbial_origin(graph):
@@ -234,7 +270,9 @@ def test_a_rank_broader_than_a_family_reaches_the_ledger_not_an_edge(graph, csv_
     a naive load does not write a vague edge — it writes a false one. The
     fixture's mini dump has no `Firmicutes` at all, so its phylum case is
     `Bacillota` (1239); both land in the ledger, by the two different routes."""
-    ledger = {r["reported_name"]: r for r in table(csv_dir, "unresolved_production.csv")}
+    ledger = {
+        r["reported_name"]: r for r in table(csv_dir, "unresolved_production.csv")
+    }
     broad = ledger["Bacillota"]
     assert broad["resolved_tax_id"] == "1239"
     assert broad["resolved_rank"] == "phylum"
@@ -255,17 +293,22 @@ def test_an_unresolvable_organism_is_a_tombstone_and_a_ledger_row(graph, csv_dir
         if r["source"] == SOURCE
     }
     assert set(tombstones) == {
-        "Firmicutes", "Human gut microbiota", "Gram-negative bacteria",
+        "Firmicutes",
+        "Human gut microbiota",
+        "Gram-negative bacteria",
         "Akkermansia muciniphilia",
     }
     assert len(tombstones) == UNRESOLVED_TAXA
     for row in tombstones.values():
         assert row["status"] == "unresolved"
         assert row["n_signatures"] == "1"
-    assert one(
-        graph,
-        f"MATCH (u:UnresolvedTaxon) WHERE u.source = '{SOURCE}' RETURN count(u) AS n",
-    )["n"] == UNRESOLVED_TAXA
+    assert (
+        one(
+            graph,
+            f"MATCH (u:UnresolvedTaxon) WHERE u.source = '{SOURCE}' RETURN count(u) AS n",
+        )["n"]
+        == UNRESOLVED_TAXA
+    )
 
 
 def test_the_ligature_typo_is_repaired_by_casefold_not_left_unresolved(graph, csv_dir):
@@ -293,7 +336,8 @@ def test_the_ligature_typo_is_repaired_by_casefold_not_left_unresolved(graph, cs
         "not whichever the XML listed first"
     )
     dropped = [
-        r for r in table(csv_dir, "unresolved_production.csv")
+        r
+        for r in table(csv_dir, "unresolved_production.csv")
         if r["reported_name"] == "Biﬁdobacterium"
     ]
     assert len(dropped) == 1
@@ -336,8 +380,7 @@ def test_a_misspelled_species_does_not_take_its_genus_down_with_it(graph, csv_di
     assert result["reported"] == "Akkermansia"
     assert result["reported_rank"] == "genus-level term"
     assert any(
-        r["reported_name"] == "Akkermansia muciniphilia"
-        and "unresolved" in r["reason"]
+        r["reported_name"] == "Akkermansia muciniphilia" and "unresolved" in r["reason"]
         for r in table(csv_dir, "unresolved_production.csv")
     )
 
@@ -361,8 +404,11 @@ def test_a_cross_kingdom_homonym_is_settled_by_the_microbial_context(graph):
         "RETURN t.id AS tax_id, r.resolution_status AS status, "
         "r.reported_name AS reported",
     )
-    assert result == {"tax_id": 1386, "status": "kingdom-disambiguated",
-                      "reported": "Bacillus"}
+    assert result == {
+        "tax_id": 1386,
+        "status": "kingdom-disambiguated",
+        "reported": "Bacillus",
+    }
     assert not rows(graph, "MATCH (t:Taxon {id: 55087})-[r:PRODUCES]->() RETURN r")
 
 
@@ -376,7 +422,11 @@ def test_a_placeholder_organism_resolves_and_is_flagged_not_dropped(graph):
         "RETURN t.id AS tax_id, t.placeholder AS placeholder, "
         "r.reported_name AS reported",
     )
-    assert result == {"tax_id": 29523, "placeholder": True, "reported": "Bacteroides sp."}
+    assert result == {
+        "tax_id": 29523,
+        "placeholder": True,
+        "reported": "Bacteroides sp.",
+    }
 
 
 def test_the_source_rank_claim_and_ncbis_rank_are_kept_apart(graph):
@@ -453,13 +503,15 @@ def test_the_claim_is_a_curators_whatever_the_metabolites_status(graph):
         "r.agent_type AS agent, r.source_licence AS licence, "
         "r.primary_source AS source, r.source_relation AS relation",
     )
-    assert result == [{
-        "kl": "knowledge_assertion",
-        "agent": "manual_agent",
-        "licence": "HMDB-noncommercial",
-        "source": SOURCE,
-        "relation": MICROBE_PATH,
-    }]
+    assert result == [
+        {
+            "kl": "knowledge_assertion",
+            "agent": "manual_agent",
+            "licence": "HMDB-noncommercial",
+            "source": SOURCE,
+            "relation": MICROBE_PATH,
+        }
+    ]
 
 
 def test_the_publication_cap_is_visible_rather_than_silent(graph):
@@ -517,7 +569,8 @@ def test_two_records_sharing_a_chebi_id_are_one_node_and_the_merge_is_reported(
     )
     assert node["n"] == 1 and node["hmdb"] == "HMDB0000022"
     merged = [
-        r for r in table(csv_dir, "unresolved_production.csv")
+        r
+        for r in table(csv_dir, "unresolved_production.csv")
         if r["accession"] == "HMDB0000023"
     ]
     assert len(merged) == 1 and "already keyed by HMDB0000022" in merged[0]["reason"]
@@ -597,7 +650,9 @@ def test_the_disease_layer_is_counted_and_not_loaded(graph, prep_output):
 # --------------------------------------------------------------------------
 
 
-def test_every_organism_term_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_output):
+def test_every_organism_term_is_an_edge_or_a_counted_reason(
+    graph, csv_dir, prep_output
+):
     """Input terms = edges + ledger rows + explicitly reported suppressions.
     A silent drop cannot hide in the difference."""
     edges = one(graph, "MATCH ()-[r:PRODUCES]->() RETURN count(r) AS n")["n"]
@@ -606,13 +661,20 @@ def test_every_organism_term_is_an_edge_or_a_counted_reason(graph, csv_dir, prep
     assert len(ledger) == LEDGER_ROWS
     organism_rows = [r for r in ledger if r["reported_name"]]
     covered = 4  # genus terms whose own species became the edge
-    assert edges + len(organism_rows) + covered == 23, "23 organism terms in the fixture"
+    assert edges + len(organism_rows) + covered == 23, (
+        "23 organism terms in the fixture"
+    )
     assert "23 organism terms -> 13 PRODUCES edges" in prep_output
 
 
 def test_the_prep_reports_what_it_did_not_load(prep_output):
-    for phrase in ("selection rule:", "not loaded:", "suppressed as duplicate detail:",
-                   "disease layer NOT loaded:", "have never been observed in a sample"):
+    for phrase in (
+        "selection rule:",
+        "not loaded:",
+        "suppressed as duplicate detail:",
+        "disease layer NOT loaded:",
+        "have never been observed in a sample",
+    ):
         assert phrase in prep_output
 
 
@@ -670,10 +732,15 @@ def test_no_rule_this_source_declares_audits_nothing(graph):
     property of a real one."""
     totals = {
         r["rule"]: r["total"]
-        for r in rows(graph, "CALL ontology_audit() YIELD rule, total RETURN rule, total")
+        for r in rows(
+            graph, "CALL ontology_audit() YIELD rule, total RETURN rule, total"
+        )
     }
-    mine = {rule: n for rule, n in totals.items()
-            if rule.split(".")[0] in ("PRODUCES", "IN_PATHWAY", "PART_OF_PATHWAY")}
+    mine = {
+        rule: n
+        for rule, n in totals.items()
+        if rule.split(".")[0] in ("PRODUCES", "IN_PATHWAY", "PART_OF_PATHWAY")
+    }
     assert mine, "the audit reports no rule for this source's relationships at all"
     for rule, n in mine.items():
         assert n > 0, f"{rule} audits nothing"
@@ -684,7 +751,9 @@ def test_the_producing_taxa_are_all_cited_and_loaded(graph, csv_dir):
     that did not contribute to it would have its edges point at nothing."""
     got = {
         r["tax_id"]
-        for r in rows(graph, "MATCH (t:Taxon)-[:PRODUCES]->() RETURN DISTINCT t.id AS tax_id")
+        for r in rows(
+            graph, "MATCH (t:Taxon)-[:PRODUCES]->() RETURN DISTINCT t.id AS tax_id"
+        )
     }
     assert got == PRODUCING_TAXA
     cited = {int(r["tax_id"]) for r in table(csv_dir, "cited_taxa.csv")}

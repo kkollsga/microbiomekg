@@ -66,11 +66,17 @@ class CharGramEmbedder:
     what keeps a 256-wide vector usable over a 443k-term vocabulary.
     """
 
-    def __init__(self, dimension: int = DIMENSION, ngrams: tuple[int, ...] = NGRAMS) -> None:
+    def __init__(
+        self, dimension: int = DIMENSION, ngrams: tuple[int, ...] = NGRAMS
+    ) -> None:
         self.dimension = int(dimension)
         self.ngrams = tuple(ngrams)
-        self.model_id = MODEL_ID if (dimension, tuple(ngrams)) == (DIMENSION, NGRAMS) else (
-            f"microbiomekg-chargram-{dimension}d-{''.join(str(n) for n in ngrams)}"
+        self.model_id = (
+            MODEL_ID
+            if (dimension, tuple(ngrams)) == (DIMENSION, NGRAMS)
+            else (
+                f"microbiomekg-chargram-{dimension}d-{''.join(str(n) for n in ngrams)}"
+            )
         )
 
     def _vector(self, text: str) -> np.ndarray:

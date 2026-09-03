@@ -80,11 +80,35 @@ ORDER BY score DESC LIMIT 5
 #: C4's renamed genera, and the free-text organism strings HMDB ships (Part D,
 #: D5: `Citrobacter frundii`, `Akkermansia muciniphilia` verbatim).
 MISSPELLINGS = [
-    ("Clostridium dificile", "dificile", 1496, "species", "renamed genus AND misspelt epithet"),
-    ("Fecalibacterium", "Fecalibacterium", 216851, "genus", "dropped vowel, genus rank"),
-    ("Akkermansia muciniphilia", "muciniphilia", 239935, "species", "HMDB's spelling of the epithet"),
+    (
+        "Clostridium dificile",
+        "dificile",
+        1496,
+        "species",
+        "renamed genus AND misspelt epithet",
+    ),
+    (
+        "Fecalibacterium",
+        "Fecalibacterium",
+        216851,
+        "genus",
+        "dropped vowel, genus rank",
+    ),
+    (
+        "Akkermansia muciniphilia",
+        "muciniphilia",
+        239935,
+        "species",
+        "HMDB's spelling of the epithet",
+    ),
     ("Citrobacter frundii", "frundii", 546, "species", "HMDB's spelling, dropped 'e'"),
-    ("Lactobacillus plantari", "plantari", 1590, "species", "renamed genus AND truncated epithet"),
+    (
+        "Lactobacillus plantari",
+        "plantari",
+        1590,
+        "species",
+        "renamed genus AND truncated epithet",
+    ),
 ]
 
 #: Correctly-spelled old binomials NCBI keeps as bare synonyms (C4). The vector
@@ -122,7 +146,8 @@ def top(graph, query: str, **params) -> list[dict]:
 
 def test_the_stores_are_the_two_the_build_declares(graph):
     stores = {
-        (store["node_type"], store["text_column"]): store for store in graph.list_embeddings()
+        (store["node_type"], store["text_column"]): store
+        for store in graph.list_embeddings()
     }
     assert set(stores) == {("Taxon", "scientific_name"), ("Disease", "label")}
     assert stores[("Taxon", "scientific_name")]["count"] == 864110
@@ -135,7 +160,9 @@ def test_the_stores_are_the_two_the_build_declares(graph):
 @pytest.mark.parametrize(
     "name,epithet,tax_id,rank,why", MISSPELLINGS, ids=[case[0] for case in MISSPELLINGS]
 )
-def test_a_misspelling_resolves_to_the_right_taxon(graph, name, epithet, tax_id, rank, why):
+def test_a_misspelling_resolves_to_the_right_taxon(
+    graph, name, epithet, tax_id, rank, why
+):
     rows = top(graph, FUSED_VECTOR, name=name, epithet=epithet, rank=rank)
     assert rows, f"{name!r} returned nothing at rank {rank!r}"
     assert rows[0]["tax_id"] == tax_id, (
@@ -164,7 +191,10 @@ def test_both_lanes_are_needed_and_neither_alone_suffices(graph):
     vector_misses_an_old_binomial = False
     for name, tax_id, rank in OLD_BINOMIALS:
         epithet = name.split()[-1]
-        if top(graph, FUSED_VECTOR, name=name, epithet=epithet, rank=rank)[0]["tax_id"] != tax_id:
+        if (
+            top(graph, FUSED_VECTOR, name=name, epithet=epithet, rank=rank)[0]["tax_id"]
+            != tax_id
+        ):
             vector_misses_an_old_binomial = True
         # …and the lexical lane gets every one of them.
         lexical = top(graph, BM25_SYNONYMS, name=name, rank=rank)
@@ -188,11 +218,17 @@ def test_equal_weights_let_bm25_decide_the_blend(graph):
         (n, n.split()[-1], t, r) for n, t, r in OLD_BINOMIALS
     ]
     equal = sum(
-        top(graph, BLENDED, name=n, epithet=e, rank=r, weights=[1.0, 1.0, 1.0])[0]["tax_id"] == t
+        top(graph, BLENDED, name=n, epithet=e, rank=r, weights=[1.0, 1.0, 1.0])[0][
+            "tax_id"
+        ]
+        == t
         for n, e, t, r in cases
     )
     tuned = sum(
-        top(graph, BLENDED, name=n, epithet=e, rank=r, weights=[0.05, 0.475, 0.475])[0]["tax_id"] == t
+        top(graph, BLENDED, name=n, epithet=e, rank=r, weights=[0.05, 0.475, 0.475])[0][
+            "tax_id"
+        ]
+        == t
         for n, e, t, r in cases
     )
     assert equal < tuned, (
@@ -229,7 +265,9 @@ def test_the_index_agrees_with_an_exact_scan(graph):
     """
     for name, _epithet, tax_id, _rank, _why in MISSPELLINGS:
         approx = graph.select("Taxon").search_text("scientific_name", name, top_k=1)
-        exact = graph.select("Taxon").search_text("scientific_name", name, top_k=1, exact=True)
+        exact = graph.select("Taxon").search_text(
+            "scientific_name", name, top_k=1, exact=True
+        )
         assert approx[0]["id"] == exact[0]["id"], (
             f"HNSW disagrees with the exact scan on {name!r}: "
             f"{approx[0]['id']} ({approx[0]['score']:.3f}) vs "

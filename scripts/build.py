@@ -154,8 +154,10 @@ def declared_dependencies(script: Path) -> tuple[str, ...]:
     tree = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
     for node in tree.body:
         targets = (
-            node.targets if isinstance(node, ast.Assign)
-            else [node.target] if isinstance(node, ast.AnnAssign) and node.value
+            node.targets
+            if isinstance(node, ast.Assign)
+            else [node.target]
+            if isinstance(node, ast.AnnAssign) and node.value
             else []
         )
         if any(isinstance(t, ast.Name) and t.id == "DEPENDS_ON" for t in targets):
@@ -193,9 +195,7 @@ def order_preps(scripts: Path) -> list[Path]:
     while deps:
         ready = sorted(name for name, need in deps.items() if not need & set(deps))
         if not ready:
-            raise SystemExit(
-                f"prep dependency cycle among {', '.join(sorted(deps))}"
-            )
+            raise SystemExit(f"prep dependency cycle among {', '.join(sorted(deps))}")
         for name in ready:
             ordered.append(preps[name])
             del deps[name]
@@ -212,8 +212,10 @@ def prep_arguments(source: str, args: argparse.Namespace) -> list[str]:
     if source != "taxonomy":
         return []
     return [
-        "--scope", args.scope,
-        "--cited-from", str(args.csv / "cited_taxa.csv"),
+        "--scope",
+        args.scope,
+        "--cited-from",
+        str(args.csv / "cited_taxa.csv"),
     ]
 
 
@@ -228,6 +230,7 @@ def clear_csv(csv_dir: Path) -> int:
 
 def fragment_csvs(fragments: Path, source: str) -> set[str]:
     """Every CSV filename ``blueprints/<source>.json`` names, at any depth."""
+
     def walk(value) -> set[str]:
         if isinstance(value, dict):
             found = {value["csv"]} if isinstance(value.get("csv"), str) else set()
@@ -239,7 +242,9 @@ def fragment_csvs(fragments: Path, source: str) -> set[str]:
     return walk(json.loads((fragments / f"{source}.json").read_text(encoding="utf-8")))
 
 
-def sources_with_tables(fragments: Path, sources: list[str], csv_dir: Path) -> list[str]:
+def sources_with_tables(
+    fragments: Path, sources: list[str], csv_dir: Path
+) -> list[str]:
     """The sources whose declared CSVs are all in ``csv_dir``.
 
     The same rule the prep loop's ``MISSING_INPUT`` branch applies, asked of
@@ -259,8 +264,11 @@ def sources_with_tables(fragments: Path, sources: list[str], csv_dir: Path) -> l
     is included only when its flag was passed, which is the same answer the
     prep loop's exit code gives.
     """
-    return [s for s in sources
-            if all((csv_dir / name).is_file() for name in fragment_csvs(fragments, s))]
+    return [
+        s
+        for s in sources
+        if all((csv_dir / name).is_file() for name in fragment_csvs(fragments, s))
+    ]
 
 
 #: One relationship as the fragments declare it: the CSVs whose rows the loader
@@ -314,8 +322,9 @@ def declared_relationships(
                 csvs.setdefault(rel, set()).add(spec["csv"])
 
     return {
-        rel: Relationship(rel, tuple(sorted(names)),
-                          tuple(dict.fromkeys(declared_by.get(rel, ()))))
+        rel: Relationship(
+            rel, tuple(sorted(names)), tuple(dict.fromkeys(declared_by.get(rel, ())))
+        )
         for rel, names in sorted(csvs.items())
     }
 
@@ -349,8 +358,8 @@ def csv_rows(path: Path) -> int:
                 if outside:
                     lines += segment.count(b"\n")
                 outside = not outside
-            outside = not outside          # the split's last segment does not
-    return max(lines - 1, 0)               # end at a quote
+            outside = not outside  # the split's last segment does not
+    return max(lines - 1, 0)  # end at a quote
 
 
 def write_load_blueprint(
@@ -371,8 +380,11 @@ def write_load_blueprint(
     against the CSV directory and write the graph in among its inputs.
     """
     document = dict(blueprint)
-    settings = {k: v for k, v in document.get("settings", {}).items()
-                if k not in ("output", "output_path", "output_file")}
+    settings = {
+        k: v
+        for k, v in document.get("settings", {}).items()
+        if k not in ("output", "output_path", "output_file")
+    }
     settings["root"] = str(csv_dir)
     document["settings"] = settings
     document["ontology"] = str(ontology)
@@ -388,7 +400,9 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
     for r in rows("MATCH (n) RETURN labels(n)[0] AS t, count(n) AS n ORDER BY n DESC"):
         print(f"  {r['t']:<20s} {r['n']:>10,}")
     print("\n--- edges")
-    for r in rows("MATCH ()-[r]->() RETURN type(r) AS t, count(r) AS n ORDER BY n DESC"):
+    for r in rows(
+        "MATCH ()-[r]->() RETURN type(r) AS t, count(r) AS n ORDER BY n DESC"
+    ):
         print(f"  {r['t']:<28s} {r['n']:>10,}")
 
     print("\n--- ontology_audit()")
@@ -439,10 +453,13 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
                 f"{r['total']:>8,}  {r['pct']:>6.2f}%{complete}"
             )
     clean = [
-        rule for rule in dict.fromkeys(r["rule"] for r in census)
+        rule
+        for rule in dict.fromkeys(r["rule"] for r in census)
         if not any(r["violations"] for r in census if r["rule"] == rule)
     ]
-    print(f"  … {len(clean)} further required_properties rules with every field complete")
+    print(
+        f"  … {len(clean)} further required_properties rules with every field complete"
+    )
 
     # G10: edges per source record, published rather than assumed. An
     # expansion factor is how a curated source turns into a big-looking graph,
@@ -462,11 +479,15 @@ def report(graph, sources: list[str], fragments: Path, csv_dir: Path) -> None:
             "count(DISTINCT r.source_record_id) AS records ORDER BY edges DESC"
         )
         if not breakdown:
-            print(f"  {rel:<28s} {'-':<14s} {0:>9,} edges / {rows_in:>9,} rows "
-                  f"— declared by {', '.join(spec.fragments)}, loaded nothing")
+            print(
+                f"  {rel:<28s} {'-':<14s} {0:>9,} edges / {rows_in:>9,} rows "
+                f"— declared by {', '.join(spec.fragments)}, loaded nothing"
+            )
             continue
         for r in breakdown:
-            records, unit = (r["records"], "records") if r["records"] else (rows_in, "rows")
+            records, unit = (
+                (r["records"], "records") if r["records"] else (rows_in, "rows")
+            )
             ratio = r["edges"] / records if records else 0.0
             print(
                 f"  {rel:<28s} {str(r['source'] or '-'):<14s} "
@@ -479,7 +500,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=ROOT / "data/raw")
     ap.add_argument("--csv", type=Path, default=ROOT / "data/csv")
-    ap.add_argument("--scope", default="microbial", choices=("cited", "microbial", "all"))
+    ap.add_argument(
+        "--scope", default="microbial", choices=("cited", "microbial", "all")
+    )
     ap.add_argument("--out", type=Path, default=ROOT / "graph/microbiomekg.kgl")
     ap.add_argument(
         "--skip-prep",
@@ -492,15 +515,16 @@ def main(argv: list[str] | None = None) -> int:
         "--with-vectors",
         action="store_true",
         help="Include the character-n-gram vector lane (VECTOR_INDEXES). Off by "
-             "default: it serves query-time misspelling tolerance only, and "
-             "costs +82.6 s of build, +165.9 MB of .kgl and +2.5 GB of "
-             "serving RSS. Reconciliation at load time never uses it.",
+        "default: it serves query-time misspelling tolerance only, and "
+        "costs +82.6 s of build, +165.9 MB of .kgl and +2.5 GB of "
+        "serving RSS. Reconciliation at load time never uses it.",
     )
     for source, flag in LICENCE_GATED.items():
         ap.add_argument(
-            flag, action="store_true",
+            flag,
+            action="store_true",
             help=f"Include the {source} slice. Off by default: its licence "
-                 f"forbids redistributing a graph that carries it.",
+            f"forbids redistributing a graph that carries it.",
         )
     args = ap.parse_args(argv)
 
@@ -519,12 +543,19 @@ def main(argv: list[str] | None = None) -> int:
             source = prep.stem.removeprefix("prep_")
             gate = [LICENCE_GATED[source]] if opted_into(source, args) else []
             code = run(
-                prep, "--raw", str(args.raw), "--out", str(args.csv),
-                *prep_arguments(source, args), *gate,
+                prep,
+                "--raw",
+                str(args.raw),
+                "--out",
+                str(args.csv),
+                *prep_arguments(source, args),
+                *gate,
             )
             if code == MISSING_INPUT:
-                print(f"    ... {source}: raw input absent or not opted into, "
-                      f"skipping this source")
+                print(
+                    f"    ... {source}: raw input absent or not opted into, "
+                    f"skipping this source"
+                )
                 skipped.add(source)
 
     # A source that did not run, and a source whose tables are not in --csv,
@@ -535,8 +566,11 @@ def main(argv: list[str] | None = None) -> int:
     fragments = ROOT / "blueprints"
     loaded = sources_with_tables(
         fragments,
-        [s for s in sources
-         if s not in skipped and (s not in LICENCE_GATED or opted_into(s, args))],
+        [
+            s
+            for s in sources
+            if s not in skipped and (s not in LICENCE_GATED or opted_into(s, args))
+        ],
         args.csv,
     )
 
@@ -551,7 +585,9 @@ def main(argv: list[str] | None = None) -> int:
     (ROOT / "blueprint.json").write_text(
         json.dumps(full, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"\n=== blueprint.json <- blueprints/ ({len(full.get('nodes', {}))} node types)")
+    print(
+        f"\n=== blueprint.json <- blueprints/ ({len(full.get('nodes', {}))} node types)"
+    )
 
     # Written where the load blueprint's `ontology` key points, so the
     # declarations are a build-time gate rather than a document — and written
@@ -567,7 +603,9 @@ def main(argv: list[str] | None = None) -> int:
 
     blueprint = write_load_blueprint(
         compose(fragments, loaded) if loaded != sources else full,
-        args.csv, ontology, args.csv / "blueprint.load.json",
+        args.csv,
+        ontology,
+        args.csv / "blueprint.load.json",
     )
     print("\n=== from_blueprint", flush=True)
     print(f"    {blueprint} (root {args.csv})")
@@ -611,12 +649,18 @@ def main(argv: list[str] | None = None) -> int:
         # rather than a missing feature. The costs are the 2026-09-03 capture's
         # (bench/results/2026-09-03-ten-sources.md §3, §4).
         print("\n--- vector indexes: skipped (--with-vectors opts in)")
-        print("    Query-time misspelling tolerance only — reconciliation at "
-              "load time uses exact names,")
-        print("    synonyms and authority stripping, and never touches vectors. "
-              "Enabling it costs")
-        print("    +82.6 s of build (28.2 s embed + 54.4 s HNSW), .kgl 46.7 MB "
-              "-> 212.7 MB (+165.9 MB),")
+        print(
+            "    Query-time misspelling tolerance only — reconciliation at "
+            "load time uses exact names,"
+        )
+        print(
+            "    synonyms and authority stripping, and never touches vectors. "
+            "Enabling it costs"
+        )
+        print(
+            "    +82.6 s of build (28.2 s embed + 54.4 s HNSW), .kgl 46.7 MB "
+            "-> 212.7 MB (+165.9 MB),"
+        )
         print("    load 1.03 s -> 2.41 s and serving RSS 1.2 GB -> 3.7 GB.")
 
     report(graph, loaded, fragments, args.csv)

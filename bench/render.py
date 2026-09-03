@@ -51,7 +51,9 @@ def flags(cell: dict[str, Any]) -> str:
 def timing_table(cells: list[dict[str, Any]], *, rows_column: bool = True) -> list[str]:
     head = ["| cell | statistic | value | min | median | mean | p95 | max | n |"]
     if rows_column:
-        head = ["| cell | rows | statistic | value | min | median | mean | p95 | max | n |"]
+        head = [
+            "| cell | rows | statistic | value | min | median | mean | p95 | max | n |"
+        ]
     head.append("|" + "---|" * (10 if rows_column else 9))
     out = list(head)
     for cell in cells:
@@ -59,9 +61,14 @@ def timing_table(cells: list[dict[str, Any]], *, rows_column: bool = True) -> li
         if rows_column:
             row.append(fmt_int(cell.get("rows")))
         row += [
-            cell["statistic"], f"**{fmt_time(cell['value'])}**",
-            fmt_time(cell["min"]), fmt_time(cell["median"]), fmt_time(cell["mean"]),
-            fmt_time(cell["p95"]), fmt_time(cell["max"]), str(cell["n"]),
+            cell["statistic"],
+            f"**{fmt_time(cell['value'])}**",
+            fmt_time(cell["min"]),
+            fmt_time(cell["median"]),
+            fmt_time(cell["mean"]),
+            fmt_time(cell["p95"]),
+            fmt_time(cell["max"]),
+            str(cell["n"]),
         ]
         out.append("| " + " | ".join(row) + " |")
     return out
@@ -204,8 +211,11 @@ def section_index(index: dict[str, Any]) -> list[str]:
         "|---|---|---|---|---|---|---|",
     ]
     for entry in index["indexes"]:
-        detail = (f"{entry['terms']:,} terms" if entry["lane"] == "bm25"
-                  else f"dim {entry['dimension']}, ef_search {entry['ef_search']}")
+        detail = (
+            f"{entry['terms']:,} terms"
+            if entry["lane"] == "bm25"
+            else f"dim {entry['dimension']}, ef_search {entry['ef_search']}"
+        )
         lines.append(
             f"| `{entry['index']}` | {entry['lane']} | "
             f"{fmt_time(entry['seconds'])} | {fmt_int(entry['documents'])} | "
@@ -214,9 +224,13 @@ def section_index(index: dict[str, Any]) -> list[str]:
         )
     vectors = [e for e in index["indexes"] if e["lane"] == "vector"]
     if vectors:
-        lines += ["", "The vector lane's time splits two ways:", "",
-                  "| index | embed | HNSW build | vectors indexed |",
-                  "|---|---|---|---|"]
+        lines += [
+            "",
+            "The vector lane's time splits two ways:",
+            "",
+            "| index | embed | HNSW build | vectors indexed |",
+            "|---|---|---|---|",
+        ]
         for entry in vectors:
             lines.append(
                 f"| `{entry['index']}` | {fmt_time(entry['embed_seconds'])} | "
@@ -231,7 +245,7 @@ def section_index(index: dict[str, Any]) -> list[str]:
         "order-dependent** (`save()` consolidates the whole graph on the way "
         "out); the order is `scripts/build.py`'s. A delta under ~0.1 MB is at "
         "the level of save-to-save compression variance and can come out "
-        "negative — read those rows as \"this index costs nothing on disk\", "
+        'negative — read those rows as "this index costs nothing on disk", '
         "not as a saving.",
         "",
     ]
@@ -269,12 +283,15 @@ def section_saveload(save: dict[str, Any]) -> list[str]:
     ]
     lines += _load_rows(save["load_bm25_only"], "BM25 lane only")
     lines += _load_rows(save["load_full"], "BM25 + vector lane")
-    delta_first = (save["load_full"]["first_touch_after_write_s"]
-                   - save["load_bm25_only"]["first_touch_after_write_s"])
+    delta_first = (
+        save["load_full"]["first_touch_after_write_s"]
+        - save["load_bm25_only"]["first_touch_after_write_s"]
+    )
     warm_full = save["load_full"].get("warm_cell")
     warm_bm25 = save["load_bm25_only"].get("warm_cell")
-    delta_warm = ((warm_full["value"] - warm_bm25["value"])
-                  if warm_full and warm_bm25 else None)
+    delta_warm = (
+        (warm_full["value"] - warm_bm25["value"]) if warm_full and warm_bm25 else None
+    )
     lines += [
         f"| **the vector lane's delta** | "
         f"**{save['vector_delta_bytes'] / 1e6:+,.1f} MB** | "
@@ -312,11 +329,16 @@ def near_floor(cells: list[dict[str, Any]], floor: float | None) -> list[str]:
     close = [c for c in cells if c["value"] < 3 * floor]
     if not close:
         return []
-    return ["", "**At the dispatch floor** — these cells are within 3x the "
-            f"{fmt_time(floor)} noise floor, so most of what they report is the "
-            "cost of issuing a query, not of answering it:", ""] + [
+    return [
+        "",
+        "**At the dispatch floor** — these cells are within 3x the "
+        f"{fmt_time(floor)} noise floor, so most of what they report is the "
+        "cost of issuing a query, not of answering it:",
+        "",
+    ] + [
         f"- `{c['name']}` — {fmt_time(c['value'])}, {c['value'] / floor:.1f}x the floor"
-        for c in close]
+        for c in close
+    ]
 
 
 def section_query(query: dict[str, Any], floor: float | None = None) -> list[str]:
@@ -393,8 +415,11 @@ def section_mcp(mcp: dict[str, Any]) -> list[str]:
         # spread of the noisier one. Say so rather than printing a number
         # (a negative one, on a bad round) the reader would take literally.
         spread = row["mcp"]["p95"] - row["mcp"]["min"]
-        overhead = (fmt_time(row["overhead_s"]) if abs(row["overhead_s"]) > spread
-                    else f"below this cell's own spread (±{fmt_time(spread)})")
+        overhead = (
+            fmt_time(row["overhead_s"])
+            if abs(row["overhead_s"]) > spread
+            else f"below this cell's own spread (±{fmt_time(spread)})"
+        )
         lines.append(
             f"| `{row['cell']}` | **{fmt_time(row['mcp']['value'])}** | "
             f"{fmt_time(row['direct']['value'])} | "
@@ -445,6 +470,9 @@ def render_markdown(capture: dict[str, Any]) -> str:
         if name not in capture["sections"]:
             continue
         section = capture["sections"][name]
-        lines += (RENDERERS[name](section, floor) if name == "query"
-                  else RENDERERS[name](section))
+        lines += (
+            RENDERERS[name](section, floor)
+            if name == "query"
+            else RENDERERS[name](section)
+        )
     return "\n".join(lines).rstrip() + "\n"

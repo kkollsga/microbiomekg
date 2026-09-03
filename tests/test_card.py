@@ -50,8 +50,11 @@ PREP = SCRIPTS / "prep_card.py"
 
 sys.path.insert(0, str(SCRIPTS))
 
-for _needed in (PREP, FIXTURE / "card-data" / "card.json",
-                FIXTURE / "card-ontology" / "aro.obo"):
+for _needed in (
+    PREP,
+    FIXTURE / "card-data" / "card.json",
+    FIXTURE / "card-ontology" / "aro.obo",
+):
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
@@ -75,23 +78,23 @@ SOURCE = "card"
 # asserted exactly. A query returning rows is not evidence.
 # --------------------------------------------------------------------------
 
-CARD_MODELS = 40               # models in the fixture's card.json
-CARD_GENES = 40                # one ResistanceGene per model: ARO is 1:1 here
+CARD_MODELS = 40  # models in the fixture's card.json
+CARD_GENES = 40  # one ResistanceGene per model: ARO is 1:1 here
 DRUG_CLASSES = 38
 MECHANISMS = 7
-CONFERS_EDGES = 95             # (model, Drug Class) pairs — not 38, and not 40
+CONFERS_EDGES = 95  # (model, Drug Class) pairs — not 38, and not 40
 VIA_EDGES = 44
-CARRIES_EDGES = 38             # 40 models less the two meta-models with no taxon
-CARD_TAXA = 20                 # distinct taxa after merge + promotion
-META_MODELS = 2                # 2176, 2177: gene cluster meta-models
-DISAGREEMENTS = 4              # 2 index-only (2067, 2678) + 2 json-only
+CARRIES_EDGES = 38  # 40 models less the two meta-models with no taxon
+CARD_TAXA = 20  # distinct taxa after merge + promotion
+META_MODELS = 2  # 2176, 2177: gene cluster meta-models
+DISAGREEMENTS = 4  # 2 index-only (2067, 2678) + 2 json-only
 MODELS_WITH_PMID = 34
 DISTINCT_PMIDS = 101
-LEDGER_ROWS = 2                # the two meta-models, which reach no taxon
+LEDGER_ROWS = 2  # the two meta-models, which reach no taxon
 
 #: The five ARO accessions ``aro_index.tsv`` carries twice. Keying on that file
 #: silently keeps whichever model id sorts last.
-DUPLICATED_IN_INDEX = "ARO:3003170"    # CMY-131 on models 2067 *and* 4471
+DUPLICATED_IN_INDEX = "ARO:3003170"  # CMY-131 on models 2067 *and* 4471
 INDEX_ONLY_MODELS = ("2067", "2678")
 JSON_ONLY_MODELS = ("2176", "2177")
 
@@ -101,19 +104,19 @@ CBLA1 = "ARO:3002999"
 CBLA1_TAXID = 663108
 CBLA1_REPORTED = "mixed culture bacterium AX_gF3SD01_15"
 
-ADC193 = "ARO:3006362"          # taxid 2 — Bacteria, and CARD's editorial label
-OXA69 = "ARO:3001617"           # taxid 509173 (strain) -> promoted to 470
-AAC6_ISA = "ARO:3002563"        # taxid 68570 merged -> 1971 Streptomyces noursei
-APH3_IB = "ARO:3002642"         # taxid 2503 — Plasmid RP4, not an organism
-LNUE = "ARO:3003762"            # taxid 32630 — synthetic construct
-MEXR = "ARO:3000506"            # 13 drug classes, 2 mechanisms, 4 PMIDs
-VANN = "ARO:3002917"            # gene cluster meta-model, no reference sequence
+ADC193 = "ARO:3006362"  # taxid 2 — Bacteria, and CARD's editorial label
+OXA69 = "ARO:3001617"  # taxid 509173 (strain) -> promoted to 470
+AAC6_ISA = "ARO:3002563"  # taxid 68570 merged -> 1971 Streptomyces noursei
+APH3_IB = "ARO:3002642"  # taxid 2503 — Plasmid RP4, not an organism
+LNUE = "ARO:3003762"  # taxid 32630 — synthetic construct
+MEXR = "ARO:3000506"  # 13 drug classes, 2 mechanisms, 4 PMIDs
+VANN = "ARO:3002917"  # gene cluster meta-model, no reference sequence
 
 MEXR_DRUG_CLASSES = 13
 MEXR_MECHANISMS = 2
 MEXR_PMIDS = ("12727072", "14526032", "18812515", "20616806")
 
-SHARED_TAXON = 562              # Escherichia coli: BugSigDB names it, CARD does too
+SHARED_TAXON = 562  # Escherichia coli: BugSigDB names it, CARD does too
 
 
 @pytest.fixture(scope="module")
@@ -127,8 +130,13 @@ def taxdump(tmp_path_factory):
     goes first so its hand-made deleted and merged ids keep their meaning.
     """
     out = tmp_path_factory.mktemp("card-taxdump")
-    for name in ("nodes.dmp", "names.dmp", "merged.dmp", "delnodes.dmp",
-                 "rankedlineage.dmp"):
+    for name in (
+        "nodes.dmp",
+        "names.dmp",
+        "merged.dmp",
+        "delnodes.dmp",
+        "rankedlineage.dmp",
+    ):
         seen: set[str] = set()
         lines: list[str] = []
         for source in (TAXDUMP_MINI / name, FIXTURE / "taxdump" / name):
@@ -162,23 +170,34 @@ def built(tmp_path_factory, taxdump):
     # two sources" testable.
     run(
         SCRIPTS / "prep_bugsigdb.py",
-        "--raw", str(BUGSIGDB_MINI),
-        "--taxdump", str(taxdump),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--raw",
+        str(BUGSIGDB_MINI),
+        "--taxdump",
+        str(taxdump),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(
         PREP,
-        "--card", str(FIXTURE),
-        "--taxdump", str(taxdump),
-        "--out", str(csv_dir),
+        "--card",
+        str(FIXTURE),
+        "--taxdump",
+        str(taxdump),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(taxdump),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(taxdump),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -237,7 +256,7 @@ def table(csv_dir, name):
 @pytest.mark.parametrize(
     "value, expected",
     [
-        ("3002999", "ARO:3002999"),      # card.json stores it bare
+        ("3002999", "ARO:3002999"),  # card.json stores it bare
         ("ARO:3002999", "ARO:3002999"),  # aro_index.tsv, PMID.tsv and aro.obo do not
         (" ARO:3002999 ", "ARO:3002999"),
         ("", ""),
@@ -256,7 +275,7 @@ def test_the_accession_is_normalised_whichever_file_it_came_from(value, expected
     [
         ("11709358;15603834;21115799", ["11709358", "15603834", "21115799"]),
         ("10639355", ["10639355"]),
-        ("11709358;", ["11709358"]),        # 21 such empty atoms in the real file
+        ("11709358;", ["11709358"]),  # 21 such empty atoms in the real file
         (";11709358", ["11709358"]),
         ("11709358; 15603834", ["11709358", "15603834"]),
         ("", []),
@@ -278,9 +297,7 @@ def test_the_determinants_are_card_jsons_models_not_the_indexs(graph):
     """`aro_index.tsv` and `card.json` disagree about 84 models in the same
     tarball. `card.json` wins because it is the file with the taxids; taking
     the index instead would invent 48 determinants and lose 36."""
-    result = one(
-        graph, "MATCH (g:ResistanceGene) RETURN count(g) AS genes"
-    )
+    result = one(graph, "MATCH (g:ResistanceGene) RETURN count(g) AS genes")
     assert result["genes"] == CARD_GENES
     for model in INDEX_ONLY_MODELS:
         assert not rows(
@@ -476,8 +493,11 @@ def test_a_taxid_the_dump_does_not_have_is_a_tombstone_and_a_ledger_row(
     out = tmp_path_factory.mktemp("card-narrow")
     run(PREP, "--card", str(FIXTURE), "--taxdump", str(TAXDUMP_MINI), "--out", str(out))
     tombstones = table(out, "unresolved_taxa.csv")
-    ledger = [r for r in table(out, "unresolved_associations.csv")
-              if r["source"] == SOURCE and "taxon" in r["reason"]]
+    ledger = [
+        r
+        for r in table(out, "unresolved_associations.csv")
+        if r["source"] == SOURCE and "taxon" in r["reason"]
+    ]
     edges = table(out, "taxon_resistance_gene.csv")
     assert tombstones, "no tombstone for a taxid the dump does not have"
     assert all(r["status"] == "unresolved" for r in tombstones)
@@ -559,8 +579,10 @@ def test_evidence_level_follows_part_bs_table(has_reference_sequence, expected):
     assert evidence_level(has_reference_sequence) == expected
 
 
-@pytest.mark.parametrize("n, expected", [(0, "not_provided"), (1, "knowledge_assertion"),
-                                         (4, "knowledge_assertion")])
+@pytest.mark.parametrize(
+    "n, expected",
+    [(0, "not_provided"), (1, "knowledge_assertion"), (4, "knowledge_assertion")],
+)
 def test_knowledge_level_is_not_asserted_without_a_citation(n, expected):
     assert knowledge_level(n) == expected
 
@@ -743,8 +765,14 @@ def test_every_edge_carries_the_full_provenance_set(graph):
         "collect(DISTINCT r.primary_source) AS sources",
     )
     assert result["edges"] == CONFERS_EDGES + VIA_EDGES + CARRIES_EDGES
-    for field in ("no_source", "no_record", "no_licence", "no_kl", "no_agent",
-                  "no_relation"):
+    for field in (
+        "no_source",
+        "no_record",
+        "no_licence",
+        "no_kl",
+        "no_agent",
+        "no_relation",
+    ):
         assert result[field] == 0, f"{field} on a CARD edge"
     assert result["sources"] == [SOURCE]
 
@@ -802,8 +830,11 @@ def test_every_model_is_accounted_for(graph, csv_dir, prep_output):
         "MATCH ()-[r:CARRIES_RESISTANCE_GENE]->() "
         "RETURN count(DISTINCT r.card_model_id) AS models",
     )["models"]
-    ledger = [r for r in table(csv_dir, "unresolved_associations.csv")
-              if r["source"] == SOURCE]
+    ledger = [
+        r
+        for r in table(csv_dir, "unresolved_associations.csv")
+        if r["source"] == SOURCE
+    ]
     assert len(ledger) == LEDGER_ROWS
     assert carried + len(ledger) == CARD_MODELS
     assert all("no reference sequence" in r["reason"] for r in ledger)

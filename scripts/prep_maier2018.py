@@ -105,21 +105,61 @@ RAW_SUBDIR = Path("drug_screens") / SOURCE
 SPECIES_HEADER_CELL = "NT data base"
 
 EDGE_FIELDS = [
-    "effect", "evidence_level", "knowledge_level", "agent_type", "primary_source",
-    "source_record_id", "source_licence", "source_relation", "publications", "pmid",
-    "adjusted_p_value", "screen_concentration_um", "prestwick_id",
-    "reported_drug_name", "drug_class", "drug_join", "nt_code", "reported_name",
-    "strain", "gram_stain", "reported_rank", "original_rank", "resolution_status",
-    "taxon_join", "ic25_um", "ic25_qualifier", "mic_um", "mic_qualifier",
+    "effect",
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
+    "publications",
+    "pmid",
+    "adjusted_p_value",
+    "screen_concentration_um",
+    "prestwick_id",
+    "reported_drug_name",
+    "drug_class",
+    "drug_join",
+    "nt_code",
+    "reported_name",
+    "strain",
+    "gram_stain",
+    "reported_rank",
+    "original_rank",
+    "resolution_status",
+    "taxon_join",
+    "ic25_um",
+    "ic25_qualifier",
+    "mic_um",
+    "mic_qualifier",
     "validation_outcome",
 ]
 
 DRUG_FIELDS = [
-    "drug_id", "chembl_id", "pref_name", "molecule_type", "max_phase",
-    "first_approval", "atc_codes", "approved", "withdrawn", "therapeutic", "oral",
-    "parenteral", "topical", "smiles", "salt_form", "salt_ids", "source",
-    "source_licence", "chembl_release", "prestwick_id", "pubchem_cid",
-    "screen_drug_class", "screen_target_species",
+    "drug_id",
+    "chembl_id",
+    "pref_name",
+    "molecule_type",
+    "max_phase",
+    "first_approval",
+    "atc_codes",
+    "approved",
+    "withdrawn",
+    "therapeutic",
+    "oral",
+    "parenteral",
+    "topical",
+    "smiles",
+    "salt_form",
+    "salt_ids",
+    "source",
+    "source_licence",
+    "chembl_release",
+    "prestwick_id",
+    "pubchem_cid",
+    "screen_drug_class",
+    "screen_target_species",
 ]
 
 #: The same shape ``unresolved_chembl.csv`` uses. C18's accounting lives here:
@@ -189,15 +229,18 @@ def read_species(path: Path) -> dict[str, dict]:
     """
     rows = sheet_rows(path, WORKBOOKS[2][1])
     start = next(
-        (i for i, row in enumerate(rows)
-         if any(isinstance(c, str) and c.strip() == SPECIES_HEADER_CELL for c in row)),
+        (
+            i
+            for i, row in enumerate(rows)
+            if any(isinstance(c, str) and c.strip() == SPECIES_HEADER_CELL for c in row)
+        ),
         None,
     )
     if start is None:
         raise SystemExit(f"{path}: no header row containing {SPECIES_HEADER_CELL!r}")
     header = [str(c or "").strip() for c in rows[start]]
     out: dict[str, dict] = {}
-    for row in rows[start + 1:]:
+    for row in rows[start + 1 :]:
         record = dict(zip(header, row))
         code = str(record.get("NT data base") or "").strip()
         species = str(record.get("Species") or "").strip()
@@ -247,13 +290,15 @@ def read_screen(path: Path) -> tuple[list[str], list[dict]]:
         prestwick = str(row[index["prestwick_ID"]] or "").strip()
         if not prestwick:
             continue
-        out.append({
-            "prestwick_ID": prestwick,
-            "chemical_name": str(row[index["chemical_name"]] or "").strip(),
-            "drug_class": str(row[index["drug_class"]] or "").strip(),
-            "n_hit": row[index["n_hit"]],
-            "cells": [(codes[i], as_float(row[i])) for i in species_at],
-        })
+        out.append(
+            {
+                "prestwick_ID": prestwick,
+                "chemical_name": str(row[index["chemical_name"]] or "").strip(),
+                "drug_class": str(row[index["drug_class"]] or "").strip(),
+                "n_hit": row[index["n_hit"]],
+                "cells": [(codes[i], as_float(row[i])) for i in species_at],
+            }
+        )
     return [codes[i] for i in species_at], out
 
 
@@ -313,13 +358,20 @@ def contested_atc_codes(drug_rows: dict[str, dict]) -> dict[str, list[str]]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--tables", type=Path, default=None,
-                    help=f"directory holding the six supplementary workbooks "
-                         f"(default: <raw>/{RAW_SUBDIR}).")
+    ap.add_argument(
+        "--tables",
+        type=Path,
+        default=None,
+        help=f"directory holding the six supplementary workbooks "
+        f"(default: <raw>/{RAW_SUBDIR}).",
+    )
     ap.add_argument("--taxdump", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--rank-ceiling", default="species",
-                    help="Rank strains and subspecies are promoted to before keying.")
+    ap.add_argument(
+        "--rank-ceiling",
+        default="species",
+        help="Rank strains and subspecies are promoted to before keying.",
+    )
     args = ap.parse_args(argv)
 
     tables = args.tables or (args.raw / RAW_SUBDIR)
@@ -329,8 +381,11 @@ def main(argv: list[str] | None = None) -> int:
         # Exit 3, not 2 — "this source's raw files are not on this machine"
         # rather than "this script was called wrong", so an absent bundle leaves
         # the build without failing it.
-        print(f"no Maier 2018 supplementary tables under {tables} "
-              f"(missing {', '.join(missing)})", file=sys.stderr)
+        print(
+            f"no Maier 2018 supplementary tables under {tables} "
+            f"(missing {', '.join(missing)})",
+            file=sys.stderr,
+        )
         return 3
     try:
         taxdump = args.taxdump or find_taxdump(args.raw)
@@ -342,23 +397,33 @@ def main(argv: list[str] | None = None) -> int:
     isolates = read_species(paths[2])
     validation = read_validation(paths[4])
     codes, screen = read_screen(paths[3])
-    print(f"read {len(screen):,} drugs x {len(codes)} isolates = "
-          f"{len(screen) * len(codes):,} screen cells from {paths[3].name}")
-    print(f"  {len(drug_rows):,} library entries, {len(isolates):,} isolates, "
-          f"{len(validation):,} dose-response follow-ups")
+    print(
+        f"read {len(screen):,} drugs x {len(codes)} isolates = "
+        f"{len(screen) * len(codes):,} screen cells from {paths[3].name}"
+    )
+    print(
+        f"  {len(drug_rows):,} library entries, {len(isolates):,} isolates, "
+        f"{len(validation):,} dose-response follow-ups"
+    )
     check_threshold(screen)
-    print(f"  hit threshold p < {mz.HIT_THRESHOLD} reproduces the sheet's own "
-          f"n_hit on all {len(screen):,} drugs")
+    print(
+        f"  hit threshold p < {mz.HIT_THRESHOLD} reproduces the sheet's own "
+        f"n_hit on all {len(screen):,} drugs"
+    )
 
     contested = contested_atc_codes(drug_rows)
     index = DrugIndex.from_csv(out / "drug.csv", exclude_source=SOURCE).without_atc(
         contested
     )
-    print(f"drug.csv: {len(index.names):,} ChEMBL pref_names, "
-          f"{len(index.atc):,} level-5 ATC codes claimed by exactly one ChEMBL "
-          f"node and one library entry")
-    print(f"  {len(contested):,} ATC codes are claimed by two library entries and "
-          f"are a join key for neither")
+    print(
+        f"drug.csv: {len(index.names):,} ChEMBL pref_names, "
+        f"{len(index.atc):,} level-5 ATC codes claimed by exactly one ChEMBL "
+        f"node and one library entry"
+    )
+    print(
+        f"  {len(contested):,} ATC codes are claimed by two library entries and "
+        f"are a join key for neither"
+    )
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
@@ -366,42 +431,81 @@ def main(argv: list[str] | None = None) -> int:
 
     edges = {
         mz.RELATION_INHIBITS: Writer(
-            out / "drug_taxon_inhibited.csv", ["drug_id", "tax_id", *EDGE_FIELDS],
-            dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+            out / "drug_taxon_inhibited.csv",
+            ["drug_id", "tax_id", *EDGE_FIELDS],
+            dedupe_full=True,
+            merge=True,
+            owner=("primary_source", SOURCE),
         ),
         mz.RELATION_NO_EFFECT: Writer(
-            out / "drug_taxon_no_effect.csv", ["drug_id", "tax_id", *EDGE_FIELDS],
-            dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+            out / "drug_taxon_no_effect.csv",
+            ["drug_id", "tax_id", *EDGE_FIELDS],
+            dedupe_full=True,
+            merge=True,
+            owner=("primary_source", SOURCE),
         ),
     }
     drugs = Writer(
-        out / "drug.csv", DRUG_FIELDS,
-        key="drug_id", merge=True, owner=("source", SOURCE),
+        out / "drug.csv",
+        DRUG_FIELDS,
+        key="drug_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
-         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
-        key="unresolved_id", merge=True, owner=("source", SOURCE),
+        [
+            "unresolved_id",
+            "raw_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "source",
+            "status",
+            "candidates",
+            "note",
+            "n_signatures",
+        ],
+        key="unresolved_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     ledger = Writer(
-        out / "unresolved_maier2018.csv", LEDGER_FIELDS,
-        merge=True, owner=("source", SOURCE),
+        out / "unresolved_maier2018.csv",
+        LEDGER_FIELDS,
+        merge=True,
+        owner=("source", SOURCE),
     )
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     def note(kind: str, record_id: str, subject: str, detail: str, reason: str) -> None:
-        ledger.add({"kind": kind, "record_id": record_id, "subject": subject,
-                    "detail": detail, "reason": reason, "source": SOURCE})
+        ledger.add(
+            {
+                "kind": kind,
+                "record_id": record_id,
+                "subject": subject,
+                "detail": detail,
+                "reason": reason,
+                "source": SOURCE,
+            }
+        )
 
     for code, entries in sorted(contested.items()):
-        note("atc", code, ", ".join(sorted(set(entries))), "",
-             "two library entries claim this ATC code — stereoisomers, epimers "
-             "or a prodrug and its active form, measured separately — so it "
-             "identifies neither and both fall through to the next route")
+        note(
+            "atc",
+            code,
+            ", ".join(sorted(set(entries))),
+            "",
+            "two library entries claim this ATC code — stereoisomers, epimers "
+            "or a prodrug and its active form, measured separately — so it "
+            "identifies neither and both fall through to the next route",
+        )
 
     # ---------------------------------------------------------- the isolates
     resolved: dict[str, dict] = {}
@@ -411,9 +515,13 @@ def main(argv: list[str] | None = None) -> int:
     for code in codes:
         isolate = isolates.get(code)
         if isolate is None:
-            note("isolate", code, code,
-                 "screened column with no supplementary-table-2 row",
-                 "the isolate dictionary names no organism for this NT code")
+            note(
+                "isolate",
+                code,
+                code,
+                "screened column with no supplementary-table-2 row",
+                "the isolate dictionary names no organism for this NT code",
+            )
             continue
         reported = isolate["species"]
         override = mz.SPECIES_OVERRIDES.get(reported.casefold())
@@ -423,17 +531,28 @@ def main(argv: list[str] | None = None) -> int:
         resolutions[res.status] += 1
         if res.tax_id is None:
             uid = f"unresolved:{SOURCE}:{reported.casefold()}"
-            unresolved_nodes.add({
-                "unresolved_id": uid, "raw_name": reported,
-                "reported_rank": mz.REPORTED_RANK,
-                "original_rank": res.original_rank or "", "reported_tax_id": "",
-                "source": SOURCE, "status": res.status,
-                "candidates": as_list(str(c) for c in res.candidates),
-                "note": res.note, "n_signatures": "0",
-            })
+            unresolved_nodes.add(
+                {
+                    "unresolved_id": uid,
+                    "raw_name": reported,
+                    "reported_rank": mz.REPORTED_RANK,
+                    "original_rank": res.original_rank or "",
+                    "reported_tax_id": "",
+                    "source": SOURCE,
+                    "status": res.status,
+                    "candidates": as_list(str(c) for c in res.candidates),
+                    "note": res.note,
+                    "n_signatures": "0",
+                }
+            )
             unresolved_hits[uid] += 1
-            note("isolate", code, reported, isolate["strain"],
-                 f"taxon {res.status}: {res.note}")
+            note(
+                "isolate",
+                code,
+                reported,
+                isolate["strain"],
+                f"taxon {res.status}: {res.note}",
+            )
             continue
         rank = idx.rank.get(res.tax_id) or ""
         own, ceiling = rank_depth(rank), rank_depth(mz.RANK_CEILING)
@@ -441,15 +560,23 @@ def main(argv: list[str] | None = None) -> int:
             # Every organism here is one cultured isolate, so a resolution this
             # broad is a surprise rather than a filter — and the ledger row
             # carries the id and rank it did reach, so the ceiling is reversible.
-            note("isolate", code, reported, f"{res.tax_id} ({rank or 'unplaced'})",
-                 f"resolved rank is broader than {mz.RANK_CEILING!r}")
+            note(
+                "isolate",
+                code,
+                reported,
+                f"{res.tax_id} ({rank or 'unplaced'})",
+                f"resolved rank is broader than {mz.RANK_CEILING!r}",
+            )
             continue
         taxon_joins[route] += 1
         resolved[code] = {
-            "tax_id": res.tax_id, "reported_name": reported,
-            "strain": isolate["strain"], "gram_stain": isolate["gram_stain"],
+            "tax_id": res.tax_id,
+            "reported_name": reported,
+            "strain": isolate["strain"],
+            "gram_stain": isolate["gram_stain"],
             "original_rank": res.original_rank or rank,
-            "resolution_status": res.status, "taxon_join": route,
+            "resolution_status": res.status,
+            "taxon_join": route,
         }
 
     # ------------------------------------------------------------- the drugs
@@ -471,9 +598,14 @@ def main(argv: list[str] | None = None) -> int:
             # That is ChEMBL's documented parent gap showing through, not a
             # defect here — but a precedence rule that hid it would leave the
             # graph's own count unreadable.
-            note("drug", prestwick, name, f"{route} -> {drug_id}; also {','.join(others)}",
-                 "two join routes reached different ChEMBL nodes; the route the "
-                 "source's own spelling took wins")
+            note(
+                "drug",
+                prestwick,
+                name,
+                f"{route} -> {drug_id}; also {','.join(others)}",
+                "two join routes reached different ChEMBL nodes; the route the "
+                "source's own spelling took wins",
+            )
         if not drug_id:
             if not prestwick:
                 note("drug", "", name, "", "library row carries no identifier at all")
@@ -481,23 +613,39 @@ def main(argv: list[str] | None = None) -> int:
             drug_id = f"PRESTWICK:{prestwick}"
             if drug_id not in minted:
                 minted[drug_id] = name
-                drugs.add({
-                    "drug_id": drug_id, "chembl_id": "", "pref_name": name,
-                    "molecule_type": "", "max_phase": "", "first_approval": "",
-                    "atc_codes": as_list(atc_level5(atc_cell)),
-                    # Not `true`: the Prestwick library is "approved drugs", but
-                    # `approved` in this graph means ChEMBL max_phase 4 and
-                    # inheriting that claim from a catalogue's marketing copy
-                    # would put an unverified regulatory status on 437 nodes.
-                    "approved": "false", "withdrawn": "false", "therapeutic": "",
-                    "oral": "", "parenteral": "", "topical": "", "smiles": "",
-                    "salt_form": "false", "salt_ids": "", "source": SOURCE,
-                    "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
-                    "chembl_release": "", "prestwick_id": prestwick,
-                    "pubchem_cid": mz.pubchem_cid(library.get("STITCH4 id")),
-                    "screen_drug_class": row["drug_class"],
-                    "screen_target_species": str(library.get("target species") or ""),
-                })
+                drugs.add(
+                    {
+                        "drug_id": drug_id,
+                        "chembl_id": "",
+                        "pref_name": name,
+                        "molecule_type": "",
+                        "max_phase": "",
+                        "first_approval": "",
+                        "atc_codes": as_list(atc_level5(atc_cell)),
+                        # Not `true`: the Prestwick library is "approved drugs", but
+                        # `approved` in this graph means ChEMBL max_phase 4 and
+                        # inheriting that claim from a catalogue's marketing copy
+                        # would put an unverified regulatory status on 437 nodes.
+                        "approved": "false",
+                        "withdrawn": "false",
+                        "therapeutic": "",
+                        "oral": "",
+                        "parenteral": "",
+                        "topical": "",
+                        "smiles": "",
+                        "salt_form": "false",
+                        "salt_ids": "",
+                        "source": SOURCE,
+                        "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                        "chembl_release": "",
+                        "prestwick_id": prestwick,
+                        "pubchem_cid": mz.pubchem_cid(library.get("STITCH4 id")),
+                        "screen_drug_class": row["drug_class"],
+                        "screen_target_species": str(
+                            library.get("target species") or ""
+                        ),
+                    }
+                )
         drug_joins[route] += 1
         drug_ids[prestwick] = drug_id
         drug_routes[prestwick] = route
@@ -520,9 +668,14 @@ def main(argv: list[str] | None = None) -> int:
             relationship = mz.relation_for(adjusted_p)
             if relationship is None:
                 counters["not_measured"] += 1
-                note("cell", f"{prestwick}|{code}", name, isolate["reported_name"],
-                     "the screen writes NA for this pair: measured as neither a "
-                     "hit nor a non-hit")
+                note(
+                    "cell",
+                    f"{prestwick}|{code}",
+                    name,
+                    isolate["reported_name"],
+                    "the screen writes NA for this pair: measured as neither a "
+                    "hit nor a non-hit",
+                )
                 continue
             if drug_id is None:
                 counters["unusable_drug"] += 1
@@ -533,39 +686,43 @@ def main(argv: list[str] | None = None) -> int:
             taxa_seen[tax_id] = taxa_seen.get(tax_id, 0) + 1
             per_relation[relationship] += 1
             counters["edges"] += 1
-            edges[relationship].add({
-                "drug_id": drug_id,
-                "tax_id": str(tax_id),
-                "effect": effect,
-                "evidence_level": mz.EVIDENCE_LEVEL,
-                "knowledge_level": ont.knowledge_level(SOURCE),
-                "agent_type": ont.agent_type(SOURCE),
-                "primary_source": SOURCE,
-                "source_record_id": f"{SOURCE}:{prestwick}|{code}",
-                "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
-                "source_relation": source_relation,
-                "publications": as_list([mz.PUBLICATION]),
-                "pmid": str(mz.PUBMED_ID),
-                "adjusted_p_value": repr(adjusted_p),
-                "screen_concentration_um": repr(mz.SCREEN_CONCENTRATION_UM),
-                "prestwick_id": prestwick,
-                "reported_drug_name": name,
-                "drug_class": row["drug_class"],
-                "drug_join": drug_routes.get(prestwick, ""),
-                "nt_code": code,
-                "reported_name": isolate["reported_name"],
-                "strain": isolate["strain"],
-                "gram_stain": isolate["gram_stain"],
-                "reported_rank": mz.REPORTED_RANK,
-                "original_rank": isolate["original_rank"],
-                "resolution_status": isolate["resolution_status"],
-                "taxon_join": isolate["taxon_join"],
-                "ic25_um": _num(follow_up.get("IC25 (μM)")),
-                "ic25_qualifier": str(follow_up.get("qualifier (IC25)") or ""),
-                "mic_um": _num(follow_up.get("MIC (μM)")),
-                "mic_qualifier": str(follow_up.get("qualifier (MIC)") or ""),
-                "validation_outcome": str(follow_up.get("validation outcome") or ""),
-            })
+            edges[relationship].add(
+                {
+                    "drug_id": drug_id,
+                    "tax_id": str(tax_id),
+                    "effect": effect,
+                    "evidence_level": mz.EVIDENCE_LEVEL,
+                    "knowledge_level": ont.knowledge_level(SOURCE),
+                    "agent_type": ont.agent_type(SOURCE),
+                    "primary_source": SOURCE,
+                    "source_record_id": f"{SOURCE}:{prestwick}|{code}",
+                    "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                    "source_relation": source_relation,
+                    "publications": as_list([mz.PUBLICATION]),
+                    "pmid": str(mz.PUBMED_ID),
+                    "adjusted_p_value": repr(adjusted_p),
+                    "screen_concentration_um": repr(mz.SCREEN_CONCENTRATION_UM),
+                    "prestwick_id": prestwick,
+                    "reported_drug_name": name,
+                    "drug_class": row["drug_class"],
+                    "drug_join": drug_routes.get(prestwick, ""),
+                    "nt_code": code,
+                    "reported_name": isolate["reported_name"],
+                    "strain": isolate["strain"],
+                    "gram_stain": isolate["gram_stain"],
+                    "reported_rank": mz.REPORTED_RANK,
+                    "original_rank": isolate["original_rank"],
+                    "resolution_status": isolate["resolution_status"],
+                    "taxon_join": isolate["taxon_join"],
+                    "ic25_um": _num(follow_up.get("IC25 (μM)")),
+                    "ic25_qualifier": str(follow_up.get("qualifier (IC25)") or ""),
+                    "mic_um": _num(follow_up.get("MIC (μM)")),
+                    "mic_qualifier": str(follow_up.get("qualifier (MIC)") or ""),
+                    "validation_outcome": str(
+                        follow_up.get("validation outcome") or ""
+                    ),
+                }
+            )
 
     for row in unresolved_nodes.rows:
         if row["source"] == SOURCE:
@@ -577,32 +734,52 @@ def main(argv: list[str] | None = None) -> int:
     counts = {w.path.name: w.flush() for w in tables_out}
 
     validated = sum(
-        1 for w in edges.values() for r in w.rows
+        1
+        for w in edges.values()
+        for r in w.rows
         if r.get("primary_source") == SOURCE and r.get("validation_outcome")
     )
-    print(f"\nread {counters['cells']:,} cells -> {counters['edges']:,} edges over "
-          f"{len(taxa_seen):,} taxa and {len(drug_ids):,} drugs")
-    print("  by relationship: " + ", ".join(
-        f"{rel} {per_relation[rel]:,}" for rel in mz.GROWTH_RELATIONSHIPS))
-    print(f"  measured non-hits kept as {mz.RELATION_NO_EFFECT}: "
-          f"{per_relation[mz.RELATION_NO_EFFECT]:,} (never folded into the hit edge)")
+    print(
+        f"\nread {counters['cells']:,} cells -> {counters['edges']:,} edges over "
+        f"{len(taxa_seen):,} taxa and {len(drug_ids):,} drugs"
+    )
+    print(
+        "  by relationship: "
+        + ", ".join(f"{rel} {per_relation[rel]:,}" for rel in mz.GROWTH_RELATIONSHIPS)
+    )
+    print(
+        f"  measured non-hits kept as {mz.RELATION_NO_EFFECT}: "
+        f"{per_relation[mz.RELATION_NO_EFFECT]:,} (never folded into the hit edge)"
+    )
     print(f"  pairs carrying the dose-response follow-up (IC25/MIC): {validated:,}")
-    print("  drug join: " + ", ".join(f"{r} {n:,}" for r, n in drug_joins.most_common()))
-    print("  isolate join: " + ", ".join(
-        f"{r} {n:,}" for r, n in taxon_joins.most_common()))
-    print("  organism resolution: " + ", ".join(
-        f"{s} {n:,}" for s, n in resolutions.most_common()))
-    print(f"  not loaded: {counters['not_measured']:,} cells the screen wrote NA for, "
-          f"{counters['unusable_isolate']:,} on an isolate that reached no taxon, "
-          f"{counters['unusable_drug']:,} on a drug with no identifier")
-    print(f"  minted {len(minted):,} Drug nodes for library entries no ChEMBL "
-          f"join route reached")
+    print(
+        "  drug join: " + ", ".join(f"{r} {n:,}" for r, n in drug_joins.most_common())
+    )
+    print(
+        "  isolate join: "
+        + ", ".join(f"{r} {n:,}" for r, n in taxon_joins.most_common())
+    )
+    print(
+        "  organism resolution: "
+        + ", ".join(f"{s} {n:,}" for s, n in resolutions.most_common())
+    )
+    print(
+        f"  not loaded: {counters['not_measured']:,} cells the screen wrote NA for, "
+        f"{counters['unusable_isolate']:,} on an isolate that reached no taxon, "
+        f"{counters['unusable_drug']:,} on a drug with no identifier"
+    )
+    print(
+        f"  minted {len(minted):,} Drug nodes for library entries no ChEMBL "
+        f"join route reached"
+    )
     for name_, n in counts.items():
         print(f"  {name_:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables_out if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name_} +{n:,}" for name_, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name_} +{n:,}" for name_, n in shared.items())
+        )
     return 0
 
 

@@ -101,24 +101,49 @@ PROGRESS_EVERY = 20_000
 #: The NCBI roots a `Disposition/Source/Biological/Microbe` term can plausibly
 #: sit under. Used only to break a *cross-kingdom* homonym, and only when
 #: exactly one candidate is under one of them — see :func:`microbial_candidate`.
-MICROBIAL_ROOTS: frozenset[int] = frozenset({
-    2,      # Bacteria
-    2157,   # Archaea
-    4751,   # Fungi
-    10239,  # Viruses
-})
+MICROBIAL_ROOTS: frozenset[int] = frozenset(
+    {
+        2,  # Bacteria
+        2157,  # Archaea
+        4751,  # Fungi
+        10239,  # Viruses
+    }
+)
 
 METABOLITE_FIELDS = [
-    "metabolite_id", "name", "hmdb_id", "chebi_id", "kegg_id", "pubchem_cid",
-    "inchikey", "status", "biospecimens", "microbial_origin", "origin",
-    "chemical_formula", "secondary_accessions", "selection_rule", "source",
+    "metabolite_id",
+    "name",
+    "hmdb_id",
+    "chebi_id",
+    "kegg_id",
+    "pubchem_cid",
+    "inchikey",
+    "status",
+    "biospecimens",
+    "microbial_origin",
+    "origin",
+    "chemical_formula",
+    "secondary_accessions",
+    "selection_rule",
+    "source",
 ]
 
 PRODUCES_FIELDS = [
-    "evidence_level", "knowledge_level", "agent_type", "primary_source",
-    "source_record_id", "source_licence", "source_relation", "reported_name",
-    "reported_rank", "original_rank", "resolution_status", "hmdb_status",
-    "microbe_path", "publications", "n_publications",
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
+    "reported_name",
+    "reported_rank",
+    "original_rank",
+    "resolution_status",
+    "hmdb_status",
+    "microbe_path",
+    "publications",
+    "n_publications",
 ]
 
 
@@ -141,7 +166,9 @@ def texts(el, path: str, tag: str) -> list[str]:
     holder = el.find("/".join(NS + part for part in path.split("/")))
     if holder is None:
         return []
-    return [c.text.strip() for c in holder.findall(NS + tag) if c.text and c.text.strip()]
+    return [
+        c.text.strip() for c in holder.findall(NS + tag) if c.text and c.text.strip()
+    ]
 
 
 def child_count(el, container: str, tag: str) -> int:
@@ -182,8 +209,12 @@ def is_microbial(paths: list[tuple[str, ...]]) -> bool:
 def microbe_terms(paths: list[tuple[str, ...]]) -> list[tuple[str, ...]]:
     """Every named organism *under* the Microbe node, most specific first."""
     return sorted(
-        (p for p in paths
-         if len(p) > len(MICROBE_PREFIX) and p[: len(MICROBE_PREFIX)] == MICROBE_PREFIX),
+        (
+            p
+            for p in paths
+            if len(p) > len(MICROBE_PREFIX)
+            and p[: len(MICROBE_PREFIX)] == MICROBE_PREFIX
+        ),
         key=len,
         reverse=True,
     )
@@ -279,12 +310,20 @@ def metabolite_key(chebi: str, accession: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--xml", type=Path, default=None,
-                    help="The metabolites XML (default: <raw>/hmdb/hmdb_metabolites.xml).")
+    ap.add_argument(
+        "--xml",
+        type=Path,
+        default=None,
+        help="The metabolites XML (default: <raw>/hmdb/hmdb_metabolites.xml).",
+    )
     ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--reactome", type=Path, default=None,
-                    help="Directory holding ChEBI2Reactome.txt (default: <raw>/reactome). "
-                         "Absent means the reactome-chebi selection rule contributes nothing.")
+    ap.add_argument(
+        "--reactome",
+        type=Path,
+        default=None,
+        help="Directory holding ChEBI2Reactome.txt (default: <raw>/reactome). "
+        "Absent means the reactome-chebi selection rule contributes nothing.",
+    )
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
     ap.add_argument("--rank-ceiling", default="species")
     args = ap.parse_args(argv)
@@ -316,18 +355,36 @@ def main(argv: list[str] | None = None) -> int:
 
     out = args.out
     metabolites = Writer(
-        out / "metabolite.csv", METABOLITE_FIELDS,
-        key="metabolite_id", merge=True, owner=("source", SOURCE),
+        out / "metabolite.csv",
+        METABOLITE_FIELDS,
+        key="metabolite_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     produces = Writer(
-        out / "taxon_metabolite.csv", ["tax_id", "metabolite_id", *PRODUCES_FIELDS],
-        dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+        out / "taxon_metabolite.csv",
+        ["tax_id", "metabolite_id", *PRODUCES_FIELDS],
+        dedupe_full=True,
+        merge=True,
+        owner=("primary_source", SOURCE),
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
-         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
-        key="unresolved_id", merge=True, owner=("source", SOURCE),
+        [
+            "unresolved_id",
+            "raw_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "source",
+            "status",
+            "candidates",
+            "note",
+            "n_signatures",
+        ],
+        key="unresolved_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     # C18's accounting for the rows that become no edge: an organism term that
     # resolved to nothing, one that resolved above the production rank ceiling,
@@ -335,13 +392,26 @@ def main(argv: list[str] | None = None) -> int:
     # carries what it *did* reach, so none of them is a drop.
     ledger = Writer(
         out / "unresolved_production.csv",
-        ["accession", "metabolite_id", "reported_name", "microbe_path",
-         "reported_rank", "resolved_tax_id", "resolved_rank", "reason", "source"],
-        merge=True, owner=("source", SOURCE),
+        [
+            "accession",
+            "metabolite_id",
+            "reported_name",
+            "microbe_path",
+            "reported_rank",
+            "resolved_tax_id",
+            "resolved_rank",
+            "reason",
+            "source",
+        ],
+        merge=True,
+        owner=("source", SOURCE),
     )
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -364,8 +434,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
         counters["records"] += 1
         if counters["records"] % PROGRESS_EVERY == 0:
-            print(f"  {counters['records']:,} records, {len(metabolites.rows):,} kept "
-                  f"({time.time() - started:.0f}s)", flush=True)
+            print(
+                f"  {counters['records']:,} records, {len(metabolites.rows):,} kept "
+                f"({time.time() - started:.0f}s)",
+                flush=True,
+            )
 
         accession = text(el, "accession")
         status = text(el, "status")
@@ -408,34 +481,44 @@ def main(argv: list[str] | None = None) -> int:
             chebi_owner[key] = accession
         elif owner != accession:
             counters["chebi_key_shared"] += 1
-            ledger.add({
-                "accession": accession, "metabolite_id": key, "reported_name": "",
-                "microbe_path": "", "reported_rank": "", "resolved_tax_id": "",
-                "resolved_rank": "",
-                "reason": f"chebi_id already keyed by {owner}: the two HMDB records "
-                          f"are one Metabolite node and only {owner}'s properties survive",
-                "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "accession": accession,
+                    "metabolite_id": key,
+                    "reported_name": "",
+                    "microbe_path": "",
+                    "reported_rank": "",
+                    "resolved_tax_id": "",
+                    "resolved_rank": "",
+                    "reason": f"chebi_id already keyed by {owner}: the two HMDB records "
+                    f"are one Metabolite node and only {owner}'s properties survive",
+                    "source": SOURCE,
+                }
+            )
 
-        metabolites.add({
-            "metabolite_id": key,
-            "name": text(el, "name"),
-            "hmdb_id": accession,
-            "chebi_id": f"CHEBI:{chebi}" if chebi else "",
-            "kegg_id": text(el, "kegg_id"),
-            "pubchem_cid": text(el, "pubchem_compound_id"),
-            "inchikey": text(el, "inchikey"),
-            "status": status,
-            "biospecimens": as_list(biospecimens),
-            "microbial_origin": "true" if microbial else "false",
-            "origin": as_list(origins(paths)),
-            "chemical_formula": text(el, "chemical_formula"),
-            # The redirect table: 80,986 retired ids across the file, without
-            # which a citation of `HMDB00001` finds nothing.
-            "secondary_accessions": as_list(texts(el, "secondary_accessions", "accession")),
-            "selection_rule": as_list(keep),
-            "source": SOURCE,
-        })
+        metabolites.add(
+            {
+                "metabolite_id": key,
+                "name": text(el, "name"),
+                "hmdb_id": accession,
+                "chebi_id": f"CHEBI:{chebi}" if chebi else "",
+                "kegg_id": text(el, "kegg_id"),
+                "pubchem_cid": text(el, "pubchem_compound_id"),
+                "inchikey": text(el, "inchikey"),
+                "status": status,
+                "biospecimens": as_list(biospecimens),
+                "microbial_origin": "true" if microbial else "false",
+                "origin": as_list(origins(paths)),
+                "chemical_formula": text(el, "chemical_formula"),
+                # The redirect table: 80,986 retired ids across the file, without
+                # which a citation of `HMDB00001` finds nothing.
+                "secondary_accessions": as_list(
+                    texts(el, "secondary_accessions", "accession")
+                ),
+                "selection_rule": as_list(keep),
+                "source": SOURCE,
+            }
+        )
 
         if not terms:
             el.clear()
@@ -462,8 +545,8 @@ def main(argv: list[str] | None = None) -> int:
                         matched_name=name,
                         status="kingdom-disambiguated",
                         note=f"{len(res.candidates)} taxa share this name; "
-                             f"{pick} is the only one under Bacteria/Archaea/"
-                             f"Fungi/Viruses and the term is a microbial-origin term",
+                        f"{pick} is the only one under Bacteria/Archaea/"
+                        f"Fungi/Viruses and the term is a microbial-origin term",
                     )
             if res.tax_id is None:
                 verdicts[path] = (res, "", f"taxon {res.status}: {res.note}")
@@ -475,11 +558,15 @@ def main(argv: list[str] | None = None) -> int:
                 # correctness rule rather than a tidiness one: NCBI files that
                 # string as a synonym of the *kingdom* Bacillati, so the edge a
                 # naive load writes is not vague, it is false.
-                verdicts[path] = (res, rank, (
-                    f"resolved rank {rank or 'unplaced'!r} is broader than "
-                    f"{hm.PRODUCTION_RANK_CEILING!r}: HMDB's organism level mixes "
-                    f"ranks and a claim this broad is not a production claim"
-                ))
+                verdicts[path] = (
+                    res,
+                    rank,
+                    (
+                        f"resolved rank {rank or 'unplaced'!r} is broader than "
+                        f"{hm.PRODUCTION_RANK_CEILING!r}: HMDB's organism level mixes "
+                        f"ranks and a claim this broad is not a production claim"
+                    ),
+                )
                 continue
             verdicts[path] = (res, rank, None)
 
@@ -509,69 +596,83 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             if reason is None and res.tax_id in claimed:
                 counters["duplicate_organism"] += 1
-                ledger.add({
-                    "accession": accession, "metabolite_id": key,
-                    "reported_name": name, "microbe_path": "/".join(path),
-                    "reported_rank": reported_rank,
-                    "resolved_tax_id": str(res.tax_id), "resolved_rank": rank,
-                    "reason": f"the same NCBI taxon is already claimed for this "
-                              f"metabolite by {claimed[res.tax_id]!r}: one annotation "
-                              f"spelled two ways, not two observations",
-                    "source": SOURCE,
-                })
+                ledger.add(
+                    {
+                        "accession": accession,
+                        "metabolite_id": key,
+                        "reported_name": name,
+                        "microbe_path": "/".join(path),
+                        "reported_rank": reported_rank,
+                        "resolved_tax_id": str(res.tax_id),
+                        "resolved_rank": rank,
+                        "reason": f"the same NCBI taxon is already claimed for this "
+                        f"metabolite by {claimed[res.tax_id]!r}: one annotation "
+                        f"spelled two ways, not two observations",
+                        "source": SOURCE,
+                    }
+                )
                 continue
             if reason is not None:
                 if res.tax_id is None:
                     counters["unresolved_terms"] += 1
                     uid = f"unresolved:{SOURCE}:{name.casefold()}"
-                    unresolved_nodes.add({
-                        "unresolved_id": uid,
-                        "raw_name": name,
-                        "reported_rank": reported_rank,
-                        "original_rank": res.original_rank or "",
-                        "reported_tax_id": "",
-                        "source": SOURCE,
-                        "status": res.status,
-                        "candidates": as_list(str(c) for c in res.candidates),
-                        "note": res.note,
-                        "n_signatures": "0",
-                    })
+                    unresolved_nodes.add(
+                        {
+                            "unresolved_id": uid,
+                            "raw_name": name,
+                            "reported_rank": reported_rank,
+                            "original_rank": res.original_rank or "",
+                            "reported_tax_id": "",
+                            "source": SOURCE,
+                            "status": res.status,
+                            "candidates": as_list(str(c) for c in res.candidates),
+                            "note": res.note,
+                            "n_signatures": "0",
+                        }
+                    )
                     unresolved_hits[uid] += 1
                 else:
                     counters["rank_too_broad"] += 1
-                ledger.add({
-                    "accession": accession, "metabolite_id": key,
-                    "reported_name": name, "microbe_path": "/".join(path),
-                    "reported_rank": reported_rank,
-                    "resolved_tax_id": str(res.tax_id or ""),
-                    "resolved_rank": rank, "reason": reason, "source": SOURCE,
-                })
+                ledger.add(
+                    {
+                        "accession": accession,
+                        "metabolite_id": key,
+                        "reported_name": name,
+                        "microbe_path": "/".join(path),
+                        "reported_rank": reported_rank,
+                        "resolved_tax_id": str(res.tax_id or ""),
+                        "resolved_rank": rank,
+                        "reason": reason,
+                        "source": SOURCE,
+                    }
+                )
                 continue
 
             counters["produces"] += 1
             levels[level] += 1
             claimed[res.tax_id] = name
             taxa_seen[res.tax_id] = taxa_seen.get(res.tax_id, 0) + 1
-            produces.add({
-                "tax_id": str(res.tax_id),
-                "metabolite_id": key,
-                "evidence_level": level,
-                "knowledge_level": ont.knowledge_level(SOURCE),
-                "agent_type": ont.agent_type(SOURCE),
-                "primary_source": SOURCE,
-                "source_record_id":
-                    f"{SOURCE}:{accession}:{'/'.join(path[len(MICROBE_PREFIX):])}",
-                "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
-                "source_relation": hm.MICROBE_PATH,
-                "reported_name": name,
-                "reported_rank": reported_rank,
-                "original_rank": res.original_rank or rank,
-                "resolution_status": res.status,
-                "hmdb_status": status,
-                "microbe_path": "/".join(path),
-                "publications": refs,
-                "n_publications": str(n_refs),
-            })
+            produces.add(
+                {
+                    "tax_id": str(res.tax_id),
+                    "metabolite_id": key,
+                    "evidence_level": level,
+                    "knowledge_level": ont.knowledge_level(SOURCE),
+                    "agent_type": ont.agent_type(SOURCE),
+                    "primary_source": SOURCE,
+                    "source_record_id": f"{SOURCE}:{accession}:{'/'.join(path[len(MICROBE_PREFIX) :])}",
+                    "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                    "source_relation": hm.MICROBE_PATH,
+                    "reported_name": name,
+                    "reported_rank": reported_rank,
+                    "original_rank": res.original_rank or rank,
+                    "resolution_status": res.status,
+                    "hmdb_status": status,
+                    "microbe_path": "/".join(path),
+                    "publications": refs,
+                    "n_publications": str(n_refs),
+                }
+            )
 
         el.clear()
         root.clear()
@@ -586,38 +687,62 @@ def main(argv: list[str] | None = None) -> int:
     counts = {w.path.name: w.flush() for w in tables}
 
     print(f"\nread {counters['records']:,} metabolites in {time.time() - started:.0f}s")
-    print("  status: " + ", ".join(f"{s or '(empty)'} {n:,}" for s, n in statuses.most_common()))
+    print(
+        "  status: "
+        + ", ".join(f"{s or '(empty)'} {n:,}" for s, n in statuses.most_common())
+    )
     observed = sum(statuses[s] for s in hm.OBSERVED_STATUSES)
     if counters["records"]:
-        print(f"  {counters['records'] - observed:,} of {counters['records']:,} "
-              f"({100 * (counters['records'] - observed) / counters['records']:.1f}%) "
-              f"have never been observed in a sample")
-    print("  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items())))
-    print(f"  kept {counts['metabolite.csv']:,} metabolites, "
-          f"skipped {counters['not_selected']:,} that no rule selected")
-    print(f"  production: {counters['microbe_terms']:,} organism terms -> "
-          f"{counters['produces']:,} PRODUCES edges; "
-          f"{counters['microbial_without_an_organism']:,} microbial-origin "
-          f"metabolites name no organism at all and can carry none")
-    print(f"  not loaded: {counters['unresolved_terms']:,} organism terms no NCBI id "
-          f"could be resolved for, {counters['rank_too_broad']:,} resolved broader than "
-          f"{hm.PRODUCTION_RANK_CEILING}, {counters['chebi_key_shared']:,} records whose "
-          f"ChEBI key another accession claimed")
-    print(f"  cross-kingdom homonyms resolved by the microbial context: "
-          f"{counters['kingdom_disambiguated']:,} terms")
-    print(f"  suppressed as duplicate detail: {counters['covered_by_deeper_term']:,} "
-          f"terms whose own species-level term became the edge, "
-          f"{counters['duplicate_organism']:,} spelled a taxon the same metabolite "
-          f"had already claimed")
-    print(f"  disease layer NOT loaded: {counters['disease_rows']:,} rows "
-          f"(20,020 of them carry one disease name in the full file)")
-    print("  evidence levels: " + ", ".join(f"{lvl} {n:,}" for lvl, n in sorted(levels.items())))
+        print(
+            f"  {counters['records'] - observed:,} of {counters['records']:,} "
+            f"({100 * (counters['records'] - observed) / counters['records']:.1f}%) "
+            f"have never been observed in a sample"
+        )
+    print(
+        "  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items()))
+    )
+    print(
+        f"  kept {counts['metabolite.csv']:,} metabolites, "
+        f"skipped {counters['not_selected']:,} that no rule selected"
+    )
+    print(
+        f"  production: {counters['microbe_terms']:,} organism terms -> "
+        f"{counters['produces']:,} PRODUCES edges; "
+        f"{counters['microbial_without_an_organism']:,} microbial-origin "
+        f"metabolites name no organism at all and can carry none"
+    )
+    print(
+        f"  not loaded: {counters['unresolved_terms']:,} organism terms no NCBI id "
+        f"could be resolved for, {counters['rank_too_broad']:,} resolved broader than "
+        f"{hm.PRODUCTION_RANK_CEILING}, {counters['chebi_key_shared']:,} records whose "
+        f"ChEBI key another accession claimed"
+    )
+    print(
+        f"  cross-kingdom homonyms resolved by the microbial context: "
+        f"{counters['kingdom_disambiguated']:,} terms"
+    )
+    print(
+        f"  suppressed as duplicate detail: {counters['covered_by_deeper_term']:,} "
+        f"terms whose own species-level term became the edge, "
+        f"{counters['duplicate_organism']:,} spelled a taxon the same metabolite "
+        f"had already claimed"
+    )
+    print(
+        f"  disease layer NOT loaded: {counters['disease_rows']:,} rows "
+        f"(20,020 of them carry one disease name in the full file)"
+    )
+    print(
+        "  evidence levels: "
+        + ", ".join(f"{lvl} {n:,}" for lvl, n in sorted(levels.items()))
+    )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     return 0
 
 

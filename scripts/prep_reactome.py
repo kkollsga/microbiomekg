@@ -69,12 +69,24 @@ DEPENDS_ON: list[str] = ["hmdb"]
 PATHWAY_ID = re.compile(r"^R-([A-Z]{3})-\d+$")
 
 PATHWAY_FIELDS = [
-    "pathway_id", "name", "species", "pathway_source", "source_licence", "source_id",
+    "pathway_id",
+    "name",
+    "species",
+    "pathway_source",
+    "source_licence",
+    "source_id",
 ]
 LINK_FIELDS = [
-    "evidence_level", "knowledge_level", "agent_type", "primary_source",
-    "source_record_id", "source_licence", "source_relation", "evidence_code",
-    "eco_id", "species",
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
+    "evidence_code",
+    "eco_id",
+    "species",
 ]
 
 
@@ -112,13 +124,21 @@ def metabolite_index(path: Path) -> tuple[dict[str, str], int]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--reactome", type=Path, default=None,
-                    help="Directory holding the five TSVs (default: <raw>/reactome).")
+    ap.add_argument(
+        "--reactome",
+        type=Path,
+        default=None,
+        help="Directory holding the five TSVs (default: <raw>/reactome).",
+    )
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
     args = ap.parse_args(argv)
 
     src = args.reactome or (args.raw / SOURCE)
-    needed = ("ReactomePathways.txt", "ReactomePathwaysRelation.txt", "ChEBI2Reactome.txt")
+    needed = (
+        "ReactomePathways.txt",
+        "ReactomePathwaysRelation.txt",
+        "ChEBI2Reactome.txt",
+    )
     missing = [n for n in needed if not (src / n).is_file()]
     if missing:
         print(f"no {', '.join(missing)} under {src}", file=sys.stderr)
@@ -127,18 +147,31 @@ def main(argv: list[str] | None = None) -> int:
     licence = ont.SOURCE_LICENCE.get(SOURCE, "")
     out = args.out
     pathways = Writer(
-        out / "pathway.csv", PATHWAY_FIELDS,
-        key="pathway_id", merge=True, owner=("pathway_source", SOURCE),
+        out / "pathway.csv",
+        PATHWAY_FIELDS,
+        key="pathway_id",
+        merge=True,
+        owner=("pathway_source", SOURCE),
     )
     hierarchy = Writer(
         out / "pathway_pathway.csv",
-        ["pathway_id", "parent_pathway_id", "primary_source", "source_licence",
-         "source_relation"],
-        dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+        [
+            "pathway_id",
+            "parent_pathway_id",
+            "primary_source",
+            "source_licence",
+            "source_relation",
+        ],
+        dedupe_full=True,
+        merge=True,
+        owner=("primary_source", SOURCE),
     )
     links = Writer(
-        out / "metabolite_pathway.csv", ["metabolite_id", "pathway_id", *LINK_FIELDS],
-        dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+        out / "metabolite_pathway.csv",
+        ["metabolite_id", "pathway_id", *LINK_FIELDS],
+        dedupe_full=True,
+        merge=True,
+        owner=("primary_source", SOURCE),
     )
     # Aggregated per source id, not per row. 77,649 of the 113,779 mapping
     # rows name a ChEBI id no Metabolite carries, and 2,146 distinct compounds
@@ -148,7 +181,9 @@ def main(argv: list[str] | None = None) -> int:
     ledger = Writer(
         out / "unresolved_pathway_links.csv",
         ["source_id", "pathway_id", "reason", "rows", "primary_source"],
-        key="source_id", merge=True, sum_fields=("rows",),
+        key="source_id",
+        merge=True,
+        sum_fields=("rows",),
         owner=("primary_source", SOURCE),
     )
 
@@ -177,17 +212,21 @@ def main(argv: list[str] | None = None) -> int:
 
     def declare(pathway_id: str, name: str, species: str) -> None:
         check_species(pathway_id, species)
-        pathways.add({
-            "pathway_id": f"REACT:{pathway_id}",
-            "name": name,
-            "species": species,
-            "pathway_source": SOURCE,
-            "source_licence": licence,
-            "source_id": pathway_id,
-        })
+        pathways.add(
+            {
+                "pathway_id": f"REACT:{pathway_id}",
+                "name": name,
+                "species": species,
+                "pathway_source": SOURCE,
+                "source_licence": licence,
+                "source_id": pathway_id,
+            }
+        )
 
     declared: set[str] = set()
-    for pathway_id, name, species in (r[:3] for r in rows(src / "ReactomePathways.txt", 3)):
+    for pathway_id, name, species in (
+        r[:3] for r in rows(src / "ReactomePathways.txt", 3)
+    ):
         counters["pathway_rows"] += 1
         declared.add(pathway_id)
         declare(pathway_id, name, species)
@@ -199,27 +238,35 @@ def main(argv: list[str] | None = None) -> int:
         counters["relation_rows"] += 1
         if parent not in declared or child not in declared:
             counters["hierarchy_undeclared_endpoint"] += 1
-            ledger.add({
-                "source_id": child, "pathway_id": parent,
-                "reason": "hierarchy row names a pathway ReactomePathways.txt does "
-                          "not declare, and the relation file carries no name to "
-                          "mint one from",
-                "rows": "1", "primary_source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "source_id": child,
+                    "pathway_id": parent,
+                    "reason": "hierarchy row names a pathway ReactomePathways.txt does "
+                    "not declare, and the relation file carries no name to "
+                    "mint one from",
+                    "rows": "1",
+                    "primary_source": SOURCE,
+                }
+            )
             continue
-        hierarchy.add({
-            "pathway_id": f"REACT:{child}",
-            "parent_pathway_id": f"REACT:{parent}",
-            "primary_source": SOURCE,
-            "source_licence": licence,
-            "source_relation": "ReactomePathwaysRelation",
-        })
+        hierarchy.add(
+            {
+                "pathway_id": f"REACT:{child}",
+                "parent_pathway_id": f"REACT:{parent}",
+                "primary_source": SOURCE,
+                "source_licence": licence,
+                "source_relation": "ReactomePathwaysRelation",
+            }
+        )
         counters["hierarchy"] += 1
 
     metabolites, metabolite_rows = metabolite_index(out / "metabolite.csv")
     if not metabolite_rows:
-        print(f"no metabolite.csv under {out}: pathway nodes and the hierarchy load, "
-              f"but no IN_PATHWAY edge can be joined")
+        print(
+            f"no metabolite.csv under {out}: pathway nodes and the hierarchy load, "
+            f"but no IN_PATHWAY edge can be joined"
+        )
 
     for row in rows(src / "ChEBI2Reactome.txt", 6):
         chebi, pathway_id, _url, name, code, species = row[:6]
@@ -240,63 +287,89 @@ def main(argv: list[str] | None = None) -> int:
             if curie not in seen_missing:
                 seen_missing.add(curie)
                 counters["chebi_ids_without_metabolite"] += 1
-            ledger.add({
-                "source_id": curie, "pathway_id": f"REACT:{pathway_id}",
-                "reason": "no Metabolite node: HMDB has no record carrying this "
-                          "ChEBI id, and the mapping files carry no compound name "
-                          "to mint one from",
-                "rows": "1", "primary_source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "source_id": curie,
+                    "pathway_id": f"REACT:{pathway_id}",
+                    "reason": "no Metabolite node: HMDB has no record carrying this "
+                    "ChEBI id, and the mapping files carry no compound name "
+                    "to mint one from",
+                    "rows": "1",
+                    "primary_source": SOURCE,
+                }
+            )
             continue
         level, knowledge, agent, eco = rx.evidence_for(code)
-        links.add({
-            "metabolite_id": target,
-            "pathway_id": f"REACT:{pathway_id}",
-            "evidence_level": level,
-            "knowledge_level": knowledge,
-            "agent_type": agent,
-            "primary_source": SOURCE,
-            "source_record_id": f"{SOURCE}:{chebi}:{pathway_id}",
-            "source_licence": licence,
-            "source_relation": "ChEBI2Reactome",
-            "evidence_code": code,
-            "eco_id": eco,
-            "species": species,
-        })
+        links.add(
+            {
+                "metabolite_id": target,
+                "pathway_id": f"REACT:{pathway_id}",
+                "evidence_level": level,
+                "knowledge_level": knowledge,
+                "agent_type": agent,
+                "primary_source": SOURCE,
+                "source_record_id": f"{SOURCE}:{chebi}:{pathway_id}",
+                "source_licence": licence,
+                "source_relation": "ChEBI2Reactome",
+                "evidence_code": code,
+                "eco_id": eco,
+                "species": species,
+            }
+        )
         counters["in_pathway"] += 1
 
     tables = (pathways, hierarchy, links, ledger)
     counts = {w.path.name: w.flush() for w in tables}
 
-    print(f"\nread {counters['pathway_rows']:,} pathways, "
-          f"{counters['relation_rows']:,} hierarchy rows, "
-          f"{counters['chebi_rows']:,} ChEBI mapping rows")
-    print(f"  {len(species_of_infix)} species by id infix; "
-          f"{counters['species_infix_disagreement']:,} rows where the infix and the "
-          f"species column disagree")
-    print(f"  hierarchy: {counters['hierarchy']:,} PART_OF_PATHWAY edges "
-          f"(a DAG — a child may have several parents)")
-    print(f"  edges: {counters['in_pathway']:,} IN_PATHWAY against "
-          f"{metabolite_rows:,} metabolite rows")
-    print("  evidence codes: " + ", ".join(
-        f"{code} {n:,} ({100 * n / max(counters['chebi_rows'], 1):.1f}%)"
-        for code, n in codes.most_common()))
-    print(f"  not loaded: {counters['chebi_without_metabolite']:,} mapping rows over "
-          f"{counters['chebi_ids_without_metabolite']:,} ChEBI ids no Metabolite "
-          f"carries, "
-          f"{counters['hierarchy_undeclared_endpoint']:,} hierarchy rows with an "
-          f"undeclared endpoint")
-    print(f"  minted from a mapping row: {counters['pathway_minted_from_mapping']:,} "
-          f"pathways absent from ReactomePathways.txt")
-    print("  ChEBI2Reactome_All_Levels.txt NOT loaded: same 3,260 compounds "
-          "propagated up the hierarchy, which PART_OF_PATHWAY already carries")
+    print(
+        f"\nread {counters['pathway_rows']:,} pathways, "
+        f"{counters['relation_rows']:,} hierarchy rows, "
+        f"{counters['chebi_rows']:,} ChEBI mapping rows"
+    )
+    print(
+        f"  {len(species_of_infix)} species by id infix; "
+        f"{counters['species_infix_disagreement']:,} rows where the infix and the "
+        f"species column disagree"
+    )
+    print(
+        f"  hierarchy: {counters['hierarchy']:,} PART_OF_PATHWAY edges "
+        f"(a DAG — a child may have several parents)"
+    )
+    print(
+        f"  edges: {counters['in_pathway']:,} IN_PATHWAY against "
+        f"{metabolite_rows:,} metabolite rows"
+    )
+    print(
+        "  evidence codes: "
+        + ", ".join(
+            f"{code} {n:,} ({100 * n / max(counters['chebi_rows'], 1):.1f}%)"
+            for code, n in codes.most_common()
+        )
+    )
+    print(
+        f"  not loaded: {counters['chebi_without_metabolite']:,} mapping rows over "
+        f"{counters['chebi_ids_without_metabolite']:,} ChEBI ids no Metabolite "
+        f"carries, "
+        f"{counters['hierarchy_undeclared_endpoint']:,} hierarchy rows with an "
+        f"undeclared endpoint"
+    )
+    print(
+        f"  minted from a mapping row: {counters['pathway_minted_from_mapping']:,} "
+        f"pathways absent from ReactomePathways.txt"
+    )
+    print(
+        "  ChEBI2Reactome_All_Levels.txt NOT loaded: same 3,260 compounds "
+        "propagated up the hierarchy, which PART_OF_PATHWAY already carries"
+    )
     print("  NCBI2Reactome.txt NOT loaded: those are NCBI *Gene* ids, not taxids")
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     return 0
 
 

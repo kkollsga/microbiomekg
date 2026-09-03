@@ -70,10 +70,10 @@ def test_a_live_mondo_id_is_its_own_hub_key(mondo):
 @pytest.mark.parametrize(
     "foreign, mondo_curie",
     [
-        ("EFO:0000555", "MONDO:0005052"),   # irritable bowel syndrome
+        ("EFO:0000555", "MONDO:0005052"),  # irritable bowel syndrome
         ("DOID:9778", "MONDO:0005052"),
-        ("EFO:0004616", "MONDO:0005416"),   # osteoarthritis, knee
-        ("DOID:4", "MONDO:0000001"),        # disease
+        ("EFO:0004616", "MONDO:0005416"),  # osteoarthritis, knee
+        ("DOID:4", "MONDO:0000001"),  # disease
     ],
 )
 def test_equivalence_xrefs_join_efo_and_doid_to_mondo(mondo, foreign, mondo_curie):
@@ -96,7 +96,7 @@ def test_a_source_attribute_is_not_an_equivalence(mondo):
 
 
 def test_an_unknown_curie_has_no_mondo_id(mondo):
-    assert mondo.mondo_id("EFO:0000246") is None       # Age — a real BugSigDB id
+    assert mondo.mondo_id("EFO:0000246") is None  # Age — a real BugSigDB id
     assert mondo.mondo_id("CHEBI:33281") is None
     assert mondo.mondo_id("not-a-curie") is None
 
@@ -107,8 +107,9 @@ def test_an_unknown_curie_has_no_mondo_id(mondo):
 
 
 def test_equal_counts_pair_positionally(mondo):
-    got = pair_conditions(["EFO:0001799", "EXO:0000114"],
-                          "Ethnic group,Socioeconomic status", mondo)
+    got = pair_conditions(
+        ["EFO:0001799", "EXO:0000114"], "Ethnic group,Socioeconomic status", mondo
+    )
     assert got.pairs == [
         ("EFO:0001799", "Ethnic group"),
         ("EXO:0000114", "Socioeconomic status"),
@@ -166,9 +167,7 @@ def test_a_single_id_owns_the_whole_condition_cell(mondo):
 def test_nothing_is_guessed_when_a_run_cannot_be_matched(mondo):
     """Two ids, three fragments, no label to reassemble by: the pairing is
     reported as unresolved instead of being invented."""
-    got = pair_conditions(
-        ["EFO:0000246", "EFO:0004340"], "Age,Body mass,index", mondo
-    )
+    got = pair_conditions(["EFO:0000246", "EFO:0004340"], "Age,Body mass,index", mondo)
     assert got.pairs == []
     assert sorted(got.unpaired_ids) == ["EFO:0000246", "EFO:0004340"]
     assert got.unpaired_labels == ["Age", "Body mass", "index"]
@@ -222,19 +221,19 @@ def test_the_prefix_picks_the_node_type(curie, node_type):
 @pytest.mark.parametrize(
     "curie",
     [
-        "NCBITAXON:568703",   # Lacticaseibacillus rhamnosus GG — an organism
-        "GO:0007568",         # Aging — a biological process
-        "OBA:1000110",        # Bone density — a measurement
-        "CL:0000775",         # Neutrophil — a cell type
-        "PATO:0000384",       # Male — a quality
-        "OBI:0000711",        # Library preparation — a protocol
-        "NCIT:C102763",       # Cervical cerclage — a procedure
-        "XCO:0000671",        # Doxycycline under an experimental-condition id
-        "PO:0009001",         # Fruit
-        "BTO:0001616",        # a cell line
-        "MP:0001845",         # a mouse phenotype term
-        "IDOMAL:0001254",     # Population
-        "PR:000000017",       # Interferon gamma
+        "NCBITAXON:568703",  # Lacticaseibacillus rhamnosus GG — an organism
+        "GO:0007568",  # Aging — a biological process
+        "OBA:1000110",  # Bone density — a measurement
+        "CL:0000775",  # Neutrophil — a cell type
+        "PATO:0000384",  # Male — a quality
+        "OBI:0000711",  # Library preparation — a protocol
+        "NCIT:C102763",  # Cervical cerclage — a procedure
+        "XCO:0000671",  # Doxycycline under an experimental-condition id
+        "PO:0009001",  # Fruit
+        "BTO:0001616",  # a cell line
+        "MP:0001845",  # a mouse phenotype term
+        "IDOMAL:0001254",  # Population
+        "PR:000000017",  # Interferon gamma
     ],
 )
 def test_vocabularies_with_no_node_type_are_routed_to_the_ledger(curie):
@@ -265,9 +264,9 @@ def test_curie_vocabulary_reads_the_prefix():
 @pytest.mark.parametrize(
     "curie",
     [
-        "DOID:585",        # 3 digits
-        "DOID:0060180",    # 7 digits with leading zeros — the normal padded form
-        "DOID:9",          # 1 digit
+        "DOID:585",  # 3 digits
+        "DOID:0060180",  # 7 digits with leading zeros — the normal padded form
+        "DOID:9",  # 1 digit
         "MONDO:0005148",
         "EFO:0000246",
         "HP:0002745",
@@ -280,7 +279,10 @@ def test_a_wellformed_curie_is_not_malformed(curie):
 @pytest.mark.parametrize(
     "curie, why",
     [
-        ("DOID:00400085", "8 digits with a leading double zero — gutMDisorder's own typo"),
+        (
+            "DOID:00400085",
+            "8 digits with a leading double zero — gutMDisorder's own typo",
+        ),
         ("DOID:", "no local id at all"),
         ("DOID:9970a", "a trailing character"),
         ("MONDO:12", "MONDO ids are 7 digits"),

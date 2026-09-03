@@ -142,8 +142,7 @@ EXTRA_QUERIES: tuple[tuple[str, str, dict | None, str], ...] = (
     ),
     (
         "lineage_walk",
-        "MATCH (t:Taxon {id: 562})-[:HAS_PARENT*1..12]->(a:Taxon) "
-        "RETURN count(a) AS n",
+        "MATCH (t:Taxon {id: 562})-[:HAS_PARENT*1..12]->(a:Taxon) RETURN count(a) AS n",
         None,
         "variable-length walk over the NCBI ancestor chain (docs/model.md §5)",
     ),
@@ -218,9 +217,15 @@ def summarise(cell: Cell) -> dict[str, Any]:
     rare_branch = n >= 5 and med > 0 and hi >= 30 * med
 
     if cell.once_per_event:
-        statistic, why = "mean", "once-per-event cost; min would report only the cheap repeats"
+        statistic, why = (
+            "mean",
+            "once-per-event cost; min would report only the cheap repeats",
+        )
     elif heavy_tailed:
-        statistic, why = "median", f"heavy-tailed: min is {lo / med:.0%} of its own median"
+        statistic, why = (
+            "median",
+            f"heavy-tailed: min is {lo / med:.0%} of its own median",
+        )
     else:
         statistic, why = "min", "repeatable cell; min is the best-case rate"
 
@@ -312,7 +317,11 @@ def check_release() -> dict[str, Any]:
     dist = next(site.parent.glob("kglite-*.dist-info"), None)
     wheel = (dist / "WHEEL").read_text(encoding="utf-8") if dist else ""
     tag = next(
-        (line.split(":", 1)[1].strip() for line in wheel.splitlines() if line.startswith("Tag:")),
+        (
+            line.split(":", 1)[1].strip()
+            for line in wheel.splitlines()
+            if line.startswith("Tag:")
+        ),
         "",
     )
     if "abi3" not in tag:
@@ -345,9 +354,15 @@ def machine_metadata(label: str) -> dict[str, Any]:
             ["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True
         ).stdout.strip()
         or platform.processor(),
-        "memory_gb": round(int(subprocess.run(
-            ["sysctl", "-n", "hw.memsize"], capture_output=True, text=True
-        ).stdout.strip()) / 2**30, 1),
+        "memory_gb": round(
+            int(
+                subprocess.run(
+                    ["sysctl", "-n", "hw.memsize"], capture_output=True, text=True
+                ).stdout.strip()
+            )
+            / 2**30,
+            1,
+        ),
         "os": platform.platform(),
         "python": sys.version.split()[0],
         "kglite": check_release(),
@@ -397,7 +412,9 @@ def part_d_queries() -> list[tuple[str, str, dict | None, str]]:
         status = status_match.group(1) if status_match else "unknown"
         if status not in ("answerable-now", "partial"):
             continue
-        statements = [q for block in CYPHER_FENCE.findall(body) for q in _statements(block)]
+        statements = [
+            q for block in CYPHER_FENCE.findall(body) for q in _statements(block)
+        ]
         for index, query in enumerate(statements, start=1):
             # A section with one statement keeps the bare D-number; one with
             # several numbers them in document order, so `D15.1` is the audit
@@ -461,7 +478,10 @@ class RSSSampler(threading.Thread):
     def _sample(self) -> None:
         try:
             out = subprocess.run(
-                ["ps", "-eo", "pid=,ppid=,rss="], capture_output=True, text=True, timeout=5
+                ["ps", "-eo", "pid=,ppid=,rss="],
+                capture_output=True,
+                text=True,
+                timeout=5,
             ).stdout
         except Exception:  # pragma: no cover - ps is not expected to fail
             return
@@ -489,9 +509,11 @@ class RSSSampler(threading.Thread):
         segment = self.segment
         self.peak_tree_kb = max(self.peak_tree_kb, total)
         self.peak_tree_by_segment[segment] = max(
-            self.peak_tree_by_segment.get(segment, 0), total)
+            self.peak_tree_by_segment.get(segment, 0), total
+        )
         self.peak_root_by_segment[segment] = max(
-            self.peak_root_by_segment.get(segment, 0), rss.get(self.root_pid, 0))
+            self.peak_root_by_segment.get(segment, 0), rss.get(self.root_pid, 0)
+        )
 
 
 #: Lines ``scripts/build.py`` flushes to mark a phase boundary. Timestamping
@@ -517,7 +539,9 @@ def segment_name(line: str) -> str | None:
     return None
 
 
-def run_build(scratch: Path, log: Path, extra_args: Iterable[str] = ()) -> dict[str, Any]:
+def run_build(
+    scratch: Path, log: Path, extra_args: Iterable[str] = ()
+) -> dict[str, Any]:
     """``scripts/build.py`` end to end, segmented and RSS-sampled.
 
     Writes into ``scratch`` rather than ``data/csv`` and ``graph/`` — the
@@ -529,8 +553,15 @@ def run_build(scratch: Path, log: Path, extra_args: Iterable[str] = ()) -> dict[
     out = scratch / "build.kgl"
     csv_dir.mkdir(parents=True, exist_ok=True)
     argv = [
-        sys.executable, str(ROOT / "scripts" / "build.py"),
-        "--csv", str(csv_dir), "--out", str(out), "--scope", "microbial", *extra_args,
+        sys.executable,
+        str(ROOT / "scripts" / "build.py"),
+        "--csv",
+        str(csv_dir),
+        "--out",
+        str(out),
+        "--scope",
+        "microbial",
+        *extra_args,
     ]
     before = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
 
@@ -544,8 +575,13 @@ def run_build(scratch: Path, log: Path, extra_args: Iterable[str] = ()) -> dict[
     # that reason.
     env = dict(os.environ, PYTHONUNBUFFERED="1")
     proc = subprocess.Popen(
-        argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, bufsize=1, env=env,
+        argv,
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        env=env,
     )
     sampler = RSSSampler(proc.pid)
     sampler.start()
@@ -639,6 +675,7 @@ def child_build_graph(args: argparse.Namespace) -> None:
     """
     os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
     import kglite
+
     sys.path.insert(0, str(ROOT / "scripts"))
     from build import TEXT_INDEXES, VECTOR_INDEXES  # noqa: PLC0415  (the build's own lists)
     from microbiomekg.embedder import CharGramEmbedder  # noqa: PLC0415
@@ -650,9 +687,13 @@ def child_build_graph(args: argparse.Namespace) -> None:
     t = time.perf_counter()
     graph = kglite.from_blueprint(blueprint, verbose=False, save=False)
     result["from_blueprint_seconds"] = time.perf_counter() - t
-    result["rss_after_load_mb"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
+    result["rss_after_load_mb"] = (
+        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
+    )
     result["nodes"] = list(graph.cypher("MATCH (n) RETURN count(n) AS n"))[0]["n"]
-    result["edges"] = list(graph.cypher("MATCH ()-[r]->() RETURN count(r) AS r"))[0]["r"]
+    result["edges"] = list(graph.cypher("MATCH ()-[r]->() RETURN count(r) AS r"))[0][
+        "r"
+    ]
 
     def save_to(path: Path, tag: str) -> int:
         t0 = time.perf_counter()
@@ -669,16 +710,27 @@ def child_build_graph(args: argparse.Namespace) -> None:
         t0 = time.perf_counter()
         stats = graph.build_text_index(node_type, prop)
         seconds = time.perf_counter() - t0
-        size = save_to(scratch / f"stage-bm25-{node_type}-{prop}.kgl", f"bm25:{node_type}.{prop}")
-        result["indexes"].append({
-            "index": f"BM25 {node_type}.{prop}", "lane": "bm25", "seconds": seconds,
-            "documents": stats.get("indexed", 0), "terms": stats.get("terms", 0),
-            "skipped": stats.get("skipped", 0),
-            "kgl_bytes": size, "delta_bytes": size - previous,
-        })
+        size = save_to(
+            scratch / f"stage-bm25-{node_type}-{prop}.kgl", f"bm25:{node_type}.{prop}"
+        )
+        result["indexes"].append(
+            {
+                "index": f"BM25 {node_type}.{prop}",
+                "lane": "bm25",
+                "seconds": seconds,
+                "documents": stats.get("indexed", 0),
+                "terms": stats.get("terms", 0),
+                "skipped": stats.get("skipped", 0),
+                "kgl_bytes": size,
+                "delta_bytes": size - previous,
+            }
+        )
         previous = size
     bm25_path = scratch / "bm25.kgl"
-    result["bm25_only"] = {"path": str(bm25_path), "bytes": save_to(bm25_path, "bm25-only")}
+    result["bm25_only"] = {
+        "path": str(bm25_path),
+        "bytes": save_to(bm25_path, "bm25-only"),
+    }
     previous = result["bm25_only"]["bytes"]
 
     graph.set_embedder(CharGramEmbedder())
@@ -689,17 +741,25 @@ def child_build_graph(args: argparse.Namespace) -> None:
         t0 = time.perf_counter()
         index_stats = graph.build_vector_index(node_type, prop, ef_search=ef_search)
         index_seconds = time.perf_counter() - t0
-        size = save_to(scratch / f"stage-vec-{node_type}-{prop}.kgl", f"vector:{node_type}.{prop}")
-        result["indexes"].append({
-            "index": f"vector {node_type}.{prop}", "lane": "vector",
-            "seconds": embed_seconds + index_seconds,
-            "embed_seconds": embed_seconds, "hnsw_seconds": index_seconds,
-            "documents": embed_stats.get("embedded", 0),
-            "dimension": embed_stats.get("dimension", 0),
-            "skipped": embed_stats.get("skipped", 0),
-            "indexed": index_stats.get("indexed", 0), "ef_search": ef_search,
-            "kgl_bytes": size, "delta_bytes": size - previous,
-        })
+        size = save_to(
+            scratch / f"stage-vec-{node_type}-{prop}.kgl", f"vector:{node_type}.{prop}"
+        )
+        result["indexes"].append(
+            {
+                "index": f"vector {node_type}.{prop}",
+                "lane": "vector",
+                "seconds": embed_seconds + index_seconds,
+                "embed_seconds": embed_seconds,
+                "hnsw_seconds": index_seconds,
+                "documents": embed_stats.get("embedded", 0),
+                "dimension": embed_stats.get("dimension", 0),
+                "skipped": embed_stats.get("skipped", 0),
+                "indexed": index_stats.get("indexed", 0),
+                "ef_search": ef_search,
+                "kgl_bytes": size,
+                "delta_bytes": size - previous,
+            }
+        )
         previous = size
 
     full_path = scratch / "full.kgl"
@@ -728,7 +788,9 @@ def child_load(args: argparse.Namespace) -> None:
     }
     if args.counts:
         payload["nodes"] = list(graph.cypher("MATCH (n) RETURN count(n) AS n"))[0]["n"]
-        payload["edges"] = list(graph.cypher("MATCH ()-[r]->() RETURN count(r) AS r"))[0]["r"]
+        payload["edges"] = list(graph.cypher("MATCH ()-[r]->() RETURN count(r) AS r"))[
+            0
+        ]["r"]
     Path(args.json_out).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
@@ -740,8 +802,15 @@ def run_child(task: str, work_dir: Path, **kwargs: Any) -> dict[str, Any]:
     the two collided once and cost a capture.
     """
     out = work_dir / f"child-{task}-{os.getpid()}-{int(time.time() * 1000)}.json"
-    argv = [sys.executable, str(Path(__file__).resolve()), "child", "--task", task,
-            "--json-out", str(out)]
+    argv = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "child",
+        "--task",
+        task,
+        "--json-out",
+        str(out),
+    ]
     for key, value in kwargs.items():
         if value is False or value is None:
             continue  # a store_true flag is omitted, never passed "False"
@@ -779,10 +848,13 @@ def run_load_series(path: Path, scratch: Path, repeats: int) -> dict[str, Any]:
         "first_touch_peak_rss_mb": first["peak_rss_mb"],
         "warm_repeats": [s["seconds"] for s in rest],
         "warm_cell": Cell(
-            f"load {path.name} (warm)", [s["seconds"] for s in rest],
+            f"load {path.name} (warm)",
+            [s["seconds"] for s in rest],
             once_per_event=True,
             note="fresh process per sample; page cache warm from earlier reads",
-        ).summary() if rest else None,
+        ).summary()
+        if rest
+        else None,
         "nodes": first.get("nodes"),
         "edges": first.get("edges"),
     }
@@ -795,7 +867,9 @@ def run_load_series(path: Path, scratch: Path, repeats: int) -> dict[str, Any]:
 
 def probe(graph, query: str, params: dict | None) -> tuple[bool, int, str]:
     try:
-        rows = list(graph.cypher(query, params=params) if params else graph.cypher(query))
+        rows = list(
+            graph.cypher(query, params=params) if params else graph.cypher(query)
+        )
         return True, len(rows), ""
     except Exception as exc:  # a query that stops running is a finding, not a crash
         return False, 0, str(exc).splitlines()[0][:200]
@@ -808,6 +882,7 @@ def run_queries(graph, scale: float) -> dict[str, Any]:
         if not ok:
             skipped.append({"name": name, "error": error, "query": query})
             continue
+
         def call(q=query, p=params):
             return list(graph.cypher(q, params=p) if p else graph.cypher(q))
 
@@ -820,25 +895,43 @@ def run_queries(graph, scale: float) -> dict[str, Any]:
 
 def run_controls(graph, scale: float) -> dict[str, Any]:
     """The controls, plus the floor they are measured against."""
-    floor = measure("noise_floor", lambda: list(graph.cypher(FLOOR_QUERY)), scale=scale,
-                    note="cheapest possible cypher round trip: dispatch + materialisation")
+    floor = measure(
+        "noise_floor",
+        lambda: list(graph.cypher(FLOOR_QUERY)),
+        scale=scale,
+        note="cheapest possible cypher round trip: dispatch + materialisation",
+    )
     floor_summary = floor.summary()
     floor_median = floor_summary["median"]
 
     cells = []
     for name, query in CONTROLS:
-        cell = measure(name, lambda q=query: list(graph.cypher(q)), scale=scale,
-                       note="pure executor: touches no node, edge or index")
+        cell = measure(
+            name,
+            lambda q=query: list(graph.cypher(q)),
+            scale=scale,
+            note="pure executor: touches no node, edge or index",
+        )
         summary = cell.summary()
-        summary["over_floor"] = summary["median"] / floor_median if floor_median else None
-        summary["passes_2x_floor"] = bool(summary["over_floor"] and summary["over_floor"] >= 2)
+        summary["over_floor"] = (
+            summary["median"] / floor_median if floor_median else None
+        )
+        summary["passes_2x_floor"] = bool(
+            summary["over_floor"] and summary["over_floor"] >= 2
+        )
         cells.append(summary)
 
     buf = b"\x5a" * SHA_CONTROL_BYTES
-    sha = measure("ctrl_sha256_16mib", lambda: hashlib.sha256(buf).hexdigest(), scale=scale,
-                  note="not kglite at all — the CPU/thermal cross-check")
+    sha = measure(
+        "ctrl_sha256_16mib",
+        lambda: hashlib.sha256(buf).hexdigest(),
+        scale=scale,
+        note="not kglite at all — the CPU/thermal cross-check",
+    )
     sha_summary = sha.summary()
-    sha_summary["over_floor"] = sha_summary["median"] / floor_median if floor_median else None
+    sha_summary["over_floor"] = (
+        sha_summary["median"] / floor_median if floor_median else None
+    )
     sha_summary["passes_2x_floor"] = True
     cells.append(sha_summary)
 
@@ -872,7 +965,9 @@ def run_mcp(graph_path: Path, graph, scale: float) -> dict[str, Any]:
     missing = [name for name in MCP_QUERY_IDS if name not in by_id]
     if missing:
         return {"skipped": f"Part D no longer carries {', '.join(missing)}"}
-    cells = [("mcp_floor", FLOOR_QUERY)] + [(name, by_id[name]) for name in MCP_QUERY_IDS]
+    cells = [("mcp_floor", FLOOR_QUERY)] + [
+        (name, by_id[name]) for name in MCP_QUERY_IDS
+    ]
 
     argv = [binary, "--graph", str(graph_path), "--mcp-config", str(MANIFEST)]
     boot = time.perf_counter()
@@ -882,22 +977,29 @@ def run_mcp(graph_path: Path, graph, scale: float) -> dict[str, Any]:
         rows = []
         for name, query in cells:
             over_mcp = measure(
-                name, lambda q=query: client.call("cypher_query", {"query": q}),
-                scale=scale, note="one tools/call over stdio JSON-RPC",
+                name,
+                lambda q=query: client.call("cypher_query", {"query": q}),
+                scale=scale,
+                note="one tools/call over stdio JSON-RPC",
             )
             direct = measure(
-                f"{name}_direct", lambda q=query: list(graph.cypher(q)),
-                scale=scale, note="the same query in-process through graph.cypher()",
+                f"{name}_direct",
+                lambda q=query: list(graph.cypher(q)),
+                scale=scale,
+                note="the same query in-process through graph.cypher()",
             )
             mcp_summary, direct_summary = over_mcp.summary(), direct.summary()
-            rows.append({
-                "cell": name,
-                "mcp": mcp_summary,
-                "direct": direct_summary,
-                "overhead_s": mcp_summary["value"] - direct_summary["value"],
-                "ratio": (mcp_summary["value"] / direct_summary["value"])
-                if direct_summary["value"] else None,
-            })
+            rows.append(
+                {
+                    "cell": name,
+                    "mcp": mcp_summary,
+                    "direct": direct_summary,
+                    "overhead_s": mcp_summary["value"] - direct_summary["value"],
+                    "ratio": (mcp_summary["value"] / direct_summary["value"])
+                    if direct_summary["value"]
+                    else None,
+                }
+            )
     return {
         "binary": binary,
         "boot_and_handshake_s": boot_seconds,
@@ -939,25 +1041,39 @@ def main(argv: list[str] | None = None) -> int:
     child.add_argument("--file")
     child.add_argument("--counts", action="store_true")
 
-    ap.add_argument("--label", default="current", help="the source set this capture covers")
-    ap.add_argument("--note", default="",
-                    help="a paragraph recorded in the capture's metadata. "
-                         "Protocol item 7: a capture that will be compared "
-                         "across sessions has to carry the machine state it "
-                         "was taken under, and the load average alone does not "
-                         "say what else was competing for the machine.")
+    ap.add_argument(
+        "--label", default="current", help="the source set this capture covers"
+    )
+    ap.add_argument(
+        "--note",
+        default="",
+        help="a paragraph recorded in the capture's metadata. "
+        "Protocol item 7: a capture that will be compared "
+        "across sessions has to carry the machine state it "
+        "was taken under, and the load average alone does not "
+        "say what else was competing for the machine.",
+    )
     ap.add_argument("--sections", default=",".join(SECTIONS))
     ap.add_argument("--scratch", type=Path, default=SCRATCH)
-    ap.add_argument("--graph", type=Path, default=None,
-                    help="an existing .kgl for the query/control/mcp sections; "
-                         "default is the one this capture's build produced, "
-                         "falling back to graph/microbiomekg.kgl")
-    ap.add_argument("--build-args", default="",
-                    help="extra argv for scripts/build.py, space separated "
-                         "(`--with-kegg`, or `--skip-prep` to time a load-only "
-                         "build against CSVs already in --scratch/csv)")
+    ap.add_argument(
+        "--graph",
+        type=Path,
+        default=None,
+        help="an existing .kgl for the query/control/mcp sections; "
+        "default is the one this capture's build produced, "
+        "falling back to graph/microbiomekg.kgl",
+    )
+    ap.add_argument(
+        "--build-args",
+        default="",
+        help="extra argv for scripts/build.py, space separated "
+        "(`--with-kegg`, or `--skip-prep` to time a load-only "
+        "build against CSVs already in --scratch/csv)",
+    )
     ap.add_argument("--load-repeats", type=int, default=4)
-    ap.add_argument("--scale", type=float, default=1.0, help="multiply every round count")
+    ap.add_argument(
+        "--scale", type=float, default=1.0, help="multiply every round count"
+    )
     ap.add_argument("--quick", action="store_true", help="validation run: few rounds")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args(argv)
@@ -991,27 +1107,37 @@ def main(argv: list[str] | None = None) -> int:
                 f"no {blueprint} — run the build section first, or point --scratch "
                 f"at a scratch directory that has one"
             )
-        print("[load/index] from_blueprint + every index, one at a time …",
-              file=sys.stderr, flush=True)
-        staged = run_child("build_graph", args.scratch, blueprint=blueprint,
-                           scratch=args.scratch)
+        print(
+            "[load/index] from_blueprint + every index, one at a time …",
+            file=sys.stderr,
+            flush=True,
+        )
+        staged = run_child(
+            "build_graph", args.scratch, blueprint=blueprint, scratch=args.scratch
+        )
         capture["sections"]["load"] = {
             "from_blueprint_seconds": staged["from_blueprint_seconds"],
             "peak_rss_after_load_mb": staged["rss_after_load_mb"],
             "peak_rss_whole_child_mb": staged["peak_rss_mb"],
-            "nodes": staged["nodes"], "edges": staged["edges"],
+            "nodes": staged["nodes"],
+            "edges": staged["edges"],
         }
-        capture["sections"]["index"] = {"indexes": staged["indexes"],
-                                        "saves": staged["saves"]}
+        capture["sections"]["index"] = {
+            "indexes": staged["indexes"],
+            "saves": staged["saves"],
+        }
         capture["sections"]["saveload"] = {
             "bm25_only_bytes": staged["bm25_only"]["bytes"],
             "full_bytes": staged["full"]["bytes"],
-            "vector_delta_bytes": staged["full"]["bytes"] - staged["bm25_only"]["bytes"],
+            "vector_delta_bytes": staged["full"]["bytes"]
+            - staged["bm25_only"]["bytes"],
             "saves": staged["saves"],
             "load_bm25_only": run_load_series(
-                Path(staged["bm25_only"]["path"]), args.scratch, args.load_repeats),
+                Path(staged["bm25_only"]["path"]), args.scratch, args.load_repeats
+            ),
             "load_full": run_load_series(
-                Path(staged["full"]["path"]), args.scratch, args.load_repeats),
+                Path(staged["full"]["path"]), args.scratch, args.load_repeats
+            ),
         }
 
     graph_path = args.graph
@@ -1036,17 +1162,21 @@ def main(argv: list[str] | None = None) -> int:
         capture["meta"]["query_graph"] = {
             "path": str(graph_path),
             "bytes": graph_path.stat().st_size,
-            "mtime": time.strftime("%Y-%m-%d %H:%M:%S",
-                                   time.localtime(graph_path.stat().st_mtime)),
+            "mtime": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(graph_path.stat().st_mtime)
+            ),
             "load_seconds": time.perf_counter() - t,
             "nodes": list(graph.cypher("MATCH (n) RETURN count(n) AS n"))[0]["n"],
-            "edges": list(graph.cypher("MATCH ()-[r]->() RETURN count(r) AS r"))[0]["r"],
+            "edges": list(graph.cypher("MATCH ()-[r]->() RETURN count(r) AS r"))[0][
+                "r"
+            ],
             # Asked of the graph rather than taken from `--label`: the capture
             # must be able to say which sources it covers even when the operator
             # mislabels it, and a source that failed to load is invisible to
             # every other line of metadata here.
             "primary_sources": sorted(
-                str(row["s"]) for row in graph.cypher(
+                str(row["s"])
+                for row in graph.cypher(
                     "MATCH ()-[r]->() WHERE r.primary_source IS NOT NULL "
                     "RETURN DISTINCT r.primary_source AS s"
                 )
@@ -1066,7 +1196,9 @@ def main(argv: list[str] | None = None) -> int:
     RESULTS.mkdir(parents=True, exist_ok=True)
     stem = args.out or (RESULTS / f"{time.strftime('%Y-%m-%d')}-{args.label}")
     stem = Path(str(stem).removesuffix(".md").removesuffix(".json"))
-    stem.with_suffix(".json").write_text(json.dumps(capture, indent=2), encoding="utf-8")
+    stem.with_suffix(".json").write_text(
+        json.dumps(capture, indent=2), encoding="utf-8"
+    )
     stem.with_suffix(".md").write_text(render(capture), encoding="utf-8")
     print(f"wrote {stem}.json and {stem}.md", file=sys.stderr)
     return 0

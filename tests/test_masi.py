@@ -92,11 +92,11 @@ NO_METABOLISM = 1
 ABUNDANCE_CHANGED = 6
 ABUNDANCE_UNCHANGED = 1
 SUBSTANCES = 6
-SAME_COMPOUND = 4       # two by name, one by salt strip, one non-therapeutic
-ASSOCIATIONS = 6        # seven records, one on a microbe that reaches no taxon
+SAME_COMPOUND = 4  # two by name, one by salt strip, one non-therapeutic
+ASSOCIATIONS = 6  # seven records, one on a microbe that reaches no taxon
 DISEASE_NODES = 5
 LEDGER_ROWS = 9
-UNRESOLVED_TAXA = 2     # the unclassified microbiota, and the orphan microbe
+UNRESOLVED_TAXA = 2  # the unclassified microbiota, and the orphan microbe
 PROBIOTIC_TAXA = 2
 ANNOTATED_TAXA = 5
 #: Of the ten edges, the seven whose (taxon, compound) pair a loaded screen
@@ -106,8 +106,8 @@ DUPLICATED_EDGES = 7
 E_COLI = 562
 B_THETA = 818
 B_LONGUM = 216816
-BLAUTIA = 572511        # the genus the `Blautia spp.` row resolves through
-BACTEROIDIA = 200643    # the class the *record* names, against the phylum 976
+BLAUTIA = 572511  # the genus the `Blautia spp.` row resolves through
+BACTEROIDIA = 200643  # the class the *record* names, against the phylum 976
 
 METFORMIN = "CHEMBL:CHEMBL1431"
 AMPICILLIN = "CHEMBL:CHEMBL174"
@@ -115,14 +115,18 @@ VANCOMYCIN = "CHEMBL:CHEMBL262777"
 ASPIRIN = "CHEMBL:CHEMBL25"
 
 INTERACTION_RELATIONSHIPS = (
-    RELATION_METABOLISES, RELATION_NO_METABOLISM,
-    RELATION_ABUNDANCE_CHANGED, RELATION_ABUNDANCE_UNCHANGED,
+    RELATION_METABOLISES,
+    RELATION_NO_METABOLISM,
+    RELATION_ABUNDANCE_CHANGED,
+    RELATION_ABUNDANCE_UNCHANGED,
 )
 #: The relationships the two published screens own. **No MASI edge may carry
 #: one of these**, and that is the whole architectural claim of this source.
 MEASURED_RELATIONSHIPS = (
-    "INHIBITS_GROWTH_OF", "DOES_NOT_INHIBIT_GROWTH_OF",
-    "METABOLISES", "DOES_NOT_METABOLISE",
+    "INHIBITS_GROWTH_OF",
+    "DOES_NOT_INHIBIT_GROWTH_OF",
+    "METABOLISES",
+    "DOES_NOT_METABOLISE",
 )
 
 
@@ -139,7 +143,9 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True,
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
             cwd=ROOT,
         )
         assert proc.returncode == 0, (
@@ -149,36 +155,54 @@ def built(tmp_path_factory):
 
     run(
         SCRIPTS / "prep_chembl.py",
-        "--chembl", str(CHEMBL_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--chembl",
+        str(CHEMBL_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_maier2018.py",
-        "--tables", str(MAIER_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--tables",
+        str(MAIER_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_zimmermann2019.py",
-        "--tables", str(ZIMMERMANN_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--published-matrix", "6,9,5",
+        "--tables",
+        str(ZIMMERMANN_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--published-matrix",
+        "6,9,5",
     )
     prep = run(
         PREP,
-        "--tables", str(MASI_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--tables",
+        str(MASI_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -230,8 +254,7 @@ def table(csv_dir, name):
 
 
 def ledger(csv_dir, kind):
-    return [r for r in table(csv_dir, f"unresolved_{SOURCE}.csv")
-            if r["kind"] == kind]
+    return [r for r in table(csv_dir, f"unresolved_{SOURCE}.csv") if r["kind"] == kind]
 
 
 # --------------------------------------------------------------------------
@@ -280,12 +303,15 @@ def test_evidence_level_is_derived_per_row_and_never_defaults_to_in_vitro():
     at `n.a.` and they must reach `unknown` rather than a plausible-looking
     level; a human in-vivo row is `unknown` too, because nothing in the file says
     the study was observational."""
-    assert evidence_level_for("In vitro", "High-throughput incubation assays") == \
-        "in-vitro"
+    assert (
+        evidence_level_for("In vitro", "High-throughput incubation assays")
+        == "in-vitro"
+    )
     assert evidence_level_for("In vitro", "Human") == "in-vitro"
     assert evidence_level_for("In vivo", "C57BL/6 mouse") == "in-vivo-model"
-    assert evidence_level_for("In vivo (Rat); In vitro (Human)", "Rat") == \
-        "in-vivo-model"
+    assert (
+        evidence_level_for("In vivo (Rat); In vitro (Human)", "Rat") == "in-vivo-model"
+    )
     # A mixed host cell with one non-human component is in-vivo-model.
     assert evidence_level_for("In vivo", "Human; Mouse") == "in-vivo-model"
     assert evidence_level_for("In vivo", "Human") == "unknown"
@@ -304,11 +330,14 @@ def test_the_reference_cell_is_parsed_and_the_type_column_is_not_trusted():
     contain, and it fires **only** when the type column says PMID and the whole
     cell is digits — a looser rule would turn a DOI's year into an accession."""
     assert publications_of("PMID", "PMID: 26569070") == (["PMID:26569070"], 26569070)
-    assert publications_of(
-        "PMID", "PMID: 26569070; PMID: 22516259"
-    ) == (["PMID:26569070", "PMID:22516259"], 26569070)
-    assert publications_of("DOI", "; DOI: 10.1000/xyz123") == \
-        (["doi:10.1000/xyz123"], None)
+    assert publications_of("PMID", "PMID: 26569070; PMID: 22516259") == (
+        ["PMID:26569070", "PMID:22516259"],
+        26569070,
+    )
+    assert publications_of("DOI", "; DOI: 10.1000/xyz123") == (
+        ["doi:10.1000/xyz123"],
+        None,
+    )
     assert publications_of("PMID", "26569070") == (["PMID:26569070"], 26569070)
     # A DOI-typed cell that also names a PMID gives both, PMID first.
     ids, pmid = publications_of("DOI", "DOI: 10.1016/j.jinf.2019.10.008; PMID: 3846592")
@@ -337,7 +366,8 @@ def test_the_substance_routes_are_verbatim_first_and_there_are_only_two():
     So the join is two name routes, and the derived one is tried last."""
     assert [r for _k, _v, r in substance_variants("Metformin")] == ["substance-name"]
     assert [r for _k, _v, r in substance_variants("Ampicillin sodium")] == [
-        "substance-name", "salt-name"
+        "substance-name",
+        "salt-name",
     ]
     # The salt strip that changes nothing adds no second attempt.
     assert [v for _k, v, _r in substance_variants("Baicalin")] == ["Baicalin"]
@@ -349,8 +379,10 @@ def test_a_disease_label_is_normalised_only_by_stripping_its_abbreviation():
     `Rheumatoid arthrits` keeps its typo and reaches no term, which is the
     honest outcome rather than a spelling rule standing in for a curated
     equivalence."""
-    assert normalise_disease_name("Inflammatory bowel disease (IBD)") == \
-        "inflammatory bowel disease"
+    assert (
+        normalise_disease_name("Inflammatory bowel disease (IBD)")
+        == "inflammatory bowel disease"
+    )
     assert normalise_disease_name("Crohn's disease(CD)") == "crohn's disease"
     assert normalise_disease_name("Colorectal cancer") == "colorectal cancer"
     assert normalise_disease_name("Rheumatoid arthrits") == "rheumatoid arthrits"
@@ -363,8 +395,7 @@ def test_only_an_exact_mondo_synonym_is_an_identity():
     animal* and must miss; a string two live terms both claim is not an
     identifier either and is dropped rather than resolved."""
     index = MondoIndex.from_obo(MONDO_MINI)
-    assert index.mondo_by_name("colorectal cancer") == \
-        ("MONDO:0005575", "mondo-name")
+    assert index.mondo_by_name("colorectal cancer") == ("MONDO:0005575", "mondo-name")
     assert index.mondo_by_name("obesity") == ("MONDO:0011122", "mondo-exact-synonym")
     assert index.mondo_by_name("animal helminthiasis") == (None, "unmatched")
     assert index.mondo_by_name("rheumatoid arthrits") == (None, "unmatched")
@@ -394,7 +425,7 @@ def test_no_masi_edge_lands_on_a_relationship_a_published_screen_owns(graph):
         assert not rows(
             graph,
             f"MATCH ()-[r:{relationship}]->() "
-            f"WHERE r.primary_source = '{SOURCE}' RETURN r LIMIT 1"
+            f"WHERE r.primary_source = '{SOURCE}' RETURN r LIMIT 1",
         ), f"{relationship} carries a MASI edge; it must carry only measurements"
 
 
@@ -408,9 +439,12 @@ def test_masi_mints_no_drug_node_and_reaches_the_existing_ones_by_one_edge(graph
         graph, f"MATCH (d:Drug) WHERE d.source = '{SOURCE}' RETURN d LIMIT 1"
     )
     assert one(graph, "MATCH (s:Substance) RETURN count(*) AS n")["n"] == SUBSTANCES
-    assert one(
-        graph, f"MATCH ()-[r:{RELATION_SAME_COMPOUND}]->() RETURN count(*) AS n"
-    )["n"] == SAME_COMPOUND
+    assert (
+        one(graph, f"MATCH ()-[r:{RELATION_SAME_COMPOUND}]->() RETURN count(*) AS n")[
+            "n"
+        ]
+        == SAME_COMPOUND
+    )
     reached = one(
         graph,
         f"MATCH (s:Substance {{id: 'MASI:PMDBD1'}})"
@@ -419,11 +453,14 @@ def test_masi_mints_no_drug_node_and_reaches_the_existing_ones_by_one_edge(graph
     )
     assert reached == {"drug": METFORMIN, "route": "substance-name"}
     # The salt route, which is what `Drug`'s parent keying exists for.
-    assert one(
-        graph,
-        f"MATCH (s:Substance {{id: 'MASI:PMDBD2'}})"
-        f"-[:{RELATION_SAME_COMPOUND}]->(d:Drug) RETURN d.id AS drug",
-    )["drug"] == AMPICILLIN
+    assert (
+        one(
+            graph,
+            f"MATCH (s:Substance {{id: 'MASI:PMDBD2'}})"
+            f"-[:{RELATION_SAME_COMPOUND}]->(d:Drug) RETURN d.id AS drug",
+        )["drug"]
+        == AMPICILLIN
+    )
 
 
 def test_a_class_of_compounds_never_reaches_a_molecule(graph, csv_dir):
@@ -444,7 +481,8 @@ def test_a_class_of_compounds_never_reaches_a_molecule(graph, csv_dir):
         f"RETURN r LIMIT 1",
     )
     assert [r["record_id"] for r in ledger(csv_dir, "substance")] == [
-        "PMDBD3", "PMDBD5"
+        "PMDBD3",
+        "PMDBD5",
     ]
 
 
@@ -454,14 +492,20 @@ def test_a_non_therapeutic_category_reaching_a_drug_is_countable(graph, csv_dir)
     molecule ChEMBL holds — *Nicotine*, *Permethrin*, *Berberine*. The join is
     allowed and **ledgered**, so a false merge would show up in a count rather
     than in nobody's notes."""
-    mismatch = [r for r in ledger(csv_dir, "substance")
-                if "no therapeutic category" in r["reason"]]
+    mismatch = [
+        r
+        for r in ledger(csv_dir, "substance")
+        if "no therapeutic category" in r["reason"]
+    ]
     assert [r["subject"] for r in mismatch] == ["Aspirin"]
-    assert one(
-        graph,
-        f"MATCH (s:Substance {{id: 'MASI:PMDBD5'}})"
-        f"-[:{RELATION_SAME_COMPOUND}]->(d:Drug) RETURN d.id AS drug",
-    )["drug"] == ASPIRIN
+    assert (
+        one(
+            graph,
+            f"MATCH (s:Substance {{id: 'MASI:PMDBD5'}})"
+            f"-[:{RELATION_SAME_COMPOUND}]->(d:Drug) RETURN d.id AS drug",
+        )["drug"]
+        == ASPIRIN
+    )
 
 
 def test_every_restated_pair_names_the_source_that_measured_it(graph):
@@ -473,21 +517,27 @@ def test_every_restated_pair_names_the_source_that_measured_it(graph):
     The property is a **list**, so the grouping key is its JSON text rather than
     the value; `'maier2018' IN r.duplicates_primary_source` is the query form."""
     counted = {
-        (tuple(r["dup"]) if r["dup"] is not None else None): r["n"] for r in rows(
+        (tuple(r["dup"]) if r["dup"] is not None else None): r["n"]
+        for r in rows(
             graph,
             "MATCH ()-[r]->(:Substance) "
             "RETURN r.duplicates_primary_source AS dup, count(*) AS n",
         )
     }
     assert counted == {
-        ("maier2018", "zimmermann2019"): 2, ("maier2018",): 3, ("zimmermann2019",): 2,
+        ("maier2018", "zimmermann2019"): 2,
+        ("maier2018",): 3,
+        ("zimmermann2019",): 2,
         None: EDGES - DUPLICATED_EDGES,
     }
-    assert one(
-        graph,
-        "MATCH ()-[r]->(:Substance) WHERE 'maier2018' IN r.duplicates_primary_source "
-        "RETURN count(r) AS n",
-    )["n"] == 5
+    assert (
+        one(
+            graph,
+            "MATCH ()-[r]->(:Substance) WHERE 'maier2018' IN r.duplicates_primary_source "
+            "RETURN count(r) AS n",
+        )["n"]
+        == 5
+    )
     # The pair both screens measured: MASI curates it a third time, and says so.
     assert one(
         graph,
@@ -496,11 +546,14 @@ def test_every_restated_pair_names_the_source_that_measured_it(graph):
         f"RETURN r.duplicates_primary_source AS dup",
     )["dup"] == ["maier2018", "zimmermann2019"]
     # And a compound no screen carries: null, not an empty string.
-    assert one(
-        graph,
-        f"MATCH (t:Taxon {{id: {BLAUTIA}}})-[r:{RELATION_ABUNDANCE_CHANGED}]->() "
-        f"RETURN r.duplicates_primary_source AS dup",
-    )["dup"] is None
+    assert (
+        one(
+            graph,
+            f"MATCH (t:Taxon {{id: {BLAUTIA}}})-[r:{RELATION_ABUNDANCE_CHANGED}]->() "
+            f"RETURN r.duplicates_primary_source AS dup",
+        )["dup"]
+        is None
+    )
 
 
 def test_the_prep_reports_the_overlap_rather_than_leaving_it_to_a_doc(prep_output):
@@ -517,7 +570,8 @@ def test_the_prep_reports_the_overlap_rather_than_leaving_it_to_a_doc(prep_outpu
 
 def test_the_four_relationships_split_the_two_categories_by_effect(graph):
     counts = {
-        r["t"]: r["n"] for r in rows(
+        r["t"]: r["n"]
+        for r in rows(
             graph,
             "MATCH ()-[r]->(:Substance) RETURN type(r) AS t, count(*) AS n",
         )
@@ -530,7 +584,8 @@ def test_the_four_relationships_split_the_two_categories_by_effect(graph):
     }
     assert sum(counts.values()) == EDGES
     categories = {
-        r["t"]: r["c"] for r in rows(
+        r["t"]: r["c"]
+        for r in rows(
             graph,
             "MATCH ()-[r]->(:Substance) "
             "RETURN type(r) AS t, collect(DISTINCT r.interaction_category) AS c",
@@ -558,28 +613,36 @@ def test_a_curated_refutation_is_its_own_relationship_not_a_flag(graph):
     )
     # And `effect` still groups the whole measured population in one property.
     effects = {
-        r["e"]: r["n"] for r in rows(
+        r["e"]: r["n"]
+        for r in rows(
             graph,
             "MATCH ()-[r]->(:Substance) RETURN r.effect AS e, count(*) AS n",
         )
     }
     assert effects == {
-        "metabolised": METABOLISES, "not-metabolised": NO_METABOLISM,
-        "increased": 3, "decreased": 3, "unchanged": ABUNDANCE_UNCHANGED,
+        "metabolised": METABOLISES,
+        "not-metabolised": NO_METABOLISM,
+        "increased": 3,
+        "decreased": 3,
+        "unchanged": ABUNDANCE_UNCHANGED,
     }
 
 
 def test_direction_rides_on_the_changed_edge_and_nowhere_else(graph):
     assert {
-        r["d"] for r in rows(
+        r["d"]
+        for r in rows(
             graph,
             f"MATCH ()-[r:{RELATION_ABUNDANCE_CHANGED}]->() RETURN r.direction AS d",
         )
     } == {"increased", "decreased"}
-    assert one(
-        graph,
-        f"MATCH ()-[r:{RELATION_ABUNDANCE_UNCHANGED}]->() RETURN r.direction AS d",
-    )["d"] is None
+    assert (
+        one(
+            graph,
+            f"MATCH ()-[r:{RELATION_ABUNDANCE_UNCHANGED}]->() RETURN r.direction AS d",
+        )["d"]
+        is None
+    )
 
 
 def test_an_untypable_change_and_an_unread_category_are_ledger_rows(graph, csv_dir):
@@ -628,7 +691,9 @@ def test_the_microbe_dictionary_supplies_the_id_the_record_leaves_out(graph):
         f"r.original_rank AS original, r.reported_name AS name",
     )
     assert genus == {
-        "route": "genus", "reported": "genus", "original": "genus",
+        "route": "genus",
+        "reported": "genus",
+        "original": "genus",
         "name": "Blautia spp.",
     }
 
@@ -645,8 +710,7 @@ def test_the_record_wins_a_taxid_disagreement_and_the_ledger_says_so(graph, csv_
         f"WHERE r.masi_microbe_id = 'PMDBM5' "
         f"RETURN t.id AS tax_id, t.rank AS rank, r.reported_rank AS reported",
     ) == {"tax_id": BACTEROIDIA, "rank": "class", "reported": "phylum"}
-    disagreement = [r for r in ledger(csv_dir, "microbe")
-                    if r["record_id"] == "PMDBM5"]
+    disagreement = [r for r in ledger(csv_dir, "microbe") if r["record_id"] == "PMDBM5"]
     assert len(disagreement) == 1
     assert "976" in disagreement[0]["reason"] and "200643" in disagreement[0]["reason"]
 
@@ -658,7 +722,8 @@ def test_this_source_declares_no_broadest_accepted_rank(graph):
     and *Bacteroidetes*. A rank ceiling here would drop real curation, and
     `reported_rank` beside `original_rank` is what a query filters on instead."""
     ranks = {
-        r["rank"] for r in rows(
+        r["rank"]
+        for r in rows(
             graph,
             "MATCH (t:Taxon)-[r]->(:Substance) RETURN DISTINCT t.rank AS rank",
         )
@@ -666,22 +731,19 @@ def test_this_source_declares_no_broadest_accepted_rank(graph):
     assert {"species", "genus", "class"} <= ranks
 
 
-def test_an_organism_that_is_not_one_becomes_a_tombstone_and_no_edges(
-    graph, csv_dir
-):
+def test_an_organism_that_is_not_one_becomes_a_tombstone_and_no_edges(graph, csv_dir):
     """`Unclassified gut microbiota` is the single most-cited "microbe" in the
     real file — 474 records — and it is not an organism. It has no taxid and no
     genus id, so it is an `UnresolvedTaxon` and costs its records, which on the
     real file is 388 of the 404 curated *non*-metabolism statements. The
     tombstone is keyed on MASI's accession rather than the name, because 24
     microbe ids are written under more than one spelling."""
-    tombstones = [r for r in table(csv_dir, "unresolved_taxa.csv")
-                  if r["source"] == SOURCE]
+    tombstones = [
+        r for r in table(csv_dir, "unresolved_taxa.csv") if r["source"] == SOURCE
+    ]
     assert len(tombstones) == UNRESOLVED_TAXA
     by_id = {r["unresolved_id"]: r for r in tombstones}
-    assert set(by_id) == {
-        f"unresolved:{SOURCE}:pmdbm6", f"unresolved:{SOURCE}:pmdbm99"
-    }
+    assert set(by_id) == {f"unresolved:{SOURCE}:pmdbm6", f"unresolved:{SOURCE}:pmdbm99"}
     # The unclassified microbiota is cited by one interaction record and one
     # disease association, and both hits are counted.
     assert by_id[f"unresolved:{SOURCE}:pmdbm6"]["n_signatures"] == "2"
@@ -715,7 +777,9 @@ def test_a_probiotic_claim_survives_two_microbes_collapsing_onto_one_taxon(graph
         f"t.probiotic_reported_name AS reported",
     )
     assert coli == {
-        "probiotic": True, "used_in": ["Human"], "stage": ["Clinical trial"],
+        "probiotic": True,
+        "used_in": ["Human"],
+        "stage": ["Clinical trial"],
         "reported": ["Escherichia coli O157:H7"],
     }
 
@@ -726,16 +790,16 @@ def test_probiotic_is_three_state_and_null_is_not_false(graph):
     "MASI does not cover this organism" into a claim about 862,000 taxa MASI
     never mentioned."""
     counts = {
-        r["p"]: r["n"] for r in rows(
-            graph, "MATCH (t:Taxon) RETURN t.probiotic AS p, count(*) AS n"
-        )
+        r["p"]: r["n"]
+        for r in rows(graph, "MATCH (t:Taxon) RETURN t.probiotic AS p, count(*) AS n")
     }
     assert counts[True] == PROBIOTIC_TAXA
     assert counts[False] == ANNOTATED_TAXA - PROBIOTIC_TAXA
     assert counts[None] > 0, "taxa MASI says nothing about must stay null"
-    assert one(
-        graph, f"MATCH (t:Taxon {{id: {B_THETA}}}) RETURN t.probiotic AS p"
-    )["p"] is False
+    assert (
+        one(graph, f"MATCH (t:Taxon {{id: {B_THETA}}}) RETURN t.probiotic AS p")["p"]
+        is False
+    )
 
 
 def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
@@ -749,10 +813,21 @@ def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
         "tax_id,source,n_signatures\n818,test,1\n", encoding="utf-8"
     )
     proc = subprocess.run(
-        [sys.executable, str(SCRIPTS / "prep_taxonomy.py"),
-         "--taxdump", str(TAXDUMP_MINI), "--out", str(out),
-         "--scope", "cited", "--cited-from", str(out / "cited_taxa.csv")],
-        capture_output=True, text=True, cwd=ROOT,
+        [
+            sys.executable,
+            str(SCRIPTS / "prep_taxonomy.py"),
+            "--taxdump",
+            str(TAXDUMP_MINI),
+            "--out",
+            str(out),
+            "--scope",
+            "cited",
+            "--cited-from",
+            str(out / "cited_taxa.csv"),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stderr
     written = table(out, "taxon.csv")
@@ -771,11 +846,14 @@ def test_the_disease_records_are_rows_in_the_shared_association_table(graph):
     """MASI is the fourth source of `ASSOCIATED_WITH` and writes into the same
     `taxon_condition.csv` BugSigDB, gutMDisorder and CARD do — a row, never a
     second relationship, so D2/D3/D17 span it without knowing it arrived."""
-    assert one(
-        graph,
-        f"MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.primary_source = '{SOURCE}' "
-        f"RETURN count(*) AS n",
-    )["n"] == ASSOCIATIONS
+    assert (
+        one(
+            graph,
+            f"MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.primary_source = '{SOURCE}' "
+            f"RETURN count(*) AS n",
+        )["n"]
+        == ASSOCIATIONS
+    )
     assert one(graph, "MATCH (d:Disease) RETURN count(*) AS n")["n"] == DISEASE_NODES
 
 
@@ -874,7 +952,8 @@ def test_every_interaction_edge_carries_the_nine_property_contract(graph):
 
 def test_the_audit_reports_zero_for_every_rule_this_source_writes(graph):
     audited = {
-        r["rule"]: r for r in rows(
+        r["rule"]: r
+        for r in rows(
             graph,
             "CALL ontology_audit() YIELD rule, severity, violations, total "
             "RETURN rule, severity, violations, total",
@@ -899,15 +978,19 @@ def test_the_licence_token_says_unstated_rather_than_guessing(graph):
     a *different* token from the two screens', because three permissions are
     three permissions."""
     assert {
-        r["l"] for r in rows(
+        r["l"]
+        for r in rows(
             graph,
             "MATCH ()-[r]->(:Substance) RETURN DISTINCT r.source_licence AS l",
         )
     } == {"MASI-unstated"}
-    assert one(
-        graph,
-        "MATCH ()-[r]->(:Substance) RETURN count(DISTINCT r.knowledge_level) AS k",
-    )["k"] == 1
+    assert (
+        one(
+            graph,
+            "MATCH ()-[r]->(:Substance) RETURN count(DISTINCT r.knowledge_level) AS k",
+        )["k"]
+        == 1
+    )
 
 
 def test_the_aggregator_publication_is_not_the_edge_s_own_citation(graph):
@@ -938,9 +1021,9 @@ def test_every_input_record_is_accounted_for(graph, csv_dir, prep_output):
     edges = one(graph, "MATCH ()-[r]->(:Substance) RETURN count(*) AS n")["n"]
     assert edges == EDGES
     refusals = {
-        "unresolved microbe": 2,     # PMDBI3 and PMDBI8
-        "untypable change": 1,       # PMDBI7
-        "unread category": 1,        # PMDBI13
+        "unresolved microbe": 2,  # PMDBI3 and PMDBI8
+        "untypable change": 1,  # PMDBI7
+        "unread category": 1,  # PMDBI13
     }
     assert edges + sum(refusals.values()) == RECORDS
     assert len(table(csv_dir, f"unresolved_{SOURCE}.csv")) == LEDGER_ROWS

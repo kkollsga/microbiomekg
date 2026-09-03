@@ -94,37 +94,78 @@ SHEET = "Online-only Table 5"
 #: is the only place the source defines `(G)` and `(-)`, and the loader's header
 #: search exists because this block is here.
 LEGEND: list[tuple] = [
-    ("Online-only Table 5. Metabolic associations between organisms and chemical "
-     "compounds in NJC19, with relevant literature sources.", None, None, None, None),
+    (
+        "Online-only Table 5. Metabolic associations between organisms and chemical "
+        "compounds in NJC19, with relevant literature sources.",
+        None,
+        None,
+        None,
+        None,
+    ),
     (" Ref. #s denote references in Online-only Table 2.", None, None, None, None),
-    (" (G) genus level information; (-) in metabolic activity denotes 'negative' "
-     "information from the literature, i.e., the corresponding activity does not "
-     "occur, according to the literature.", None, None, None, None),
+    (
+        " (G) genus level information; (-) in metabolic activity denotes 'negative' "
+        "information from the literature, i.e., the corresponding activity does not "
+        "occur, according to the literature.",
+        None,
+        None,
+        None,
+        None,
+    ),
     (None, None, None, None, None),
-    (None, "Species", "Small-molecule metabolite or macromolecule",
-     "Metabolic activity", "Ref. #"),
+    (
+        None,
+        "Species",
+        "Small-molecule metabolite or macromolecule",
+        "Metabolic activity",
+        "Ref. #",
+    ),
 ]
 
 ROWS: list[tuple] = [
     (None, "Faecalibacterium prausnitzii", "Butyrate", "Production (export)", "424"),
     (None, "Faecalibacterium prausnitzii", "Acetate", "Consumption (import)", "424"),
     (None, "Bacteroides thetaiotaomicron", "Acetate", "Production (export)", "12, 197"),
-    (None, "Bacteroides thetaiotaomicron", "Pectin", "Macromolecule degradation",
-     "217(G)"),
+    (
+        None,
+        "Bacteroides thetaiotaomicron",
+        "Pectin",
+        "Macromolecule degradation",
+        "217(G)",
+    ),
     (None, "Escherichia coli", "Deoxycholic acid", "Consumption (import)", "11, 13"),
-    (None, "Escherichia coli",
-     "L-Lactate ([S]-Lactate, Lactate, D-Lactate, [R]-Lactate)",
-     "Consumption (import), Production (export)", "import:415, 418;export:417"),
-    (None, "Bacteroides thetaiotaomicron", "Succinate", "Production (export) (-)",
-     "242"),
-    (None, "Akkermansia muciniphila", "Mucin (Mucus Glycoprotein)",
-     "Macromolecule degradation", "100"),
+    (
+        None,
+        "Escherichia coli",
+        "L-Lactate ([S]-Lactate, Lactate, D-Lactate, [R]-Lactate)",
+        "Consumption (import), Production (export)",
+        "import:415, 418;export:417",
+    ),
+    (
+        None,
+        "Bacteroides thetaiotaomicron",
+        "Succinate",
+        "Production (export) (-)",
+        "242",
+    ),
+    (
+        None,
+        "Akkermansia muciniphila",
+        "Mucin (Mucus Glycoprotein)",
+        "Macromolecule degradation",
+        "100",
+    ),
     (None, "human colonocyte", "Butyrate", "Consumption (import)", "500"),
     (None, "Bacillus", "Formate", "Production (export)", "31"),
     (None, "Mycoplasma pneumoniae", "Acetate", "Production (export)", "77"),
     (None, "Lachnospiraceae", "Acetate", "Production (export)", "88(G)"),
-    (None, "Bifidobacterium longum subsp. infantis", "Acetate", "Production (export)",
-     "99"),
+    (
+        None,
+        "Bifidobacterium longum subsp. infantis",
+        "Acetate",
+        "Production (export)",
+        "99",
+    ),
     (None, "Escherichia coli", "Formate", "Cross-feeding (unspecified)", "404"),
     (None, "Escherichia coli", None, "Consumption (import)", "405"),
     (None, "Faecalibacterium prausnitzii", "Butyrate", "Production (export)", "424"),

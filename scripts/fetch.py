@@ -148,8 +148,15 @@ def record_file(source: str, path: Path, url: str, status: str, **extra) -> None
 
 
 def record_problem(source: str, name: str, url: str, status: str, error: str) -> None:
-    record(f"{source}/{name}", url=url, path=None, bytes=None, sha256=None,
-           status=status, error=error)
+    record(
+        f"{source}/{name}",
+        url=url,
+        path=None,
+        bytes=None,
+        sha256=None,
+        status=status,
+        error=error,
+    )
 
 
 def save_manifest() -> None:
@@ -180,8 +187,9 @@ IDENTITY = {"Accept-Encoding": "identity"}
 def remote_size(url: str, timeout: float = 60) -> tuple[int | None, bool]:
     """Return (content_length, supports_ranges). Both best-effort."""
     try:
-        r = request("HEAD", url, timeout=timeout, allow_redirects=True,
-                    headers=IDENTITY)
+        r = request(
+            "HEAD", url, timeout=timeout, allow_redirects=True, headers=IDENTITY
+        )
         if r.status_code >= 400:
             return None, False
         size = r.headers.get("Content-Length")
@@ -196,8 +204,15 @@ def remote_size(url: str, timeout: float = 60) -> tuple[int | None, bool]:
         return None, False
 
 
-def download(source: str, url: str, filename: str, *, timeout: float = 120,
-             force: bool = False, expect_prefix: bytes | None = None) -> Path | None:
+def download(
+    source: str,
+    url: str,
+    filename: str,
+    *,
+    timeout: float = 120,
+    force: bool = False,
+    expect_prefix: bytes | None = None,
+) -> Path | None:
     """Download url into data/raw/<source>/<filename>, resuming where possible."""
     dest_dir = RAW / source
     dest = dest_dir / filename
@@ -214,7 +229,9 @@ def download(source: str, url: str, filename: str, *, timeout: float = 120,
             log(f"  cached {source}/{filename} ({local:,} B)")
             record_file(source, dest, url, "cached", expected_bytes=size)
             return dest
-        log(f"  {source}/{filename} is {local:,} B but server says {size:,} B; refetching")
+        log(
+            f"  {source}/{filename} is {local:,} B but server says {size:,} B; refetching"
+        )
         dest.rename(part)
 
     start = part.stat().st_size if part.exists() else 0
@@ -228,8 +245,14 @@ def download(source: str, url: str, filename: str, *, timeout: float = 120,
         start = 0  # server can't resume; restart cleanly
 
     try:
-        with request("GET", url, timeout=timeout, headers=headers, stream=True,
-                     allow_redirects=True) as r:
+        with request(
+            "GET",
+            url,
+            timeout=timeout,
+            headers=headers,
+            stream=True,
+            allow_redirects=True,
+        ) as r:
             if r.status_code == 416 and size and start == size:
                 pass  # already complete
             elif r.status_code not in (200, 206):
@@ -275,8 +298,9 @@ def write_text_file(source: str, filename: str, url: str, text: str) -> Path:
     return dest
 
 
-def stale_members(source: str, out: Path, names: list[str], archive_key: str,
-                  force: bool) -> list[str]:
+def stale_members(
+    source: str, out: Path, names: list[str], archive_key: str, force: bool
+) -> list[str]:
     """Which of `names` must be (re-)extracted from the archive at archive_key.
 
     Presence alone is not freshness. NCBI rebuilds its taxdump daily and CARD
@@ -289,8 +313,14 @@ def stale_members(source: str, out: Path, names: list[str], archive_key: str,
     todo = []
     for name in names:
         target = out / name
-        entry = MANIFEST_DATA.get(f"{source}/{target.relative_to(RAW / source).as_posix()}", {})
-        if force or not target.exists() or entry.get("from_archive_sha256") != archive_sha:
+        entry = MANIFEST_DATA.get(
+            f"{source}/{target.relative_to(RAW / source).as_posix()}", {}
+        )
+        if (
+            force
+            or not target.exists()
+            or entry.get("from_archive_sha256") != archive_sha
+        ):
             todo.append(name)
     return todo
 
@@ -304,8 +334,9 @@ def wayback_url(timestamp: str, original: str) -> str:
     return f"http://web.archive.org/web/{timestamp}if_/{original}"
 
 
-def extract_zip_members(source: str, archive: Path, out: Path, url: str,
-                        wanted: callable, force: bool) -> list[Path]:
+def extract_zip_members(
+    source: str, archive: Path, out: Path, url: str, wanted: callable, force: bool
+) -> list[Path]:
     """Extract the members of `archive` for which wanted(name) is true.
 
     Same freshness rule as stale_members(): extracted files are tied to the
@@ -327,13 +358,16 @@ def extract_zip_members(source: str, archive: Path, out: Path, url: str,
                     while chunk := src.read(1 << 20):
                         dst.write(chunk)
             record_file(source, target, url, "extracted", from_archive_sha256=arc_sha)
-            log(f"  {'extracted' if target.name in todo else 'verified'} "
-                f"{target.relative_to(RAW / source)} ({target.stat().st_size:,} B)")
+            log(
+                f"  {'extracted' if target.name in todo else 'verified'} "
+                f"{target.relative_to(RAW / source)} ({target.stat().st_size:,} B)"
+            )
             written.append(target)
     return written
 
 
 # ------------------------------------------------------------------- sources
+
 
 def fetch_ncbi(args) -> None:
     log("NCBI Taxonomy")
@@ -342,13 +376,21 @@ def fetch_ncbi(args) -> None:
     # it contains, so "present at its full size" cannot detect that NCBI has
     # regenerated the dump — and a stale sidecar checked against a fresh tarball
     # reports a digest mismatch that looks like corruption but is just staleness.
-    md5 = download("ncbi_taxonomy", base + "new_taxdump.tar.gz.md5",
-                   "new_taxdump.tar.gz.md5", force=True)
-    tar = download("ncbi_taxonomy", base + "new_taxdump.tar.gz",
-                   "new_taxdump.tar.gz", timeout=600, force=args.force)
+    md5 = download(
+        "ncbi_taxonomy",
+        base + "new_taxdump.tar.gz.md5",
+        "new_taxdump.tar.gz.md5",
+        force=True,
+    )
+    tar = download(
+        "ncbi_taxonomy",
+        base + "new_taxdump.tar.gz",
+        "new_taxdump.tar.gz",
+        timeout=600,
+        force=args.force,
+    )
     if not tar:
         return
-
 
     if md5:
         want = md5.read_text().split()[0]
@@ -366,7 +408,13 @@ def fetch_ncbi(args) -> None:
             return
 
     # Only the five members we need; the tarball holds a lot more.
-    wanted = ["names.dmp", "nodes.dmp", "rankedlineage.dmp", "merged.dmp", "delnodes.dmp"]
+    wanted = [
+        "names.dmp",
+        "nodes.dmp",
+        "rankedlineage.dmp",
+        "merged.dmp",
+        "delnodes.dmp",
+    ]
     out = RAW / "ncbi_taxonomy"
     tar_key = "ncbi_taxonomy/new_taxdump.tar.gz"
     tar_sha = MANIFEST_DATA[tar_key]["sha256"]
@@ -382,8 +430,13 @@ def fetch_ncbi(args) -> None:
     for name in wanted:
         p = out / name
         if p.exists():
-            record_file("ncbi_taxonomy", p, base + "new_taxdump.tar.gz", "extracted",
-                        from_archive_sha256=tar_sha)
+            record_file(
+                "ncbi_taxonomy",
+                p,
+                base + "new_taxdump.tar.gz",
+                "extracted",
+                from_archive_sha256=tar_sha,
+            )
             verb = "extracted" if name in missing else "verified"
             log(f"  {verb} {name} ({p.stat().st_size:,} B)")
 
@@ -391,15 +444,26 @@ def fetch_ncbi(args) -> None:
 def fetch_bugsigdb(args) -> None:
     log("BugSigDB")
     # v1.3.1 has no release assets; the versioned export is the file at the tag.
-    tagged = ("https://raw.githubusercontent.com/waldronlab/BugSigDBExports/"
-              "v1.3.1/full_dump.csv")
-    main = ("https://raw.githubusercontent.com/waldronlab/BugSigDBExports/"
-            "main/full_dump.csv")
+    tagged = (
+        "https://raw.githubusercontent.com/waldronlab/BugSigDBExports/"
+        "v1.3.1/full_dump.csv"
+    )
+    main = (
+        "https://raw.githubusercontent.com/waldronlab/BugSigDBExports/"
+        "main/full_dump.csv"
+    )
     download("bugsigdb", tagged, "full_dump_v1.3.1.csv", force=args.force)
     download("bugsigdb", main, "full_dump_main.csv", force=args.force)
 
 
-DISBIOME_ENDPOINTS = ["experiment", "organism", "disease", "method", "sample", "publication"]
+DISBIOME_ENDPOINTS = [
+    "experiment",
+    "organism",
+    "disease",
+    "method",
+    "sample",
+    "publication",
+]
 
 
 def fetch_disbiome(args) -> None:
@@ -416,8 +480,10 @@ def fetch_disbiome(args) -> None:
 
     if not reachable:
         # Confirm with one export endpoint and one bundle fetch, then stop.
-        for url, name, tmo in ((f"{base}/export/experiment", "export_experiment.json", 60),
-                               (f"{base}/main.bundle.js", "main.bundle.js", 120)):
+        for url, name, tmo in (
+            (f"{base}/export/experiment", "export_experiment.json", 60),
+            (f"{base}/main.bundle.js", "main.bundle.js", 120),
+        ):
             try:
                 r = request("GET", url, timeout=tmo)
                 log(f"  {url} -> HTTP {r.status_code}, {len(r.content):,} B")
@@ -425,27 +491,44 @@ def fetch_disbiome(args) -> None:
                 why2 = f"{type(exc).__name__}: {exc}"
                 log(f"  {url} -> {why2}")
                 record_problem("disbiome", name, url, "unreachable", why2)
-        record_problem("disbiome", "_host", base + "/", "unreachable",
-                       f"front page unreachable with full browser headers: {why}")
+        record_problem(
+            "disbiome",
+            "_host",
+            base + "/",
+            "unreachable",
+            f"front page unreachable with full browser headers: {why}",
+        )
         return
 
     got_json = False
     for ep in DISBIOME_ENDPOINTS:
         for url in (f"{base}/export/{ep}", f"{base}/export/{ep}/"):
             try:
-                r = request("GET", url, timeout=90, headers={"Accept": "application/json"})
+                r = request(
+                    "GET", url, timeout=90, headers={"Accept": "application/json"}
+                )
             except requests.RequestException as exc:
-                record_problem("disbiome", f"{ep}.json", url, "unreachable",
-                               f"{type(exc).__name__}: {exc}")
+                record_problem(
+                    "disbiome",
+                    f"{ep}.json",
+                    url,
+                    "unreachable",
+                    f"{type(exc).__name__}: {exc}",
+                )
                 continue
             body = r.text.lstrip()
             if r.status_code == 200 and body[:1] in "[{":
                 write_text_file("disbiome", f"{ep}.json", url, r.text)
                 got_json = True
                 break
-            record_problem("disbiome", f"{ep}.json", url, "manual",
-                           f"HTTP {r.status_code}, content-type "
-                           f"{r.headers.get('Content-Type')}, body starts {body[:60]!r}")
+            record_problem(
+                "disbiome",
+                f"{ep}.json",
+                url,
+                "manual",
+                f"HTTP {r.status_code}, content-type "
+                f"{r.headers.get('Content-Type')}, body starts {body[:60]!r}",
+            )
     if not got_json:
         # SPA HTML instead of JSON: grab the bundle so the real endpoint can be grepped.
         url = f"{base}/main.bundle.js"
@@ -454,8 +537,13 @@ def fetch_disbiome(args) -> None:
             if r.status_code == 200:
                 write_text_file("disbiome", "main.bundle.js", url, r.text)
         except requests.RequestException as exc:
-            record_problem("disbiome", "main.bundle.js", url, "unreachable",
-                           f"{type(exc).__name__}: {exc}")
+            record_problem(
+                "disbiome",
+                "main.bundle.js",
+                url,
+                "unreachable",
+                f"{type(exc).__name__}: {exc}",
+            )
 
 
 def fetch_hmdb(args) -> None:
@@ -469,28 +557,42 @@ def fetch_hmdb(args) -> None:
         placed = RAW / "hmdb" / name
         if placed.exists() and placed.stat().st_size:
             log(f"  operator-supplied hmdb/{name} ({placed.stat().st_size:,} B)")
-            record_file("hmdb", placed, url, "manual-present",
-                        note="placed by hand; hmdb.ca blocks automated download")
+            record_file(
+                "hmdb",
+                placed,
+                url,
+                "manual-present",
+                note="placed by hand; hmdb.ca blocks automated download",
+            )
             return
 
     try:
         r = request("GET", url, timeout=120, stream=True, allow_redirects=True)
     except requests.RequestException as exc:
-        record_problem("hmdb", "hmdb_metabolites.zip", url, "unreachable",
-                       f"{type(exc).__name__}: {exc}")
+        record_problem(
+            "hmdb",
+            "hmdb_metabolites.zip",
+            url,
+            "unreachable",
+            f"{type(exc).__name__}: {exc}",
+        )
         log(f"  FAILED: {exc}")
         return
-    if r.status_code == 200 and r.headers.get("Content-Type", "").startswith("application/zip"):
+    if r.status_code == 200 and r.headers.get("Content-Type", "").startswith(
+        "application/zip"
+    ):
         r.close()
         download("hmdb", url, "hmdb_metabolites.zip", timeout=1200, force=args.force)
         return
     mitigation = r.headers.get("cf-mitigated")
-    detail = (f"HTTP {r.status_code} from {r.headers.get('server')}"
-              + (f", cf-mitigated: {mitigation}" if mitigation else "")
-              + " — sent with the full browser header set; this is an interactive "
-                "Cloudflare challenge, which no header set can satisfy. Download "
-                "hmdb_metabolites.zip by hand from https://hmdb.ca/downloads into "
-                "data/raw/hmdb/.")
+    detail = (
+        f"HTTP {r.status_code} from {r.headers.get('server')}"
+        + (f", cf-mitigated: {mitigation}" if mitigation else "")
+        + " — sent with the full browser header set; this is an interactive "
+        "Cloudflare challenge, which no header set can satisfy. Download "
+        "hmdb_metabolites.zip by hand from https://hmdb.ca/downloads into "
+        "data/raw/hmdb/."
+    )
     r.close()
     log(f"  MANUAL: {detail}")
     record_problem("hmdb", "hmdb_metabolites.zip", url, "manual", detail)
@@ -498,8 +600,10 @@ def fetch_hmdb(args) -> None:
 
 def fetch_card(args) -> None:
     log("CARD")
-    for url, name in (("https://card.mcmaster.ca/latest/data", "card-data.tar.bz2"),
-                      ("https://card.mcmaster.ca/latest/ontology", "card-ontology.tar.bz2")):
+    for url, name in (
+        ("https://card.mcmaster.ca/latest/data", "card-data.tar.bz2"),
+        ("https://card.mcmaster.ca/latest/ontology", "card-ontology.tar.bz2"),
+    ):
         arc = download("card", url, name, timeout=300, force=args.force)
         if not arc:
             continue
@@ -509,8 +613,9 @@ def fetch_card(args) -> None:
         arc_sha = MANIFEST_DATA[arc_key]["sha256"]
         with tarfile.open(arc, "r:bz2") as tf:
             members = [m for m in tf.getmembers() if m.isfile()]
-            want = stale_members("card", out, [Path(m.name).name for m in members],
-                                 arc_key, args.force)
+            want = stale_members(
+                "card", out, [Path(m.name).name for m in members], arc_key, args.force
+            )
             for member in members:
                 target = out / Path(member.name).name
                 if target.name not in want:
@@ -528,9 +633,13 @@ def fetch_card(args) -> None:
 def fetch_reactome(args) -> None:
     log("Reactome")
     base = "https://reactome.org/download/current/"
-    for name in ("ReactomePathways.txt", "ReactomePathwaysRelation.txt",
-                 "ChEBI2Reactome.txt", "ChEBI2Reactome_All_Levels.txt",
-                 "NCBI2Reactome.txt"):
+    for name in (
+        "ReactomePathways.txt",
+        "ReactomePathwaysRelation.txt",
+        "ChEBI2Reactome.txt",
+        "ChEBI2Reactome_All_Levels.txt",
+        "NCBI2Reactome.txt",
+    ):
         download("reactome", base + name, name, timeout=300, force=args.force)
 
 
@@ -564,7 +673,9 @@ def fetch_kegg(args) -> None:
             r = request("GET", url, timeout=180)
             r.raise_for_status()
         except requests.RequestException as exc:
-            record_problem("kegg", name, url, "unreachable", f"{type(exc).__name__}: {exc}")
+            record_problem(
+                "kegg", name, url, "unreachable", f"{type(exc).__name__}: {exc}"
+            )
             log(f"  FAILED kegg/{name}: {exc}")
             continue
         write_text_file("kegg", name, url, r.text)
@@ -577,8 +688,13 @@ CHEMBL_DELAY = 0.25  # <= 5 req/s, well under it
 def chembl_get(path: str, params: dict) -> dict:
     for attempt in range(4):
         try:
-            r = request("GET", f"{CHEMBL_API}/{path}", timeout=180, params=params,
-                        headers={"Accept": "application/json"})
+            r = request(
+                "GET",
+                f"{CHEMBL_API}/{path}",
+                timeout=180,
+                params=params,
+                headers={"Accept": "application/json"},
+            )
             if r.status_code == 429:
                 time.sleep(5 * (attempt + 1))
                 continue
@@ -627,16 +743,22 @@ def fetch_chembl(args) -> None:
         record_file("chembl", mech, f"{CHEMBL_API}/mechanism.json", "fetched", rows=n)
 
     mol = out / "molecule_max_phase4.jsonl"
-    mol_only = ("molecule_chembl_id,pref_name,max_phase,first_approval,molecule_type,"
-                "withdrawn_flag,therapeutic_flag,oral,parenteral,topical,"
-                "atc_classifications,molecule_properties,molecule_structures")
+    mol_only = (
+        "molecule_chembl_id,pref_name,max_phase,first_approval,molecule_type,"
+        "withdrawn_flag,therapeutic_flag,oral,parenteral,topical,"
+        "atc_classifications,molecule_properties,molecule_structures"
+    )
     mol_url = f"{CHEMBL_API}/molecule.json?max_phase=4&only={mol_only}"
     if mol.exists() and not args.force:
         log(f"  cached chembl/molecule_max_phase4.jsonl ({mol.stat().st_size:,} B)")
         record_file("chembl", mol, mol_url, "cached")
     else:
-        n = chembl_page_all("molecule.json", "molecules",
-                            {"limit": 1000, "max_phase": 4, "only": mol_only}, mol)
+        n = chembl_page_all(
+            "molecule.json",
+            "molecules",
+            {"limit": 1000, "max_phase": 4, "only": mol_only},
+            mol,
+        )
         log(f"  fetched chembl/molecule_max_phase4.jsonl ({n:,} rows)")
         record_file("chembl", mol, mol_url, "fetched", rows=n)
 
@@ -647,16 +769,19 @@ def fetch_chembl(args) -> None:
         log(f"  cached chembl/target.jsonl ({tgt.stat().st_size:,} B)")
         record_file("chembl", tgt, tgt_url, "cached")
     else:
-        ids = sorted({json.loads(line).get("target_chembl_id")
-                      for line in mech.open()} - {None})
+        ids = sorted(
+            {json.loads(line).get("target_chembl_id") for line in mech.open()} - {None}
+        )
         log(f"  {len(ids):,} distinct target ids referenced by mechanisms")
         tmp = tgt.with_suffix(".jsonl.part")
         seen = 0
         with tmp.open("w") as fh:
             for i in range(0, len(ids), 50):
-                batch = ids[i:i + 50]
-                page = chembl_get("target.json",
-                                  {"target_chembl_id__in": ",".join(batch), "limit": 1000})
+                batch = ids[i : i + 50]
+                page = chembl_get(
+                    "target.json",
+                    {"target_chembl_id__in": ",".join(batch), "limit": 1000},
+                )
                 for row in page["targets"]:
                     fh.write(json.dumps(row, separators=(",", ":")) + "\n")
                     seen += 1
@@ -666,17 +791,32 @@ def fetch_chembl(args) -> None:
         record_file("chembl", tgt, tgt_url, "fetched", rows=seen)
 
     ftp = "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/"
-    download("chembl", ftp + "chembl_uniprot_mapping.txt",
-             "chembl_uniprot_mapping.txt", timeout=300, force=args.force)
+    download(
+        "chembl",
+        ftp + "chembl_uniprot_mapping.txt",
+        "chembl_uniprot_mapping.txt",
+        timeout=300,
+        force=args.force,
+    )
     download("chembl", ftp + "LICENSE", "LICENSE", timeout=120, force=args.force)
 
     if args.chembl_sqlite:
         log("  --chembl-sqlite given: pulling the 5.76 GB SQLite dump")
-        download("chembl", ftp + "chembl_37_sqlite.tar.gz", "chembl_37_sqlite.tar.gz",
-                 timeout=7200, force=args.force)
+        download(
+            "chembl",
+            ftp + "chembl_37_sqlite.tar.gz",
+            "chembl_37_sqlite.tar.gz",
+            timeout=7200,
+            force=args.force,
+        )
     else:
-        record_problem("chembl", "chembl_37_sqlite.tar.gz", ftp + "chembl_37_sqlite.tar.gz",
-                       "skipped", "5.76 GB; not fetched by default — pass --chembl-sqlite")
+        record_problem(
+            "chembl",
+            "chembl_37_sqlite.tar.gz",
+            ftp + "chembl_37_sqlite.tar.gz",
+            "skipped",
+            "5.76 GB; not fetched by default — pass --chembl-sqlite",
+        )
 
 
 # bio-annotation.cn refuses connections, but the site's own bulk-export files
@@ -684,10 +824,16 @@ def fetch_chembl(args) -> None:
 # two files the Resource page offered; the "if_" infix asks for the original
 # bytes rather than archive.org's rewritten wrapper.
 GUTMDISORDER_WAYBACK = [
-    ("human.xlsx", "http://web.archive.org/web/20200812224039if_/"
-                   "http://bio-annotation.cn:80/gutMDisorder/public/res/human.xlsx"),
-    ("mouse.xlsx", "http://web.archive.org/web/20200812224042if_/"
-                   "http://bio-annotation.cn:80/gutMDisorder/public/res/mouse.xlsx"),
+    (
+        "human.xlsx",
+        "http://web.archive.org/web/20200812224039if_/"
+        "http://bio-annotation.cn:80/gutMDisorder/public/res/human.xlsx",
+    ),
+    (
+        "mouse.xlsx",
+        "http://web.archive.org/web/20200812224042if_/"
+        "http://bio-annotation.cn:80/gutMDisorder/public/res/mouse.xlsx",
+    ),
 ]
 
 
@@ -695,15 +841,23 @@ def fetch_gutmdisorder(args) -> None:
     log("gutMDisorder")
 
     # Origin first only if something is missing; otherwise record and move on.
-    have = [n for n, _ in GUTMDISORDER_WAYBACK
-            if (RAW / "gutmdisorder" / n).exists()
-            and (RAW / "gutmdisorder" / n).stat().st_size]
+    have = [
+        n
+        for n, _ in GUTMDISORDER_WAYBACK
+        if (RAW / "gutmdisorder" / n).exists()
+        and (RAW / "gutmdisorder" / n).stat().st_size
+    ]
     if len(have) == len(GUTMDISORDER_WAYBACK) and not args.force:
         for name, wb in GUTMDISORDER_WAYBACK:
             path = RAW / "gutmdisorder" / name
             log(f"  cached gutmdisorder/{name} ({path.stat().st_size:,} B)")
-            record_file("gutmdisorder", path, wb, "cached",
-                        note="origin host is down; bytes come from a Wayback snapshot")
+            record_file(
+                "gutmdisorder",
+                path,
+                wb,
+                "cached",
+                note="origin host is down; bytes come from a Wayback snapshot",
+            )
         return
 
     ok = True
@@ -715,16 +869,23 @@ def fetch_gutmdisorder(args) -> None:
     if ok:
         return
 
-    for url in ("http://bio-annotation.cn/gutMDisorder/",
-                "https://bio-annotation.cn/gutMDisorder/"):
+    for url in (
+        "http://bio-annotation.cn/gutMDisorder/",
+        "https://bio-annotation.cn/gutMDisorder/",
+    ):
         try:
             r = request("GET", url, timeout=60)
             log(f"  {url} -> HTTP {r.status_code}, {len(r.content):,} B")
             if r.status_code == 200:
                 write_text_file("gutmdisorder", "index.html", url, r.text)
-                record_problem("gutmdisorder", "_downloads", url, "manual",
-                               "front page reachable; pick the bulk file off the "
-                               "download page by hand into data/raw/gutmdisorder/")
+                record_problem(
+                    "gutmdisorder",
+                    "_downloads",
+                    url,
+                    "manual",
+                    "front page reachable; pick the bulk file off the "
+                    "download page by hand into data/raw/gutmdisorder/",
+                )
                 return
         except requests.RequestException as exc:
             detail = f"{type(exc).__name__}: {exc}"
@@ -788,15 +949,25 @@ def fetch_mimedb_v2(args) -> bool:
         (here if path.exists() and path.stat().st_size else absent).append((name, path))
 
     for name, path in here:
-        log(f"  operator-supplied mimedb/{MIMEDB_V2_DIR}/{name} "
-            f"({path.stat().st_size:,} B)")
-        record_file("mimedb", path, MIMEDB_V2_PAGE, "manual-present",
-                    note="placed by hand; mimedb.org is behind an interactive "
-                         "Cloudflare challenge and v2.0 was never archived by the "
-                         "Wayback Machine, so no client can fetch this")
+        log(
+            f"  operator-supplied mimedb/{MIMEDB_V2_DIR}/{name} "
+            f"({path.stat().st_size:,} B)"
+        )
+        record_file(
+            "mimedb",
+            path,
+            MIMEDB_V2_PAGE,
+            "manual-present",
+            note="placed by hand; mimedb.org is behind an interactive "
+            "Cloudflare challenge and v2.0 was never archived by the "
+            "Wayback Machine, so no client can fetch this",
+        )
     for name, path in absent:
         record_problem(
-            "mimedb", f"{MIMEDB_V2_DIR}/{name}", MIMEDB_V2_PAGE, "manual",
+            "mimedb",
+            f"{MIMEDB_V2_DIR}/{name}",
+            MIMEDB_V2_PAGE,
+            "manual",
             f"MiMeDB v2.0 has no automated route: mimedb.org serves an interactive "
             f"Cloudflare challenge, and unlike v1.0 these files were never captured "
             f"by the Wayback Machine. Download all four of "
@@ -804,10 +975,13 @@ def fetch_mimedb_v2(args) -> bool:
             f"put them in data/raw/mimedb/{MIMEDB_V2_DIR}/. "
             f"Until then the loader falls back to the v1.0 files beside that "
             f"directory. Provenance and checksums: "
-            f"data/raw/mimedb/{MIMEDB_V2_DIR}/PROVENANCE.md")
+            f"data/raw/mimedb/{MIMEDB_V2_DIR}/PROVENANCE.md",
+        )
     if absent:
-        log(f"  MANUAL: {len(absent)} of {len(MIMEDB_V2_FILES)} v2.0 files absent — "
-            f"place them in data/raw/mimedb/{MIMEDB_V2_DIR}/ from {MIMEDB_V2_PAGE}")
+        log(
+            f"  MANUAL: {len(absent)} of {len(MIMEDB_V2_FILES)} v2.0 files absent — "
+            f"place them in data/raw/mimedb/{MIMEDB_V2_DIR}/ from {MIMEDB_V2_PAGE}"
+        )
     return not absent
 
 
@@ -820,26 +994,37 @@ def fetch_mimedb(args) -> None:
     if fetch_mimedb_v2(args):
         log("  v2.0 complete; v1.0 below is the loader's fallback")
 
-    missing = [n for n, _ in MIMEDB_FILES
-               if not (RAW / "mimedb" / n).exists()
-               or not (RAW / "mimedb" / n).stat().st_size]
+    missing = [
+        n
+        for n, _ in MIMEDB_FILES
+        if not (RAW / "mimedb" / n).exists() or not (RAW / "mimedb" / n).stat().st_size
+    ]
     if not missing and not args.force:
         for name, ts in MIMEDB_FILES:
             path = RAW / "mimedb" / name
             log(f"  cached mimedb/{name} (v1.0 fallback, {path.stat().st_size:,} B)")
-            record_file("mimedb", path, wayback_url(ts, MIMEDB_ORIGIN + name), "cached",
-                        note="v1.0 fallback; origin is Cloudflare-challenged, so the "
-                             "bytes come from a Wayback snapshot")
+            record_file(
+                "mimedb",
+                path,
+                wayback_url(ts, MIMEDB_ORIGIN + name),
+                "cached",
+                note="v1.0 fallback; origin is Cloudflare-challenged, so the "
+                "bytes come from a Wayback snapshot",
+            )
         return
 
     # One origin probe, to record the exact blocker rather than assume it.
     probe = MIMEDB_ORIGIN + MIMEDB_FILES[0][0]
     try:
         r = request("GET", probe, timeout=60, stream=True, allow_redirects=True)
-        blocker = (f"HTTP {r.status_code} from {r.headers.get('server')}"
-                   + (f", cf-mitigated: {r.headers.get('cf-mitigated')}"
-                      if r.headers.get("cf-mitigated") else ""))
-        direct_ok = r.status_code == 200 and "text/html" not in r.headers.get("Content-Type", "")
+        blocker = f"HTTP {r.status_code} from {r.headers.get('server')}" + (
+            f", cf-mitigated: {r.headers.get('cf-mitigated')}"
+            if r.headers.get("cf-mitigated")
+            else ""
+        )
+        direct_ok = r.status_code == 200 and "text/html" not in r.headers.get(
+            "Content-Type", ""
+        )
         r.close()
     except requests.RequestException as exc:
         blocker, direct_ok = f"{type(exc).__name__}: {exc}", False
@@ -847,19 +1032,25 @@ def fetch_mimedb(args) -> None:
 
     for name, ts in MIMEDB_FILES:
         if direct_ok:
-            got = download("mimedb", MIMEDB_ORIGIN + name, name, timeout=600,
-                           force=args.force)
+            got = download(
+                "mimedb", MIMEDB_ORIGIN + name, name, timeout=600, force=args.force
+            )
             if got:
                 continue
         # archive.org rate-limits snapshot playback (HTTP 429); space these out.
         wb = wayback_url(ts, MIMEDB_ORIGIN + name)
         if download("mimedb", wb, name, timeout=600, force=args.force) is None:
-            record_problem("mimedb", name, MIMEDB_ORIGIN + name, "manual",
-                           f"origin blocked ({blocker}) and the Wayback snapshot "
-                           f"{wb} did not deliver. Download {name} by hand from "
-                           f"{MIMEDB_V2_PAGE} into data/raw/mimedb/. This is the "
-                           f"v1.0 fallback; prefer placing the v2.0 files in "
-                           f"data/raw/mimedb/{MIMEDB_V2_DIR}/ instead.")
+            record_problem(
+                "mimedb",
+                name,
+                MIMEDB_ORIGIN + name,
+                "manual",
+                f"origin blocked ({blocker}) and the Wayback snapshot "
+                f"{wb} did not deliver. Download {name} by hand from "
+                f"{MIMEDB_V2_PAGE} into data/raw/mimedb/. This is the "
+                f"v1.0 fallback; prefer placing the v2.0 files in "
+                f"data/raw/mimedb/{MIMEDB_V2_DIR}/ instead.",
+            )
         time.sleep(8)
 
     for name, why in MIMEDB_SKIPPED.items():
@@ -872,7 +1063,9 @@ def fetch_mimedb(args) -> None:
 # network, in tabular form, is Supplementary Table 1 of the Scientific Data
 # paper, which Europe PMC serves without a challenge; that is the primary file.
 NJC19_PMCID = "PMC7320173"
-NJC19_SUPP_ZIP = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{NJC19_PMCID}/supplementaryFiles"
+NJC19_SUPP_ZIP = (
+    f"https://www.ebi.ac.uk/europepmc/webservices/rest/{NJC19_PMCID}/supplementaryFiles"
+)
 NJC19_DRYAD_DOI = "10.5061/dryad.dr7sqv9v8"
 NJC19_DRYAD_FILES = [
     ("NJC19_network_data_and_code.zip", 342682),
@@ -885,11 +1078,22 @@ NJC19_DRYAD_FILES = [
 
 def fetch_njc19(args) -> None:
     log("NJC19")
-    arc = download("njc19", NJC19_SUPP_ZIP, f"{NJC19_PMCID}_supplementaryFiles.zip",
-                   timeout=300, force=args.force)
+    arc = download(
+        "njc19",
+        NJC19_SUPP_ZIP,
+        f"{NJC19_PMCID}_supplementaryFiles.zip",
+        timeout=300,
+        force=args.force,
+    )
     if arc:
-        extract_zip_members("njc19", arc, RAW / "njc19", NJC19_SUPP_ZIP,
-                            lambda n: n.lower().endswith(".xlsx"), args.force)
+        extract_zip_members(
+            "njc19",
+            arc,
+            RAW / "njc19",
+            NJC19_SUPP_ZIP,
+            lambda n: n.lower().endswith(".xlsx"),
+            args.force,
+        )
 
     # One attempt at the Dryad deposit; it is the richer artefact (JSON network
     # plus the conversion code) but is not machine-fetchable.
@@ -898,17 +1102,26 @@ def fetch_njc19(args) -> None:
         dest = RAW / "njc19" / name
         if dest.exists() and dest.stat().st_size and not args.force:
             log(f"  operator-supplied njc19/{name} ({dest.stat().st_size:,} B)")
-            record_file("njc19", dest, url, "manual-present",
-                        note="placed by hand; datadryad.org gates downloads")
+            record_file(
+                "njc19",
+                dest,
+                url,
+                "manual-present",
+                note="placed by hand; datadryad.org gates downloads",
+            )
             continue
         record_problem(
-            "njc19", name, url, "manual",
+            "njc19",
+            name,
+            url,
+            "manual",
             "datadryad.org serves a JavaScript 'Validating...' interstitial on "
             "/downloads/file_stream and its v2 API answers 401 'Unauthorized, "
             "must have current bearer token'. Download by hand from "
             f"https://datadryad.org/dataset/doi:{NJC19_DRYAD_DOI} into "
             "data/raw/njc19/ if the JSON network is wanted; Supplementary Table 1 "
-            "above carries the same 8,224 events in tabular form.")
+            "above carries the same 8,224 events in tabular form.",
+        )
     log(f"  Dryad deposit doi:{NJC19_DRYAD_DOI} recorded as manual (JS interstitial)")
 
 
@@ -939,14 +1152,22 @@ MASI_UNARCHIVED = [
 def fetch_masi(args) -> None:
     log("MASI")
 
-    have = [n for n, _ in MASI_WAYBACK
-            if (RAW / "masi" / n).exists() and (RAW / "masi" / n).stat().st_size]
+    have = [
+        n
+        for n, _ in MASI_WAYBACK
+        if (RAW / "masi" / n).exists() and (RAW / "masi" / n).stat().st_size
+    ]
     if len(have) == len(MASI_WAYBACK) and not args.force:
         for name, ts in MASI_WAYBACK:
             path = RAW / "masi" / name
             log(f"  cached masi/{name} ({path.stat().st_size:,} B)")
-            record_file("masi", path, wayback_url(ts, MASI_ORIGIN + name), "cached",
-                        note="origin host is gone; bytes come from a Wayback snapshot")
+            record_file(
+                "masi",
+                path,
+                wayback_url(ts, MASI_ORIGIN + name),
+                "cached",
+                note="origin host is gone; bytes come from a Wayback snapshot",
+            )
     else:
         # One origin probe, then the archive; the host has not completed a TLS
         # handshake since at least 2024, so there is nothing to retry against.
@@ -960,8 +1181,13 @@ def fetch_masi(args) -> None:
             # Wayback captured the pre-redirect http:// URLs; playback keys on those.
             wb = wayback_url(ts, MASI_ORIGIN.replace("https://", "http://") + name)
             if download("masi", wb, name, timeout=180, force=args.force) is None:
-                record_problem("masi", name, MASI_ORIGIN + name, "manual",
-                               f"origin gone and Wayback playback {wb} failed")
+                record_problem(
+                    "masi",
+                    name,
+                    MASI_ORIGIN + name,
+                    "manual",
+                    f"origin gone and Wayback playback {wb} failed",
+                )
             time.sleep(8)
 
     # The interaction tables are the reason to want MASI at all, and they are
@@ -969,7 +1195,10 @@ def fetch_masi(args) -> None:
     # rather than looking like an oversight.
     for name in MASI_UNARCHIVED:
         record_problem(
-            "masi", name, MASI_ORIGIN + name, "manual",
+            "masi",
+            name,
+            MASI_ORIGIN + name,
+            "manual",
             "the origin serves this file but its TLS certificate has expired, and "
             "the Wayback Machine never captured it (a domain-wide CDX query over "
             "aiddlab.com/MASI* returns only substanceInfo). Fetch it deliberately, "
@@ -977,7 +1206,8 @@ def fetch_masi(args) -> None:
             f"data/raw/masi/{name} '{MASI_ORIGIN + name}'  — or download it in a "
             "browser from https://www.aiddlab.com/MASI/download.html after "
             "accepting the certificate warning. Until then the measured "
-            "drug-microbe evidence in data/raw/drug_screens/ is the substitute.")
+            "drug-microbe evidence in data/raw/drug_screens/ is the substitute.",
+        )
 
 
 # The measured drug x taxon evidence behind MASI's curated edges. Maier's
@@ -986,38 +1216,60 @@ def fetch_masi(args) -> None:
 # because Europe PMC has no supplementary package for PMC6597290 and the PMC
 # article's own /bin/ path is behind a reCAPTCHA interstitial.
 MAIER_PMCID = "PMC6108420"
-MAIER_SUPP_ZIP = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{MAIER_PMCID}/supplementaryFiles"
-ZIMMERMANN_SUPP = ("https://static-content.springer.com/esm/"
-                   "art%3A10.1038%2Fs41586-019-1291-3/MediaObjects/"
-                   "41586_2019_1291_MOESM1_ESM.xlsx")
+MAIER_SUPP_ZIP = (
+    f"https://www.ebi.ac.uk/europepmc/webservices/rest/{MAIER_PMCID}/supplementaryFiles"
+)
+ZIMMERMANN_SUPP = (
+    "https://static-content.springer.com/esm/"
+    "art%3A10.1038%2Fs41586-019-1291-3/MediaObjects/"
+    "41586_2019_1291_MOESM1_ESM.xlsx"
+)
 
 
 def fetch_drug_screens(args) -> None:
     log("Drug x taxon screens (Maier 2018, Zimmermann 2019)")
 
-    arc = download("drug_screens", MAIER_SUPP_ZIP,
-                   f"maier2018/{MAIER_PMCID}_supplementaryFiles.zip",
-                   timeout=300, force=args.force)
+    arc = download(
+        "drug_screens",
+        MAIER_SUPP_ZIP,
+        f"maier2018/{MAIER_PMCID}_supplementaryFiles.zip",
+        timeout=300,
+        force=args.force,
+    )
     if arc:
         # Only the tables and the guide that names them; the zip also holds the
         # article's figure renderings, which are not data.
         extract_zip_members(
-            "drug_screens", arc, RAW / "drug_screens" / "maier2018", MAIER_SUPP_ZIP,
+            "drug_screens",
+            arc,
+            RAW / "drug_screens" / "maier2018",
+            MAIER_SUPP_ZIP,
             lambda n: n.lower().endswith(".xlsx") or "TABLE_INFORMATION_GUIDE" in n,
-            args.force)
+            args.force,
+        )
 
-    download("drug_screens", ZIMMERMANN_SUPP,
-             "zimmermann2019/41586_2019_1291_MOESM1_ESM.xlsx",
-             timeout=600, force=args.force)
+    download(
+        "drug_screens",
+        ZIMMERMANN_SUPP,
+        "zimmermann2019/41586_2019_1291_MOESM1_ESM.xlsx",
+        timeout=600,
+        force=args.force,
+    )
 
 
 def note_pubmed(args) -> None:
     log("PubMed / PubChem: no bulk fetch by design (ids come from the other sources)")
-    record("pubmed_pubchem/_decision", url=None, path=None, bytes=None, sha256=None,
-           status="not-fetched",
-           error="By design: no bulk download. Paper ids (PMIDs) arrive with "
-                 "BugSigDB/Disbiome/CARD rows and compound ids via KEGG "
-                 "/conv/compound/pubchem; per-id lookups happen at build time if at all.")
+    record(
+        "pubmed_pubchem/_decision",
+        url=None,
+        path=None,
+        bytes=None,
+        sha256=None,
+        status="not-fetched",
+        error="By design: no bulk download. Paper ids (PMIDs) arrive with "
+        "BugSigDB/Disbiome/CARD rows and compound ids via KEGG "
+        "/conv/compound/pubchem; per-id lookups happen at build time if at all.",
+    )
 
 
 SOURCES = {
@@ -1039,21 +1291,32 @@ SOURCES = {
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--chembl-sqlite", action="store_true",
-                    help="also fetch the 5.76 GB chembl_37_sqlite.tar.gz")
-    ap.add_argument("--only", action="append", choices=sorted(SOURCES),
-                    help="run only this source (repeatable)")
-    ap.add_argument("--force", action="store_true",
-                    help="re-download even when a complete file is present")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--chembl-sqlite",
+        action="store_true",
+        help="also fetch the 5.76 GB chembl_37_sqlite.tar.gz",
+    )
+    ap.add_argument(
+        "--only",
+        action="append",
+        choices=sorted(SOURCES),
+        help="run only this source (repeatable)",
+    )
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="re-download even when a complete file is present",
+    )
     args = ap.parse_args()
 
     RAW.mkdir(parents=True, exist_ok=True)
     load_manifest()
 
     failures = []
-    for name in (args.only or list(SOURCES)):
+    for name in args.only or list(SOURCES):
         try:
             SOURCES[name](args)
         except Exception as exc:  # a dead source must not abort the rest
@@ -1062,8 +1325,10 @@ def main() -> int:
             failures.append(name)
 
     save_manifest()
-    log(f"manifest written to {MANIFEST.relative_to(ROOT)} "
-        f"({len(MANIFEST_DATA)} entries)")
+    log(
+        f"manifest written to {MANIFEST.relative_to(ROOT)} "
+        f"({len(MANIFEST_DATA)} entries)"
+    )
     if failures:
         log(f"sources that raised: {', '.join(failures)}")
     return 0

@@ -188,26 +188,62 @@ def regulatory_urls(mechanism: Mapping[str, Any]) -> list[str]:
 
 
 DRUG_FIELDS = [
-    "drug_id", "chembl_id", "pref_name", "molecule_type", "max_phase",
-    "first_approval", "atc_codes", "approved", "withdrawn", "therapeutic",
-    "oral", "parenteral", "topical", "smiles", "salt_form", "salt_ids",
-    "source", "source_licence", "chembl_release",
+    "drug_id",
+    "chembl_id",
+    "pref_name",
+    "molecule_type",
+    "max_phase",
+    "first_approval",
+    "atc_codes",
+    "approved",
+    "withdrawn",
+    "therapeutic",
+    "oral",
+    "parenteral",
+    "topical",
+    "smiles",
+    "salt_form",
+    "salt_ids",
+    "source",
+    "source_licence",
+    "chembl_release",
 ]
 
 TARGET_FIELDS = [
-    "target_id", "chembl_id", "pref_name", "target_type", "organism", "tax_id",
-    "uniprot", "n_components", "species_group", "source", "source_licence",
+    "target_id",
+    "chembl_id",
+    "pref_name",
+    "target_type",
+    "organism",
+    "tax_id",
+    "uniprot",
+    "n_components",
+    "species_group",
+    "source",
+    "source_licence",
     "chembl_release",
 ]
 
 MECHANISM_FIELDS = [
     # The seven the ontology requires, first and in declaration order.
-    "evidence_level", "knowledge_level", "agent_type", "primary_source",
-    "source_record_id", "source_licence", "source_relation",
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
     # What ChEMBL curated, deliberately outside the required set.
-    "action_type", "mechanism_of_action", "publications", "regulatory_refs",
-    "clinical_phase", "direct_interaction", "disease_efficacy",
-    "mechanism_comment", "selectivity_comment", "reported_molecule_chembl_id",
+    "action_type",
+    "mechanism_of_action",
+    "publications",
+    "regulatory_refs",
+    "clinical_phase",
+    "direct_interaction",
+    "disease_efficacy",
+    "mechanism_comment",
+    "selectivity_comment",
+    "reported_molecule_chembl_id",
     "chembl_release",
 ]
 
@@ -237,8 +273,11 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     raw = args.chembl or (args.raw / SOURCE)
-    missing = [n for n in (MECHANISM_FILE, MOLECULE_FILE, TARGET_FILE)
-               if not (raw / n).is_file()]
+    missing = [
+        n
+        for n in (MECHANISM_FILE, MOLECULE_FILE, TARGET_FILE)
+        if not (raw / n).is_file()
+    ]
     if missing:
         # Exit 3, not 2: "this source's raw files are not on this machine" is a
         # different fact from "this script was called wrong", and
@@ -253,10 +292,15 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"reading {raw}/{{mechanism,molecule_max_phase4,target}}.jsonl", flush=True)
     mechanisms = list(read_jsonl(raw / MECHANISM_FILE))
-    molecules = {text(m["molecule_chembl_id"]): m for m in read_jsonl(raw / MOLECULE_FILE)}
+    molecules = {
+        text(m["molecule_chembl_id"]): m for m in read_jsonl(raw / MOLECULE_FILE)
+    }
     targets = {text(t["target_chembl_id"]): t for t in read_jsonl(raw / TARGET_FILE)}
-    print(f"  {len(mechanisms):,} mechanism rows, {len(molecules):,} approved "
-          f"molecules, {len(targets):,} targets", flush=True)
+    print(
+        f"  {len(mechanisms):,} mechanism rows, {len(molecules):,} approved "
+        f"molecules, {len(targets):,} targets",
+        flush=True,
+    )
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
@@ -270,20 +314,37 @@ def main(argv: list[str] | None = None) -> int:
     )
     organism_edges = Writer(
         out / "protein_target_taxon.csv",
-        ["target_id", "tax_id", "reported_tax_id", "resolution_status", "organism",
-         "primary_source", "source_licence"],
+        [
+            "target_id",
+            "tax_id",
+            "reported_tax_id",
+            "resolution_status",
+            "organism",
+            "primary_source",
+            "source_licence",
+        ],
         dedupe_full=True,
     )
     drug_links = Writer(
         out / "intervention_drug.csv",
-        ["intervention_id", "drug_id", "match_method", "matched_name", "drugbank_id",
-         "primary_source", "source_licence"],
+        [
+            "intervention_id",
+            "drug_id",
+            "match_method",
+            "matched_name",
+            "drugbank_id",
+            "primary_source",
+            "source_licence",
+        ],
         key="intervention_id",
     )
     ledger = Writer(out / "unresolved_chembl.csv", LEDGER_FIELDS)
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -319,27 +380,31 @@ def main(argv: list[str] | None = None) -> int:
             counters["salt_form_properties"] += 1
         if not molecule:
             counters["unapproved_drugs"] += 1
-        drugs.add({
-            "drug_id": key,
-            "chembl_id": chembl_id,
-            "pref_name": text(molecule.get("pref_name")),
-            "molecule_type": text(molecule.get("molecule_type")),
-            "max_phase": text(chem.max_phase(molecule.get("max_phase"))),
-            "first_approval": text(molecule.get("first_approval")),
-            "atc_codes": atc_codes(molecule),
-            "approved": flag(bool(molecule)),
-            "withdrawn": flag(molecule.get("withdrawn_flag")) if molecule else "",
-            "therapeutic": flag(molecule.get("therapeutic_flag")) if molecule else "",
-            "oral": flag(molecule.get("oral")) if molecule else "",
-            "parenteral": flag(molecule.get("parenteral")) if molecule else "",
-            "topical": flag(molecule.get("topical")) if molecule else "",
-            "smiles": smiles(molecule) if molecule else "",
-            "salt_form": flag(bool(molecule_ids) and not own),
-            "salt_ids": as_list(salt_ids),
-            "source": SOURCE,
-            "source_licence": chem.LICENCE,
-            "chembl_release": chem.RELEASE,
-        })
+        drugs.add(
+            {
+                "drug_id": key,
+                "chembl_id": chembl_id,
+                "pref_name": text(molecule.get("pref_name")),
+                "molecule_type": text(molecule.get("molecule_type")),
+                "max_phase": text(chem.max_phase(molecule.get("max_phase"))),
+                "first_approval": text(molecule.get("first_approval")),
+                "atc_codes": atc_codes(molecule),
+                "approved": flag(bool(molecule)),
+                "withdrawn": flag(molecule.get("withdrawn_flag")) if molecule else "",
+                "therapeutic": flag(molecule.get("therapeutic_flag"))
+                if molecule
+                else "",
+                "oral": flag(molecule.get("oral")) if molecule else "",
+                "parenteral": flag(molecule.get("parenteral")) if molecule else "",
+                "topical": flag(molecule.get("topical")) if molecule else "",
+                "smiles": smiles(molecule) if molecule else "",
+                "salt_form": flag(bool(molecule_ids) and not own),
+                "salt_ids": as_list(salt_ids),
+                "source": SOURCE,
+                "source_licence": chem.LICENCE,
+                "chembl_release": chem.RELEASE,
+            }
+        )
 
     # -------------------------------------------------------------- targets
     #
@@ -348,34 +413,42 @@ def main(argv: list[str] | None = None) -> int:
     # So it is filled here, beside the edge it has to cover, rather than in the
     # mechanism loop where the two could drift apart.
     mechanisms_per_target: Counter[str] = Counter(
-        text(row.get("target_chembl_id")) for row in mechanisms
+        text(row.get("target_chembl_id"))
+        for row in mechanisms
         if text(row.get("target_chembl_id"))
     )
     for target_id, target in targets.items():
         uniprot = accessions(target)
         organism = text(target.get("organism"))
         raw_tax = target.get("tax_id")
-        protein_targets.add({
-            "target_id": f"CHEMBL:{target_id}",
-            "chembl_id": target_id,
-            "pref_name": text(target.get("pref_name")),
-            "target_type": text(target.get("target_type")),
-            "organism": organism,
-            "tax_id": text(raw_tax),
-            "uniprot": as_list(uniprot),
-            "n_components": str(len(target.get("target_components") or [])),
-            "species_group": flag(target.get("species_group_flag")),
-            "source": SOURCE,
-            "source_licence": chem.LICENCE,
-            "chembl_release": chem.RELEASE,
-        })
+        protein_targets.add(
+            {
+                "target_id": f"CHEMBL:{target_id}",
+                "chembl_id": target_id,
+                "pref_name": text(target.get("pref_name")),
+                "target_type": text(target.get("target_type")),
+                "organism": organism,
+                "tax_id": text(raw_tax),
+                "uniprot": as_list(uniprot),
+                "n_components": str(len(target.get("target_components") or [])),
+                "species_group": flag(target.get("species_group_flag")),
+                "source": SOURCE,
+                "source_licence": chem.LICENCE,
+                "chembl_release": chem.RELEASE,
+            }
+        )
         if raw_tax in (None, ""):
             counters["target_without_taxid"] += 1
-            ledger.add({
-                "kind": "target_without_taxon", "record_id": target_id,
-                "subject": organism, "detail": "",
-                "reason": "target carries no tax_id", "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "kind": "target_without_taxon",
+                    "record_id": target_id,
+                    "subject": organism,
+                    "detail": "",
+                    "reason": "target carries no tax_id",
+                    "source": SOURCE,
+                }
+            )
             continue
         resolution = idx.resolve(tax_id=int(raw_tax), rank_ceiling=args.rank_ceiling)
         if resolution.tax_id is None:
@@ -383,22 +456,28 @@ def main(argv: list[str] | None = None) -> int:
             # vivifies a stub Taxon whose only name is its own id, and every
             # taxon count in the graph is then wrong.
             counters["target_taxon_unresolved"] += 1
-            ledger.add({
-                "kind": "target_without_taxon", "record_id": target_id,
-                "subject": organism, "detail": text(raw_tax),
-                "reason": f"tax_id {raw_tax} {resolution.status}: {resolution.note}",
-                "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "kind": "target_without_taxon",
+                    "record_id": target_id,
+                    "subject": organism,
+                    "detail": text(raw_tax),
+                    "reason": f"tax_id {raw_tax} {resolution.status}: {resolution.note}",
+                    "source": SOURCE,
+                }
+            )
             continue
-        organism_edges.add({
-            "target_id": f"CHEMBL:{target_id}",
-            "tax_id": str(resolution.tax_id),
-            "reported_tax_id": text(raw_tax),
-            "resolution_status": resolution.status,
-            "organism": organism,
-            "primary_source": SOURCE,
-            "source_licence": chem.LICENCE,
-        })
+        organism_edges.add(
+            {
+                "target_id": f"CHEMBL:{target_id}",
+                "tax_id": str(resolution.tax_id),
+                "reported_tax_id": text(raw_tax),
+                "resolution_status": resolution.status,
+                "organism": organism,
+                "primary_source": SOURCE,
+                "source_licence": chem.LICENCE,
+            }
+        )
         counters["of_organism"] += 1
         taxa_seen[resolution.tax_id] += mechanisms_per_target.get(target_id, 0)
 
@@ -413,13 +492,17 @@ def main(argv: list[str] | None = None) -> int:
         level = chem.evidence_level(row.get("max_phase"), refs)
         if not target_id:
             counters["mechanism_without_target"] += 1
-            ledger.add({
-                "kind": "mechanism_without_target", "record_id": mec_id,
-                "subject": key, "detail": text(row.get("mechanism_of_action")),
-                "reason": "mechanism has no target_chembl_id — a curated mechanism "
-                          "with no protein endpoint, not a missing edge",
-                "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "kind": "mechanism_without_target",
+                    "record_id": mec_id,
+                    "subject": key,
+                    "detail": text(row.get("mechanism_of_action")),
+                    "reason": "mechanism has no target_chembl_id — a curated mechanism "
+                    "with no protein endpoint, not a missing edge",
+                    "source": SOURCE,
+                }
+            )
             continue
         publications: list[str] = []
         for ref in row.get("mechanism_refs") or []:
@@ -428,40 +511,45 @@ def main(argv: list[str] | None = None) -> int:
                 publications.append(curie)
             elif text(ref.get("ref_type")) in chem.PUBLICATION_PREFIXES:
                 counters["malformed_reference"] += 1
-                ledger.add({
-                    "kind": "malformed_reference", "record_id": mec_id,
-                    "subject": text(ref.get("ref_id")),
-                    "detail": f"ref_type {text(ref.get('ref_type'))}",
-                    "reason": "ref_id is not an identifier for its ref_type",
-                    "source": SOURCE,
-                })
+                ledger.add(
+                    {
+                        "kind": "malformed_reference",
+                        "record_id": mec_id,
+                        "subject": text(ref.get("ref_id")),
+                        "detail": f"ref_type {text(ref.get('ref_type'))}",
+                        "reason": "ref_id is not an identifier for its ref_type",
+                        "source": SOURCE,
+                    }
+                )
         levels[level] += 1
         counters["has_mechanism"] += 1
-        mechanism_edges.add({
-            "drug_id": key,
-            "target_id": f"CHEMBL:{target_id}",
-            "evidence_level": level,
-            "knowledge_level": ont.knowledge_level(SOURCE),
-            "agent_type": ont.agent_type(SOURCE),
-            "primary_source": SOURCE,
-            "source_record_id": mec_id,
-            "source_licence": chem.LICENCE,
-            # ChEMBL's own sentence about this mechanism, kept verbatim beside
-            # the normalised `action_type` so the normalisation is reversible.
-            "source_relation": text(row.get("mechanism_of_action")),
-            "action_type": text(row.get("action_type")),
-            "mechanism_of_action": text(row.get("mechanism_of_action")),
-            "publications": as_list(publications),
-            "regulatory_refs": as_list(regulatory_urls(row)),
-            "clinical_phase": text(chem.max_phase(row.get("max_phase"))),
-            "direct_interaction": flag(row.get("direct_interaction")),
-            "disease_efficacy": flag(row.get("disease_efficacy")),
-            "mechanism_comment": text(row.get("mechanism_comment")),
-            "selectivity_comment": text(row.get("selectivity_comment")),
-            # The id the source wrote, which is a salt on 1,626 real rows.
-            "reported_molecule_chembl_id": molecule_id,
-            "chembl_release": chem.RELEASE,
-        })
+        mechanism_edges.add(
+            {
+                "drug_id": key,
+                "target_id": f"CHEMBL:{target_id}",
+                "evidence_level": level,
+                "knowledge_level": ont.knowledge_level(SOURCE),
+                "agent_type": ont.agent_type(SOURCE),
+                "primary_source": SOURCE,
+                "source_record_id": mec_id,
+                "source_licence": chem.LICENCE,
+                # ChEMBL's own sentence about this mechanism, kept verbatim beside
+                # the normalised `action_type` so the normalisation is reversible.
+                "source_relation": text(row.get("mechanism_of_action")),
+                "action_type": text(row.get("action_type")),
+                "mechanism_of_action": text(row.get("mechanism_of_action")),
+                "publications": as_list(publications),
+                "regulatory_refs": as_list(regulatory_urls(row)),
+                "clinical_phase": text(chem.max_phase(row.get("max_phase"))),
+                "direct_interaction": flag(row.get("direct_interaction")),
+                "disease_efficacy": flag(row.get("disease_efficacy")),
+                "mechanism_comment": text(row.get("mechanism_comment")),
+                "selectivity_comment": text(row.get("selectivity_comment")),
+                # The id the source wrote, which is a salt on 1,626 real rows.
+                "reported_molecule_chembl_id": molecule_id,
+                "chembl_release": chem.RELEASE,
+            }
+        )
 
     # -------------------------------------------------- interventions -> drugs
     interventions_path = args.interventions or (out / "intervention.csv")
@@ -472,34 +560,55 @@ def main(argv: list[str] | None = None) -> int:
     for tax_id, n in sorted(taxa_seen.items()):
         cited.add({"tax_id": str(tax_id), "source": SOURCE, "n_signatures": str(n)})
 
-    tables = (drugs, protein_targets, mechanism_edges, organism_edges, drug_links,
-              ledger, cited)
+    tables = (
+        drugs,
+        protein_targets,
+        mechanism_edges,
+        organism_edges,
+        drug_links,
+        ledger,
+        cited,
+    )
     counts = {w.path.name: w.flush() for w in tables}
 
-    print(f"\nread {counters['mechanism_rows']:,} mechanism rows over "
-          f"{len(by_key):,} drugs and {len(targets):,} targets "
-          f"({counters['salts_folded']:,} salt form(s) folded onto a parent, "
-          f"{counters['salt_form_properties']:,} of them the only record of "
-          f"their parent)")
-    print(f"  edges: {counters['has_mechanism']:,} HAS_MECHANISM, "
-          f"{counters['of_organism']:,} OF_ORGANISM, {linked:,} IS_DRUG")
-    print(f"  not loaded: {counters['mechanism_without_target']:,} mechanisms with no "
-          f"target, {counters['target_without_taxid']:,} targets with no tax_id, "
-          f"{counters['target_taxon_unresolved']:,} target taxids the taxonomy does "
-          f"not carry, {counters['malformed_reference']:,} malformed references")
-    print(f"  drugs: {counters['unapproved_drugs']:,} named only by a mechanism "
-          f"(approved=false); the rest are max_phase 4")
-    print("  evidence levels: " + ", ".join(
-        f"{level} {n:,}" for level, n in sorted(levels.items())))
-    print(f"  interventions: linked {linked:,} of {considered:,} intervention(s) by "
-          f"exact ChEMBL pref_name — the molecule subset carries "
-          f"no DrugBank cross-reference, so the id route does not exist")
+    print(
+        f"\nread {counters['mechanism_rows']:,} mechanism rows over "
+        f"{len(by_key):,} drugs and {len(targets):,} targets "
+        f"({counters['salts_folded']:,} salt form(s) folded onto a parent, "
+        f"{counters['salt_form_properties']:,} of them the only record of "
+        f"their parent)"
+    )
+    print(
+        f"  edges: {counters['has_mechanism']:,} HAS_MECHANISM, "
+        f"{counters['of_organism']:,} OF_ORGANISM, {linked:,} IS_DRUG"
+    )
+    print(
+        f"  not loaded: {counters['mechanism_without_target']:,} mechanisms with no "
+        f"target, {counters['target_without_taxid']:,} targets with no tax_id, "
+        f"{counters['target_taxon_unresolved']:,} target taxids the taxonomy does "
+        f"not carry, {counters['malformed_reference']:,} malformed references"
+    )
+    print(
+        f"  drugs: {counters['unapproved_drugs']:,} named only by a mechanism "
+        f"(approved=false); the rest are max_phase 4"
+    )
+    print(
+        "  evidence levels: "
+        + ", ".join(f"{level} {n:,}" for level, n in sorted(levels.items()))
+    )
+    print(
+        f"  interventions: linked {linked:,} of {considered:,} intervention(s) by "
+        f"exact ChEMBL pref_name — the molecule subset carries "
+        f"no DrugBank cross-reference, so the id route does not exist"
+    )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     # Printed rather than assumed: CC BY-SA 3.0 asks for the citation and the
     # release number, and a build log is where an operator sees what the graph
     # they just made is bound by.
@@ -552,10 +661,13 @@ def link_interventions(
     an intervention gutMDisorder never curated.
     """
     if not path.is_file():
-        print(f"\nno intervention table at {path} — no Intervention nodes to link "
-              f"(gutMDisorder has not written it; scripts/build.py orders the "
-              f"preps so that it has, so this is a standalone run)",
-              file=sys.stderr, flush=True)
+        print(
+            f"\nno intervention table at {path} — no Intervention nodes to link "
+            f"(gutMDisorder has not written it; scripts/build.py orders the "
+            f"preps so that it has, so this is a standalone run)",
+            file=sys.stderr,
+            flush=True,
+        )
         return 0, 0
 
     index = name_index(molecules, parents)
@@ -570,32 +682,43 @@ def link_interventions(
         hit = index.get(label.casefold())
         if hit:
             drug_id, matched = hit
-            drug_links.add({
-                "intervention_id": intervention_id,
-                "drug_id": drug_id,
-                "match_method": "pref_name",
-                "matched_name": matched,
-                "drugbank_id": (row.get("drugbank_id") or "").strip(),
-                "primary_source": SOURCE,
-                "source_licence": chem.LICENCE,
-            })
+            drug_links.add(
+                {
+                    "intervention_id": intervention_id,
+                    "drug_id": drug_id,
+                    "match_method": "pref_name",
+                    "matched_name": matched,
+                    "drugbank_id": (row.get("drugbank_id") or "").strip(),
+                    "primary_source": SOURCE,
+                    "source_licence": chem.LICENCE,
+                }
+            )
             linked += 1
             continue
         counters["intervention_unlinked"] += 1
         parts = [p.strip() for p in label.split(",") if p.strip()]
         found = [index[p.casefold()][0] for p in parts if p.casefold() in index]
         if len(parts) > 1 and found:
-            reason = ("comma-multivalued label: the cell names several drugs and "
-                      "the intervention is the combination, which ChEMBL has no "
-                      "molecule for")
+            reason = (
+                "comma-multivalued label: the cell names several drugs and "
+                "the intervention is the combination, which ChEMBL has no "
+                "molecule for"
+            )
         else:
-            reason = ("no exact ChEMBL pref_name match — a synonym or a "
-                      "non-molecular intervention, never a fuzzy match")
-        ledger.add({
-            "kind": "intervention_unlinked", "record_id": intervention_id,
-            "subject": label, "detail": "|".join(found),
-            "reason": reason, "source": SOURCE,
-        })
+            reason = (
+                "no exact ChEMBL pref_name match — a synonym or a "
+                "non-molecular intervention, never a fuzzy match"
+            )
+        ledger.add(
+            {
+                "kind": "intervention_unlinked",
+                "record_id": intervention_id,
+                "subject": label,
+                "detail": "|".join(found),
+                "reason": reason,
+                "source": SOURCE,
+            }
+        )
     return linked, len(rows)
 
 

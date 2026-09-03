@@ -396,7 +396,9 @@ def pair_conditions(
     )
 
 
-def _find_run(labels: list[str], used: list[bool], target: str) -> tuple[int, int] | None:
+def _find_run(
+    labels: list[str], used: list[bool], target: str
+) -> tuple[int, int] | None:
     """Leftmost unconsumed run of fragments whose join equals ``target``."""
     want = _norm(target)
     for start in range(len(labels)):

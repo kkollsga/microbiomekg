@@ -45,19 +45,21 @@ PREP_TAXONOMY = ROOT / "scripts" / "prep_taxonomy.py"
 
 for _needed in (BLUEPRINT, PREP_BUGSIGDB, PREP_TAXONOMY):
     if not _needed.is_file():
-        pytest.skip(f"{_needed.relative_to(ROOT)} does not exist yet", allow_module_level=True)
+        pytest.skip(
+            f"{_needed.relative_to(ROOT)} does not exist yet", allow_module_level=True
+        )
 
 
 # --------------------------------------------------------------------------
 # Golden values. See the module docstring for how they were derived.
 # --------------------------------------------------------------------------
 
-INPUT_ROWS = 43                 # 34 real BugSigDB rows + 9 adversarial
+INPUT_ROWS = 43  # 34 real BugSigDB rows + 9 adversarial
 
 NODE_COUNTS = {
-    "Signature": 43,            # one per input row; BSDB IDs are unique
-    "Study": 39,                # distinct BugSigDB Study ids
-    "Paper": 33,                # distinct PMIDs; 5 rows have none
+    "Signature": 43,  # one per input row; BSDB IDs are unique
+    "Study": 39,  # distinct BugSigDB Study ids
+    "Paper": 33,  # distinct PMIDs; 5 rows have none
     # The 20 distinct terms of the `EFO ID` column, routed by vocabulary:
     # 6 MONDO + 9 EFO are diseases, HP:0002745 is a phenotype, 2 CHEBI + EXO +
     # GSSO are exposures, and NCBITAXON:568703 is an organism and gets no node
@@ -65,14 +67,14 @@ NODE_COUNTS = {
     "Disease": 15,
     "Phenotype": 1,
     "Exposure": 4,
-    "BodySite": 9,              # distinct UBERON ids
-    "Taxon": 143,               # 53 cited + their lineage closure to root
-    "UnresolvedTaxon": 3,       # 1009 deleted, 999999999 unknown, an ambiguous name
+    "BodySite": 9,  # distinct UBERON ids
+    "Taxon": 143,  # 53 cited + their lineage closure to root
+    "UnresolvedTaxon": 3,  # 1009 deleted, 999999999 unknown, an ambiguous name
 }
 
 EDGE_COUNTS = {
-    "HAS_PARENT": 142,          # every Taxon but root, which is its own parent
-    "REPORTED_BY": 74,          # every taxon mention, resolved or not
+    "HAS_PARENT": 142,  # every Taxon but root, which is its own parent
+    "REPORTED_BY": 74,  # every taxon mention, resolved or not
     # (resolved taxon x condition term) per signature, over the union of the
     # three condition types. 72, not 73: the one association to
     # NCBITAXON:568703 has no condition node to point at and is in the ledger.
@@ -88,8 +90,8 @@ EDGE_COUNTS = {
 ANY_ASSOCIATION = "ASSOCIATED_WITH"
 ASSOCIATION_EDGES = 72
 
-CITED_TAXA = 53                 # taxa some signature actually named
-TAXON_MENTIONS = 74             # 71 resolvable + 3 not
+CITED_TAXA = 53  # taxa some signature actually named
+TAXON_MENTIONS = 74  # 71 resolvable + 3 not
 UNRESOLVED_RECORDS = 3
 
 #: Condition terms with no node type of their own — NCBITAXON:568703.
@@ -121,22 +123,32 @@ def built(tmp_path_factory):
             text=True,
             cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     run(
         PREP_BUGSIGDB,
-        "--raw", str(BUGSIGDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--mondo", str(MONDO_MINI),
-        "--out", str(csv_dir),
+        "--raw",
+        str(BUGSIGDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--mondo",
+        str(MONDO_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         PREP_TAXONOMY,
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     # The BugSigDB slice of the blueprint, not the shipped whole: this fixture
@@ -251,11 +263,11 @@ def test_only_leaf_taxa_are_cited(graph):
 @pytest.mark.parametrize(
     "ancestor",
     [
-        2,        # Bacteria
-        131567,   # cellular organisms
+        2,  # Bacteria
+        131567,  # cellular organisms
         1783272,  # Bacillati
-        1224,     # Pseudomonadota
-        91347,    # Enterobacterales
+        1224,  # Pseudomonadota
+        91347,  # Enterobacterales
     ],
 )
 def test_ancestors_acquire_no_association_edges(graph, ancestor):
@@ -278,10 +290,12 @@ def test_ancestors_acquire_no_association_edges(graph, ancestor):
 @pytest.mark.parametrize("old, new", [(1440055, 1496), (105824, 853)])
 def test_merged_old_id_absent_new_id_present(graph, old, new):
     assert (
-        count(graph, f"MATCH (t:Taxon) WHERE t.tax_id = {old} RETURN count(t) AS n") == 0
+        count(graph, f"MATCH (t:Taxon) WHERE t.tax_id = {old} RETURN count(t) AS n")
+        == 0
     ), f"the retired id {old} became a node"
     assert (
-        count(graph, f"MATCH (t:Taxon) WHERE t.tax_id = {new} RETURN count(t) AS n") == 1
+        count(graph, f"MATCH (t:Taxon) WHERE t.tax_id = {new} RETURN count(t) AS n")
+        == 1
     ), f"the survivor {new} is missing"
 
 
@@ -311,7 +325,8 @@ def test_below_species_rows_land_on_the_species_node(
 ):
     """C7: promoted, with the original id and rank kept on the edge."""
     assert (
-        count(graph, f"MATCH (t:Taxon) WHERE t.tax_id = {cited} RETURN count(t) AS n") == 0
+        count(graph, f"MATCH (t:Taxon) WHERE t.tax_id = {cited} RETURN count(t) AS n")
+        == 0
     ), f"{cited} is below species and must not be a node of its own"
     hit = rows(
         graph,
@@ -386,8 +401,10 @@ def test_the_condition_union_is_matchable_as_one_label(graph):
         count(graph, f"MATCH (c:{kind}) RETURN count(c) AS n")
         for kind in ("Disease", "Phenotype", "Exposure")
     )
-    assert total == parts == (
-        NODE_COUNTS["Disease"] + NODE_COUNTS["Phenotype"] + NODE_COUNTS["Exposure"]
+    assert (
+        total
+        == parts
+        == (NODE_COUNTS["Disease"] + NODE_COUNTS["Phenotype"] + NODE_COUNTS["Exposure"])
     )
     primaries = {
         r["t"]
@@ -401,9 +418,13 @@ def test_the_condition_union_is_matchable_as_one_label(graph):
     )
     # And it reaches a node no CSV supplied — the blueprint owns every node of
     # the types it declares, including a stub some edge vivified.
-    assert count(
-        graph, "MATCH (:Taxon)-[:ASSOCIATED_WITH]->(c:Condition) RETURN count(c) AS n"
-    ) == ASSOCIATION_EDGES
+    assert (
+        count(
+            graph,
+            "MATCH (:Taxon)-[:ASSOCIATED_WITH]->(c:Condition) RETURN count(c) AS n",
+        )
+        == ASSOCIATION_EDGES
+    )
 
 
 def test_conflicting_directions_survive_as_separate_edges(graph):
@@ -479,16 +500,28 @@ def test_the_phenotype_and_exposure_terms_are_their_own_types(graph):
     """C14: `HP:0002745` (Oral leukoplakia) is a phenotype and `CHEBI:33281`
     (Antimicrobial agent) is a chemical exposure. Neither is a disease."""
     assert (
-        count(graph, "MATCH (d:Phenotype) WHERE d.condition_id = 'HP:0002745' "
-                     "RETURN count(d) AS n") == 1
+        count(
+            graph,
+            "MATCH (d:Phenotype) WHERE d.condition_id = 'HP:0002745' "
+            "RETURN count(d) AS n",
+        )
+        == 1
     )
     assert (
-        count(graph, "MATCH (d:Exposure) WHERE d.condition_id = 'CHEBI:33281' "
-                     "RETURN count(d) AS n") == 1
+        count(
+            graph,
+            "MATCH (d:Exposure) WHERE d.condition_id = 'CHEBI:33281' "
+            "RETURN count(d) AS n",
+        )
+        == 1
     )
     assert (
-        count(graph, "MATCH (d:Disease) WHERE d.condition_id IN "
-                     "['HP:0002745','CHEBI:33281'] RETURN count(d) AS n") == 0
+        count(
+            graph,
+            "MATCH (d:Disease) WHERE d.condition_id IN "
+            "['HP:0002745','CHEBI:33281'] RETURN count(d) AS n",
+        )
+        == 0
     )
 
 
@@ -585,7 +618,9 @@ def test_tax_ids_are_integers_not_strings(graph):
     assert (
         count(graph, "MATCH (t:Taxon) WHERE t.tax_id = 562 RETURN count(t) AS n") == 1
     ), "`WHERE t.tax_id = 562` found nothing — the ids landed as strings"
-    value = rows(graph, "MATCH (t:Taxon) WHERE t.tax_id = 562 RETURN t.tax_id AS v")[0]["v"]
+    value = rows(graph, "MATCH (t:Taxon) WHERE t.tax_id = 562 RETURN t.tax_id AS v")[0][
+        "v"
+    ]
     assert isinstance(value, int) and not isinstance(value, bool)
 
 
@@ -686,7 +721,7 @@ def test_edge_property_violation_names_the_evidence_free_row(graph):
         ("study_design", 3),
         ("group_1_size", 5),
         ("sequencing_type", 5),
-        ("evidence_level", 0),      # always derived, never absent
+        ("evidence_level", 0),  # always derived, never absent
         # The source's own wording of the relation, kept beside the normalised
         # `direction`. Absent exactly where the direction is, so the gap stays
         # countable instead of being papered over with a "not reported" string.
@@ -726,8 +761,14 @@ def test_every_association_carries_the_biolink_evidence_pair(graph):
             f"r.primary_source AS s, r.source_licence AS lic, count(r) AS n",
         )
     }
-    assert got == {("statistical_association", "manual_agent", "bugsigdb",
-                    "CC-BY-4.0"): ASSOCIATION_EDGES}
+    assert got == {
+        (
+            "statistical_association",
+            "manual_agent",
+            "bugsigdb",
+            "CC-BY-4.0",
+        ): ASSOCIATION_EDGES
+    }
 
 
 def test_the_source_record_id_is_the_sources_own_key(graph):
@@ -775,7 +816,9 @@ def test_every_taxon_mention_is_accounted_for(graph, unresolved_report):
         ("Bacteroides corrodens", "ambiguous"),
     ],
 )
-def test_adversarial_rows_are_in_the_unresolved_report(unresolved_report, cited, status):
+def test_adversarial_rows_are_in_the_unresolved_report(
+    unresolved_report, cited, status
+):
     """C18: never dropped, never guessed — recorded with the reason."""
     hits = [r for r in unresolved_report if cited in r.values()]
     assert hits, (
@@ -906,11 +949,11 @@ def test_taxon_lineage_is_walkable_to_root(graph):
 @pytest.mark.parametrize(
     "tax_id, placeholder",
     [
-        (77133, True),    # uncultured bacterium
-        (29523, True),    # Bacteroides sp.
-        (1512, True),     # [Clostridium] symbiosum
+        (77133, True),  # uncultured bacterium
+        (29523, True),  # Bacteroides sp.
+        (1512, True),  # [Clostridium] symbiosum
         (2500537, True),  # Candidatus Cibiobacter qucibialis
-        (48479, True),    # environmental samples (a lineage ancestor)
+        (48479, True),  # environmental samples (a lineage ancestor)
         (562, False),
         (1496, False),
         (853, False),
@@ -1025,8 +1068,7 @@ def test_every_condition_mention_is_accounted_for(graph, condition_ledger):
     condition mentions the 43 rows carry."""
     linked = count(
         graph,
-        "MATCH (:Signature)-[r:IN_CONDITION]->() "
-        "RETURN count(r) AS n",
+        "MATCH (:Signature)-[r:IN_CONDITION]->() RETURN count(r) AS n",
     )
     mentions = 0
     for row in read_bugsigdb():

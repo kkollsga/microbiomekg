@@ -56,9 +56,9 @@ SOURCE = "reactome"
 # Golden values, derived from the fixture by hand.
 # --------------------------------------------------------------------------
 
-PATHWAY_NODES = 9        # 8 declared + 1 minted from a mapping row
-HIERARCHY_EDGES = 7      # 8 rows, one naming an undeclared pathway
-IN_PATHWAY_EDGES = 8     # 9 mapping rows, one ChEBI with no metabolite
+PATHWAY_NODES = 9  # 8 declared + 1 minted from a mapping row
+HIERARCHY_EDGES = 7  # 8 rows, one naming an undeclared pathway
+IN_PATHWAY_EDGES = 8  # 9 mapping rows, one ChEBI with no metabolite
 LEDGER_ROWS = 2
 MULTI_PARENT_CHILD = "REACT:R-HSA-192105"
 MINTED = "REACT:R-SCE-9865878"
@@ -72,27 +72,40 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     # HMDB first: IN_PATHWAY joins through the metabolite table it writes,
     # which is what this prep's DEPENDS_ON declares.
     run(
         SCRIPTS / "prep_hmdb.py",
-        "--xml", str(HMDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--reactome", str(REACTOME_MINI),
-        "--out", str(csv_dir),
+        "--xml",
+        str(HMDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(PREP, "--reactome", str(REACTOME_MINI), "--out", str(csv_dir))
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -185,9 +198,10 @@ def test_a_hierarchy_row_with_an_undeclared_endpoint_reaches_the_ledger(graph, c
     orphan = [r for r in ledger if r["source_id"] == "R-HSA-9999999"]
     assert len(orphan) == 1 and "hierarchy row" in orphan[0]["reason"]
     assert not rows(graph, "MATCH (p:Pathway {id: 'REACT:R-HSA-9999999'}) RETURN p")
-    assert one(
-        graph, "MATCH ()-[r:PART_OF_PATHWAY]->() RETURN count(r) AS n"
-    )["n"] == HIERARCHY_EDGES
+    assert (
+        one(graph, "MATCH ()-[r:PART_OF_PATHWAY]->() RETURN count(r) AS n")["n"]
+        == HIERARCHY_EDGES
+    )
 
 
 # --------------------------------------------------------------------------
@@ -205,8 +219,11 @@ def test_a_pathway_only_in_a_mapping_file_is_minted_with_its_name_and_species(gr
         f"MATCH (p:Pathway {{id: '{MINTED}'}}) RETURN p.title AS name, "
         "p.species AS species, p.pathway_source AS source",
     )
-    assert result == {"name": "Complex III assembly",
-                      "species": "Saccharomyces cerevisiae", "source": SOURCE}
+    assert result == {
+        "name": "Complex III assembly",
+        "species": "Saccharomyces cerevisiae",
+        "source": SOURCE,
+    }
     assert one(graph, "MATCH (p:Pathway) RETURN count(p) AS n")["n"] == PATHWAY_NODES
 
 
@@ -237,8 +254,15 @@ def test_a_species_column_contradicting_its_own_id_infix_is_counted(prep_output)
     "code, expected",
     [
         ("TAS", ("unknown", "knowledge_assertion", "manual_agent", "ECO:0000304")),
-        ("IEA", ("computational-predicted", "logical_entailment", "automated_agent",
-                 "ECO:0000501")),
+        (
+            "IEA",
+            (
+                "computational-predicted",
+                "logical_entailment",
+                "automated_agent",
+                "ECO:0000501",
+            ),
+        ),
         ("tas", ("unknown", "knowledge_assertion", "manual_agent", "ECO:0000304")),
         ("", ("unknown", "not_provided", "not_provided", "")),
         (None, ("unknown", "not_provided", "not_provided", "")),
@@ -305,8 +329,11 @@ def test_a_chebi_id_no_metabolite_carries_reaches_the_ledger(graph, csv_dir):
     """Reactome maps 3,260 ChEBI ids and HMDB carries 13,562; only 1,114 are in
     both. Minting the rest would give bare CURIE nodes with no name, no status
     and no biospecimen — the mapping files carry no compound name at all."""
-    ledger = [r for r in table(csv_dir, "unresolved_pathway_links.csv")
-              if r["source_id"] == "CHEBI:100241"]
+    ledger = [
+        r
+        for r in table(csv_dir, "unresolved_pathway_links.csv")
+        if r["source_id"] == "CHEBI:100241"
+    ]
     assert len(ledger) == 1 and "no Metabolite node" in ledger[0]["reason"]
     assert not rows(graph, "MATCH (m:Metabolite {id: 'CHEBI:100241'}) RETURN m")
     assert len(table(csv_dir, "unresolved_pathway_links.csv")) == LEDGER_ROWS
@@ -352,10 +379,15 @@ def test_d13_shaped_path_is_capability_not_production(graph):
 def test_no_rule_this_source_declares_audits_nothing(graph):
     totals = {
         r["rule"]: r["total"]
-        for r in rows(graph, "CALL ontology_audit() YIELD rule, total RETURN rule, total")
+        for r in rows(
+            graph, "CALL ontology_audit() YIELD rule, total RETURN rule, total"
+        )
     }
-    mine = {rule: n for rule, n in totals.items()
-            if rule.split(".")[0] in ("IN_PATHWAY", "PART_OF_PATHWAY")}
+    mine = {
+        rule: n
+        for rule, n in totals.items()
+        if rule.split(".")[0] in ("IN_PATHWAY", "PART_OF_PATHWAY")
+    }
     assert mine, "the audit reports no rule for this source's relationships"
     for rule, n in mine.items():
         assert n > 0, f"{rule} audits nothing"

@@ -229,7 +229,11 @@ RELATIONSHIPS: dict[str, dict] = {
         "domain": "ProteinTarget",
         "range": "Taxon",
         "cardinality": {"max": 1},
-        "required_properties": ["reported_tax_id", "resolution_status", "primary_source"],
+        "required_properties": [
+            "reported_tax_id",
+            "resolution_status",
+            "primary_source",
+        ],
         "property_types": {
             "reported_tax_id": "integer",
             "resolution_status": "string",

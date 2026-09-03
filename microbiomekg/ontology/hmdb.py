@@ -216,7 +216,10 @@ CLASSES: dict[str, dict] = {
 RELATIONSHIPS: dict[str, dict] = {
     "PRODUCES": exchange_declaration(
         PRODUCTION_DESCRIPTION,
-        {k: v for k, v in PRODUCTION_PROPERTY_TYPES.items()
-         if k not in EXCHANGE_CONTRACT},
+        {
+            k: v
+            for k, v in PRODUCTION_PROPERTY_TYPES.items()
+            if k not in EXCHANGE_CONTRACT
+        },
     ),
 }

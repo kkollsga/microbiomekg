@@ -44,13 +44,26 @@ def fixture_csvs(tmp_path_factory) -> Path:
     csv_dir = tmp_path_factory.mktemp("fixture-csv")
     for script, extra in (
         (SCRIPTS / "prep_bugsigdb.py", ["--mondo", str(MONDO_MINI)]),
-        (SCRIPTS / "prep_taxonomy.py", ["--scope", "cited",
-                                        "--cited-from", str(csv_dir / "cited_taxa.csv")]),
+        (
+            SCRIPTS / "prep_taxonomy.py",
+            ["--scope", "cited", "--cited-from", str(csv_dir / "cited_taxa.csv")],
+        ),
     ):
         proc = subprocess.run(
-            [sys.executable, str(script), "--raw", str(BUGSIGDB_MINI),
-             "--taxdump", str(TAXDUMP_MINI), "--out", str(csv_dir), *extra],
-            capture_output=True, text=True, cwd=ROOT,
+            [
+                sys.executable,
+                str(script),
+                "--raw",
+                str(BUGSIGDB_MINI),
+                "--taxdump",
+                str(TAXDUMP_MINI),
+                "--out",
+                str(csv_dir),
+                *extra,
+            ],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
         assert proc.returncode == 0, f"{script.name}:\n{proc.stdout}\n{proc.stderr}"
     return csv_dir
@@ -202,9 +215,17 @@ def test_a_build_into_a_temp_csv_directory_loads_that_directory(tmp_path, fixtur
     default directory it reports 14,846, so the assertion cannot pass by
     accident on a machine that has the real CSVs."""
     proc = subprocess.run(
-        [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
-         "--csv", str(fixture_csvs), "--no-save"],
-        capture_output=True, text=True, cwd=ROOT,
+        [
+            sys.executable,
+            str(SCRIPTS / "build.py"),
+            "--skip-prep",
+            "--csv",
+            str(fixture_csvs),
+            "--no-save",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "  Signature                    43" in proc.stdout, proc.stdout
@@ -223,16 +244,30 @@ def test_re_running_a_prep_leaves_the_csv_directory_unchanged(tmp_path):
     source wrote a row. A doubled count is invisible — the *set* of taxa is
     what the taxonomy build reads — so nothing downstream fails and the number
     is simply wrong."""
+
     def prep_once() -> dict[str, str]:
         proc = subprocess.run(
-            [sys.executable, str(SCRIPTS / "prep_bugsigdb.py"),
-             "--raw", str(BUGSIGDB_MINI), "--taxdump", str(TAXDUMP_MINI),
-             "--mondo", str(MONDO_MINI), "--out", str(tmp_path)],
-            capture_output=True, text=True, cwd=ROOT,
+            [
+                sys.executable,
+                str(SCRIPTS / "prep_bugsigdb.py"),
+                "--raw",
+                str(BUGSIGDB_MINI),
+                "--taxdump",
+                str(TAXDUMP_MINI),
+                "--mondo",
+                str(MONDO_MINI),
+                "--out",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
         assert proc.returncode == 0, proc.stdout + proc.stderr
-        return {p.name: p.read_text(encoding="utf-8")
-                for p in sorted(tmp_path.glob("*.csv"))}
+        return {
+            p.name: p.read_text(encoding="utf-8")
+            for p in sorted(tmp_path.glob("*.csv"))
+        }
 
     first = prep_once()
     assert "cited_taxa.csv" in first
@@ -247,10 +282,21 @@ def test_the_cited_taxa_table_says_which_source_claimed_each_taxon(tmp_path):
     table readable: a taxon two sources cite is two rows with two counts, not
     one row carrying a sum nobody can attribute."""
     proc = subprocess.run(
-        [sys.executable, str(SCRIPTS / "prep_bugsigdb.py"),
-         "--raw", str(BUGSIGDB_MINI), "--taxdump", str(TAXDUMP_MINI),
-         "--mondo", str(MONDO_MINI), "--out", str(tmp_path)],
-        capture_output=True, text=True, cwd=ROOT,
+        [
+            sys.executable,
+            str(SCRIPTS / "prep_bugsigdb.py"),
+            "--raw",
+            str(BUGSIGDB_MINI),
+            "--taxdump",
+            str(TAXDUMP_MINI),
+            "--mondo",
+            str(MONDO_MINI),
+            "--out",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     with (tmp_path / "cited_taxa.csv").open(encoding="utf-8", newline="") as fh:
@@ -275,10 +321,21 @@ def test_the_expansion_report_covers_every_declared_relationship():
     edge count means was missing for every relationship four later sources
     added, including the one that was loading zero edges."""
     declared = build.declared_relationships(FRAGMENTS)
-    assert {"ASSOCIATED_WITH", "IN_CONDITION", "AT_BODY_SITE",
-            "ABUNDANCE_CHANGED_BY", "IS_DRUG", "PRODUCES", "HAS_MECHANISM",
-            "CARRIES_RESISTANCE_GENE", "CONFERS_RESISTANCE_TO", "IN_PATHWAY",
-            "PART_OF_PATHWAY", "REPORTED_BY", "HAS_PARENT"} <= set(declared)
+    assert {
+        "ASSOCIATED_WITH",
+        "IN_CONDITION",
+        "AT_BODY_SITE",
+        "ABUNDANCE_CHANGED_BY",
+        "IS_DRUG",
+        "PRODUCES",
+        "HAS_MECHANISM",
+        "CARRIES_RESISTANCE_GENE",
+        "CONFERS_RESISTANCE_TO",
+        "IN_PATHWAY",
+        "PART_OF_PATHWAY",
+        "REPORTED_BY",
+        "HAS_PARENT",
+    } <= set(declared)
     for rel, spec in declared.items():
         assert spec.csvs, f"{rel} names no CSV to count records in"
         assert spec.fragments, f"{rel} is declared by no fragment"
@@ -286,7 +343,8 @@ def test_the_expansion_report_covers_every_declared_relationship():
     # that did not are the same edge type from two tables, and a report keyed
     # on the name alone would count the rows of whichever it saw last.
     assert build.declared_relationships(FRAGMENTS)["REPORTED_BY"].csvs == (
-        "taxon_signature.csv", "unresolved_taxon_signature.csv"
+        "taxon_signature.csv",
+        "unresolved_taxon_signature.csv",
     )
     # An `fk_edges` relationship has no junction CSV of its own: its records
     # are the rows of the node table carrying the foreign key.
@@ -327,8 +385,11 @@ def test_a_licence_gated_source_is_not_reported_as_loaded_without_its_flag(
     assert not build.opted_into("kegg", args)
     assert "kegg" not in build.sources_with_tables(
         FRAGMENTS,
-        [s for s in ("bugsigdb", "reactome", "kegg")
-         if s not in build.LICENCE_GATED or build.opted_into(s, args)],
+        [
+            s
+            for s in ("bugsigdb", "reactome", "kegg")
+            if s not in build.LICENCE_GATED or build.opted_into(s, args)
+        ],
         fixture_csvs,
     )
     assert build.opted_into("kegg", argparse.Namespace(with_kegg=True))
@@ -349,8 +410,10 @@ def test_the_record_count_is_rows_and_not_newlines(tmp_path):
         writer = csv.writer(fh)
         writer.writerow(["id", "text"])
         writer.writerows(
-            [(i, ["plain", "two\nlines", 'a "quoted" word', "a,b"][i % 4])
-             for i in range(400)]
+            [
+                (i, ["plain", "two\nlines", 'a "quoted" word', "a,b"][i % 4])
+                for i in range(400)
+            ]
         )
     with path.open(encoding="utf-8", newline="") as fh:
         real = sum(1 for _ in csv.reader(fh)) - 1
@@ -380,14 +443,29 @@ def test_the_expansion_report_names_every_relationship_it_declared(
     output rather than from the function behind it. A relationship the build
     loaded **zero** edges for gets a line too — that absence is the finding."""
     proc = subprocess.run(
-        [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
-         "--csv", str(fixture_csvs), "--no-save"],
-        capture_output=True, text=True, cwd=ROOT,
+        [
+            sys.executable,
+            str(SCRIPTS / "build.py"),
+            "--skip-prep",
+            "--csv",
+            str(fixture_csvs),
+            "--no-save",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     section = proc.stdout.split("expansion factor (G10)")[1]
-    for rel in ("ASSOCIATED_WITH", "IN_CONDITION", "REPORTED_BY",
-                "HAS_PARENT", "PART_OF_STUDY", "PUBLISHED_AS", "AT_BODY_SITE"):
+    for rel in (
+        "ASSOCIATED_WITH",
+        "IN_CONDITION",
+        "REPORTED_BY",
+        "HAS_PARENT",
+        "PART_OF_STUDY",
+        "PUBLISHED_AS",
+        "AT_BODY_SITE",
+    ):
         assert rel in section, f"{rel} is declared and unreported"
 
 
@@ -401,9 +479,17 @@ def test_the_report_prints_the_per_field_census(tmp_path, fixture_csvs):
     complete fields too, so a field at zero is stated rather than inferred.
     """
     proc = subprocess.run(
-        [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
-         "--csv", str(fixture_csvs), "--no-save"],
-        capture_output=True, text=True, cwd=ROOT,
+        [
+            sys.executable,
+            str(SCRIPTS / "build.py"),
+            "--skip-prep",
+            "--csv",
+            str(fixture_csvs),
+            "--no-save",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     section = proc.stdout.split("per-field census")[1].split("expansion factor")[0]
@@ -434,9 +520,19 @@ def both_builds(tmp_path_factory, fixture_csvs) -> dict[str, tuple[Path, str]]:
     for name, extra in (("default", []), ("with_vectors", ["--with-vectors"])):
         kgl = out / f"{name}.kgl"
         proc = subprocess.run(
-            [sys.executable, str(SCRIPTS / "build.py"), "--skip-prep",
-             "--csv", str(fixture_csvs), "--out", str(kgl), *extra],
-            capture_output=True, text=True, cwd=ROOT,
+            [
+                sys.executable,
+                str(SCRIPTS / "build.py"),
+                "--skip-prep",
+                "--csv",
+                str(fixture_csvs),
+                "--out",
+                str(kgl),
+                *extra,
+            ],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
         assert proc.returncode == 0, proc.stdout + proc.stderr
         built[name] = (kgl, proc.stdout)
@@ -512,5 +608,7 @@ def test_text_score_raises_on_the_default_graph_and_answers_on_the_flagged_one(
         list(graphs["default"].cypher(query, params={"q": "Bacteroides frajilis"}))
     assert "embedding" in str(excinfo.value).lower(), excinfo.value
 
-    rows = list(graphs["with_vectors"].cypher(query, params={"q": "Bacteroides frajilis"}))
+    rows = list(
+        graphs["with_vectors"].cypher(query, params={"q": "Bacteroides frajilis"})
+    )
     assert rows and rows[0]["score"] > 0.0, rows

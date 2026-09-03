@@ -44,8 +44,11 @@ PREP = SCRIPTS / "prep_maier2018.py"
 
 sys.path.insert(0, str(SCRIPTS))
 
-for _needed in (PREP, MAIER_MINI / "NIHMS76168-supplement-Supplementary_table_3.xlsx",
-                CHEMBL_MINI / "mechanism.jsonl"):
+for _needed in (
+    PREP,
+    MAIER_MINI / "NIHMS76168-supplement-Supplementary_table_3.xlsx",
+    CHEMBL_MINI / "mechanism.jsonl",
+):
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
@@ -72,16 +75,16 @@ SOURCE = "maier2018"
 # --------------------------------------------------------------------------
 
 DRUGS = 5
-ISOLATES = 6            # columns of the fixture screen
+ISOLATES = 6  # columns of the fixture screen
 CELLS = DRUGS * ISOLATES
 EDGES = 24
 INHIBITS = 12
 NO_EFFECT = 12
-NOT_MEASURED = 1        # the one cell written `NA`
-UNUSABLE_CELLS = 5      # the five on the isolate that reaches no taxon
-LEDGER_ROWS = 2         # one unmeasured cell + one unresolvable isolate
+NOT_MEASURED = 1  # the one cell written `NA`
+UNUSABLE_CELLS = 5  # the five on the isolate that reaches no taxon
+LEDGER_ROWS = 2  # one unmeasured cell + one unresolvable isolate
 UNRESOLVED_TAXA = 1
-TAXA = 4                # 40 fixture columns collapse: both B. fragilis isolates
+TAXA = 4  # 40 fixture columns collapse: both B. fragilis isolates
 MINTED_DRUGS = 1
 
 B_THETA = 818
@@ -104,31 +107,46 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     # Prep order is the build's: `prep_maier2018` declares DEPENDS_ON = [chembl]
     # because all three of its drug join routes read `drug.csv`.
     run(
         SCRIPTS / "prep_chembl.py",
-        "--chembl", str(CHEMBL_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--chembl",
+        str(CHEMBL_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(
         PREP,
-        "--tables", str(MAIER_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--tables",
+        str(MAIER_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -338,8 +356,9 @@ def test_an_unmeasured_pair_is_neither_relationship_and_is_ledgered(graph, csv_d
             "WHERE r.reported_drug_name = 'Aspirin' AND r.nt_code = 'NT5003' "
             "RETURN r",
         )
-    unmeasured = [r for r in table(csv_dir, "unresolved_maier2018.csv")
-                  if r["kind"] == "cell"]
+    unmeasured = [
+        r for r in table(csv_dir, "unresolved_maier2018.csv") if r["kind"] == "cell"
+    ]
     assert len(unmeasured) == NOT_MEASURED
     assert unmeasured[0]["record_id"] == "Prestw-9998|NT5003"
     assert "NA" in unmeasured[0]["reason"]
@@ -418,8 +437,11 @@ def test_a_screen_fact_about_a_chembl_drug_rides_on_the_edge(graph):
     its node — docs/model.md §ChEMBL records the constraint. `drug_class`
     therefore rides on the edge, where it is there for all 1,197 screened drugs
     rather than only the 330 this source minted."""
-    node = one(graph, f"MATCH (d:Drug {{id: '{VANCOMYCIN}'}}) "
-                      "RETURN d.screen_drug_class AS cls, d.source AS source")
+    node = one(
+        graph,
+        f"MATCH (d:Drug {{id: '{VANCOMYCIN}'}}) "
+        "RETURN d.screen_drug_class AS cls, d.source AS source",
+    )
     assert node["source"] == "chembl"
     assert not node["cls"], "ChEMBL's row won the key, as the model says it must"
     edge = one(
@@ -519,10 +541,13 @@ def test_an_unresolvable_isolate_is_a_tombstone_and_a_ledger_row_not_a_drop(
     assert tomb["status"] == "unresolved"
     assert tomb["rank"] == "strain-level isolate"
     assert tomb["note"]
-    assert len([r for r in table(csv_dir, "unresolved_taxa.csv")
-                if r["source"] == SOURCE]) == UNRESOLVED_TAXA
-    ledger = [r for r in table(csv_dir, "unresolved_maier2018.csv")
-              if r["kind"] == "isolate"]
+    assert (
+        len([r for r in table(csv_dir, "unresolved_taxa.csv") if r["source"] == SOURCE])
+        == UNRESOLVED_TAXA
+    )
+    ledger = [
+        r for r in table(csv_dir, "unresolved_maier2018.csv") if r["kind"] == "isolate"
+    ]
     assert len(ledger) == 1
     assert ledger[0]["record_id"] == "NT5099"
     assert "unresolved" in ledger[0]["reason"]
@@ -544,11 +569,15 @@ def test_every_screened_taxon_is_cited_and_loaded(graph, csv_dir):
             f"WHERE r.primary_source = '{SOURCE}' RETURN DISTINCT t.id AS tax_id",
         )
     }
-    cited = {int(r["tax_id"]) for r in table(csv_dir, "cited_taxa.csv")
-             if r["source"] == SOURCE}
+    cited = {
+        int(r["tax_id"])
+        for r in table(csv_dir, "cited_taxa.csv")
+        if r["source"] == SOURCE
+    }
     assert got and got <= cited
     assert all(
-        row["organism"] for row in rows(
+        row["organism"]
+        for row in rows(
             graph, "MATCH (d:Drug)-[r]->(t:Taxon) RETURN t.title AS organism"
         )
     ), "an edge landed on a stub with no name"
@@ -577,8 +606,13 @@ def test_the_threshold_check_refuses_to_write_when_it_stops_holding(tmp_path):
     import build  # noqa: F401  (puts scripts/ on the path for the import below)
     import prep_maier2018 as prep
 
-    screen = [{"prestwick_ID": "Prestw-1", "n_hit": 3,
-               "cells": [("NT5001", 0.5), ("NT5002", 0.5)]}]
+    screen = [
+        {
+            "prestwick_ID": "Prestw-1",
+            "n_hit": 3,
+            "cells": [("NT5001", 0.5), ("NT5002", 0.5)],
+        }
+    ]
     with pytest.raises(SystemExit) as excinfo:
         prep.check_threshold(screen)
     assert "does not reproduce" in str(excinfo.value)
@@ -704,7 +738,9 @@ def test_the_growth_contract_is_a_rule_that_can_fail(graph):
     }
     for relationship in (RELATION_INHIBITS, RELATION_NO_EFFECT):
         rule = audit[f"{relationship}.required_properties"]
-        assert rule["total"] > 0, f"{relationship} audits nothing — a gate that cannot fail"
+        assert rule["total"] > 0, (
+            f"{relationship} audits nothing — a gate that cannot fail"
+        )
         assert rule["violations"] == 0, f"{relationship} violates its own contract"
     assert "direction" not in GROWTH_CONTRACT
     assert "group_0_size" not in GROWTH_CONTRACT
@@ -723,8 +759,11 @@ def test_every_screen_cell_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_o
     term is the one a per-cell ledger would have buried: it is reported as a
     count instead."""
     edges = sum(
-        one(graph, f"MATCH ()-[r:{rel}]->() WHERE r.primary_source = '{SOURCE}' "
-                   "RETURN count(r) AS n")["n"]
+        one(
+            graph,
+            f"MATCH ()-[r:{rel}]->() WHERE r.primary_source = '{SOURCE}' "
+            "RETURN count(r) AS n",
+        )["n"]
         for rel in (RELATION_INHIBITS, RELATION_NO_EFFECT)
     )
     assert edges == EDGES
@@ -742,11 +781,17 @@ def test_every_screen_cell_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_o
 
 
 def test_the_prep_reports_what_it_did_not_load(prep_output):
-    for phrase in ("by relationship:", "measured non-hits kept as",
-                   "pairs carrying the dose-response follow-up",
-                   "drug join:", "isolate join:", "organism resolution:",
-                   "not loaded:", "minted",
-                   "claimed by two library entries"):
+    for phrase in (
+        "by relationship:",
+        "measured non-hits kept as",
+        "pairs carrying the dose-response follow-up",
+        "drug join:",
+        "isolate join:",
+        "organism resolution:",
+        "not loaded:",
+        "minted",
+        "claimed by two library entries",
+    ):
         assert phrase in prep_output
 
 
@@ -762,14 +807,18 @@ def test_an_atc_code_two_library_entries_claim_identifies_neither():
     per entry, with no false merge."""
     import prep_maier2018 as prep
 
-    contested = prep.contested_atc_codes({
-        "Prestw-1075": {"ATC codes": "C07AA05"},
-        "Prestw-1081": {"ATC codes": "C07AA05"},
-        "Prestw-45": {"ATC codes": "M01AE02"},
-    })
+    contested = prep.contested_atc_codes(
+        {
+            "Prestw-1075": {"ATC codes": "C07AA05"},
+            "Prestw-1081": {"ATC codes": "C07AA05"},
+            "Prestw-45": {"ATC codes": "M01AE02"},
+        }
+    )
     assert contested == {"C07AA05": ["Prestw-1075", "Prestw-1081"]}
     # A code one entry carries twice is not contested — the same row, not two.
-    assert prep.contested_atc_codes({"Prestw-1": {"ATC codes": "C07AA05 C07AA05"}}) == {}
+    assert (
+        prep.contested_atc_codes({"Prestw-1": {"ATC codes": "C07AA05 C07AA05"}}) == {}
+    )
 
 
 @pytest.mark.fixture
@@ -807,7 +856,12 @@ def test_the_fixture_keeps_the_real_workbook_shape():
     header = [str(c) for c in grid[0]]
     assert header[:4] == ["prestwick_ID", "chemical_name", "drug_class", "n_hit"]
     assert [nt_code_of(c) for c in header[4:]] == [
-        "NT5004", "NT5003", "NT5033", "NT5084", "NT5028", "NT5099"
+        "NT5004",
+        "NT5003",
+        "NT5033",
+        "NT5084",
+        "NT5028",
+        "NT5099",
     ]
     assert len(grid) - 1 == DRUGS
     # The `NA` cell is a *string*, which is what makes `float()` the wrong tool.

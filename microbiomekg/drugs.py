@@ -156,8 +156,11 @@ class DrugIndex:
                     names.setdefault(name, drug_id)
                 for code in atc_level5(row.get("atc_codes")):
                     atc.setdefault(code, []).append(drug_id)
-        return cls(names, {c: ids[0] for c, ids in atc.items() if len(set(ids)) == 1},
-                   source_of)
+        return cls(
+            names,
+            {c: ids[0] for c, ids in atc.items() if len(set(ids)) == 1},
+            source_of,
+        )
 
     def without_atc(self, codes: object) -> "DrugIndex":
         """The same index with ``codes`` removed from the ATC lookup.
@@ -168,7 +171,8 @@ class DrugIndex:
         route rather than losing the compound.
         """
         return DrugIndex(
-            self.names, {c: d for c, d in self.atc.items() if c not in codes},
+            self.names,
+            {c: d for c, d in self.atc.items() if c not in codes},
             self.source_of,
         )
 

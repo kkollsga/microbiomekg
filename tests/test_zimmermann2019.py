@@ -46,9 +46,12 @@ WORKBOOK = "41586_2019_1291_MOESM1_ESM.xlsx"
 
 sys.path.insert(0, str(SCRIPTS))
 
-for _needed in (PREP, ZIMMERMANN_MINI / WORKBOOK, MAIER_MINI /
-                "NIHMS76168-supplement-Supplementary_table_3.xlsx",
-                CHEMBL_MINI / "mechanism.jsonl"):
+for _needed in (
+    PREP,
+    ZIMMERMANN_MINI / WORKBOOK,
+    MAIER_MINI / "NIHMS76168-supplement-Supplementary_table_3.xlsx",
+    CHEMBL_MINI / "mechanism.jsonl",
+):
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
@@ -77,7 +80,7 @@ SOURCE = "zimmermann2019"
 # --------------------------------------------------------------------------
 
 DRUGS = 6
-COLUMNS = 10            # nine strain columns and one abiotic control
+COLUMNS = 10  # nine strain columns and one abiotic control
 CELLS = DRUGS * COLUMNS
 #: What the prep must reproduce before it writes anything: six drugs, nine
 #: strain columns, five of the six metabolised by at least one of them. The
@@ -87,14 +90,14 @@ PUBLISHED_MATRIX = "6,9,5"
 EDGES = 47
 METABOLISES = 7
 NO_METABOLISM = 40
-NOT_MEASURED = 1        # the one cell written blank
-CONTROL_CELLS = 6       # the whole control column
-UNUSABLE_CELLS = 6      # the column whose organism reaches no taxon
+NOT_MEASURED = 1  # the one cell written blank
+CONTROL_CELLS = 6  # the whole control column
+UNUSABLE_CELLS = 6  # the column whose organism reaches no taxon
 LEDGER_ROWS = 5
 UNRESOLVED_TAXA = 1
-TAXA = 6                # ten columns collapse: two B. fragilis, two E. coli
+TAXA = 6  # ten columns collapse: two B. fragilis, two E. coli
 MINTED_DRUGS = 1
-GENE_PAIRS = 3          # one on a hit edge, two on a measured non-hit
+GENE_PAIRS = 3  # one on a hit edge, two on a measured non-hit
 
 B_THETA = 818
 B_FRAGILIS = 817
@@ -126,36 +129,55 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     run(
         SCRIPTS / "prep_chembl.py",
-        "--chembl", str(CHEMBL_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--chembl",
+        str(CHEMBL_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_maier2018.py",
-        "--tables", str(MAIER_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--tables",
+        str(MAIER_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(
         PREP,
-        "--tables", str(ZIMMERMANN_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--published-matrix", PUBLISHED_MATRIX,
+        "--tables",
+        str(ZIMMERMANN_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--published-matrix",
+        PUBLISHED_MATRIX,
     )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -281,15 +303,17 @@ def test_the_drug_routes_are_ordered_verbatim_first_and_have_no_atc_route():
     derived salt strip is tried last, as it is in both screens."""
     # A parent column that repeats the screened spelling adds no route, so the
     # salt strip is the only way past the counter-ion.
-    assert [r for _k, _v, r in drug_variants(
-        "AMPICILLIN SODIUM", "Ampicillin sodium")] == ["molename", "salt-name"]
+    assert [
+        r for _k, _v, r in drug_variants("AMPICILLIN SODIUM", "Ampicillin sodium")
+    ] == ["molename", "salt-name"]
     assert [r for _k, _v, r in drug_variants("VANCOMYCIN", "Vancomycin")] == [
         "molename"
     ]
     # And a salt strip that lands on the spelling the parent column already gave
     # is not a third attempt: the same key twice would double-count the route.
     assert [r for _k, _v, r in drug_variants("ABACAVIR SULFATE", "Abacavir")] == [
-        "molename", "parent-name"
+        "molename",
+        "parent-name",
     ]
 
 
@@ -507,9 +531,9 @@ def test_a_compound_the_other_screen_minted_reaches_that_node_not_a_second_one(
     assert both["growth"] and both["metabolism"], (
         "one compound must carry both screens' edges, on one node"
     )
-    assert len(table(csv_dir, "drug.csv")) == len({
-        r["drug_id"] for r in table(csv_dir, "drug.csv")
-    }), "drug.csv gained a duplicate identity"
+    assert len(table(csv_dir, "drug.csv")) == len(
+        {r["drug_id"] for r in table(csv_dir, "drug.csv")}
+    ), "drug.csv gained a duplicate identity"
     assert "joined to a node written by: chembl" in prep_output
     assert "maier2018" in prep_output.split("joined to a node written by:")[1]
 
@@ -561,8 +585,11 @@ def test_a_screen_fact_about_a_known_drug_rides_on_the_edge(graph):
     `therapeutic_indication` therefore rides on
     the edge, where it is there for all 271 screened compounds rather than only
     the 23 minted here."""
-    node = one(graph, f"MATCH (d:Drug {{id: '{VANCOMYCIN}'}}) "
-                      "RETURN d.therapeutic_indication AS ind, d.source AS source")
+    node = one(
+        graph,
+        f"MATCH (d:Drug {{id: '{VANCOMYCIN}'}}) "
+        "RETURN d.therapeutic_indication AS ind, d.source AS source",
+    )
     assert node["source"] == "chembl"
     assert not node["ind"], "ChEMBL's row won the key, as the model says it must"
     edge = one(
@@ -594,7 +621,8 @@ def test_two_isolates_of_one_species_are_two_edges_on_one_taxon(graph):
     )
     assert result["edges"] == 2
     assert sorted(result["columns"]) == [
-        "Bacteroides fragilis DS-208", "Bacteroides fragilis NCTC9343",
+        "Bacteroides fragilis DS-208",
+        "Bacteroides fragilis NCTC9343",
     ]
     assert result["strains"] == 2, "the two isolates must stay distinguishable"
 
@@ -619,8 +647,11 @@ def test_the_column_override_is_what_reaches_the_strain_dictionary(graph, csv_di
     assert edge["phylum"] == "Proteobacteria"
     # No column went unjoined: an unmatched header is a ledger row, and there
     # are none of that shape here.
-    assert not [r for r in ledger(csv_dir, "column")
-                if "no supplementary-table-1 row" in r["reason"]]
+    assert not [
+        r
+        for r in ledger(csv_dir, "column")
+        if "no supplementary-table-1 row" in r["reason"]
+    ]
 
 
 def test_a_fecal_isolate_joins_on_its_name_because_it_has_no_designation(graph):
@@ -693,8 +724,10 @@ def test_an_ambiguous_strain_is_a_tombstone_naming_what_was_rejected(graph, csv_
     assert tomb["status"] == "unresolved"
     assert tomb["rank"] == "strain-level isolate"
     assert sorted(tomb["candidates"]) == ["1268240", "311784"]
-    assert len([r for r in table(csv_dir, "unresolved_taxa.csv")
-                if r["source"] == SOURCE]) == UNRESOLVED_TAXA
+    assert (
+        len([r for r in table(csv_dir, "unresolved_taxa.csv") if r["source"] == SOURCE])
+        == UNRESOLVED_TAXA
+    )
     strain_rows = ledger(csv_dir, "strain")
     assert len(strain_rows) == 1
     assert "Bacteroides sp. WH2 (311784)" in strain_rows[0]["detail"]
@@ -717,11 +750,15 @@ def test_every_screened_taxon_is_cited_and_loaded(graph, csv_dir):
             f"WHERE r.primary_source = '{SOURCE}' RETURN DISTINCT t.id AS tax_id",
         )
     }
-    cited = {int(r["tax_id"]) for r in table(csv_dir, "cited_taxa.csv")
-             if r["source"] == SOURCE}
+    cited = {
+        int(r["tax_id"])
+        for r in table(csv_dir, "cited_taxa.csv")
+        if r["source"] == SOURCE
+    }
     assert got and got <= cited
     assert all(
-        row["organism"] for row in rows(
+        row["organism"]
+        for row in rows(
             graph,
             f"MATCH (t:Taxon)-[r:{RELATION_METABOLISES}|{RELATION_NO_METABOLISM}]->() "
             "RETURN t.title AS organism",
@@ -818,7 +855,9 @@ def test_there_is_no_gene_node_type(graph):
         for row in rows(graph, "MATCH (n) RETURN DISTINCT labels(n) AS label")
         for label in row["label"]
     }
-    declared = set(compose(ROOT / "blueprints", [SOURCE, "chembl", "maier2018"])["nodes"])
+    declared = set(
+        compose(ROOT / "blueprints", [SOURCE, "chembl", "maier2018"])["nodes"]
+    )
     classes = set(ontology_for([SOURCE, "chembl", "maier2018"])["classes"])
     assert loaded, "no node types at all — the assertion below would be vacuous"
     for forbidden in ("Gene", "GeneProduct", "Protein"):
@@ -856,10 +895,16 @@ def test_the_headline_check_refuses_to_write_when_it_stops_holding():
     import prep_zimmermann2019 as prep
 
     screen = [
-        {"drug": "A", "threshold": 20.0,
-         "cells": [("Strain one", [50.0, 1.0, 0.5, 0.1, 0.001])]},
-        {"drug": "B", "threshold": 20.0,
-         "cells": [("Strain one", [1.0, 1.0, 0.01, 0.1, 0.9])]},
+        {
+            "drug": "A",
+            "threshold": 20.0,
+            "cells": [("Strain one", [50.0, 1.0, 0.5, 0.1, 0.001])],
+        },
+        {
+            "drug": "B",
+            "threshold": 20.0,
+            "cells": [("Strain one", [1.0, 1.0, 0.01, 0.1, 0.9])],
+        },
     ]
     columns = ["Strain one"]
     # One of the two drugs is metabolised, and the rule reproduces it.
@@ -936,7 +981,9 @@ def test_the_metabolism_contract_is_a_rule_that_can_fail(graph):
     }
     for relationship in (RELATION_METABOLISES, RELATION_NO_METABOLISM):
         rule = audit[f"{relationship}.required_properties"]
-        assert rule["total"] > 0, f"{relationship} audits nothing — a gate that cannot fail"
+        assert rule["total"] > 0, (
+            f"{relationship} audits nothing — a gate that cannot fail"
+        )
         assert rule["violations"] == 0, f"{relationship} violates its own contract"
     assert "direction" not in METABOLISM_CONTRACT
     assert "group_0_size" not in METABOLISM_CONTRACT
@@ -950,8 +997,11 @@ def test_every_screen_cell_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_o
     hide in the difference, and the two column-level terms are the ones a
     per-cell ledger would have buried: they are reported as counts instead."""
     edges = sum(
-        one(graph, f"MATCH ()-[r:{rel}]->() WHERE r.primary_source = '{SOURCE}' "
-                   "RETURN count(r) AS n")["n"]
+        one(
+            graph,
+            f"MATCH ()-[r:{rel}]->() WHERE r.primary_source = '{SOURCE}' "
+            "RETURN count(r) AS n",
+        )["n"]
         for rel in (RELATION_METABOLISES, RELATION_NO_METABOLISM)
     )
     assert edges == EDGES
@@ -966,11 +1016,18 @@ def test_every_screen_cell_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_o
 
 
 def test_the_prep_reports_what_it_did_not_load(prep_output):
-    for phrase in ("by relationship:", "measured non-hits kept as",
-                   "pairs carrying a gain-of-function gene product",
-                   "drug join:", "joined to a node written by:", "strain join:",
-                   "organism resolution:", "not loaded:", "minted",
-                   "abiotic controls, not organisms"):
+    for phrase in (
+        "by relationship:",
+        "measured non-hits kept as",
+        "pairs carrying a gain-of-function gene product",
+        "drug join:",
+        "joined to a node written by:",
+        "strain join:",
+        "organism resolution:",
+        "not loaded:",
+        "minted",
+        "abiotic controls, not organisms",
+    ):
         assert phrase in prep_output
 
 
@@ -979,9 +1036,19 @@ def test_an_absent_workbook_leaves_the_build_without_failing_it(tmp_path):
     `scripts/build.py` treats as a source that did not run rather than as a
     failure. Exit 2 would take the whole build down with it."""
     proc = subprocess.run(
-        [sys.executable, str(PREP), "--tables", str(tmp_path),
-         "--taxdump", str(TAXDUMP_MINI), "--out", str(tmp_path)],
-        capture_output=True, text=True, cwd=ROOT,
+        [
+            sys.executable,
+            str(PREP),
+            "--tables",
+            str(tmp_path),
+            "--taxdump",
+            str(TAXDUMP_MINI),
+            "--out",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
     )
     assert proc.returncode == 3
     assert WORKBOOK in proc.stderr
@@ -1010,16 +1077,24 @@ def test_the_fixture_keeps_the_real_workbook_shape():
     # organisms, then the mutants and plasmids that are not organisms.
     assert strains[0][0].startswith("Supplementary Table 1")
     assert strains[3][0] == "Name"
-    assert any(row[0] == "Human gut bacteria tested for drug-metabolizing activity"
-               and row[1] is None for row in strains)
-    assert any(str(row[0] or "").startswith(
-        "Bacteroides thetaiotaomicron (Background") for row in strains)
+    assert any(
+        row[0] == "Human gut bacteria tested for drug-metabolizing activity"
+        and row[1] is None
+        for row in strains
+    )
+    assert any(
+        str(row[0] or "").startswith("Bacteroides thetaiotaomicron (Background")
+        for row in strains
+    )
     assert any(row[0] == "Plasmids" for row in strains)
 
     # Table 2: the data, a blank row, then the sheet describing its own columns.
     header_at = next(i for i, row in enumerate(drugs) if row[0] == "MOLENAME")
-    blank_at = next(i for i, row in enumerate(drugs[header_at + 1:], header_at + 1)
-                    if row[0] is None)
+    blank_at = next(
+        i
+        for i, row in enumerate(drugs[header_at + 1 :], header_at + 1)
+        if row[0] is None
+    )
     assert any(row[0] == "MOLENAME" for row in drugs[blank_at:]), (
         "the column-description block is what makes the blank-row terminator "
         "load-bearing"
@@ -1035,19 +1110,21 @@ def test_the_fixture_keeps_the_real_workbook_shape():
     assert screen[block_at + 1][1] == "Drug adaptive FC threshold %"
     first = screen[block_at].index(labels[0])
     assert [str(screen[block_at + 1][first + k]).split()[0] for k in range(5)] == [
-        "%", "%", "FC", "FC", "p(FDR)"
+        "%",
+        "%",
+        "FC",
+        "FC",
+        "p(FDR)",
     ]
-    assert len([r for r in screen[block_at + 2:] if r[0]]) == DRUGS
+    assert len([r for r in screen[block_at + 2 :] if r[0]]) == DRUGS
     # The unmeasured cell is a *blank*, not a zero, which is what makes
     # `as_float` the right tool and a `float(cell) or 0` the wrong one.
-    assert any(cell is None for row in screen[block_at + 2:] for cell in row[2:])
+    assert any(cell is None for row in screen[block_at + 2 :] for cell in row[2:])
 
     # Table 13: parent-drug columns interleaved with metabolite-mass columns.
     gene_at = next(i for i, row in enumerate(genes) if row[0] == "Gene")
     sub = genes[gene_at + 1]
-    assert list(sub[:4]) == [
-        "RefSeq Locus Tag", "PATRIC ID", "Product", "Protein ID"
-    ]
+    assert list(sub[:4]) == ["RefSeq Locus Tag", "PATRIC ID", "Product", "Protein ID"]
     assert sub.count("Parent drug") == 3
     assert any(isinstance(c, float) for c in sub[4:]), (
         "a metabolite-mass column is what the reader has to filter out"

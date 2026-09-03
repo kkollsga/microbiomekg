@@ -168,9 +168,21 @@ def licence_for(also_in_ontology: bool) -> str:
 #: order over NCBI's rank vocabulary. ``no rank`` is here because the one CARD
 #: taxid that keeps it after promotion is a rankless group, not a strain.
 _ABOVE_SPECIES: frozenset[str] = frozenset(
-    {"genus", "family", "order", "class", "phylum", "kingdom", "domain",
-     "superkingdom", "species group", "no rank", "clade"}
+    {
+        "genus",
+        "family",
+        "order",
+        "class",
+        "phylum",
+        "kingdom",
+        "domain",
+        "superkingdom",
+        "species group",
+        "no rank",
+        "clade",
+    }
 )
+
 
 def taxon_specificity(rank: str | None, lineage: list[int] | tuple[int, ...]) -> str:
     """How much of an organism the reference sequence's taxid names.

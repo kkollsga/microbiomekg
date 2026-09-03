@@ -197,16 +197,41 @@ COLUMNS: list[str] = [
 #: screened spelling, only the salt strip can get anywhere.
 DRUG_ROWS: dict[str, tuple[str, str, str, str, str]] = {
     "VANCOMYCIN": ("antibiotic", "VANCOCIN", "1404-90-6", "Vancomycin", "CC1C(C)O"),
-    "PARACETAMOL": ("analgesic, antipyretic", "TYLENOL", "103-90-2",
-                    "Acetaminophen", "CC(=O)Nc1ccc(O)cc1"),
-    "AMPICILLIN SODIUM": ("antibiotic", "OMNIPEN", "69-52-3",
-                          "Ampicillin sodium", "CC1(C)SC2C(N)C(=O)N2C1C(=O)[O-]"),
-    "FICTITINE HYDROCHLORIDE": ("antifictional", "FICTIVAN", "99999-99-9",
-                                "Fictitine hydrochloride", "CCN.Cl"),
-    "METFORMIN HYDROCHLORIDE": ("antidiabetic", "GLUCOPHAGE", "1115-70-4",
-                                "Metformin", "CN(C)C(=N)NC(N)=N.Cl"),
-    "INVENTOL MESYLATE": ("sedative", "INVENTA", "88888-88-8",
-                          "Inventol mesylate", "CCCO.CS(=O)(=O)O"),
+    "PARACETAMOL": (
+        "analgesic, antipyretic",
+        "TYLENOL",
+        "103-90-2",
+        "Acetaminophen",
+        "CC(=O)Nc1ccc(O)cc1",
+    ),
+    "AMPICILLIN SODIUM": (
+        "antibiotic",
+        "OMNIPEN",
+        "69-52-3",
+        "Ampicillin sodium",
+        "CC1(C)SC2C(N)C(=O)N2C1C(=O)[O-]",
+    ),
+    "FICTITINE HYDROCHLORIDE": (
+        "antifictional",
+        "FICTIVAN",
+        "99999-99-9",
+        "Fictitine hydrochloride",
+        "CCN.Cl",
+    ),
+    "METFORMIN HYDROCHLORIDE": (
+        "antidiabetic",
+        "GLUCOPHAGE",
+        "1115-70-4",
+        "Metformin",
+        "CN(C)C(=N)NC(N)=N.Cl",
+    ),
+    "INVENTOL MESYLATE": (
+        "sedative",
+        "INVENTA",
+        "88888-88-8",
+        "Inventol mesylate",
+        "CCCO.CS(=O)(=O)O",
+    ),
 }
 
 #: ``MOLENAME -> (drug adaptive FC threshold %, {column: (% consumed, p(FDR))})``.
@@ -216,69 +241,113 @@ DRUG_ROWS: dict[str, tuple[str, str, str, str, str]] = {
 SCREEN: dict[str, tuple[float, dict[str, object]]] = {
     # Two hits, one of them on the control column — which is exactly what an
     # abiotic control looks like when it is read as a strain.
-    "VANCOMYCIN": (20.0, {
-        "Bacteroides thetaiotaomicron VPI-5482": (45.0, 0.001),
-        "Bacteroides fragilis NCTC9343": (60.0, 0.01),
-        "Escherichia coli O157:H7": (52.0, 0.002),
-        "Control pH 7 ": (80.0, 0.001),
-        "Bacteroides WH2 WH2": (50.0, 0.001),
-    }),
+    "VANCOMYCIN": (
+        20.0,
+        {
+            "Bacteroides thetaiotaomicron VPI-5482": (45.0, 0.001),
+            "Bacteroides fragilis NCTC9343": (60.0, 0.01),
+            "Escherichia coli O157:H7": (52.0, 0.002),
+            "Control pH 7 ": (80.0, 0.001),
+            "Bacteroides WH2 WH2": (50.0, 0.001),
+        },
+    ),
     # The p boundary, and it is this drug's **only** hit — so writing the
     # comparison as `<` takes the whole drug out of the metabolised count and
     # trips the prep's headline gate rather than only moving an edge total,
     # which is what it does on the real file (176 becomes 175).
-    "PARACETAMOL": (25.0, {
-        "Bacteroides thetaiotaomicron VPI-5482": (30.0, 0.05),
-        # Deeply depleted and not significant, on the column whose gene the
-        # gain-of-function screen says metabolises this drug: the second of the
-        # fixture's two disagreements between the two experiments.
-        "Escherichia coli O157:H7": (40.0, 0.2),
-        # And the near miss from the other side: significant, one point below
-        # the drug's own threshold. A flat 20% floor would call it a hit.
-        "Bacteroides fragilis DS-208": (24.0, 0.001),
-        "Escherichia coli  K-12": (28.0, 0.2),
-    }),
+    "PARACETAMOL": (
+        25.0,
+        {
+            "Bacteroides thetaiotaomicron VPI-5482": (30.0, 0.05),
+            # Deeply depleted and not significant, on the column whose gene the
+            # gain-of-function screen says metabolises this drug: the second of the
+            # fixture's two disagreements between the two experiments.
+            "Escherichia coli O157:H7": (40.0, 0.2),
+            # And the near miss from the other side: significant, one point below
+            # the drug's own threshold. A flat 20% floor would call it a hit.
+            "Bacteroides fragilis DS-208": (24.0, 0.001),
+            "Escherichia coli  K-12": (28.0, 0.2),
+        },
+    ),
     # One measurement written blank: neither a hit nor a non-hit.
-    "AMPICILLIN SODIUM": (20.0, {
-        "Bifidobacterium longum subsp. infantis CCUG52486": (55.0, 0.004),
-        "Escherichia coli  K-12": None,
-    }),
+    "AMPICILLIN SODIUM": (
+        20.0,
+        {
+            "Bifidobacterium longum subsp. infantis CCUG52486": (55.0, 0.004),
+            "Escherichia coli  K-12": None,
+        },
+    ),
     # `% consumed` exactly at the threshold: the other inclusive boundary.
-    "FICTITINE HYDROCHLORIDE": (30.0, {
-        "Lactobacillus  reuteri CF48-3A BEI HM-102": (30.0, 0.02),
-    }),
+    "FICTITINE HYDROCHLORIDE": (
+        30.0,
+        {
+            "Lactobacillus  reuteri CF48-3A BEI HM-102": (30.0, 0.02),
+        },
+    ),
     # No strain touches it — so the gene product table 13 names for it lands on
     # a DOES_NOT_METABOLISE edge, which is the disagreement worth keeping.
     "METFORMIN HYDROCHLORIDE": (20.0, {}),
     # The minted drug still gets its edges.
-    "INVENTOL MESYLATE": (20.0, {
-        "Faecalibacterium prausnitzii ": (70.0, 0.001),
-    }),
+    "INVENTOL MESYLATE": (
+        20.0,
+        {
+            "Faecalibacterium prausnitzii ": (70.0, 0.001),
+        },
+    ),
 }
 
 #: ``(RefSeq locus tag, PATRIC ID, Product, Protein ID, {parent drug label})``.
 GENE_ROWS: list[tuple[str, str, str, str, set[str]]] = [
-    ("Z_0152", "fig|83334.1.peg.149", "acetyl esterase (acetylxylosidase)",
-     "NP_809065.1", {"Vancomycin", "Paracetamol"}),
-    ("Z_2068", "fig|83334.1.peg.2127", "3-oxo-5-alpha-steroid 4-dehydrogenase",
-     "NP_810981.1", {"Metformin hydrochloride"}),
-    ("COLAER_00311", "fig|411903.6.peg.275", "hypothetical protein",
-     "ZP_01771332.1", {"Vancomycin"}),
-    ("FAKE_0001", "not-a-patric-id", "invented protein", "XX_000000.1",
-     {"Vancomycin"}),
+    (
+        "Z_0152",
+        "fig|83334.1.peg.149",
+        "acetyl esterase (acetylxylosidase)",
+        "NP_809065.1",
+        {"Vancomycin", "Paracetamol"},
+    ),
+    (
+        "Z_2068",
+        "fig|83334.1.peg.2127",
+        "3-oxo-5-alpha-steroid 4-dehydrogenase",
+        "NP_810981.1",
+        {"Metformin hydrochloride"},
+    ),
+    (
+        "COLAER_00311",
+        "fig|411903.6.peg.275",
+        "hypothetical protein",
+        "ZP_01771332.1",
+        {"Vancomycin"},
+    ),
+    ("FAKE_0001", "not-a-patric-id", "invented protein", "XX_000000.1", {"Vancomycin"}),
 ]
 
 #: The parent drugs table 13 scores, and the metabolite-mass column that follows
 #: each — the sheet interleaves them and only the ``Parent drug`` ones are read.
 GENE_DRUG_COLUMNS: list[str] = [
-    "Vancomycin", "Paracetamol", "Metformin hydrochloride",
+    "Vancomycin",
+    "Paracetamol",
+    "Metformin hydrochloride",
 ]
 
 DRUG_HEADER = (
-    "MOLENAME", "TherapeuticIndication", "TargetedRT", "TargetedMZ",
-    "DrugPoolNumbers", "EstimatedColonConcentrationMaier2018uM", "SMILES",
-    "STATUS", "TradeName", "cas", "iupacName", "name", "ref", "salt_name",
-    "salt_smiles", "smiles", "source",
+    "MOLENAME",
+    "TherapeuticIndication",
+    "TargetedRT",
+    "TargetedMZ",
+    "DrugPoolNumbers",
+    "EstimatedColonConcentrationMaier2018uM",
+    "SMILES",
+    "STATUS",
+    "TradeName",
+    "cas",
+    "iupacName",
+    "name",
+    "ref",
+    "salt_name",
+    "salt_smiles",
+    "smiles",
+    "source",
 )
 
 #: The block the real sheet puts *after* its data, describing its own columns.
@@ -305,16 +374,18 @@ def _book(title: str):
 
 def _strains(book) -> None:
     sheet = book.create_sheet("Supplementary Table 1")
-    sheet.append(["Supplementary Table 1: Bacterial strains and plasmids used "
-                  "in this study"])
+    sheet.append(
+        ["Supplementary Table 1: Bacterial strains and plasmids used in this study"]
+    )
     sheet.append([None])
     sheet.append([None])
     sheet.append(["Name", "Phylum, genotype or description", "Reference"])
     sheet.append([None])
     # The sub-heading the real sheet opens the organism block with: a row with a
     # name and no phylum and no reference, which the reader must skip.
-    sheet.append(["Human gut bacteria tested for drug-metabolizing activity",
-                  None, None])
+    sheet.append(
+        ["Human gut bacteria tested for drug-metabolizing activity", None, None]
+    )
     for row in STRAIN_ROWS:
         sheet.append(list(row))
     sheet.append([None])
@@ -326,28 +397,49 @@ def _strains(book) -> None:
     sheet.append(["∆BT2068", "∆tdk, ∆bt2068", "This study"])
     sheet.append([None])
     sheet.append(["Plasmids", None, None])
-    sheet.append(["pZE21 (also pZE21-MCS1)", "Protein expression plasmid",
-                  "Forsberg et al. Science (2012)"])
+    sheet.append(
+        [
+            "pZE21 (also pZE21-MCS1)",
+            "Protein expression plasmid",
+            "Forsberg et al. Science (2012)",
+        ]
+    )
 
 
 def _drugs(book) -> None:
     sheet = book.create_sheet("Supplementary Table 2")
-    sheet.append(["Supplementary Table 2: Drugs used in this study, name, "
-                  "formula, mass, logP, chromatographic retention time."])
+    sheet.append(
+        [
+            "Supplementary Table 2: Drugs used in this study, name, "
+            "formula, mass, logP, chromatographic retention time."
+        ]
+    )
     sheet.append([None])
     sheet.append([None] * 5 + ["PMID:29555994"])
     sheet.append(list(DRUG_HEADER))
     for molename, (indication, trade, cas, parent, smiles) in DRUG_ROWS.items():
         row = dict.fromkeys(DRUG_HEADER)
-        row.update({
-            "MOLENAME": molename, "TherapeuticIndication": indication,
-            "TargetedRT": 1.5, "TargetedMZ": 300.0, "DrugPoolNumbers": "1  2",
-            "EstimatedColonConcentrationMaier2018uM": "NaN", "SMILES": smiles,
-            "STATUS": "USAN, INN", "TradeName": trade, "cas": cas,
-            "iupacName": f"the IUPAC name of {parent}", "name": parent,
-            "ref": "a reference", "salt_name": "", "salt_smiles": "",
-            "smiles": smiles, "source": "synthetic",
-        })
+        row.update(
+            {
+                "MOLENAME": molename,
+                "TherapeuticIndication": indication,
+                "TargetedRT": 1.5,
+                "TargetedMZ": 300.0,
+                "DrugPoolNumbers": "1  2",
+                "EstimatedColonConcentrationMaier2018uM": "NaN",
+                "SMILES": smiles,
+                "STATUS": "USAN, INN",
+                "TradeName": trade,
+                "cas": cas,
+                "iupacName": f"the IUPAC name of {parent}",
+                "name": parent,
+                "ref": "a reference",
+                "salt_name": "",
+                "salt_smiles": "",
+                "smiles": smiles,
+                "source": "synthetic",
+            }
+        )
         sheet.append([row[c] for c in DRUG_HEADER])
     # The blank row that terminates the data, then the sheet's description of
     # its own columns.
@@ -359,16 +451,27 @@ def _drugs(book) -> None:
 
 def _screen(book) -> tuple[int, int, int]:
     sheet = book.create_sheet("Supplementary Table 3")
-    sheet.append(["Supplementary Table 3. Drug screen results (parent drugs), "
-                  "fold changes and p-values for all bacteria-drug interactions"])
+    sheet.append(
+        [
+            "Supplementary Table 3. Drug screen results (parent drugs), "
+            "fold changes and p-values for all bacteria-drug interactions"
+        ]
+    )
     sheet.append([None])
-    sheet.append([None, None, "Percent change between T=12 h and t=0 h", None,
-                  "Fold changes between T=12 h and t=0 h of n=4 independent "
-                  "cultures", None,
-                  "p-values were calculated with unpaired two-sided Student's "
-                  "t-test for n=4 independent cultures and FDR-corrected for "
-                  "multiple hypotheses testing with Benjamini-Hochberg "
-                  "procedure. "])
+    sheet.append(
+        [
+            None,
+            None,
+            "Percent change between T=12 h and t=0 h",
+            None,
+            "Fold changes between T=12 h and t=0 h of n=4 independent cultures",
+            None,
+            "p-values were calculated with unpaired two-sided Student's "
+            "t-test for n=4 independent cultures and FDR-corrected for "
+            "multiple hypotheses testing with Benjamini-Hochberg "
+            "procedure. ",
+        ]
+    )
     header: list = ["DrugName", None]
     sub: list = [None, "Drug adaptive FC threshold %"]
     for label in COLUMNS:
@@ -391,8 +494,11 @@ def _screen(book) -> tuple[int, int, int]:
             # Computed, never typed: this is the count the loader re-derives the
             # call rule against, so a hand-written headline would make that gate
             # a tautology here and a surprise on the real file.
-            if (consumed >= threshold and p <= 0.05
-                    and not label.strip().startswith("Control")):
+            if (
+                consumed >= threshold
+                and p <= 0.05
+                and not label.strip().startswith("Control")
+            ):
                 hit_here = True
         metabolised += 1 if hit_here else 0
         sheet.append(row)
@@ -402,8 +508,12 @@ def _screen(book) -> tuple[int, int, int]:
 
 def _genes(book) -> None:
     sheet = book.create_sheet("Supplementary Table 13")
-    sheet.append(["Supplementary Table 13. Identified drug-metabolizing gene "
-                  "products from bacteria and targeted drugs. "])
+    sheet.append(
+        [
+            "Supplementary Table 13. Identified drug-metabolizing gene "
+            "products from bacteria and targeted drugs. "
+        ]
+    )
     sheet.append([None])
     sheet.append([None])
     header: list = ["Gene", None, None, None]
@@ -427,25 +537,33 @@ def main() -> None:
     book, first = _book("Contents")
     first.append([None, None])
     for n, what in enumerate(
-        ["Bacterial strains used in this study.",
-         "Drugs used in this study, name, formula, mass, logP, "
-         "chromatographic retention time.",
-         "Drug screen results (parent drugs), fold changes and p-values for "
-         "all bacteria-drug interactions."],
+        [
+            "Bacterial strains used in this study.",
+            "Drugs used in this study, name, formula, mass, logP, "
+            "chromatographic retention time.",
+            "Drug screen results (parent drugs), fold changes and p-values for "
+            "all bacteria-drug interactions.",
+        ],
         start=1,
     ):
         first.append([f"Supplementary Table {n}", what])
-    first.append(["Supplementary Table 13",
-                  "Identified drug-metabolizing gene products from bacteria "
-                  "and targeted drugs. "])
+    first.append(
+        [
+            "Supplementary Table 13",
+            "Identified drug-metabolizing gene products from bacteria "
+            "and targeted drugs. ",
+        ]
+    )
     _strains(book)
     _drugs(book)
     triple = _screen(book)
     _genes(book)
     book.save(OUT / WORKBOOK)
-    print(f"wrote {OUT / WORKBOOK}: {len(SCREEN)} drugs x {len(COLUMNS)} "
-          f"measured columns = {len(SCREEN) * len(COLUMNS)} cells, "
-          f"{len(STRAIN_ROWS)} strains, {len(GENE_ROWS)} gene products")
+    print(
+        f"wrote {OUT / WORKBOOK}: {len(SCREEN)} drugs x {len(COLUMNS)} "
+        f"measured columns = {len(SCREEN) * len(COLUMNS)} cells, "
+        f"{len(STRAIN_ROWS)} strains, {len(GENE_ROWS)} gene products"
+    )
     print(f"  --published-matrix {triple[0]},{triple[1]},{triple[2]}")
 
 

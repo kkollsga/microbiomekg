@@ -168,7 +168,9 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("ontology.json"),
         help="Where to write the define_ontology document the blueprint gate reads.",
     )
-    ap.add_argument("--limit", type=int, default=0, help="Only read N rows (smoke tests).")
+    ap.add_argument(
+        "--limit", type=int, default=0, help="Only read N rows (smoke tests)."
+    )
     args = ap.parse_args(argv)
 
     try:
@@ -190,63 +192,132 @@ def main(argv: list[str] | None = None) -> int:
     if mondo_path.is_file():
         print(f"loading MONDO from {mondo_path} ...", flush=True)
         mondo = MondoIndex.from_obo(mondo_path)
-        print(f"  {len(mondo.label):,} live terms, {len(mondo.equivalent):,} "
-              f"equivalences, {len(mondo.obsolete):,} obsolete", flush=True)
+        print(
+            f"  {len(mondo.label):,} live terms, {len(mondo.equivalent):,} "
+            f"equivalences, {len(mondo.obsolete):,} obsolete",
+            flush=True,
+        )
     else:
         mondo = MondoIndex()
-        print(f"no mondo.obo at {mondo_path}; every condition keeps its own CURIE "
-              f"as key and mondo_id will be null", flush=True)
+        print(
+            f"no mondo.obo at {mondo_path}; every condition keeps its own CURIE "
+            f"as key and mondo_id will be null",
+            flush=True,
+        )
 
     out = args.out
     studies = Writer(
         out / "study.csv",
-        ["study_id", "study_number", "title", "journal", "year", "doi", "url",
-         "authors", "keywords", "pmid", "pmid_raw"],
+        [
+            "study_id",
+            "study_number",
+            "title",
+            "journal",
+            "year",
+            "doi",
+            "url",
+            "authors",
+            "keywords",
+            "pmid",
+            "pmid_raw",
+        ],
         key="study_id",
         merge=True,
     )
     papers = Writer(
-        out / "paper.csv", ["pmid", "title", "journal", "year", "doi"],
-        key="pmid", merge=True,
+        out / "paper.csv",
+        ["pmid", "title", "journal", "year", "doi"],
+        key="pmid",
+        merge=True,
     )
     # One table per condition node type (C14). The key is the MONDO CURIE when
     # MONDO declares an equivalence and the source CURIE otherwise; the source
     # id and its vocabulary stay as properties either way, so
     # `WHERE d.source_vocabulary = 'EFO'` is still expressible.
-    condition_fields = ["condition_id", "label", "mondo_id", "mondo_label",
-                        "source_id", "source_vocabulary", "source_condition"]
+    condition_fields = [
+        "condition_id",
+        "label",
+        "mondo_id",
+        "mondo_label",
+        "source_id",
+        "source_vocabulary",
+        "source_condition",
+    ]
     conditions = {
-        "Disease": Writer(out / "disease.csv", condition_fields, key="condition_id", merge=True),
+        "Disease": Writer(
+            out / "disease.csv", condition_fields, key="condition_id", merge=True
+        ),
         "Phenotype": Writer(
-            out / "phenotype.csv", condition_fields, key="condition_id", merge=True),
+            out / "phenotype.csv", condition_fields, key="condition_id", merge=True
+        ),
         "Exposure": Writer(
-            out / "exposure.csv", condition_fields, key="condition_id", merge=True),
+            out / "exposure.csv", condition_fields, key="condition_id", merge=True
+        ),
     }
     # Nothing is dropped and nothing is guessed: a vocabulary with no node type
     # and a condition string no id could be attached to both land here, with
     # the raw strings and the reason.
     unresolved_conditions = Writer(
         out / "unresolved_conditions.csv",
-        ["signature_id", "source_id", "source_vocabulary", "raw_condition",
-         "pairing_method", "reason", "source"],
+        [
+            "signature_id",
+            "source_id",
+            "source_vocabulary",
+            "raw_condition",
+            "pairing_method",
+            "reason",
+            "source",
+        ],
         dedupe_full=True,
         merge=True,
         owner=("source", SOURCE),
     )
     bodysites = Writer(
-        out / "bodysite.csv", ["bodysite_id", "label", "source_id", "ontology"], key="bodysite_id"
+        out / "bodysite.csv",
+        ["bodysite_id", "label", "source_id", "ontology"],
+        key="bodysite_id",
     )
     signatures = Writer(
         out / "signature.csv",
-        ["signature_id", "study_id", "experiment", "signature", "description",
-         "direction", "study_design", "evidence_level", "host_species", "location",
-         "group_0_name", "group_1_name", "group_0_size", "group_1_size",
-         "group_1_definition", "sequencing_type", "variable_region", "sequencing_platform",
-         "data_transformation", "statistical_test", "significance_threshold",
-         "mht_correction", "lda_score_above", "matched_on", "confounders",
-         "antibiotics_exclusion",
-         "shannon", "chao1", "richness", "curator", "curated_date", "source_figure",
-         "state", "pmid", "n_taxa", "n_unresolved", "source"],
+        [
+            "signature_id",
+            "study_id",
+            "experiment",
+            "signature",
+            "description",
+            "direction",
+            "study_design",
+            "evidence_level",
+            "host_species",
+            "location",
+            "group_0_name",
+            "group_1_name",
+            "group_0_size",
+            "group_1_size",
+            "group_1_definition",
+            "sequencing_type",
+            "variable_region",
+            "sequencing_platform",
+            "data_transformation",
+            "statistical_test",
+            "significance_threshold",
+            "mht_correction",
+            "lda_score_above",
+            "matched_on",
+            "confounders",
+            "antibiotics_exclusion",
+            "shannon",
+            "chao1",
+            "richness",
+            "curator",
+            "curated_date",
+            "source_figure",
+            "state",
+            "pmid",
+            "n_taxa",
+            "n_unresolved",
+            "source",
+        ],
         key="signature_id",
     )
     # One junction CSV over the three condition node types. `condition_type`
@@ -261,40 +332,92 @@ def main(argv: list[str] | None = None) -> int:
         dedupe_full=True,
     )
     sig_bodysite = Writer(
-        out / "signature_bodysite.csv", ["signature_id", "bodysite_id"], dedupe_full=True
+        out / "signature_bodysite.csv",
+        ["signature_id", "bodysite_id"],
+        dedupe_full=True,
     )
     reported = Writer(
         out / "taxon_signature.csv",
-        ["tax_id", "signature_id", "reported_name", "reported_rank", "original_rank",
-         "reported_tax_id", "resolution_status", "resolution_normalized",
-         "resolution_note", "direction", "source"],
+        [
+            "tax_id",
+            "signature_id",
+            "reported_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "resolution_status",
+            "resolution_normalized",
+            "resolution_note",
+            "direction",
+            "source",
+        ],
         dedupe_full=True,
     )
     reported_unres = Writer(
         out / "unresolved_taxon_signature.csv",
-        ["unresolved_id", "signature_id", "reported_name", "reported_rank",
-         "original_rank", "reported_tax_id", "resolution_status",
-         "resolution_normalized", "resolution_note", "direction", "source"],
+        [
+            "unresolved_id",
+            "signature_id",
+            "reported_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "resolution_status",
+            "resolution_normalized",
+            "resolution_note",
+            "direction",
+            "source",
+        ],
         dedupe_full=True,
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
-         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
+        [
+            "unresolved_id",
+            "raw_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "source",
+            "status",
+            "candidates",
+            "note",
+            "n_signatures",
+        ],
         key="unresolved_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    assoc_fields = ["tax_id", "condition_id", "condition_type",
-                    "direction", "study_design",
-                    "evidence_level", "sequencing_type", "statistical_test",
-                    "group_0_size", "group_1_size", "pmid",
-                    "knowledge_level", "agent_type", "primary_source",
-                    "source_record_id", "source_licence", "source_relation",
-                    "signature_id", "study_id", "host_species", "body_site",
-                    "significance_threshold", "mht_correction"]
+    assoc_fields = [
+        "tax_id",
+        "condition_id",
+        "condition_type",
+        "direction",
+        "study_design",
+        "evidence_level",
+        "sequencing_type",
+        "statistical_test",
+        "group_0_size",
+        "group_1_size",
+        "pmid",
+        "knowledge_level",
+        "agent_type",
+        "primary_source",
+        "source_record_id",
+        "source_licence",
+        "source_relation",
+        "signature_id",
+        "study_id",
+        "host_species",
+        "body_site",
+        "significance_threshold",
+        "mht_correction",
+    ]
     assoc = Writer(
-        out / "taxon_condition.csv", assoc_fields, dedupe_full=True, merge=True,
+        out / "taxon_condition.csv",
+        assoc_fields,
+        dedupe_full=True,
+        merge=True,
         owner=("primary_source", SOURCE),
     )
 
@@ -374,10 +497,15 @@ def main(argv: list[str] | None = None) -> int:
                 if node_type is None:
                     n_unroutable += 1
                     unresolved_conditions.add(
-                        {"signature_id": bsdb, "source_id": curie,
-                         "source_vocabulary": vocab, "raw_condition": verbatim,
-                         "pairing_method": paired.method,
-                         "reason": "no node type for this vocabulary", "source": SOURCE}
+                        {
+                            "signature_id": bsdb,
+                            "source_id": curie,
+                            "source_vocabulary": vocab,
+                            "raw_condition": verbatim,
+                            "pairing_method": paired.method,
+                            "reason": "no node type for this vocabulary",
+                            "source": SOURCE,
+                        }
                     )
                     continue
                 hub = mondo.mondo_id(curie)
@@ -402,18 +530,27 @@ def main(argv: list[str] | None = None) -> int:
                 )
             for curie in paired.unpaired_ids:
                 unresolved_conditions.add(
-                    {"signature_id": bsdb, "source_id": curie,
-                     "source_vocabulary": curie_vocabulary(curie), "raw_condition": "",
-                     "pairing_method": paired.method,
-                     "reason": "no condition string could be paired to this id",
-                     "source": SOURCE}
+                    {
+                        "signature_id": bsdb,
+                        "source_id": curie,
+                        "source_vocabulary": curie_vocabulary(curie),
+                        "raw_condition": "",
+                        "pairing_method": paired.method,
+                        "reason": "no condition string could be paired to this id",
+                        "source": SOURCE,
+                    }
                 )
             for text in paired.unpaired_labels:
                 unresolved_conditions.add(
-                    {"signature_id": bsdb, "source_id": "", "source_vocabulary": "",
-                     "raw_condition": text, "pairing_method": paired.method,
-                     "reason": "no id could be paired to this condition string",
-                     "source": SOURCE}
+                    {
+                        "signature_id": bsdb,
+                        "source_id": "",
+                        "source_vocabulary": "",
+                        "raw_condition": text,
+                        "pairing_method": paired.method,
+                        "reason": "no id could be paired to this condition string",
+                        "source": SOURCE,
+                    }
                 )
 
             site_label = na(row.get("Body site"))
@@ -421,27 +558,41 @@ def main(argv: list[str] | None = None) -> int:
             for curie in split_curies(na(row.get("UBERON ID"))):
                 site_ids.append(curie)
                 bodysites.add(
-                    {"bodysite_id": curie, "label": site_label or curie,
-                     "source_id": curie, "ontology": curie_vocabulary(curie)}
+                    {
+                        "bodysite_id": curie,
+                        "label": site_label or curie,
+                        "source_id": curie,
+                        "ontology": curie_vocabulary(curie),
+                    }
                 )
             if not site_ids and site_label:
                 sid = slug(site_label, "site")
                 if sid:
                     site_ids.append(sid)
                     bodysites.add(
-                        {"bodysite_id": sid, "label": site_label, "source_id": "", "ontology": ""}
+                        {
+                            "bodysite_id": sid,
+                            "label": site_label,
+                            "source_id": "",
+                            "ontology": "",
+                        }
                     )
 
             for node_type, keys in row_conditions.items():
                 for key in keys:
                     sig_condition.add(
-                        {"signature_id": bsdb, "condition_id": key,
-                         "condition_type": node_type}
+                        {
+                            "signature_id": bsdb,
+                            "condition_id": key,
+                            "condition_type": node_type,
+                        }
                     )
             for sid in site_ids:
                 sig_bodysite.add({"signature_id": bsdb, "bodysite_id": sid})
 
-            pairs = split_taxa(na(row.get("MetaPhlAn taxon names")), na(row.get("NCBI Taxonomy IDs")))
+            pairs = split_taxa(
+                na(row.get("MetaPhlAn taxon names")), na(row.get("NCBI Taxonomy IDs"))
+            )
             n_here = n_unres_here = 0
             for name_lin, id_lin in pairs:
                 n_pairs += 1
@@ -457,7 +608,9 @@ def main(argv: list[str] | None = None) -> int:
                     )
                 else:
                     res = idx.resolve(pretty or None, rank_ceiling=args.rank_ceiling)
-                reported_name = pretty or idx.scientific_name.get(res.tax_id or -1) or raw_id
+                reported_name = (
+                    pretty or idx.scientific_name.get(res.tax_id or -1) or raw_id
+                )
 
                 # Two ranks, two claims, both kept (C21.4). `reported_rank` is
                 # the source's: MetaPhlAn's prefix vocabulary has no
@@ -547,7 +700,9 @@ def main(argv: list[str] | None = None) -> int:
                                 "study_id": study_id,
                                 "host_species": host,
                                 "body_site": site_ids[0] if site_ids else "",
-                                "significance_threshold": na(row.get("Significance threshold")),
+                                "significance_threshold": na(
+                                    row.get("Significance threshold")
+                                ),
                                 "mht_correction": na(row.get("MHT correction")),
                             }
                         )
@@ -604,35 +759,70 @@ def main(argv: list[str] | None = None) -> int:
         r["n_signatures"] = str(unresolved_hits.get(r["unresolved_id"], 0))
 
     cited_writer = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
     for tid, n in sorted(cited.items()):
         cited_writer.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
-    counts = {w.path.name: w.flush() for w in (
-        studies, papers, *conditions.values(), bodysites, signatures,
-        sig_condition, sig_bodysite, reported, reported_unres,
-        unresolved_nodes, assoc, unresolved_conditions, cited_writer)}
+    counts = {
+        w.path.name: w.flush()
+        for w in (
+            studies,
+            papers,
+            *conditions.values(),
+            bodysites,
+            signatures,
+            sig_condition,
+            sig_bodysite,
+            reported,
+            reported_unres,
+            unresolved_nodes,
+            assoc,
+            unresolved_conditions,
+            cited_writer,
+        )
+    }
 
     ont_path = ont.write_json(args.ontology_json)
 
     n_terms = sum(len(w.seen) for w in conditions.values())
-    print(f"\nread {n_rows:,} signature rows, {n_pairs:,} taxon mentions "
-          f"({n_resolved:,} resolved, {n_pairs - n_resolved:,} unresolved)")
-    print(f"conditions: {n_terms:,} terms typed, {len(no_mondo_terms):,} of them "
-          f"with no MONDO equivalence (own CURIE as key, mondo_id null); "
-          f"{n_unroutable:,} mentions in vocabularies with no node type")
-    print("  condition pairing: " + ", ".join(
-        f"{m} {n:,}" for m, n in sorted(pairing_methods.items())))
+    print(
+        f"\nread {n_rows:,} signature rows, {n_pairs:,} taxon mentions "
+        f"({n_resolved:,} resolved, {n_pairs - n_resolved:,} unresolved)"
+    )
+    print(
+        f"conditions: {n_terms:,} terms typed, {len(no_mondo_terms):,} of them "
+        f"with no MONDO equivalence (own CURIE as key, mondo_id null); "
+        f"{n_unroutable:,} mentions in vocabularies with no node type"
+    )
+    print(
+        "  condition pairing: "
+        + ", ".join(f"{m} {n:,}" for m, n in sorted(pairing_methods.items()))
+    )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in (
-        studies, papers, *conditions.values(), unresolved_nodes, assoc,
-        unresolved_conditions, cited_writer) if w.merged_in}
+    shared = {
+        w.path.name: w.merged_in
+        for w in (
+            studies,
+            papers,
+            *conditions.values(),
+            unresolved_nodes,
+            assoc,
+            unresolved_conditions,
+            cited_writer,
+        )
+        if w.merged_in
+    }
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     print(f"  {ont_path.name:34s}  (ontology document)")
     return 0
 

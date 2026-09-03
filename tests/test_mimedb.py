@@ -45,10 +45,15 @@ PREP = SCRIPTS / "prep_mimedb.py"
 
 sys.path.insert(0, str(SCRIPTS))
 
-for _needed in (PREP, MIMEDB_MINI / "mimedb_metabolites_v2.csv",
-                MIMEDB_MINI / "mimedb_microbes_v2.csv",
-                MIMEDB_MINI / "mimedb_metabolites_v1.csv",
-                MIMEDB_MINI / "mimedb_microbes_v1.csv", HMDB_MINI, NJC19_MINI):
+for _needed in (
+    PREP,
+    MIMEDB_MINI / "mimedb_metabolites_v2.csv",
+    MIMEDB_MINI / "mimedb_microbes_v2.csv",
+    MIMEDB_MINI / "mimedb_metabolites_v1.csv",
+    MIMEDB_MINI / "mimedb_microbes_v1.csv",
+    HMDB_MINI,
+    NJC19_MINI,
+):
     if not _needed.exists():
         pytest.skip(f"{_needed} does not exist yet", allow_module_level=True)
 
@@ -68,14 +73,14 @@ SOURCE = "mimedb"
 # Golden values, derived from the fixture by hand and asserted exactly.
 # --------------------------------------------------------------------------
 
-RECORDS = 12            # metabolite records in the v2 fixture CSV
-LOADED = 7              # new Metabolite nodes
-NOT_SELECTED = 2        # Chitin (NJC19 never names it) and the glycerophospholipid
-ALREADY_HELD = 3        # by accession, by name, by InChIKey — one each
-CONTESTED_RECORDS = 2   # L-Tyrosine and D-Tyrosine, one accession
-MICROBES = 8            # organism rows in the v2 fixture
+RECORDS = 12  # metabolite records in the v2 fixture CSV
+LOADED = 7  # new Metabolite nodes
+NOT_SELECTED = 2  # Chitin (NJC19 never names it) and the glycerophospholipid
+ALREADY_HELD = 3  # by accession, by name, by InChIKey — one each
+CONTESTED_RECORDS = 2  # L-Tyrosine and D-Tyrosine, one accession
+MICROBES = 8  # organism rows in the v2 fixture
 MICROBES_WITH_TAXID = 7  # the fungus carries none, as six real v2 rows do not
-LEDGER_ROWS = 5         # 3 already-held + 2 contested
+LEDGER_ROWS = 5  # 3 already-held + 2 contested
 
 #: The same fixture one release back. v1 has neither the twelfth metabolite
 #: record nor the two extra organisms, which is what makes "v2 selects more"
@@ -105,26 +110,45 @@ def build(work: Path, release: str) -> tuple[object, Path, str]:
 
     run(
         SCRIPTS / "prep_hmdb.py",
-        "--xml", str(HMDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--reactome", str(REACTOME_MINI),
-        "--out", str(csv_dir),
+        "--xml",
+        str(HMDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(
         PREP,
-        "--metabolites", str(MIMEDB_MINI / f"mimedb_metabolites_{release}.csv"),
-        "--microbes", str(MIMEDB_MINI / f"mimedb_microbes_{release}.csv"),
-        "--njc19", str(NJC19_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--metabolites",
+        str(MIMEDB_MINI / f"mimedb_metabolites_{release}.csv"),
+        "--microbes",
+        str(MIMEDB_MINI / f"mimedb_microbes_{release}.csv"),
+        "--njc19",
+        str(NJC19_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
-    run(SCRIPTS / "prep_reactome.py", "--reactome", str(REACTOME_MINI), "--out", str(csv_dir))
+    run(
+        SCRIPTS / "prep_reactome.py",
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
+    )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -191,7 +215,9 @@ def table(csv_dir, name):
 # --------------------------------------------------------------------------
 
 
-def test_mimedb_writes_no_taxon_metabolite_edge_because_there_is_none(graph, prep_output):
+def test_mimedb_writes_no_taxon_metabolite_edge_because_there_is_none(
+    graph, prep_output
+):
     """**The headline assertion of this module, and it is a zero.**
 
     Both downloads are `SELECT * FROM microbes` and `SELECT * FROM metabolites`;
@@ -240,10 +266,14 @@ def test_the_relation_count_column_is_a_count_and_never_an_edge(graph, prep_outp
     assert counts["Trimethylamine oxide"] == 146
     assert all(isinstance(n, int) for n in counts.values() if n is not None)
     # Zero is a value MiMeDB states, not an absence.
-    assert counts["Ethanoic acid" if "Ethanoic acid" in counts else "Pectin"] is not None
+    assert (
+        counts["Ethanoic acid" if "Ethanoic acid" in counts else "Pectin"] is not None
+    )
     total = sum(n for n in counts.values() if n is not None)
-    assert f"microbe_relations: {total:,} taxon-metabolite pairs counted, 0 enumerated" \
+    assert (
+        f"microbe_relations: {total:,} taxon-metabolite pairs counted, 0 enumerated"
         in prep_output
+    )
 
 
 def test_an_absent_relation_count_is_empty_and_not_a_zero(graph):
@@ -266,9 +296,13 @@ def test_the_organisms_are_read_reported_and_not_loaded(graph, prep_output):
     of D5's edge and nothing to attach it to. Reporting the number is what
     separates "MiMeDB does not close D5" from "MiMeDB has nothing"; loading it
     would put 2,648 unconnected `Taxon` nodes in the real graph."""
-    assert (f"microbes: {MICROBES} organisms, {MICROBES_WITH_TAXID} with an NCBI taxid"
-            in prep_output)
-    assert "promoted 1" in prep_output, "the strain-level row must promote to its species"
+    assert (
+        f"microbes: {MICROBES} organisms, {MICROBES_WITH_TAXID} with an NCBI taxid"
+        in prep_output
+    )
+    assert "promoted 1" in prep_output, (
+        "the strain-level row must promote to its species"
+    )
     # Not in cited_taxa.csv, so the taxonomy build keeps none of them for MiMeDB.
     assert not rows(
         graph,
@@ -337,7 +371,9 @@ def test_v1_still_loads_and_says_so(built_v1):
     assert "MiMeDB v1.0" in out_v1
     assert f"read {RECORDS_V1:,} metabolite records" in out_v1
     assert f"loaded {LOADED_V1:,} new Metabolite nodes" in out_v1
-    assert f"microbes: {MICROBES_V1} organisms, {MICROBES_V1} with an NCBI taxid" in out_v1
+    assert (
+        f"microbes: {MICROBES_V1} organisms, {MICROBES_V1} with an NCBI taxid" in out_v1
+    )
     releases = {
         r["release"]
         for r in rows(
@@ -369,7 +405,10 @@ def test_the_v2_identity_columns_reach_the_node(graph):
     whole reason MiMeDB is loaded at all is compound identity. Carrying them is
     the contribution; the values here are cut from the real v2 dump."""
     assert set(V2_ONLY_COLUMNS) == {
-        "epa_substance_id", "epa_compound_id", "microbe_relations", "cmmc_inchikey"
+        "epa_substance_id",
+        "epa_compound_id",
+        "microbe_relations",
+        "cmmc_inchikey",
     }
     tyr = one(
         graph,
@@ -413,8 +452,11 @@ def test_cmmc_inchikey_is_carried_and_is_not_a_join_key(graph, csv_dir):
     assert row["inchikey"] == "CONJDEOXYCHOL1-UHFFFAOYSA-N"
     # HMDB's deoxycholic acid kept its own node, and neither swallowed the other.
     assert rows(graph, "MATCH (m:Metabolite {title: 'Deoxycholic acid'}) RETURN m")
-    assert not [r for r in table(csv_dir, "unresolved_mimedb.csv")
-                if r["name"] == "Conjugated deoxycholate"]
+    assert not [
+        r
+        for r in table(csv_dir, "unresolved_mimedb.csv")
+        if r["name"] == "Conjugated deoxycholate"
+    ]
 
 
 # --------------------------------------------------------------------------
@@ -455,7 +497,9 @@ def test_the_njc19_rule_selects_a_compound_njc19_needs_and_not_one_it_might(grap
     the same *shape* of record and NJC19 never names it, so it is not loaded:
     the rule is "a compound NJC19 needs", not "a compound like the ones it
     needs"."""
-    pectin = one(graph, "MATCH (m:Metabolite {title: 'Pectin'}) RETURN m.selection_rule AS r")
+    pectin = one(
+        graph, "MATCH (m:Metabolite {title: 'Pectin'}) RETURN m.selection_rule AS r"
+    )
     assert pectin["r"] == ["njc19-compound"]
     assert not rows(graph, "MATCH (m:Metabolite {title: 'Chitin'}) RETURN m")
 
@@ -476,8 +520,11 @@ def test_a_legacy_five_digit_accession_still_finds_its_node(graph, csv_dir):
     assert normalise_hmdb_id("NULL") == ""
     assert normalise_hmdb_id("CHEBI:30772") == ""
     assert not rows(graph, "MATCH (m:Metabolite {title: 'Butyrate salt'}) RETURN m")
-    reason = [r for r in table(csv_dir, "unresolved_mimedb.csv")
-              if r["name"] == "Butyrate salt"]
+    reason = [
+        r
+        for r in table(csv_dir, "unresolved_mimedb.csv")
+        if r["name"] == "Butyrate salt"
+    ]
     assert len(reason) == 1
     assert reason[0]["metabolite_id"] and "already holds" in reason[0]["reason"]
 
@@ -488,8 +535,11 @@ def test_a_compound_held_under_another_name_is_found_by_its_structure(graph, csv
     a second acetate node — and NJC19, which tries derived spellings in order,
     can then reach the new one while HMDB's producers stay on the old."""
     assert not rows(graph, "MATCH (m:Metabolite {title: 'Ethanoic acid'}) RETURN m")
-    reason = [r for r in table(csv_dir, "unresolved_mimedb.csv")
-              if r["name"] == "Ethanoic acid"]
+    reason = [
+        r
+        for r in table(csv_dir, "unresolved_mimedb.csv")
+        if r["name"] == "Ethanoic acid"
+    ]
     assert len(reason) == 1 and "already holds" in reason[0]["reason"]
 
 
@@ -512,8 +562,11 @@ def test_a_contested_hmdb_accession_is_not_a_join_key(graph, csv_dir):
     assert set(ids) == {"L-Tyrosine", "D-Tyrosine"}
     assert ids["L-Tyrosine"] != ids["D-Tyrosine"]
     assert all(i.startswith("MIMEDB:") for i in ids.values())
-    contested = [r for r in table(csv_dir, "unresolved_mimedb.csv")
-                 if "is claimed by" in r["reason"]]
+    contested = [
+        r
+        for r in table(csv_dir, "unresolved_mimedb.csv")
+        if "is claimed by" in r["reason"]
+    ]
     assert len(contested) == CONTESTED_RECORDS
     assert all("HMDB0000158" in r["reason"] for r in contested)
     # And neither of them kept the accession, because it did not identify them.
@@ -525,7 +578,9 @@ def test_a_contested_hmdb_accession_is_not_a_join_key(graph, csv_dir):
         assert not row["hmdb_id"]
 
 
-def test_an_already_held_compound_is_a_ledger_row_and_not_a_merge(graph, csv_dir, prep_output):
+def test_an_already_held_compound_is_a_ledger_row_and_not_a_merge(
+    graph, csv_dir, prep_output
+):
     """`Writer` keys `metabolite.csv` on `metabolite_id` and the first row per
     key wins, so a MiMeDB row written for a compound HMDB already has would
     have its properties silently discarded — an outcome that reads like a
@@ -595,10 +650,14 @@ def test_the_origin_axis_survives_onto_the_node(graph):
 
 
 def test_the_prep_reports_what_it_did_not_load(prep_output):
-    for phrase in ("selection rule:", "that no rule selected",
-                   "not written because the compound already has a node:",
-                   "so not used as a join key:", "mimedb_origin:",
-                   "PRODUCES edges from MiMeDB: 0"):
+    for phrase in (
+        "selection rule:",
+        "that no rule selected",
+        "not written because the compound already has a node:",
+        "so not used as a join key:",
+        "mimedb_origin:",
+        "PRODUCES edges from MiMeDB: 0",
+    ):
         assert phrase in prep_output
 
 
@@ -621,15 +680,28 @@ def test_the_fixture_keeps_the_real_dumps_columns():
         columns = next(csv.reader(fh))
     assert len(columns) == 46
     assert columns[:3] == ["id", "name", "mime_id"]
-    assert {"hmdb_id", "detected", "quantified", "metabolite_type", "moldb_inchikey",
-            "moldb_formula", "moldb_average_mass", "cas", "vmh_id",
-            "epa_substance_id", "epa_compound_id", "microbe_relations",
-            "cmmc_inchikey"} <= set(columns)
+    assert {
+        "hmdb_id",
+        "detected",
+        "quantified",
+        "metabolite_type",
+        "moldb_inchikey",
+        "moldb_formula",
+        "moldb_average_mass",
+        "cas",
+        "vmh_id",
+        "epa_substance_id",
+        "epa_compound_id",
+        "microbe_relations",
+        "cmmc_inchikey",
+    } <= set(columns)
 
     with (MIMEDB_MINI / "mimedb_microbes_v2.csv").open(encoding="utf-8") as fh:
         columns = next(csv.reader(fh))
     assert len(columns) == 44
-    assert {"ncbi_tax_id", "activity", "species", "strain", "description"} <= set(columns)
+    assert {"ncbi_tax_id", "activity", "species", "strain", "description"} <= set(
+        columns
+    )
     # And nothing in either header names the other table. `microbe_relations` is
     # a count on the *metabolite* side and is the closest either file comes.
     assert not {c for c in columns if "metabolite" in c}

@@ -43,8 +43,24 @@ PROJECTION = re.compile(r"\b(\w+)\.(\w+)\b")
 #: `count(x)`, `collect(x)`, `size(x)` — a function name is not a binding, and
 #: `n.count` is not a projection of one either.
 NOT_A_BINDING = frozenset(
-    {"count", "collect", "sum", "min", "max", "avg", "round", "size", "toLower",
-     "toUpper", "length", "labels", "nodes", "type", "startNode", "endNode"}
+    {
+        "count",
+        "collect",
+        "sum",
+        "min",
+        "max",
+        "avg",
+        "round",
+        "size",
+        "toLower",
+        "toUpper",
+        "length",
+        "labels",
+        "nodes",
+        "type",
+        "startNode",
+        "endNode",
+    }
 )
 
 
@@ -74,7 +90,9 @@ def carried(graph):
         if key not in seen:
             pattern = f"(n:{label})" if kind == "node" else f"()-[n:{label}]->()"
             rows = list(
-                graph.cypher(f"MATCH {pattern} WHERE n.{prop} IS NOT NULL RETURN count(n) AS n")
+                graph.cypher(
+                    f"MATCH {pattern} WHERE n.{prop} IS NOT NULL RETURN count(n) AS n"
+                )
             )
             seen[key] = bool(rows and rows[0]["n"])
         return seen[key]
@@ -102,8 +120,12 @@ ALL_BLOCKS = part_d_blocks() + skill_blocks()
 
 @pytest.mark.parametrize("name,query", ALL_BLOCKS, ids=[name for name, _ in ALL_BLOCKS])
 def test_no_published_query_projects_a_property_nothing_carries(name, query, carried):
-    nodes = {a: label for a, label in NODE_BINDING.findall(query) if a not in NOT_A_BINDING}
-    rels = {a: types for a, types in REL_BINDING.findall(query) if a not in NOT_A_BINDING}
+    nodes = {
+        a: label for a, label in NODE_BINDING.findall(query) if a not in NOT_A_BINDING
+    }
+    rels = {
+        a: types for a, types in REL_BINDING.findall(query) if a not in NOT_A_BINDING
+    }
     dead = []
     for alias, prop in PROJECTION.findall(query):
         if alias in NOT_A_BINDING or prop in NOT_A_BINDING:

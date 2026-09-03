@@ -55,21 +55,21 @@ EXPECTED_SKILLS = {
 #: checks use; a skill whose queries need a different subject overrides them, so
 #: each block runs against data that actually exists rather than merely parsing.
 BASE_PARAMS = {
-    "taxon_id": 851,                      # Fusobacterium nucleatum
+    "taxon_id": 851,  # Fusobacterium nucleatum
     "taxon_ids": [821, 851, 1263, 40520, 239935, 33038],
-    "disease_id": "MONDO:0005575",        # colorectal cancer
-    "drug_id": "CHEMBL:CHEMBL1431",       # metformin
+    "disease_id": "MONDO:0005575",  # colorectal cancer
+    "drug_id": "CHEMBL:CHEMBL1431",  # metformin
     "drug_class": "fluoroquinolone antibiotic",
-    "metabolite_id": "CHEBI:30772",       # butyric acid — the acid, not the base
+    "metabolite_id": "CHEBI:30772",  # butyric acid — the acid, not the base
     "name": "Clostridium dificile",
     "epithet": "dificile",
     "rank": "species",
 }
 PARAM_OVERRIDES = {
-    "amr": {"taxon_id": 562},                       # E. coli carries determinants
+    "amr": {"taxon_id": 562},  # E. coli carries determinants
     "metabolites_pathways": {"taxon_id": 1496, "name": "butyric acid"},
-    "drugs": {"disease_id": "MONDO:0005148"},       # T2D — where metformin lands
-    "reconciliation": {"taxon_id": 1598},           # Limosilactobacillus reuteri
+    "drugs": {"disease_id": "MONDO:0005148"},  # T2D — where metformin lands
+    "reconciliation": {"taxon_id": 1598},  # Limosilactobacillus reuteri
 }
 
 
@@ -103,7 +103,9 @@ def injected_tools():
         pytest.skip("kglite-mcp-server is not installed (it ships in the kglite wheel)")
     if not GRAPH.exists():
         pytest.skip(f"no graph at {GRAPH}")
-    with MCPClient([binary, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]) as client:
+    with MCPClient(
+        [binary, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]
+    ) as client:
         return client.tools()
 
 
@@ -119,9 +121,13 @@ def test_frontmatter_parses_and_carries_the_load_bearing_keys(path: Path):
     # the highest-value half; a skill without one injects methodology an agent
     # has no reason to read.
     assert frontmatter.get("description"), "no description (the routing heuristic)"
-    assert "TRIGGER" in frontmatter["description"] and "SKIP" in frontmatter["description"]
+    assert (
+        "TRIGGER" in frontmatter["description"] and "SKIP" in frontmatter["description"]
+    )
     assert isinstance(frontmatter.get("references_tools"), list)
-    assert frontmatter["references_tools"], "references_tools is load-bearing, not decorative"
+    assert frontmatter["references_tools"], (
+        "references_tools is load-bearing, not decorative"
+    )
     assert isinstance(frontmatter.get("applies_when"), dict)
     assert frontmatter["applies_when"].get("graph_has_node_type")
     assert len(body.encode("utf-8")) <= SKILL_BODY_HARD_CAP, (
@@ -153,7 +159,9 @@ def test_references_only_tools_the_server_exposes(path: Path, injected_tools):
 
 
 @pytest.mark.parametrize("path", SKILL_FILES, ids=lambda p: p.stem)
-def test_the_server_injects_the_skill_into_exactly_the_tools_it_names(path: Path, injected_tools):
+def test_the_server_injects_the_skill_into_exactly_the_tools_it_names(
+    path: Path, injected_tools
+):
     """The authoritative frontmatter check: injection only happens on a parse."""
     frontmatter, _ = read_frontmatter(path)
     marker = f"<!-- mcp-skill:{frontmatter['name']} -->"
@@ -258,7 +266,9 @@ def test_no_block_ranks_on_a_property_with_no_bm25_index(path: Path, graph):
         )
         for variable, prop in BM25_CALL.findall(query):
             node_type = bindings.get(variable)
-            assert node_type, f"{path.name} block {index + 1}: unbound variable {variable!r}"
+            assert node_type, (
+                f"{path.name} block {index + 1}: unbound variable {variable!r}"
+            )
             assert graph.has_text_index(node_type, prop), (
                 f"{path.name} block {index + 1} calls text_bm25 on "
                 f"{node_type}.{prop}, which has no BM25 index — the query returns "

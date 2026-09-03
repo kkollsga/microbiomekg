@@ -142,7 +142,7 @@ def test_every_number_in_the_agent_surface_carries_a_claim(unit):
 
 @pytest.mark.parametrize("unit", UNITS, ids=[unit.where for unit in UNITS])
 def test_every_existential_phrase_in_the_agent_surface_carries_a_claim(unit):
-    """"There is no CONSUMES edge in this graph at all" was the whole defect.
+    """ "There is no CONSUMES edge in this graph at all" was the whole defect.
 
     An existential carries no number for the check above to catch, so it is
     covered by the presence of a claim rather than by a value — normally a
@@ -213,23 +213,27 @@ def test_the_gate_can_fail():
     assert not existential_phrases("96 metabolites have a non-zero MES.")
 
     # Escape hatches stay narrow: code, years, versions and labels are not claims.
-    assert checkable_numbers("`LIMIT 10`, CARD 4.0.2, Maier 2018, leg 3, 40 isolates") == ["40"]
+    assert checkable_numbers(
+        "`LIMIT 10`, CARD 4.0.2, Maier 2018, leg 3, 40 isolates"
+    ) == ["40"]
     assert checkable_numbers("which of the six sources wrote this") == ["6"]
     assert checkable_numbers("Four legs, four different claims") == []
     assert canonical("4,784") == "4784" and canonical("55.8%") == "55.8"
 
     # Sections are the scope, and they come from the headings.
     assert [name for name, _ in split_sections("# A\ntext\n## B\nmore")] == [
-        "preamble", "A", "B",
+        "preamble",
+        "A",
+        "B",
     ]
 
     # A malformed annotation is an error, never a skip.
     for payload, kind in (
-        (" RETURN 1 ", ""),                        # no `==`
-        (" RETURN count(r) == ", ""),              # no expected value
-        (" count them == 4 ", ""),                 # not Cypher
-        (" 63 ", " external"),                     # no reason
-        (" 63 — because ", " external"),           # reason too short
+        (" RETURN 1 ", ""),  # no `==`
+        (" RETURN count(r) == ", ""),  # no expected value
+        (" count them == 4 ", ""),  # not Cypher
+        (" 63 ", " external"),  # no reason
+        (" 63 — because ", " external"),  # reason too short
     ):
         with pytest.raises(ClaimSyntaxError):
             parse_claim(payload, kind, "fixture")
@@ -237,4 +241,7 @@ def test_the_gate_can_fail():
     # A thousands separator inside a claim cannot be told from the separator
     # between two values, so it becomes two — and the column count is what
     # catches it, loudly, when the claim runs.
-    assert parse_claim(" RETURN count(r) == 5,592 ", "", "fixture").values == ("5", "592")
+    assert parse_claim(" RETURN count(r) == 5,592 ", "", "fixture").values == (
+        "5",
+        "592",
+    )

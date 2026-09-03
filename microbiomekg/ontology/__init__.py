@@ -147,13 +147,17 @@ def ontology_for(sources: list[str] | None = None) -> dict:
 ONTOLOGY: dict = ontology_for()
 
 
-def write_json(path: str | Path = "ontology.json", document: dict | None = None) -> Path:
+def write_json(
+    path: str | Path = "ontology.json", document: dict | None = None
+) -> Path:
     """Write a declaration document where the blueprint's ``ontology`` points.
 
     Defaults to :data:`ONTOLOGY`; pass :func:`ontology_for`'s result for a
     build that loaded only some sources.
     """
     p = Path(path)
-    p.write_text(json.dumps(ONTOLOGY if document is None else document, indent=2) + "\n",
-                 encoding="utf-8")
+    p.write_text(
+        json.dumps(ONTOLOGY if document is None else document, indent=2) + "\n",
+        encoding="utf-8",
+    )
     return p

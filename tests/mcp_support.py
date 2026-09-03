@@ -57,7 +57,9 @@ class MCPClient:
     on the first statement of the block.
     """
 
-    def __init__(self, argv: list[str], cwd: Path = ROOT, timeout: float = 90.0) -> None:
+    def __init__(
+        self, argv: list[str], cwd: Path = ROOT, timeout: float = 90.0
+    ) -> None:
         env = dict(os.environ)
         # The manifest's embedder factory is `microbiomekg.embedder:build`, and
         # the repo root reaches the server's Python by no other route.
@@ -117,7 +119,14 @@ class MCPClient:
     def request(self, method: str, params: dict | None = None) -> dict:
         self._next_id += 1
         request_id = self._next_id
-        self._send({"jsonrpc": "2.0", "id": request_id, "method": method, "params": params or {}})
+        self._send(
+            {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": method,
+                "params": params or {},
+            }
+        )
         assert self._proc.stdout is not None
         while True:
             line = self._proc.stdout.readline()
@@ -148,7 +157,9 @@ class MCPClient:
         """
         result = self.request("tools/call", {"name": name, "arguments": arguments})
         text = "\n".join(
-            block.get("text", "") for block in result.get("content", []) if block.get("type") == "text"
+            block.get("text", "")
+            for block in result.get("content", [])
+            if block.get("type") == "text"
         )
         if result.get("isError"):
             raise RuntimeError(f"tool {name} returned isError with: {text}")

@@ -61,7 +61,9 @@ def test_manifest_exists_and_names_the_skills_pack():
     # first — the manifest *explains* the absence, and grepping the prose would
     # make this assertion fail on the sentence that documents it.
     declarations = [
-        line for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")
+        line
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
     ]
     assert not any("writable" in line for line in declarations), declarations
 
@@ -100,7 +102,11 @@ def test_selftest_passes_against_the_manifest():
     # normally and this line still printed PASSED (docs/model.md §8 item 12).
     # It now names the count, and this repo's seven must all be in it.
     served = next(
-        (line for line in output.splitlines() if "skills:" in line and "served" in line),
+        (
+            line
+            for line in output.splitlines()
+            if "skills:" in line and "served" in line
+        ),
         None,
     )
     assert served, f"the selftest no longer reports a skill count:\n{output}"
@@ -123,9 +129,17 @@ def test_a_skills_path_that_does_not_exist_fails_the_boot(tmp_path):
         encoding="utf-8",
     )
     completed = subprocess.run(
-        [sys.executable, "scripts/serve.py", "--selftest",
-         "--mcp-config", str(manifest)],
-        cwd=ROOT, capture_output=True, text=True, timeout=90,
+        [
+            sys.executable,
+            "scripts/serve.py",
+            "--selftest",
+            "--mcp-config",
+            str(manifest),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=90,
     )
     output = completed.stdout + completed.stderr
     assert completed.returncode != 0, f"a missing skills pack booted cleanly:\n{output}"
@@ -140,9 +154,14 @@ def test_server_is_read_only():
     invalidate them without leaving a trace in any file this repo tracks.
     """
     _skip_without_graph()
-    with MCPClient([BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]) as client:
+    with MCPClient(
+        [BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]
+    ) as client:
         with pytest.raises(RuntimeError) as excinfo:
-            client.call("cypher_query", {"query": "CREATE (n:Taxon {id: -1, scientific_name: 'x'})"})
+            client.call(
+                "cypher_query",
+                {"query": "CREATE (n:Taxon {id: -1, scientific_name: 'x'})"},
+            )
         assert "writable" in str(excinfo.value).lower(), excinfo.value
         # And the graph is untouched: the refusal is a refusal, not a rollback.
         assert "864132" in client.call(
@@ -154,7 +173,9 @@ def test_initialize_instructions_carry_the_evidence_rules():
     """`instructions:` is the init channel — seen once, so it holds only the
     three rules that orient a session, not methodology (that is a skill)."""
     _skip_without_graph()
-    with MCPClient([BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]) as client:
+    with MCPClient(
+        [BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]
+    ) as client:
         assert client.server_info.get("name") == "MicrobiomeKG"
         instructions = client.instructions
         assert "evidence_level" in instructions
@@ -168,8 +189,19 @@ def test_overview_prefix_rides_the_bare_graph_overview():
     graph_overview(), which is the whole reason the evidence-field reminder and
     the UnresolvedTaxon warning live there rather than in `instructions`."""
     _skip_without_graph()
-    with MCPClient([BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]) as client:
+    with MCPClient(
+        [BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]
+    ) as client:
         overview = client.call("graph_overview", {})
-        for phrase in ("evidence_level", "knowledge_level", "primary_source",
-                       "publications", "UnresolvedTaxon", "Ledger", "placeholder"):
-            assert phrase.lower() in overview.lower(), f"{phrase!r} missing from graph_overview()"
+        for phrase in (
+            "evidence_level",
+            "knowledge_level",
+            "primary_source",
+            "publications",
+            "UnresolvedTaxon",
+            "Ledger",
+            "placeholder",
+        ):
+            assert phrase.lower() in overview.lower(), (
+                f"{phrase!r} missing from graph_overview()"
+            )

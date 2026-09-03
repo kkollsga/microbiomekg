@@ -143,45 +143,164 @@ COLUMN_LABEL = {
 }
 
 SPECIES_HEADER = (
-    "NT data base", "Phylum", "Class", "Order", "Family", "Genus", "Species",
-    "Strain", "Source", "Gram stain", "Medium preference",
-    "Starting OD (96 well screen)", "Starting OD (384 well screen)",
+    "NT data base",
+    "Phylum",
+    "Class",
+    "Order",
+    "Family",
+    "Genus",
+    "Species",
+    "Strain",
+    "Source",
+    "Gram stain",
+    "Medium preference",
+    "Starting OD (96 well screen)",
+    "Starting OD (384 well screen)",
 )
 
 SPECIES_ROWS: list[tuple] = [
-    ("NT5004", "Bacteroidetes", "Bacteroidia", "Bacteroidales", "Bacteroidaceae",
-     "Bacteroides", "Bacteroides thetaiotaomicron", "E50(VPI 5482)",
-     "DSM No.: 2079", "negative", "mGAM", 0.01, 0.05),
-    ("NT5003", "Bacteroidetes", "Bacteroidia", "Bacteroidales", "Bacteroidaceae",
-     "Bacteroides", "Bacteroides fragilis nontoxigenic", "EN-2, VPI 2553",
-     "DSM No.: 2151", "negative", "mGAM", 0.01, 0.05),
-    ("NT5033", "Bacteroidetes", "Bacteroidia", "Bacteroidales", "Bacteroidaceae",
-     "Bacteroides", "Bacteroides fragilis enterotoxigenic (ET)", "20656-2- 1",
-     "ATCC No.: 43860", "negative", "mGAM", 0.01, 0.05),
-    ("NT5028", "Actinobacteria", "Actinobacteria", "Bifidobacteriales",
-     "Bifidobacteriaceae", "Bifidobacterium",
-     "Bifidobacterium longum subsp. infantis", "type strain, E194b (Variant a)",
-     "DSM No.: 20219", "positive", "mGAM", 0.01, 0.05),
-    ("NT5099", "Firmicutes", "Clostridia", "Eubacteriales", "Lachnospiraceae",
-     "Nonexistiblia", "Nonexistiblia inventata", "type strain",
-     "DSM No.: 99999", "positive", "mGAM", 0.01, 0.05),
-    ("Laboratory E. coli strains", None, None, None, None, None, None, None,
-     None, None, None, None, None),
-    ("NT5084", "Proteobacteria", "Gammaproteobacteria", "Enterobacterales",
-     "Enterobacteriaceae", "Escherichia", "Escherichia coli K-12", "BW25113",
-     "Keio collection", "negative", "LB", 0.01, 0.05),
-    ("NT5085", None, None, None, None, None, None, None, None, "negative",
-     "LB", 0.01, 0.05),
+    (
+        "NT5004",
+        "Bacteroidetes",
+        "Bacteroidia",
+        "Bacteroidales",
+        "Bacteroidaceae",
+        "Bacteroides",
+        "Bacteroides thetaiotaomicron",
+        "E50(VPI 5482)",
+        "DSM No.: 2079",
+        "negative",
+        "mGAM",
+        0.01,
+        0.05,
+    ),
+    (
+        "NT5003",
+        "Bacteroidetes",
+        "Bacteroidia",
+        "Bacteroidales",
+        "Bacteroidaceae",
+        "Bacteroides",
+        "Bacteroides fragilis nontoxigenic",
+        "EN-2, VPI 2553",
+        "DSM No.: 2151",
+        "negative",
+        "mGAM",
+        0.01,
+        0.05,
+    ),
+    (
+        "NT5033",
+        "Bacteroidetes",
+        "Bacteroidia",
+        "Bacteroidales",
+        "Bacteroidaceae",
+        "Bacteroides",
+        "Bacteroides fragilis enterotoxigenic (ET)",
+        "20656-2- 1",
+        "ATCC No.: 43860",
+        "negative",
+        "mGAM",
+        0.01,
+        0.05,
+    ),
+    (
+        "NT5028",
+        "Actinobacteria",
+        "Actinobacteria",
+        "Bifidobacteriales",
+        "Bifidobacteriaceae",
+        "Bifidobacterium",
+        "Bifidobacterium longum subsp. infantis",
+        "type strain, E194b (Variant a)",
+        "DSM No.: 20219",
+        "positive",
+        "mGAM",
+        0.01,
+        0.05,
+    ),
+    (
+        "NT5099",
+        "Firmicutes",
+        "Clostridia",
+        "Eubacteriales",
+        "Lachnospiraceae",
+        "Nonexistiblia",
+        "Nonexistiblia inventata",
+        "type strain",
+        "DSM No.: 99999",
+        "positive",
+        "mGAM",
+        0.01,
+        0.05,
+    ),
+    (
+        "Laboratory E. coli strains",
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ),
+    (
+        "NT5084",
+        "Proteobacteria",
+        "Gammaproteobacteria",
+        "Enterobacterales",
+        "Enterobacteriaceae",
+        "Escherichia",
+        "Escherichia coli K-12",
+        "BW25113",
+        "Keio collection",
+        "negative",
+        "LB",
+        0.01,
+        0.05,
+    ),
+    (
+        "NT5085",
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        "negative",
+        "LB",
+        0.01,
+        0.05,
+    ),
 ]
 
 DRUG_HEADER = (
-    "prestwick_ID", "chemical name", "STITCH4 id", "ATC codes", "target species",
-    "dose (µmol)", "estimated intestine concentration (µM)",
-    "plasma concentration (µM)", "source for plasma concentration",
-    "fraction excreted in feces", "fraction excreted in urine",
-    "source for excretion data", "estimated colon concentration (µM)",
-    "molecular weight (g/mol)", "XLogP", "TPSA (Å²)", "Complexity",
-    "Volume3D (Å³)", "screen conc. (20 µM as µg/ml)",
+    "prestwick_ID",
+    "chemical name",
+    "STITCH4 id",
+    "ATC codes",
+    "target species",
+    "dose (µmol)",
+    "estimated intestine concentration (µM)",
+    "plasma concentration (µM)",
+    "source for plasma concentration",
+    "fraction excreted in feces",
+    "fraction excreted in urine",
+    "source for excretion data",
+    "estimated colon concentration (µM)",
+    "molecular weight (g/mol)",
+    "XLogP",
+    "TPSA (Å²)",
+    "Complexity",
+    "Volume3D (Å³)",
+    "screen conc. (20 µM as µg/ml)",
 )
 
 #: ``(prestwick_ID, name, STITCH4 id, ATC codes, target species)`` — the five
@@ -198,45 +317,107 @@ DRUG_ROWS: list[tuple] = [
 SCREEN: dict[str, tuple[str, dict[str, object]]] = {
     # An antibiotic: a hit on everything, which is the shape 144 rows of the
     # real table have.
-    "Prestw-1109": ("antibiotics", {
-        "NT5004": 5.038336442866676e-06, "NT5003": 8.817322808260415e-06,
-        "NT5033": 8.05110203715617e-06, "NT5084": 5.038336442866676e-06,
-        "NT5028": 6.453277773277476e-07, "NT5099": 1.968777209389108e-06,
-    }),
+    "Prestw-1109": (
+        "antibiotics",
+        {
+            "NT5004": 5.038336442866676e-06,
+            "NT5003": 8.817322808260415e-06,
+            "NT5033": 8.05110203715617e-06,
+            "NT5084": 5.038336442866676e-06,
+            "NT5028": 6.453277773277476e-07,
+            "NT5099": 1.968777209389108e-06,
+        },
+    ),
     # A human-targeted drug with one hit and four measured non-hits — the 24%
     # of the real screen, and the pair table 4 validates as `TP`.
-    "Prestw-1203": ("human-targeted drugs", {
-        "NT5004": 5.038336442866676e-06, "NT5003": 0.9999999999999964,
-        "NT5033": 0.4354997866541382, "NT5084": 0.8146121134226613,
-        "NT5028": 0.3923918558461689, "NT5099": 0.5,
-    }),
-    "Prestw-117": ("antibiotics", {
-        "NT5004": 1.002988566725697e-05, "NT5003": 5.922866839744848e-06,
-        "NT5033": 6.135419048211278e-06, "NT5084": 0.0006829658048741004,
-        "NT5028": 1.095230573534376e-05, "NT5099": 0.7,
-    }),
+    "Prestw-1203": (
+        "human-targeted drugs",
+        {
+            "NT5004": 5.038336442866676e-06,
+            "NT5003": 0.9999999999999964,
+            "NT5033": 0.4354997866541382,
+            "NT5084": 0.8146121134226613,
+            "NT5028": 0.3923918558461689,
+            "NT5099": 0.5,
+        },
+    ),
+    "Prestw-117": (
+        "antibiotics",
+        {
+            "NT5004": 1.002988566725697e-05,
+            "NT5003": 5.922866839744848e-06,
+            "NT5033": 6.135419048211278e-06,
+            "NT5084": 0.0006829658048741004,
+            "NT5028": 1.095230573534376e-05,
+            "NT5099": 0.7,
+        },
+    ),
     # `NA` on one pair: measured as neither a hit nor a non-hit.
-    "Prestw-9998": ("human-targeted drugs", {
-        "NT5004": 0.3923918558461689, "NT5003": "NA",
-        "NT5033": 0.6, "NT5084": 0.7, "NT5028": 0.8, "NT5099": 0.9,
-    }),
-    "Prestw-9999": ("human-targeted drugs", {
-        "NT5004": 0.0001, "NT5003": 0.4, "NT5033": 0.5, "NT5084": 0.6,
-        "NT5028": 0.7, "NT5099": 0.8,
-    }),
+    "Prestw-9998": (
+        "human-targeted drugs",
+        {
+            "NT5004": 0.3923918558461689,
+            "NT5003": "NA",
+            "NT5033": 0.6,
+            "NT5084": 0.7,
+            "NT5028": 0.8,
+            "NT5099": 0.9,
+        },
+    ),
+    "Prestw-9999": (
+        "human-targeted drugs",
+        {
+            "NT5004": 0.0001,
+            "NT5003": 0.4,
+            "NT5033": 0.5,
+            "NT5084": 0.6,
+            "NT5028": 0.7,
+            "NT5099": 0.8,
+        },
+    ),
 }
 
 VALIDATION_HEADER = (
-    "chemical_name", "prestwick_ID", "strain_name", "NT_code",
-    "validation outcome", "qualifier (IC25)", "IC25 (μM)", "IC25 (μg/ml)",
-    "qualifier (MIC)", "MIC (μM)", "MIC (μg/ml)",
+    "chemical_name",
+    "prestwick_ID",
+    "strain_name",
+    "NT_code",
+    "validation outcome",
+    "qualifier (IC25)",
+    "IC25 (μM)",
+    "IC25 (μg/ml)",
+    "qualifier (MIC)",
+    "MIC (μM)",
+    "MIC (μg/ml)",
 )
 
 VALIDATION_ROWS: list[tuple] = [
-    ("Paracetamol", "Prestw-1203", "Bacteroides thetaiotaomicron", "NT5004",
-     "TP", "=", 5, 0.650386115, "=", 10, 1.30077223),
-    ("Paracetamol", "Prestw-1203", "Escherichia coli K-12", "NT5084",
-     "TN", ">", 160, 20.81235568, ">", 160, 20.81235568),
+    (
+        "Paracetamol",
+        "Prestw-1203",
+        "Bacteroides thetaiotaomicron",
+        "NT5004",
+        "TP",
+        "=",
+        5,
+        0.650386115,
+        "=",
+        10,
+        1.30077223,
+    ),
+    (
+        "Paracetamol",
+        "Prestw-1203",
+        "Escherichia coli K-12",
+        "NT5084",
+        "TN",
+        ">",
+        160,
+        20.81235568,
+        ">",
+        160,
+        20.81235568,
+    ),
 ]
 
 
@@ -268,8 +449,10 @@ def main() -> None:
     book.save(OUT / "NIHMS76168-supplement-Supplementary_table_2.xlsx")
 
     book, sheet = _book("S3a. Adjusted p-values")
-    sheet.append(["prestwick_ID", "chemical_name", "drug_class", "n_hit"]
-                 + [f"{COLUMN_LABEL[c]} ({c})" for c in SCREENED])
+    sheet.append(
+        ["prestwick_ID", "chemical_name", "drug_class", "n_hit"]
+        + [f"{COLUMN_LABEL[c]} ({c})" for c in SCREENED]
+    )
     for prestwick, name, *_rest in DRUG_ROWS:
         drug_class, cells = SCREEN[prestwick]
         values = [cells[code] for code in SCREENED]
@@ -286,8 +469,10 @@ def main() -> None:
         sheet.append(list(row))
     book.save(OUT / "NIHMS76168-supplement-Supplementary_table_4.xlsx")
 
-    print(f"wrote 4 workbooks to {OUT}: {len(DRUG_ROWS)} drugs x "
-          f"{len(SCREENED)} isolates = {len(DRUG_ROWS) * len(SCREENED)} cells")
+    print(
+        f"wrote 4 workbooks to {OUT}: {len(DRUG_ROWS)} drugs x "
+        f"{len(SCREENED)} isolates = {len(DRUG_ROWS) * len(SCREENED)} cells"
+    )
 
 
 if __name__ == "__main__":

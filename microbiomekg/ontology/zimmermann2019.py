@@ -195,7 +195,8 @@ RELATION_NO_METABOLISM: str = "DOES_NOT_METABOLISE"
 
 #: The two relationships in the order the build report prints them.
 METABOLISM_RELATIONSHIPS: tuple[str, ...] = (
-    RELATION_METABOLISES, RELATION_NO_METABOLISM,
+    RELATION_METABOLISES,
+    RELATION_NO_METABOLISM,
 )
 
 #: relationship -> ``(effect, source_relation)``. ``effect`` is what a query
@@ -477,7 +478,10 @@ METABOLISM_CONTRACT: list[str] = [
 #: putting it here rather than on a ``Gene`` node is what keeps it answerable in
 #: one hop without a node type no Part D query reads.
 GENE_PROPERTIES: tuple[str, ...] = (
-    "gene_locus_tags", "gene_products", "gene_protein_ids", "n_gene_products",
+    "gene_locus_tags",
+    "gene_products",
+    "gene_protein_ids",
+    "n_gene_products",
 )
 
 #: Declared types for every property a metabolism edge carries: the contract's

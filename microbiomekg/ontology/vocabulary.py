@@ -88,7 +88,9 @@ EVIDENCE_LEVEL_VALUES: tuple[str, ...] = (
 )
 
 #: Host species that make a result animal-model evidence rather than human.
-NON_HOST_SPECIES: frozenset[str] = frozenset({"", "NA", "Not specified", "Homo sapiens"})
+NON_HOST_SPECIES: frozenset[str] = frozenset(
+    {"", "NA", "Not specified", "Homo sapiens"}
+)
 
 #: Precedence when a study declares several designs at once. First match wins.
 _DESIGN_PRECEDENCE: tuple[str, ...] = (
@@ -221,7 +223,9 @@ def register_source(
     the module that made it instead of silently exporting.
     """
     if knowledge_level not in KNOWLEDGE_LEVELS:
-        raise ValueError(f"{source}: {knowledge_level!r} is not a Biolink knowledge_level")
+        raise ValueError(
+            f"{source}: {knowledge_level!r} is not a Biolink knowledge_level"
+        )
     if agent_type not in AGENT_TYPES:
         raise ValueError(f"{source}: {agent_type!r} is not a Biolink agent_type")
     SOURCE_EVIDENCE[source] = (knowledge_level, agent_type)
@@ -321,10 +325,14 @@ EXCHANGE_CONTRACT: list[str] = [
 
 #: Declared types for :data:`EXCHANGE_CONTRACT`. All strings: the eight are
 #: identifiers and vocabulary values, never counts.
-EXCHANGE_PROPERTY_TYPES: dict[str, str] = {field: "string" for field in EXCHANGE_CONTRACT}
+EXCHANGE_PROPERTY_TYPES: dict[str, str] = {
+    field: "string" for field in EXCHANGE_CONTRACT
+}
 
 
-def exchange_declaration(description: str, extra_property_types: dict | None = None) -> dict:
+def exchange_declaration(
+    description: str, extra_property_types: dict | None = None
+) -> dict:
     """One ``Taxon`` -> ``Metabolite`` exchange relationship declaration.
 
     Here rather than in a source module because ``PRODUCES`` has two authors:

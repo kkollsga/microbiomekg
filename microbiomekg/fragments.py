@@ -93,7 +93,9 @@ def _copy(value: Any) -> Any:
     return value
 
 
-def merge_fragments(fragments: Iterable[tuple[str, Mapping[str, Any]]]) -> dict[str, Any]:
+def merge_fragments(
+    fragments: Iterable[tuple[str, Mapping[str, Any]]],
+) -> dict[str, Any]:
     """Compose ``(name, document)`` fragments into one document.
 
     ``name`` is only ever used in the error message, so it should be whatever

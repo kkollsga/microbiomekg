@@ -140,7 +140,10 @@ OBSERVED_FLAGS: tuple[str, ...] = ("detected", "quantified")
 #: conjugate onto the compound it was made from — the same merge the contested
 #: accession rule refuses, arriving through a column that looks authoritative.
 V2_ONLY_COLUMNS: tuple[str, ...] = (
-    "epa_substance_id", "epa_compound_id", "microbe_relations", "cmmc_inchikey",
+    "epa_substance_id",
+    "epa_compound_id",
+    "microbe_relations",
+    "cmmc_inchikey",
 )
 
 #: Columns v2.0 added to the *microbes* dump. Nothing is loaded from that table,
@@ -154,7 +157,11 @@ V2_ONLY_COLUMNS: tuple[str, ...] = (
 #: direction and no citation, so it is not an association either — a parser over
 #: it would be manufacturing D5's answer out of generated text.
 V2_ONLY_MICROBE_COLUMNS: tuple[str, ...] = (
-    "subspecies", "serotype", "variant", "basys2_id", "description",
+    "subspecies",
+    "serotype",
+    "variant",
+    "basys2_id",
+    "description",
 )
 
 #: The columns :func:`release_of` may key on: new in v2 **and** used by no v1

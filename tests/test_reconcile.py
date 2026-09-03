@@ -83,8 +83,8 @@ def test_authority_class_is_not_a_lookup_class(index):
 @pytest.mark.parametrize(
     "name, candidates",
     [
-        ("Bacillus", (1386, 55087)),        # bacteria / walking sticks
-        ("Proteus", (583, 210425)),         # enterobacteria / salamanders
+        ("Bacillus", (1386, 55087)),  # bacteria / walking sticks
+        ("Proteus", (583, 210425)),  # enterobacteria / salamanders
         ("Morganella", (581, 90690, 108061)),  # bacteria / fungi / scale insects
     ],
 )
@@ -100,8 +100,8 @@ def test_homonym_genus_is_ambiguous(index, name, candidates):
     "name, candidates",
     [
         # Both are bacteria, so "prefer the bacterial candidate" does not save you.
-        ("Bacteroides corrodens", (539, 827)),   # Eikenella / Campylobacter ureolyticus
-        ("Bacillus brevis", (1393, 2815668)),    # Brevibacillus / a stick insect
+        ("Bacteroides corrodens", (539, 827)),  # Eikenella / Campylobacter ureolyticus
+        ("Bacillus brevis", (1393, 2815668)),  # Brevibacillus / a stick insect
     ],
 )
 def test_intra_bacterial_homonym_is_ambiguous(index, name, candidates):
@@ -184,8 +184,8 @@ def test_exact_match_beats_normalised_match(index, name, tax_id):
 @pytest.mark.parametrize(
     "old, new",
     [
-        (1440055, 1496),   # a retired Clostridioides difficile id
-        (1581190, 1496),   # a second one
+        (1440055, 1496),  # a retired Clostridioides difficile id
+        (1581190, 1496),  # a second one
         (1129128, 1598),
         (299639, 47715),
         (83834, 1590),
@@ -251,9 +251,9 @@ def test_strain_name_promotes_too(index):
 @pytest.mark.parametrize(
     "tax_id, rank",
     [
-        (1386, "genus"),      # Bacillus
-        (186803, "family"),   # Lachnospiraceae
-        (562, "species"),     # Escherichia coli, exactly at the ceiling
+        (1386, "genus"),  # Bacillus
+        (186803, "family"),  # Lachnospiraceae
+        (562, "species"),  # Escherichia coli, exactly at the ceiling
     ],
 )
 def test_rank_at_or_above_ceiling_is_not_promoted(index, tax_id, rank):
@@ -293,9 +293,9 @@ def test_promotion_terminates_at_self_parent_root(index):
     "tax_id, rank",
     [
         (131567, "cellular root"),  # a rank string most rank tables lack
-        (1783257, "clade"),         # PVC group, in the Akkermansia lineage
-        (48479, "no rank"),         # environmental samples, parent of 77133
-        (2646097, "no rank"),       # unclassified Bacteroides, parent of 29523
+        (1783257, "clade"),  # PVC group, in the Akkermansia lineage
+        (48479, "no rank"),  # environmental samples, parent of 77133
+        (2646097, "no rank"),  # unclassified Bacteroides, parent of 29523
     ],
 )
 def test_rankless_and_clade_nodes_do_not_break_resolution(index, tax_id, rank):
@@ -369,10 +369,10 @@ def test_tax_id_wins_over_name(index):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"name": "Bacillus"},                    # ambiguous
-        {"tax_id": 1009},                        # deleted
-        {"tax_id": 999999999},                   # unresolved
-        {"name": "not an organism at all"},      # unresolved
+        {"name": "Bacillus"},  # ambiguous
+        {"tax_id": 1009},  # deleted
+        {"tax_id": 999999999},  # unresolved
+        {"name": "not an organism at all"},  # unresolved
     ],
 )
 def test_no_tax_id_for_unresolved_statuses(index, kwargs):
@@ -384,9 +384,9 @@ def test_no_tax_id_for_unresolved_statuses(index, kwargs):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {},                                   # neither name nor id
+        {},  # neither name nor id
         {"name": ""},
-        {"name": "NA"},                       # BugSigDB's spelling of missing
+        {"name": "NA"},  # BugSigDB's spelling of missing
         {"name": None, "tax_id": None},
         {"name": "Bacillus", "rank_ceiling": "not-a-rank"},
         {"tax_id": -1},
@@ -444,9 +444,35 @@ def test_fixture_taxdump_is_in_real_ncbi_format():
 def test_fixture_contains_the_pitfall_taxa():
     ids = {int(r[0]) for r in read_dmp(TAXDUMP_MINI / "nodes.dmp")}
     required = {
-        1, 131567, 562, 83333, 1496, 1747, 33038, 1598, 1590, 47715, 39491,
-        853, 216816, 1682, 1386, 55087, 583, 210425, 581, 90690, 108061,
-        539, 827, 1393, 2815668, 29523, 77133, 1512, 2500537,
+        1,
+        131567,
+        562,
+        83333,
+        1496,
+        1747,
+        33038,
+        1598,
+        1590,
+        47715,
+        39491,
+        853,
+        216816,
+        1682,
+        1386,
+        55087,
+        583,
+        210425,
+        581,
+        90690,
+        108061,
+        539,
+        827,
+        1393,
+        2815668,
+        29523,
+        77133,
+        1512,
+        2500537,
     }
     assert required <= ids, f"fixture lost {sorted(required - ids)}"
     assert 1440055 not in ids, "a merged id must not be a live node"
@@ -564,7 +590,15 @@ def test_below_species_ranks_are_the_ranks_ncbi_uses_under_species():
 
 
 @pytest.mark.parametrize(
-    "rank", ["species", "genus", "family", "species group", "species subgroup", "cellular root"]
+    "rank",
+    [
+        "species",
+        "genus",
+        "family",
+        "species group",
+        "species subgroup",
+        "cellular root",
+    ],
 )
 def test_ranks_at_or_above_species_are_not_in_the_below_set(rank):
     assert rank not in BELOW_SPECIES_RANKS

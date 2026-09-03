@@ -29,20 +29,37 @@ def parallel_edge_blueprint(tmp_path):
     """Ten parallel `A1 -[:LINKS]-> B1` edges, loaded through a junction CSV."""
     _write(tmp_path / "a.csv", ["id", "name"], [(i, f"A{i}") for i in (1, 2, 3)])
     _write(tmp_path / "b.csv", ["id", "name"], [(i, f"B{i}") for i in (1, 2, 3)])
-    _write(tmp_path / "j.csv", ["a_id", "b_id", "pmid"], [(1, 1, 100 + k) for k in range(10)])
+    _write(
+        tmp_path / "j.csv",
+        ["a_id", "b_id", "pmid"],
+        [(1, 1, 100 + k) for k in range(10)],
+    )
     blueprint = {
         "settings": {"root": str(tmp_path)},
         "nodes": {
-            "B": {"csv": "b.csv", "pk": "id", "title": "name",
-                  "properties": {"name": "string"}},
-            "A": {
-                "csv": "a.csv", "pk": "id", "title": "name",
+            "B": {
+                "csv": "b.csv",
+                "pk": "id",
+                "title": "name",
                 "properties": {"name": "string"},
-                "connections": {"junction_edges": {"LINKS": {
-                    "csv": "j.csv", "source_fk": "a_id",
-                    "target": "B", "target_fk": "b_id",
-                    "properties": ["pmid"], "property_types": {"pmid": "int"},
-                }}},
+            },
+            "A": {
+                "csv": "a.csv",
+                "pk": "id",
+                "title": "name",
+                "properties": {"name": "string"},
+                "connections": {
+                    "junction_edges": {
+                        "LINKS": {
+                            "csv": "j.csv",
+                            "source_fk": "a_id",
+                            "target": "B",
+                            "target_fk": "b_id",
+                            "properties": ["pmid"],
+                            "property_types": {"pmid": "int"},
+                        }
+                    }
+                },
             },
         },
     }
@@ -137,6 +154,10 @@ def test_a_nan_pins_a_property_to_float_for_the_whole_graph():
 def test_a_string_tax_id_does_not_match_an_integer_comparison():
     """C16: the silent empty result — no error, no rows."""
     graph = kglite.KnowledgeGraph()
-    graph.add_nodes(pd.DataFrame({"tax_id": ["562"], "n": ["E. coli"]}), "Taxon", "tax_id", "n")
-    assert list(graph.cypher("MATCH (t:Taxon) WHERE t.tax_id = 562 RETURN t.n AS n")) == []
+    graph.add_nodes(
+        pd.DataFrame({"tax_id": ["562"], "n": ["E. coli"]}), "Taxon", "tax_id", "n"
+    )
+    assert (
+        list(graph.cypher("MATCH (t:Taxon) WHERE t.tax_id = 562 RETURN t.n AS n")) == []
+    )
     assert list(graph.cypher("MATCH (t:Taxon) WHERE t.tax_id = '562' RETURN t.n AS n"))

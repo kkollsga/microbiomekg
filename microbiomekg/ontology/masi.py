@@ -191,11 +191,13 @@ RELATION_SAME_COMPOUND: str = "SAME_COMPOUND_AS"
 
 #: The two metabolism relationships, in the order the build report prints them.
 METABOLISM_RELATIONSHIPS: tuple[str, ...] = (
-    RELATION_METABOLISES, RELATION_NO_METABOLISM,
+    RELATION_METABOLISES,
+    RELATION_NO_METABOLISM,
 )
 #: The two abundance relationships, likewise.
 ABUNDANCE_RELATIONSHIPS: tuple[str, ...] = (
-    RELATION_ABUNDANCE_CHANGED, RELATION_ABUNDANCE_UNCHANGED,
+    RELATION_ABUNDANCE_CHANGED,
+    RELATION_ABUNDANCE_UNCHANGED,
 )
 
 #: relationship -> ``(effect, source_relation)``. ``effect`` is what a query
@@ -218,8 +220,7 @@ SOURCE_RELATIONS: dict[str, tuple[str, str]] = {
     ),
     RELATION_ABUNDANCE_CHANGED: (
         "",
-        "curated from the literature: this substance altered this microbe's "
-        "abundance",
+        "curated from the literature: this substance altered this microbe's abundance",
     ),
     RELATION_ABUNDANCE_UNCHANGED: (
         "unchanged",
@@ -435,9 +436,7 @@ def _hosts(model_species: str | None) -> list[str]:
     ]
 
 
-def evidence_level_for(
-    experiment_system: str | None, model_species: str | None
-) -> str:
+def evidence_level_for(experiment_system: str | None, model_species: str | None) -> str:
     """Derive an interaction row's ``evidence_level`` from its own two columns.
 
     Precedence, first match wins, and it is Part B's ladder read against what
@@ -462,9 +461,11 @@ def evidence_level_for(
     """
     system = (experiment_system or "").strip().casefold()
     if "in vivo" in system:
-        return "in-vivo-model" if any(
-            not h.casefold().startswith("human") for h in _hosts(model_species)
-        ) else "unknown"
+        return (
+            "in-vivo-model"
+            if any(not h.casefold().startswith("human") for h in _hosts(model_species))
+            else "unknown"
+        )
     if "in vitro" in system:
         return "in-vitro"
     return "unknown"

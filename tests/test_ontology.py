@@ -57,6 +57,7 @@ EVIDENCE_CONCEPTS = {
     "paper": ("pmid", "doi", "paper_id"),
 }
 
+
 def split_designs(value: str) -> list[str]:
     """Split against the known vocabulary, longest match first (C11)."""
     if value == "NA":
@@ -66,7 +67,7 @@ def split_designs(value: str) -> list[str]:
         for design in BUGSIGDB_DESIGNS:
             if rest.startswith(design):
                 out.append(design)
-                rest = rest[len(design):].lstrip(",")
+                rest = rest[len(design) :].lstrip(",")
                 break
         else:
             raise AssertionError(f"unknown study design token in {value!r}: {rest!r}")
@@ -134,12 +135,13 @@ def test_the_multi_design_fixture_row_splits_into_two_known_designs():
 
 def test_evidence_levels_values_are_the_declared_levels():
     """A1: the level distinguishes interventional from observational."""
-    assert EVIDENCE_LEVELS["randomized controlled trial"] != EVIDENCE_LEVELS[
-        "case-control"
-    ], "an RCT and a case-control study are not the same evidence level"
-    assert EVIDENCE_LEVELS["laboratory experiment"] != EVIDENCE_LEVELS[
-        "case-control"
-    ], "an in-vitro experiment and an observational study are not the same level"
+    assert (
+        EVIDENCE_LEVELS["randomized controlled trial"]
+        != EVIDENCE_LEVELS["case-control"]
+    ), "an RCT and a case-control study are not the same evidence level"
+    assert (
+        EVIDENCE_LEVELS["laboratory experiment"] != EVIDENCE_LEVELS["case-control"]
+    ), "an in-vitro experiment and an observational study are not the same level"
     assert all(isinstance(v, str) and v for v in EVIDENCE_LEVELS.values())
 
 
@@ -221,8 +223,12 @@ def declared_graph():
         if src not in concrete_classes() or dst not in concrete_classes():
             continue  # abstract endpoint: materialisation is the build's job
         g.add_connections(
-            pd.DataFrame({"s": [f"{src}-{concrete_classes().index(src) + 1}a"],
-                          "t": [f"{dst}-{concrete_classes().index(dst) + 1}b"]}),
+            pd.DataFrame(
+                {
+                    "s": [f"{src}-{concrete_classes().index(src) + 1}a"],
+                    "t": [f"{dst}-{concrete_classes().index(dst) + 1}b"],
+                }
+            ),
             rel,
             src,
             "s",
@@ -295,7 +301,9 @@ def test_relationship_endpoints_are_declared_classes():
     for rel, decl in ONTOLOGY.get("relationships", {}).items():
         for side in ("domain", "range"):
             if side in decl:
-                assert decl[side] in classes, f"{rel}.{side} = {decl[side]!r} undeclared"
+                assert decl[side] in classes, (
+                    f"{rel}.{side} = {decl[side]!r} undeclared"
+                )
 
 
 # --------------------------------------------------------------------------

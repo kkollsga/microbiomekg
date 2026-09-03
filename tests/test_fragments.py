@@ -36,18 +36,36 @@ def test_two_fragments_may_declare_the_same_thing():
     """That is how a source says "I write rows into this table too"."""
     merged = merge_fragments(
         [
-            ("a.json", {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}}),
-            ("b.json", {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}}),
+            (
+                "a.json",
+                {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}},
+            ),
+            (
+                "b.json",
+                {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}},
+            ),
         ]
     )
-    assert merged == {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}}
+    assert merged == {
+        "nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}
+    }
 
 
 def test_a_fragment_may_add_to_a_node_another_fragment_owns():
     merged = merge_fragments(
         [
-            ("core.json", {"nodes": {"Taxon": {"csv": "taxon.csv", "properties": {"rank": "string"}}}}),
-            ("later.json", {"nodes": {"Taxon": {"properties": {"placeholder": "bool"}}}}),
+            (
+                "core.json",
+                {
+                    "nodes": {
+                        "Taxon": {"csv": "taxon.csv", "properties": {"rank": "string"}}
+                    }
+                },
+            ),
+            (
+                "later.json",
+                {"nodes": {"Taxon": {"properties": {"placeholder": "bool"}}}},
+            ),
         ]
     )
     assert merged["nodes"]["Taxon"] == {
@@ -86,10 +104,36 @@ def test_two_junction_edges_under_one_node_are_both_kept():
     `ABUNDANCE_CHANGED_BY` are different relations off the same node type."""
     merged = merge_fragments(
         [
-            ("a.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
-                "ASSOCIATED_WITH": {"csv": "taxon_condition.csv"}}}}}}),
-            ("b.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
-                "ABUNDANCE_CHANGED_BY": {"csv": "taxon_intervention.csv"}}}}}}),
+            (
+                "a.json",
+                {
+                    "nodes": {
+                        "Taxon": {
+                            "connections": {
+                                "junction_edges": {
+                                    "ASSOCIATED_WITH": {"csv": "taxon_condition.csv"}
+                                }
+                            }
+                        }
+                    }
+                },
+            ),
+            (
+                "b.json",
+                {
+                    "nodes": {
+                        "Taxon": {
+                            "connections": {
+                                "junction_edges": {
+                                    "ABUNDANCE_CHANGED_BY": {
+                                        "csv": "taxon_intervention.csv"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+            ),
         ]
     )
     assert set(merged["nodes"]["Taxon"]["connections"]["junction_edges"]) == {
@@ -105,10 +149,38 @@ def test_the_same_relationship_backed_by_two_csvs_is_an_error():
     with pytest.raises(FragmentConflict):
         merge_fragments(
             [
-                ("a.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
-                    "ASSOCIATED_WITH": {"csv": "taxon_condition.csv"}}}}}}),
-                ("b.json", {"nodes": {"Taxon": {"connections": {"junction_edges": {
-                    "ASSOCIATED_WITH": {"csv": "gutmdisorder_disease.csv"}}}}}}),
+                (
+                    "a.json",
+                    {
+                        "nodes": {
+                            "Taxon": {
+                                "connections": {
+                                    "junction_edges": {
+                                        "ASSOCIATED_WITH": {
+                                            "csv": "taxon_condition.csv"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                ),
+                (
+                    "b.json",
+                    {
+                        "nodes": {
+                            "Taxon": {
+                                "connections": {
+                                    "junction_edges": {
+                                        "ASSOCIATED_WITH": {
+                                            "csv": "gutmdisorder_disease.csv"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                ),
             ]
         )
 
@@ -136,7 +208,12 @@ def test_a_fragment_is_not_mutated_by_the_merge():
     """The merger deep-copies; a fragment that came out of `json.loads` in one
     build step must not be a shared mutable held by the next."""
     fragment = {"nodes": {"A": {"properties": {"x": "int"}}}}
-    merged = merge_fragments([("a.json", fragment), ("b.json", {"nodes": {"A": {"properties": {"y": "int"}}}})])
+    merged = merge_fragments(
+        [
+            ("a.json", fragment),
+            ("b.json", {"nodes": {"A": {"properties": {"y": "int"}}}}),
+        ]
+    )
     assert fragment == {"nodes": {"A": {"properties": {"x": "int"}}}}
     assert set(merged["nodes"]["A"]["properties"]) == {"x", "y"}
 
@@ -203,8 +280,11 @@ def _load_report(blueprint: dict, root: Path, tmp_path: Path, capfd) -> str:
     kglite = pytest.importorskip("kglite")
 
     document = dict(blueprint)
-    settings = {k: v for k, v in (document.get("settings") or {}).items()
-                if k not in ("output", "output_path", "output_file")}
+    settings = {
+        k: v
+        for k, v in (document.get("settings") or {}).items()
+        if k not in ("output", "output_path", "output_file")
+    }
     settings["root"] = str(root)
     document["settings"] = settings
     document.pop("ontology", None)
@@ -247,8 +327,9 @@ def test_the_unknown_key_gate_can_fail(tmp_path, capfd):
     document = compose(FRAGMENTS)
     document["nodes"]["Taxon"]["lables"] = ["Organism"]
     report = _load_report(document, tmp_path / "empty", tmp_path, capfd)
-    assert any("unknown key" in line and "lables" in line
-               for line in report.splitlines()), (
+    assert any(
+        "unknown key" in line and "lables" in line for line in report.splitlines()
+    ), (
         "the loader no longer reports an unknown blueprint key, so the gate "
         f"above cannot fail:\n{report}"
     )

@@ -574,8 +574,12 @@ def test_d15_the_per_field_census_names_the_gap(graph):
     assert census["group_1_size"]["violations"] == 14732
     complete = {p for p, r in census.items() if r["violations"] == 0}
     assert complete == {
-        "evidence_level", "knowledge_level", "agent_type",
-        "primary_source", "source_record_id", "source_licence",
+        "evidence_level",
+        "knowledge_level",
+        "agent_type",
+        "primary_source",
+        "source_record_id",
+        "source_licence",
     }, complete
 
     # A census, not a partition — and the difference is not academic here:
@@ -599,9 +603,7 @@ def test_d15_the_per_field_census_names_the_gap(graph):
             "RETURN field, count(*) AS edges",
         )
     }
-    assert unwound == {
-        p: r["violations"] for p, r in census.items() if r["violations"]
-    }
+    assert unwound == {p: r["violations"] for p, r in census.items() if r["violations"]}
 
 
 def test_d16_shortest_path_is_one_hop_where_a_direct_edge_exists(graph):
@@ -742,7 +744,10 @@ def test_d11_the_breakdown_for_one_disease_is_one_query(graph):
         """,
     )
     assert len(result) == GOLDEN["d11_t2d_signatures"]
-    assert sum(1 for r in result if r["confounders_controlled"]) == GOLDEN["d11_t2d_confounders"]
+    assert (
+        sum(1 for r in result if r["confounders_controlled"])
+        == GOLDEN["d11_t2d_confounders"]
+    )
     assert sum(1 for r in result if r["matched_on"]) == GOLDEN["d11_t2d_matched_on"]
     assert sum(1 for r in result if r["antibiotics_exclusion"]) > 0, (
         "not one type 2 diabetes signature records an antibiotics exclusion "
@@ -917,11 +922,11 @@ D7 = {
     "ecoli_drug_classes": 31,
     "ecoli_mechanisms": 7,
     # The caveats, as counts.
-    "above_species": 264,        # carriage edges whose taxon is above species rank
-    "bacteria_only": 132,        # models whose whole taxon claim is "a bacterium"
-    "not_an_organism": 18,       # plasmids, a transposon, a synthetic construct
-    "predicted_confers": 104,    # the 36 meta-models' drug-class edges
-    "ccby_confers": 42,          # the slice `aro.obo` also states
+    "above_species": 264,  # carriage edges whose taxon is above species rank
+    "bacteria_only": 132,  # models whose whole taxon claim is "a bacterium"
+    "not_an_organism": 18,  # plasmids, a transposon, a synthetic construct
+    "predicted_confers": 104,  # the 36 meta-models' drug-class edges
+    "ccby_confers": 42,  # the slice `aro.obo` also states
 }
 
 
@@ -1106,9 +1111,9 @@ CHEMBL_GOLDEN = {
     "approved": 3120,
     "withdrawn": 297,
     "targets": 1518,
-    "mechanisms": 6984,          # 7,561 rows − 577 with no target
-    "of_organism": 1493,         # 98.4% of targets carry a tax_id
-    "target_taxa": 94,           # 125 source taxids, promoted to the species ceiling
+    "mechanisms": 6984,  # 7,561 rows − 577 with no target
+    "of_organism": 1493,  # 98.4% of targets carry a tax_id
+    "target_taxa": 94,  # 125 source taxids, promoted to the species ceiling
     "non_human_mechanisms": 865,
     # The D8 slice that exists today: approved drugs acting on a protein of a
     # bacterium.
@@ -1309,8 +1314,11 @@ def test_chembl_every_mechanism_edge_says_how_it_was_demonstrated(chembl_graph):
             "RETURN rule, severity, violations, total",
         )
     }
-    for rule in ("HAS_MECHANISM.required_properties", "OF_ORGANISM.required_properties",
-                 "IS_DRUG.required_properties"):
+    for rule in (
+        "HAS_MECHANISM.required_properties",
+        "OF_ORGANISM.required_properties",
+        "IS_DRUG.required_properties",
+    ):
         assert audit[rule]["severity"] == "error"
         assert audit[rule]["violations"] == 0
         assert audit[rule]["total"] > 0, f"{rule} audits nothing"
@@ -1370,7 +1378,9 @@ METABOLITE_GOLDEN = {
     "d6_degraded_macromolecules": 17,
     "d6_negatives": 894,
     "d6_negatives_by_relation": {
-        "import-negative": 720, "degrade-negative": 87, "export-negative": 87,
+        "import-negative": 720,
+        "degrade-negative": 87,
+        "export-negative": 87,
     },
     "d6_non_zero_mes": 96,
     "d6_acetate_id": "CHEBI:15366",
@@ -1464,7 +1474,9 @@ def test_d5_is_two_sources_in_one_table_and_the_split_is_the_answer(
     assert per_source["hmdb"]["metabolites"] == METABOLITE_GOLDEN["d5_hmdb_metabolites"]
     assert per_source["njc19"]["edges"] == METABOLITE_GOLDEN["d5_njc19_edges"]
     assert per_source["njc19"]["taxa"] == METABOLITE_GOLDEN["d5_njc19_taxa"]
-    assert per_source["njc19"]["metabolites"] == METABOLITE_GOLDEN["d5_njc19_metabolites"]
+    assert (
+        per_source["njc19"]["metabolites"] == METABOLITE_GOLDEN["d5_njc19_metabolites"]
+    )
 
     slice_ = one(
         metabolite_graph,
@@ -1560,8 +1572,11 @@ def test_d5_measured_or_predicted_is_the_answers_first_column(metabolite_graph):
         key=lambda r: r["licence"],
     ) == [
         {"kl": "knowledge_assertion", "agent": "manual_agent", "licence": "CC0-1.0"},
-        {"kl": "knowledge_assertion", "agent": "manual_agent",
-         "licence": "HMDB-noncommercial"},
+        {
+            "kl": "knowledge_assertion",
+            "agent": "manual_agent",
+            "licence": "HMDB-noncommercial",
+        },
     ]
 
 
@@ -1796,8 +1811,12 @@ def test_d6_import_export_and_degrade_are_three_relationships(metabolite_graph):
         )
     }
     assert set(relations) == {
-        "import", "export", "degrade",
-        "import-negative", "export-negative", "degrade-negative",
+        "import",
+        "export",
+        "degrade",
+        "import-negative",
+        "export-negative",
+        "degrade-negative",
     }
 
 
@@ -1938,11 +1957,14 @@ def test_d13_the_path_resolves_and_every_pathway_is_a_model_organisms(
     assert hmdb_walk["taxa"] == METABOLITE_GOLDEN["d13_walk_taxa_hmdb"]
     assert hmdb_walk["pathways"] == METABOLITE_GOLDEN["d13_walk_pathways_hmdb"]
     # Part D's own D13 query names E. coli, which is the taxon it resolves for.
-    assert one(
-        metabolite_graph,
-        "MATCH (t:Taxon {id: 562})-[:PRODUCES]->(m:Metabolite)-[:IN_PATHWAY]->(pw:Pathway) "
-        "RETURN count(*) AS rows",
-    )["rows"] == METABOLITE_GOLDEN["d13_ecoli_rows"]
+    assert (
+        one(
+            metabolite_graph,
+            "MATCH (t:Taxon {id: 562})-[:PRODUCES]->(m:Metabolite)-[:IN_PATHWAY]->(pw:Pathway) "
+            "RETURN count(*) AS rows",
+        )["rows"]
+        == METABOLITE_GOLDEN["d13_ecoli_rows"]
+    )
     # The claim in one query, and it has **two exceptions, one of which NJC19
     # added**: of the 830 organisms the graph attributes a production to, two
     # are also species Reactome models — *Mycobacterium tuberculosis*, which
@@ -1983,10 +2005,12 @@ def test_d13_the_evidence_code_separates_curated_from_projected(metabolite_graph
         )
     }
     assert counts == {
-        ("TAS", "knowledge_assertion", "unknown"):
-            METABOLITE_GOLDEN["d13_in_pathway_tas"],
-        ("IEA", "logical_entailment", "computational-predicted"):
-            METABOLITE_GOLDEN["d13_in_pathway_iea"],
+        ("TAS", "knowledge_assertion", "unknown"): METABOLITE_GOLDEN[
+            "d13_in_pathway_tas"
+        ],
+        ("IEA", "logical_entailment", "computational-predicted"): METABOLITE_GOLDEN[
+            "d13_in_pathway_iea"
+        ],
     }
 
 
@@ -2014,9 +2038,10 @@ def test_d13_a_default_build_carries_no_kegg_pathway(metabolite_graph):
     D13's KEGG half is therefore absent by default and that is the design —
     `--with-kegg` adds 587 `KEGG:map…` pathways and their edges, and changes
     nothing else."""
-    assert one(
-        metabolite_graph, "MATCH (p:Pathway) RETURN count(p) AS n"
-    )["n"] == METABOLITE_GOLDEN["d13_pathways"]
+    assert (
+        one(metabolite_graph, "MATCH (p:Pathway) RETURN count(p) AS n")["n"]
+        == METABOLITE_GOLDEN["d13_pathways"]
+    )
     assert not rows(
         metabolite_graph,
         "MATCH ()-[r]->() WHERE r.source_licence = 'KEGG-restricted' RETURN r LIMIT 1",
@@ -2060,7 +2085,10 @@ PARTIAL_GOLDEN = {
     "d12_authority_synonym": "Lactobacillus reuteri Kandler et al. 1982",
     "d12_reuteri_signatures": 69,
     "d12_resolution_statuses": {
-        "exact": 114161, "merged": 413, "promoted": 152, "deleted": 16,
+        "exact": 114161,
+        "merged": 413,
+        "promoted": 152,
+        "deleted": 16,
     },
     # D18 — metformin as a competing explanation, through gutMDisorder's
     # intervention edge joined to ChEMBL's drug identity by IS_DRUG.
@@ -2118,10 +2146,16 @@ PARTIAL_GOLDEN = {
     # refusal, named rather than rounded away.
     "d8_published_metabolised": 176,
     "d8_metabolised_only_by_a_refused_strain": (
-        "ALPRENOLOL", "DIPHENYLPYRALINE", "IRSOGLADINE MALEATE", "MEMANTINE",
+        "ALPRENOLOL",
+        "DIPHENYLPYRALINE",
+        "IRSOGLADINE MALEATE",
+        "MEMANTINE",
     ),
     "d8_metabolism_drug_join": {
-        "molename": 195, "parent-name": 43, "salt-name": 10, "minted": 23,
+        "molename": 195,
+        "parent-name": 43,
+        "salt-name": 10,
+        "minted": 23,
     },
     # Supplementary table 13's gain-of-function genes, split by the relationship
     # they landed on: 5 of the 37 pairs are the two experiments disagreeing.
@@ -2147,8 +2181,10 @@ PARTIAL_GOLDEN = {
     # Forslund's named genera, at the species the screen actually ran. Three of
     # the four are now measured; gutMDisorder curated only the fourth.
     "d18_screened_fixtures": (
-        "Escherichia coli", "Lacticaseibacillus paracasei",
-        "Bifidobacterium longum", "Bifidobacterium adolescentis",
+        "Escherichia coli",
+        "Lacticaseibacillus paracasei",
+        "Bifidobacterium longum",
+        "Bifidobacterium adolescentis",
     ),
     "d18_unscreened_fixture_genus": "Intestinibacter",
 }
@@ -2227,9 +2263,12 @@ def test_d10_now_has_the_column_it_is_named_for(graph):
     )
     # Three-state, and the third state is what stops the flag being read as a
     # verdict on the organisms MASI never mentions.
-    assert one(
-        graph, "MATCH (t:Taxon) WHERE t.probiotic IS NULL RETURN count(*) AS n"
-    )["n"] > 0
+    assert (
+        one(graph, "MATCH (t:Taxon) WHERE t.probiotic IS NULL RETURN count(*) AS n")[
+            "n"
+        ]
+        > 0
+    )
 
 
 def test_d10_g4_is_the_two_study_clause_not_a_nicety(graph):
@@ -2238,6 +2277,7 @@ def test_d10_g4_is_the_two_study_clause_not_a_nicety(graph):
     list without `n_studies >= 2` is a list of coin flips. The clause drops
     **92 of 118** candidates here — measured, so a build where it stopped
     filtering could not pass by returning the same list twice."""
+
     def candidates(minimum: int) -> int:
         return one(
             graph,
@@ -2249,6 +2289,7 @@ def test_d10_g4_is_the_two_study_clause_not_a_nicety(graph):
             RETURN count(*) AS n
             """,
         )["n"]
+
     assert candidates(2) == PARTIAL_GOLDEN["d10_candidates"]
     assert candidates(1) == PARTIAL_GOLDEN["d10_candidates_any_support"]
 
@@ -2303,20 +2344,26 @@ def test_d12_the_synonym_lookup_needs_the_rank_filter_to_be_an_answer(
     assert PARTIAL_GOLDEN["d12_authority_synonym"] in synonyms
     assert "Lactobacillus reuteri" not in synonyms
     membership = PARTIAL_GOLDEN["d12_authority_synonym"].replace("'", "\\'")
-    assert one(
-        synonym_index,
-        f"MATCH (t:Taxon) WHERE '{membership}' IN t.synonyms RETURN count(t) AS n",
-    )["n"] >= 1, (
+    assert (
+        one(
+            synonym_index,
+            f"MATCH (t:Taxon) WHERE '{membership}' IN t.synonyms RETURN count(t) AS n",
+        )["n"]
+        >= 1
+    ), (
         "membership on the list property found nothing — the whole point of "
         "declaring `synonyms` a list is that this is a query, not a re-parse"
     )
     # And the rank filter is load-bearing rather than tidy: 726 taxa score
     # above zero on that query.
-    assert one(
-        synonym_index,
-        "MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') > 0 "
-        "RETURN count(t) AS n",
-    )["n"] == PARTIAL_GOLDEN["d12_scoring_taxa"]
+    assert (
+        one(
+            synonym_index,
+            "MATCH (t:Taxon) WHERE text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri') > 0 "
+            "RETURN count(t) AS n",
+        )["n"]
+        == PARTIAL_GOLDEN["d12_scoring_taxa"]
+    )
 
 
 def test_d12_the_rhamnosus_case_answers_cleanly_and_is_still_partial(
@@ -2484,16 +2531,19 @@ def test_d18_masi_reaches_the_three_confounders_gutmdisorder_misses(graph):
     assert reach["edges"] == PARTIAL_GOLDEN["d18_masi_metformin_edges"]
     assert reach["taxa"] == PARTIAL_GOLDEN["d18_masi_metformin_taxa"]
     assert reach["novel"] == PARTIAL_GOLDEN["d18_masi_metformin_novel"]
-    assert one(
-        graph,
-        f"""
+    assert (
+        one(
+            graph,
+            f"""
         MATCH (t:Taxon)-[:ASSOCIATED_WITH]->(:Disease {{id: 'MONDO:0005148'}})
         MATCH (t)-[:ABUNDANCE_CHANGED_BY_SUBSTANCE|ABUNDANCE_UNCHANGED_BY_SUBSTANCE
                   |METABOLISES_SUBSTANCE|DOES_NOT_METABOLISE_SUBSTANCE]->
               (:Substance {{id: '{metformin}'}})
         RETURN count(DISTINCT t) AS taxa
         """,
-    )["taxa"] == PARTIAL_GOLDEN["d18_masi_t2d_taxa"]
+        )["taxa"]
+        == PARTIAL_GOLDEN["d18_masi_t2d_taxa"]
+    )
 
     named = {
         (r["taxon"], r["direction"]): r
@@ -2538,7 +2588,9 @@ def test_d8_leg3_is_the_growth_screen_and_its_negatives(graph):
         )
     }
     assert counts["INHIBITS_GROWTH_OF"]["edges"] == PARTIAL_GOLDEN["d8_inhibits"]
-    assert counts["DOES_NOT_INHIBIT_GROWTH_OF"]["edges"] == PARTIAL_GOLDEN["d8_no_effect"]
+    assert (
+        counts["DOES_NOT_INHIBIT_GROWTH_OF"]["edges"] == PARTIAL_GOLDEN["d8_no_effect"]
+    )
     assert all(c["taxa"] == PARTIAL_GOLDEN["d8_screen_taxa"] for c in counts.values())
     reach = one(
         graph,
@@ -2561,7 +2613,7 @@ def test_d8_leg3_is_the_growth_screen_and_its_negatives(graph):
 
 
 def test_d8_reproduces_the_papers_own_headline_from_the_loaded_edges(graph):
-    """"24% of the drugs with human targets ... inhibited the growth of at
+    """ "24% of the drugs with human targets ... inhibited the growth of at
     least one strain in vitro" (Nature 555:623, abstract). The graph says
     **203 of 835 = 24.3%** — computed from the edges, not quoted.
 
@@ -2688,11 +2740,19 @@ def test_d8_the_two_screens_point_opposite_ways_and_that_is_the_model(graph):
     the `effect` vocabularies are disjoint for the same reason a shared
     `no-effect` token would be wrong: "did not stop it growing" and "did not
     touch the drug" are different findings about different things."""
-    forward = {r["rel"] for r in rows(
-        graph, "MATCH (d:Drug)-[r]->(t:Taxon) RETURN DISTINCT type(r) AS rel")}
+    forward = {
+        r["rel"]
+        for r in rows(
+            graph, "MATCH (d:Drug)-[r]->(t:Taxon) RETURN DISTINCT type(r) AS rel"
+        )
+    }
     assert forward == {"INHIBITS_GROWTH_OF", "DOES_NOT_INHIBIT_GROWTH_OF"}
-    backward = {r["rel"] for r in rows(
-        graph, "MATCH (t:Taxon)-[r]->(d:Drug) RETURN DISTINCT type(r) AS rel")}
+    backward = {
+        r["rel"]
+        for r in rows(
+            graph, "MATCH (t:Taxon)-[r]->(d:Drug) RETURN DISTINCT type(r) AS rel"
+        )
+    }
     assert backward == {"METABOLISES", "DOES_NOT_METABOLISE"}
     effects = {
         (r["rel"], r["effect"])
@@ -2712,7 +2772,7 @@ def test_d8_the_two_screens_point_opposite_ways_and_that_is_the_model(graph):
 
 
 def test_d8_reproduces_the_metabolism_headline_and_prices_what_it_does_not(graph):
-    """"176 of 271 drugs (65%) were metabolised by at least one strain." The
+    """ "176 of 271 drugs (65%) were metabolised by at least one strain." The
     graph says **172**, and the gap is not a loss — it is four drugs metabolised
     *only* by `Bifidobacterium ruminatum`, one of the two strain names NCBI
     holds two candidates for and whose row offers nothing to choose with. The
@@ -2726,10 +2786,10 @@ def test_d8_reproduces_the_metabolism_headline_and_prices_what_it_does_not(graph
     # `pref_name`: 248 of the 271 joined a node ChEMBL or the growth screen had
     # already named, so `IRSOGLADINE MALEATE` is `IRSOGLADINE` on its node.
     metabolised = {
-        r["drug"] for r in rows(
+        r["drug"]
+        for r in rows(
             graph,
-            "MATCH ()-[r:METABOLISES]->() "
-            "RETURN DISTINCT r.reported_drug_name AS drug",
+            "MATCH ()-[r:METABOLISES]->() RETURN DISTINCT r.reported_drug_name AS drug",
         )
     }
     assert len(metabolised) == PARTIAL_GOLDEN["d8_drugs_metabolised"]
@@ -2902,8 +2962,10 @@ def test_masi_is_loaded_and_never_onto_a_relationship_a_screen_owns(graph):
     D8 is written as — would count a curated restatement and a measured screen
     cell as two observations, with nothing in the query text to say so."""
     for relationship in (
-        "INHIBITS_GROWTH_OF", "DOES_NOT_INHIBIT_GROWTH_OF",
-        "METABOLISES", "DOES_NOT_METABOLISE",
+        "INHIBITS_GROWTH_OF",
+        "DOES_NOT_INHIBIT_GROWTH_OF",
+        "METABOLISES",
+        "DOES_NOT_METABOLISE",
     ):
         assert not rows(
             graph,
@@ -2949,19 +3011,20 @@ def test_masi_mints_no_drug_node_and_the_identity_is_an_edge(graph):
     883 of the 1,350 reach an existing `Drug` by an exact or salt-stripped name
     match, and that identity is an edge a query traverses deliberately."""
     assert one(graph, "MATCH (s:Substance) RETURN count(*) AS n")["n"] == 1350
-    assert not rows(
-        graph, "MATCH (d:Drug) WHERE d.source = 'masi' RETURN d LIMIT 1"
+    assert not rows(graph, "MATCH (d:Drug) WHERE d.source = 'masi' RETURN d LIMIT 1")
+    assert (
+        one(graph, "MATCH ()-[r:SAME_COMPOUND_AS]->() RETURN count(*) AS n")["n"] == 883
     )
-    assert one(
-        graph, "MATCH ()-[r:SAME_COMPOUND_AS]->() RETURN count(*) AS n"
-    )["n"] == 883
     # And the hop works in the direction D8 and D18 need it.
-    assert one(
-        graph,
-        f"MATCH (t:Taxon)-[m]->(s:Substance)-[:SAME_COMPOUND_AS]->"
-        f"(d:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}}) "
-        f"RETURN count(m) AS edges",
-    )["edges"] == PARTIAL_GOLDEN["d18_masi_metformin_edges"]
+    assert (
+        one(
+            graph,
+            f"MATCH (t:Taxon)-[m]->(s:Substance)-[:SAME_COMPOUND_AS]->"
+            f"(d:Drug {{id: '{CHEMBL_GOLDEN['metformin']}'}}) "
+            f"RETURN count(m) AS edges",
+        )["edges"]
+        == PARTIAL_GOLDEN["d18_masi_metformin_edges"]
+    )
 
 
 def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(graph):
@@ -2976,11 +3039,14 @@ def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(grap
     condition identifier at all — 684 of the 783 edges reach a live MONDO term
     by a label or an exact synonym, and the other 99 keep `MASI:DIS<n>` with
     `mondo_id` null, the shape BugSigDB's 503 own-CURIE terms already have."""
-    assert one(
-        graph,
-        "MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.primary_source = 'masi' "
-        "RETURN count(*) AS n",
-    )["n"] == 783
+    assert (
+        one(
+            graph,
+            "MATCH ()-[r:ASSOCIATED_WITH]->() WHERE r.primary_source = 'masi' "
+            "RETURN count(*) AS n",
+        )["n"]
+        == 783
+    )
     routes = {
         r["route"]: r["n"]
         for r in rows(
@@ -2990,9 +3056,7 @@ def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(grap
             "RETURN r.condition_join AS route, count(*) AS n",
         )
     }
-    assert routes == {
-        "mondo-name": 358, "mondo-exact-synonym": 326, "unmatched": 99
-    }
+    assert routes == {"mondo-name": 358, "mondo-exact-synonym": 326, "unmatched": 99}
     # **`condition_join` is on the edge and not on the node**, because
     # `disease.csv` is shared and key-deduped: 631 of the MONDO ids MASI reaches
     # were written by BugSigDB or gutMDisorder first, so a node column would be
@@ -3078,15 +3142,20 @@ def test_d18_the_competing_explanation_is_now_offered_for_32_t2d_taxa(graph):
         # can see the threshold the call rests on rather than trusting `effect`.
         assert all("adjusted p" in w for w in row["wording"]), row
     # The old leg is untouched and still 17 — two legs, two questions.
-    assert len(rows(
-        graph,
-        f"""
+    assert (
+        len(
+            rows(
+                graph,
+                f"""
         MATCH (t:Taxon)-[:ASSOCIATED_WITH]->(:Disease {{id: 'MONDO:0005148'}})
         MATCH (t)-[:ABUNDANCE_CHANGED_BY]->(:Intervention)
               -[:IS_DRUG]->(:Drug {{id: '{CHEMBL_GOLDEN["metformin"]}'}})
         RETURN DISTINCT t.id AS taxon
         """,
-    )) == PARTIAL_GOLDEN["d18_t2d_taxa"]
+            )
+        )
+        == PARTIAL_GOLDEN["d18_t2d_taxa"]
+    )
 
 
 def test_d18_the_screen_widens_the_question_past_metformin(graph):
@@ -3108,7 +3177,9 @@ def test_d18_the_screen_widens_the_question_past_metformin(graph):
     )
     assert result["taxa"] == PARTIAL_GOLDEN["d18_t2d_taxa_inhibited_by_something"]
     assert result["drugs"] == PARTIAL_GOLDEN["d18_t2d_inhibiting_drugs"]
-    assert result["human_targeted"] == PARTIAL_GOLDEN["d18_t2d_human_targeted_inhibitors"]
+    assert (
+        result["human_targeted"] == PARTIAL_GOLDEN["d18_t2d_human_targeted_inhibitors"]
+    )
 
 
 def test_d18_three_of_forslunds_four_named_taxa_are_now_screened(graph):
@@ -3132,9 +3203,13 @@ def test_d18_three_of_forslunds_four_named_taxa_are_now_screened(graph):
     }
     assert set(PARTIAL_GOLDEN["d18_screened_fixtures"]) <= screened
     genus = PARTIAL_GOLDEN["d18_unscreened_fixture_genus"]
-    assert one(
-        graph, f"MATCH (t:Taxon) WHERE t.lineage_genus = '{genus}' RETURN count(t) AS n"
-    )["n"] > 0, f"{genus} is not even in the taxonomy — a different gap"
+    assert (
+        one(
+            graph,
+            f"MATCH (t:Taxon) WHERE t.lineage_genus = '{genus}' RETURN count(t) AS n",
+        )["n"]
+        > 0
+    ), f"{genus} is not even in the taxonomy — a different gap"
     assert not rows(
         graph,
         "MATCH (d:Drug)-[:INHIBITS_GROWTH_OF|DOES_NOT_INHIBIT_GROWTH_OF]->(t:Taxon) "

@@ -65,14 +65,14 @@ SOURCE = "njc19"
 # Golden values, derived from the fixture by hand and asserted exactly.
 # --------------------------------------------------------------------------
 
-DATA_ROWS = 16          # rows under the header in the fixture sheet
-EDGES = 11              # before dedupe; the byte-identical duplicate is one of them
-PRODUCES = 4            # NJC19's own, after dedupe. HMDB adds 13 to the same table.
+DATA_ROWS = 16  # rows under the header in the fixture sheet
+EDGES = 11  # before dedupe; the byte-identical duplicate is one of them
+PRODUCES = 4  # NJC19's own, after dedupe. HMDB adds 13 to the same table.
 CONSUMES = 3
 DEGRADES = 2
 NO_EXCHANGE = 1
-LEDGER_ROWS = 6         # host cell 1 + unresolved 2 + too broad 1 + unknown 1 + empty 1
-UNRESOLVED_TAXA = 2     # Bacillus (ambiguous) and Mycoplasma pneumoniae
+LEDGER_ROWS = 6  # host cell 1 + unresolved 2 + too broad 1 + unknown 1 + empty 1
+UNRESOLVED_TAXA = 2  # Bacillus (ambiguous) and Mycoplasma pneumoniae
 
 #: HMDB's butyric acid record in the mini fixture. The real file's is
 #: CHEBI:30772; what matters here is that *one* node carries both sources.
@@ -90,41 +90,68 @@ def built(tmp_path_factory):
 
     def run(script, *args):
         proc = subprocess.run(
-            [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
+            [sys.executable, str(script), *args],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
         )
-        assert proc.returncode == 0, f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        assert proc.returncode == 0, (
+            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
+        )
         return proc
 
     # Prep order is the build's: `prep_njc19` declares DEPENDS_ON = [hmdb, mimedb]
     # because its compound join reads every Metabolite node that already exists.
     run(
         SCRIPTS / "prep_hmdb.py",
-        "--xml", str(HMDB_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--reactome", str(REACTOME_MINI),
-        "--out", str(csv_dir),
+        "--xml",
+        str(HMDB_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
     )
     run(
         SCRIPTS / "prep_mimedb.py",
-        "--metabolites", str(MIMEDB_MINI / "mimedb_metabolites_v1.csv"),
-        "--microbes", str(MIMEDB_MINI / "mimedb_microbes_v1.csv"),
-        "--njc19", str(NJC19_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--metabolites",
+        str(MIMEDB_MINI / "mimedb_metabolites_v1.csv"),
+        "--microbes",
+        str(MIMEDB_MINI / "mimedb_microbes_v1.csv"),
+        "--njc19",
+        str(NJC19_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
     prep = run(
         PREP,
-        "--xlsx", str(NJC19_MINI),
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
+        "--xlsx",
+        str(NJC19_MINI),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
     )
-    run(SCRIPTS / "prep_reactome.py", "--reactome", str(REACTOME_MINI), "--out", str(csv_dir))
+    run(
+        SCRIPTS / "prep_reactome.py",
+        "--reactome",
+        str(REACTOME_MINI),
+        "--out",
+        str(csv_dir),
+    )
     run(
         SCRIPTS / "prep_taxonomy.py",
-        "--taxdump", str(TAXDUMP_MINI),
-        "--out", str(csv_dir),
-        "--scope", "cited",
-        "--cited-from", str(csv_dir / "cited_taxa.csv"),
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(csv_dir),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(csv_dir / "cited_taxa.csv"),
     )
 
     from build_blueprint import compose
@@ -190,7 +217,8 @@ def test_a_combined_activity_is_two_relations_and_a_bare_one_is_one():
     assert activity_relations("Macromolecule degradation") == [("DEGRADES", False)]
     assert activity_relations("Macromolecule degradation (-)") == [("DEGRADES", True)]
     assert activity_relations("Consumption (import), Production (export)") == [
-        ("CONSUMES", False), ("PRODUCES", False)
+        ("CONSUMES", False),
+        ("PRODUCES", False),
     ]
     assert activity_relations("Cross-feeding (unspecified)") == []
     assert activity_relations(None) == []
@@ -198,7 +226,7 @@ def test_a_combined_activity_is_two_relations_and_a_bare_one_is_one():
 
 def test_a_negative_marker_negates_the_whole_cell():
     for cell in ("Consumption (import) (-)", "Production (export) (-)"):
-        (_relation, negated), = activity_relations(cell)
+        ((_relation, negated),) = activity_relations(cell)
         assert negated is True
 
 
@@ -206,9 +234,13 @@ def test_a_scoped_reference_cell_splits_by_direction():
     """`import:415, 418;export:417` — one row, two literatures. Carrying the
     whole cell on both edges attributes the import to the export's paper."""
     assert split_references("import:415, 418;export:417", "CONSUMES") == (
-        ["415", "418"], False
+        ["415", "418"],
+        False,
     )
-    assert split_references("import:415, 418;export:417", "PRODUCES") == (["417"], False)
+    assert split_references("import:415, 418;export:417", "PRODUCES") == (
+        ["417"],
+        False,
+    )
     # A plain cell belongs entirely to its single relationship.
     assert split_references("12, 197, 214", "PRODUCES") == (["12", "197", "214"], False)
     assert split_references(424, "PRODUCES") == (["424"], False)
@@ -220,7 +252,10 @@ def test_genus_level_evidence_is_all_and_not_any():
     "Any" would be the wrong quantifier — one species-level source makes the
     row a species-level claim with extra context."""
     assert split_references("217(G)", "PRODUCES") == (["217(G)"], True)
-    assert split_references("205(G), 650(G)", "PRODUCES") == (["205(G)", "650(G)"], True)
+    assert split_references("205(G), 650(G)", "PRODUCES") == (
+        ["205(G)", "650(G)"],
+        True,
+    )
     assert split_references("205(G), 650", "PRODUCES")[1] is False
 
 
@@ -233,7 +268,9 @@ def test_the_name_variants_try_what_the_source_wrote_before_anything_derived():
     assert routes[0] == ("Butyrate", "exact")
     assert routes[1] == ("Butyric acid", "conjugate")
 
-    spellings = [s for s, _ in name_variants("L-Lactate ([S]-Lactate, Lactate, D-Lactate)")]
+    spellings = [
+        s for s, _ in name_variants("L-Lactate ([S]-Lactate, Lactate, D-Lactate)")
+    ]
     assert spellings[0] == "L-Lactate"
     # every derivation of the head name comes before the first synonym
     assert spellings.index("Lactic acid") < spellings.index("D-Lactate")
@@ -266,7 +303,12 @@ def test_the_metabolite_exchange_score_is_non_zero_for_acetate(graph):
         "RETURN count(DISTINCT p) AS producers, count(DISTINCT c) AS consumers",
     )
     assert row["producers"] >= 1 and row["consumers"] >= 1
-    mes = 2.0 * row["producers"] * row["consumers"] / (row["producers"] + row["consumers"])
+    mes = (
+        2.0
+        * row["producers"]
+        * row["consumers"]
+        / (row["producers"] + row["consumers"])
+    )
     assert mes > 0.0
 
 
@@ -288,11 +330,14 @@ def test_butyrate_reaches_hmdbs_butyric_acid_by_the_conjugate_route(graph):
 def test_an_exact_name_beats_every_derived_spelling(graph):
     """`Deoxycholic acid` is spelled the same in both sources, and the route
     recorded on the edge says the join did not need a derivation to get there."""
-    assert one(
-        graph,
-        f"MATCH ()-[r:CONSUMES]->(m:Metabolite {{id: '{DEOXYCHOLIC_ACID}'}}) "
-        "RETURN r.metabolite_join AS route",
-    )["route"] == "exact"
+    assert (
+        one(
+            graph,
+            f"MATCH ()-[r:CONSUMES]->(m:Metabolite {{id: '{DEOXYCHOLIC_ACID}'}}) "
+            "RETURN r.metabolite_join AS route",
+        )["route"]
+        == "exact"
+    )
 
 
 def test_produces_is_one_table_two_sources(graph, csv_dir):
@@ -360,13 +405,14 @@ def test_every_negative_names_the_activity_it_refutes(graph):
     relations = {
         r["rel"]
         for r in rows(
-            graph, "MATCH ()-[r:NO_EXCHANGE_WITH]->() RETURN DISTINCT r.source_relation AS rel"
+            graph,
+            "MATCH ()-[r:NO_EXCHANGE_WITH]->() RETURN DISTINCT r.source_relation AS rel",
         )
     }
     assert relations <= {"import-negative", "export-negative", "degrade-negative"}
-    assert one(graph, "MATCH ()-[r:NO_EXCHANGE_WITH]->() RETURN count(r) AS n")["n"] == (
-        NO_EXCHANGE
-    )
+    assert one(graph, "MATCH ()-[r:NO_EXCHANGE_WITH]->() RETURN count(r) AS n")[
+        "n"
+    ] == (NO_EXCHANGE)
 
 
 # --------------------------------------------------------------------------
@@ -413,13 +459,18 @@ def test_an_ambiguous_genus_is_refused_and_not_guessed(graph, csv_dir):
 def test_a_renamed_organism_is_a_tombstone_not_a_drop(graph, csv_dir):
     """`Mycoplasma pneumoniae` moved to *Mycoplasmoides* in 2018 and NJC19 was
     curated before that. G2: nothing is dropped."""
-    assert one(
-        graph,
-        "MATCH (u:UnresolvedTaxon) WHERE u.raw_name = 'Mycoplasma pneumoniae' "
-        "RETURN u.status AS status",
-    )["status"] == "unresolved"
-    assert len([r for r in table(csv_dir, "unresolved_taxa.csv")
-                if r["source"] == SOURCE]) == UNRESOLVED_TAXA
+    assert (
+        one(
+            graph,
+            "MATCH (u:UnresolvedTaxon) WHERE u.raw_name = 'Mycoplasma pneumoniae' "
+            "RETURN u.status AS status",
+        )["status"]
+        == "unresolved"
+    )
+    assert (
+        len([r for r in table(csv_dir, "unresolved_taxa.csv") if r["source"] == SOURCE])
+        == UNRESOLVED_TAXA
+    )
 
 
 def test_a_subspecies_is_promoted_and_keeps_the_rank_it_came_from(graph):
@@ -468,7 +519,9 @@ def test_a_compound_mimedb_carries_reaches_mimedbs_node(graph):
     assert row["source"] == "mimedb"
     assert row["id"].startswith("MIMEDB:")
     assert row["route"] == "exact"
-    assert row["inchikey"], "the point of joining MiMeDB is that its node has an identity"
+    assert row["inchikey"], (
+        "the point of joining MiMeDB is that its node has an identity"
+    )
 
 
 def test_a_compound_no_source_holds_is_minted_not_dropped(graph):
@@ -512,8 +565,11 @@ def test_every_row_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_output):
     row counted twice because it is two claims. A silent drop cannot hide in
     the difference."""
     edges = sum(
-        one(graph, f"MATCH ()-[r:{rel}]->() WHERE r.primary_source = '{SOURCE}' "
-                   "RETURN count(r) AS n")["n"]
+        one(
+            graph,
+            f"MATCH ()-[r:{rel}]->() WHERE r.primary_source = '{SOURCE}' "
+            "RETURN count(r) AS n",
+        )["n"]
         for rel in ("PRODUCES", "CONSUMES", "DEGRADES", "NO_EXCHANGE_WITH")
     )
     ledger = table(csv_dir, "unresolved_exchange.csv")
@@ -524,10 +580,15 @@ def test_every_row_is_an_edge_or_a_counted_reason(graph, csv_dir, prep_output):
 
 
 def test_the_prep_reports_what_it_did_not_load(prep_output):
-    for phrase in ("by relationship:", "negatives kept as NO_EXCHANGE_WITH:",
-                   "rows curating both directions", "organism resolution:",
-                   "not loaded:", "compound join:",
-                   "species-level rows standing on genus-level references only:"):
+    for phrase in (
+        "by relationship:",
+        "negatives kept as NO_EXCHANGE_WITH:",
+        "rows curating both directions",
+        "organism resolution:",
+        "not loaded:",
+        "compound join:",
+        "species-level rows standing on genus-level references only:",
+    ):
         assert phrase in prep_output
 
 
@@ -618,8 +679,11 @@ def test_every_exchanging_taxon_is_cited_and_loaded(graph, csv_dir):
             f"WHERE r.primary_source = '{SOURCE}' RETURN DISTINCT t.id AS tax_id",
         )
     }
-    cited = {int(r["tax_id"]) for r in table(csv_dir, "cited_taxa.csv")
-             if r["source"] == SOURCE}
+    cited = {
+        int(r["tax_id"])
+        for r in table(csv_dir, "cited_taxa.csv")
+        if r["source"] == SOURCE
+    }
     assert got and got <= cited
 
 
@@ -628,11 +692,14 @@ def test_a_byte_identical_row_is_one_edge_not_two(graph):
     first row verbatim; `dedupe_full` collapses it, and the *genuinely* parallel
     edges — a taxon and a compound from two different reference sets — survive
     because their `source_record_id` and references differ."""
-    assert one(
-        graph,
-        f"MATCH (t:Taxon {{id: 853}})-[r:PRODUCES]->(m:Metabolite {{id: '{BUTYRIC_ACID}'}}) "
-        f"WHERE r.primary_source = '{SOURCE}' RETURN count(r) AS n",
-    )["n"] == 1
+    assert (
+        one(
+            graph,
+            f"MATCH (t:Taxon {{id: 853}})-[r:PRODUCES]->(m:Metabolite {{id: '{BUTYRIC_ACID}'}}) "
+            f"WHERE r.primary_source = '{SOURCE}' RETURN count(r) AS n",
+        )["n"]
+        == 1
+    )
 
 
 @pytest.mark.fixture

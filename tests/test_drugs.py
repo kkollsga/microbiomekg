@@ -41,12 +41,23 @@ def test_the_index_skips_the_rows_this_source_wrote_on_a_previous_run(tmp_path):
     is about to delete — and the recorded join route would differ between the
     first run and every one after it, which no count in the build report would
     reveal."""
-    path = write_drug_csv(tmp_path / "drug.csv", [
-        {"drug_id": "CHEMBL:CHEMBL262777", "pref_name": "VANCOMYCIN",
-         "atc_codes": "J01XA01", "source": "chembl"},
-        {"drug_id": "PRESTWICK:Prestw-9999", "pref_name": "Fictitine hydrochloride",
-         "atc_codes": "", "source": "maier2018"},
-    ])
+    path = write_drug_csv(
+        tmp_path / "drug.csv",
+        [
+            {
+                "drug_id": "CHEMBL:CHEMBL262777",
+                "pref_name": "VANCOMYCIN",
+                "atc_codes": "J01XA01",
+                "source": "chembl",
+            },
+            {
+                "drug_id": "PRESTWICK:Prestw-9999",
+                "pref_name": "Fictitine hydrochloride",
+                "atc_codes": "",
+                "source": "maier2018",
+            },
+        ],
+    )
     own = DrugIndex.from_csv(path, exclude_source="maier2018")
     assert "fictitine hydrochloride" not in own.names
     other = DrugIndex.from_csv(path, exclude_source="zimmermann2019")
@@ -61,12 +72,23 @@ def test_an_atc_code_two_nodes_claim_is_a_join_key_for_neither(tmp_path):
     """A code is only an identifier while it names one substance. Picking one of
     two is the merge-on-a-shared-attribute failure the schema survey catalogues,
     and it is silent: the compound gets an edge, on the wrong molecule."""
-    path = write_drug_csv(tmp_path / "drug.csv", [
-        {"drug_id": "CHEMBL:A", "pref_name": "ALPHA", "atc_codes": "C07AA05",
-         "source": "chembl"},
-        {"drug_id": "CHEMBL:B", "pref_name": "BETA", "atc_codes": "C07AA05 N02BE01",
-         "source": "chembl"},
-    ])
+    path = write_drug_csv(
+        tmp_path / "drug.csv",
+        [
+            {
+                "drug_id": "CHEMBL:A",
+                "pref_name": "ALPHA",
+                "atc_codes": "C07AA05",
+                "source": "chembl",
+            },
+            {
+                "drug_id": "CHEMBL:B",
+                "pref_name": "BETA",
+                "atc_codes": "C07AA05 N02BE01",
+                "source": "chembl",
+            },
+        ],
+    )
     index = DrugIndex.from_csv(path, exclude_source="maier2018")
     assert "C07AA05" not in index.atc
     assert index.atc["N02BE01"] == "CHEMBL:B"
@@ -79,10 +101,17 @@ def test_without_atc_applies_the_same_uniqueness_rule_from_the_other_side(tmp_pa
     """A source's own catalogue can give one code to two entries it measured
     separately (stereoisomers, a prodrug and its active form). Dropping the code
     lets both fall through to the next route instead of merging them."""
-    path = write_drug_csv(tmp_path / "drug.csv", [
-        {"drug_id": "CHEMBL:A", "pref_name": "PROPRANOLOL", "atc_codes": "C07AA05",
-         "source": "chembl"},
-    ])
+    path = write_drug_csv(
+        tmp_path / "drug.csv",
+        [
+            {
+                "drug_id": "CHEMBL:A",
+                "pref_name": "PROPRANOLOL",
+                "atc_codes": "C07AA05",
+                "source": "chembl",
+            },
+        ],
+    )
     index = DrugIndex.from_csv(path, exclude_source="maier2018")
     assert index.atc["C07AA05"] == "CHEMBL:A"
     narrowed = index.without_atc({"C07AA05"})
@@ -96,10 +125,17 @@ def test_a_name_is_matched_casefolded_and_an_atc_code_upper_cased(tmp_path):
     """The two catalogues spell drugs `Vancomycin` and `VANCOMYCIN` and ChEMBL
     spells them a third way; the code is a real identifier and its case is not
     information."""
-    path = write_drug_csv(tmp_path / "drug.csv", [
-        {"drug_id": "CHEMBL:A", "pref_name": "VANCOMYCIN", "atc_codes": "J01XA01",
-         "source": "chembl"},
-    ])
+    path = write_drug_csv(
+        tmp_path / "drug.csv",
+        [
+            {
+                "drug_id": "CHEMBL:A",
+                "pref_name": "VANCOMYCIN",
+                "atc_codes": "J01XA01",
+                "source": "chembl",
+            },
+        ],
+    )
     index = DrugIndex.from_csv(path, exclude_source="x")
     assert index.lookup("name", "  Vancomycin ") == "CHEMBL:A"
     assert index.lookup("atc", "j01xa01") == "CHEMBL:A"
@@ -112,21 +148,30 @@ def test_the_first_route_wins_and_the_losers_are_returned_rather_than_hidden():
     every case is the verbatim name reaching a ChEMBL *salt* node while a
     derived spelling reaches its parent."""
     index = DrugIndex(
-        names={"betamethasone acetate": "CHEMBL:CHEMBL1200538",
-               "betamethasone": "CHEMBL:CHEMBL632"},
-        atc={}, source_of={},
+        names={
+            "betamethasone acetate": "CHEMBL:CHEMBL1200538",
+            "betamethasone": "CHEMBL:CHEMBL632",
+        },
+        atc={},
+        source_of={},
     )
-    drug_id, route, others = join_drug([
-        ("name", "Betamethasone acetate", "molename"),
-        ("name", "Betamethasone", "salt-name"),
-    ], index)
+    drug_id, route, others = join_drug(
+        [
+            ("name", "Betamethasone acetate", "molename"),
+            ("name", "Betamethasone", "salt-name"),
+        ],
+        index,
+    )
     assert (drug_id, route) == ("CHEMBL:CHEMBL1200538", "molename")
     assert others == ["CHEMBL:CHEMBL632"]
     # Two routes reaching the *same* node is agreement, not a disagreement.
-    _id, _route, agreed = join_drug([
-        ("name", "Betamethasone", "molename"),
-        ("name", "Betamethasone", "salt-name"),
-    ], index)
+    _id, _route, agreed = join_drug(
+        [
+            ("name", "Betamethasone", "molename"),
+            ("name", "Betamethasone", "salt-name"),
+        ],
+        index,
+    )
     assert agreed == []
 
 

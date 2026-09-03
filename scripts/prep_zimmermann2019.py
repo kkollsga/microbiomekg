@@ -123,14 +123,41 @@ STRAIN_SECTION_END = "Bacteroides thetaiotaomicron (Background"
 SCREEN_COLUMN_SUBHEADS = ("% consumed", "% consumed STD", "FC", "FC STD", " p(FDR)")
 
 EDGE_FIELDS = [
-    "effect", "evidence_level", "knowledge_level", "agent_type", "primary_source",
-    "source_record_id", "source_licence", "source_relation", "publications", "pmid",
-    "percent_consumed", "percent_consumed_std", "fold_change", "fold_change_std",
-    "fdr_p_value", "drug_threshold_percent", "incubation_hours", "replicates",
-    "reported_drug_name", "parent_drug_name", "therapeutic_indication", "drug_join",
-    "screen_column", "reported_name", "strain", "phylum", "reported_rank",
-    "original_rank", "resolution_status", "strain_join", "taxon_join",
-    "gene_locus_tags", "gene_products", "gene_protein_ids", "n_gene_products",
+    "effect",
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
+    "publications",
+    "pmid",
+    "percent_consumed",
+    "percent_consumed_std",
+    "fold_change",
+    "fold_change_std",
+    "fdr_p_value",
+    "drug_threshold_percent",
+    "incubation_hours",
+    "replicates",
+    "reported_drug_name",
+    "parent_drug_name",
+    "therapeutic_indication",
+    "drug_join",
+    "screen_column",
+    "reported_name",
+    "strain",
+    "phylum",
+    "reported_rank",
+    "original_rank",
+    "resolution_status",
+    "strain_join",
+    "taxon_join",
+    "gene_locus_tags",
+    "gene_products",
+    "gene_protein_ids",
+    "n_gene_products",
 ]
 
 #: The same column set ``prep_maier2018.py`` writes, plus this source's three.
@@ -138,12 +165,32 @@ EDGE_FIELDS = [
 #: a build where Maier's raw workbooks are absent still writes a ``drug.csv``
 #: whose columns match what ``blueprints/zimmermann2019.json`` declares.
 DRUG_FIELDS = [
-    "drug_id", "chembl_id", "pref_name", "molecule_type", "max_phase",
-    "first_approval", "atc_codes", "approved", "withdrawn", "therapeutic", "oral",
-    "parenteral", "topical", "smiles", "salt_form", "salt_ids", "source",
-    "source_licence", "chembl_release", "prestwick_id", "pubchem_cid",
-    "screen_drug_class", "screen_target_species",
-    "cas", "trade_name", "therapeutic_indication",
+    "drug_id",
+    "chembl_id",
+    "pref_name",
+    "molecule_type",
+    "max_phase",
+    "first_approval",
+    "atc_codes",
+    "approved",
+    "withdrawn",
+    "therapeutic",
+    "oral",
+    "parenteral",
+    "topical",
+    "smiles",
+    "salt_form",
+    "salt_ids",
+    "source",
+    "source_licence",
+    "chembl_release",
+    "prestwick_id",
+    "pubchem_cid",
+    "screen_drug_class",
+    "screen_target_species",
+    "cas",
+    "trade_name",
+    "therapeutic_indication",
 ]
 
 #: The same shape ``unresolved_maier2018.csv`` uses. C18's accounting lives here:
@@ -207,10 +254,12 @@ def read_strains(path: Path) -> list[dict]:
         (i for i, row in enumerate(rows) if text(row[0]) == STRAIN_HEADER_CELL), None
     )
     if start is None:
-        raise SystemExit(f"{path}: no header row whose first cell is "
-                         f"{STRAIN_HEADER_CELL!r} in {SHEETS['strains']}")
+        raise SystemExit(
+            f"{path}: no header row whose first cell is "
+            f"{STRAIN_HEADER_CELL!r} in {SHEETS['strains']}"
+        )
     out: list[dict] = []
-    for row in rows[start + 1:]:
+    for row in rows[start + 1 :]:
         name = text(row[0])
         if name.startswith(STRAIN_SECTION_END):
             break
@@ -236,7 +285,7 @@ def read_drugs(path: Path) -> dict[str, dict]:
         raise SystemExit(f"{path}: no MOLENAME header in {SHEETS['drugs']}")
     header = [text(c) for c in rows[start]]
     out: dict[str, dict] = {}
-    for row in rows[start + 1:]:
+    for row in rows[start + 1 :]:
         name = text(row[0])
         if not name:
             break
@@ -255,9 +304,7 @@ def read_screen(path: Path) -> tuple[list[str], list[dict]]:
     count downstream would still look plausible.
     """
     rows = sheet_rows(path, SHEETS["screen"])
-    blocks = next(
-        (i for i, row in enumerate(rows) if text(row[0]) == "DrugName"), None
-    )
+    blocks = next((i for i, row in enumerate(rows) if text(row[0]) == "DrugName"), None)
     if blocks is None:
         raise SystemExit(f"{path}: no DrugName header row in {SHEETS['screen']}")
     header, sub = rows[blocks], rows[blocks + 1]
@@ -274,18 +321,20 @@ def read_screen(path: Path) -> tuple[list[str], list[dict]]:
                 f"read positionally and one of them decides every hit call"
             )
     out: list[dict] = []
-    for row in rows[blocks + 2:]:
+    for row in rows[blocks + 2 :]:
         name = text(row[0])
         if not name:
             continue
-        out.append({
-            "drug": name,
-            "threshold": as_float(row[1]),
-            "cells": [
-                (label, [as_float(row[at + k]) for k in range(5)])
-                for at, label in starts
-            ],
-        })
+        out.append(
+            {
+                "drug": name,
+                "threshold": as_float(row[1]),
+                "cells": [
+                    (label, [as_float(row[at + k]) for k in range(5)])
+                    for at, label in starts
+                ],
+            }
+        )
     return [label for _at, label in starts], out
 
 
@@ -299,30 +348,31 @@ def read_genes(path: Path) -> list[dict]:
     can name (see the module docstring on supplementary table 6).
     """
     rows = sheet_rows(path, SHEETS["genes"])
-    start = next(
-        (i for i, row in enumerate(rows) if text(row[0]) == "Gene"), None
-    )
+    start = next((i for i, row in enumerate(rows) if text(row[0]) == "Gene"), None)
     if start is None:
         raise SystemExit(f"{path}: no Gene header row in {SHEETS['genes']}")
     header, sub = rows[start], rows[start + 1]
     parents = [
-        (i, text(v)) for i, v in enumerate(header)
+        (i, text(v))
+        for i, v in enumerate(header)
         if text(v) and text(sub[i]) == "Parent drug"
     ]
     if not parents:
         raise SystemExit(f"{path}: {SHEETS['genes']} names no 'Parent drug' column")
     out: list[dict] = []
-    for row in rows[start + 2:]:
+    for row in rows[start + 2 :]:
         tag = text(row[0])
         if not tag:
             continue
-        out.append({
-            "locus_tag": tag,
-            "patric": text(row[1]),
-            "product": text(row[2]),
-            "protein_id": text(row[3]),
-            "drugs": {label for at, label in parents if row[at] == 1},
-        })
+        out.append(
+            {
+                "locus_tag": tag,
+                "patric": text(row[1]),
+                "product": text(row[2]),
+                "protein_id": text(row[3]),
+                "drugs": {label for at, label in parents if row[at] == 1},
+            }
+        )
     return out
 
 
@@ -379,7 +429,8 @@ def check_headline(
             f"checks itself against is for that matrix."
         )
     metabolised = sum(
-        1 for row in screen
+        1
+        for row in screen
         if any(
             zm.relation_for(values[0], row["threshold"], values[4])
             == zm.RELATION_METABOLISES
@@ -429,7 +480,8 @@ def gene_column_for(
         return "", f"PATRIC genome taxid {tax_id} reaches no taxon: {res.note}"
     strain_key = zm.join_key(idx.scientific_name.get(tax_id, ""))
     hits = [
-        label for label, column in columns.items()
+        label
+        for label, column in columns.items()
         if column["tax_id"] == res.tax_id
         and column["reference_key"]
         and column["reference_key"] in strain_key
@@ -445,18 +497,28 @@ def gene_column_for(
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--tables", type=Path, default=None,
-                    help=f"directory holding {WORKBOOK} "
-                         f"(default: <raw>/{RAW_SUBDIR}).")
+    ap.add_argument(
+        "--tables",
+        type=Path,
+        default=None,
+        help=f"directory holding {WORKBOOK} (default: <raw>/{RAW_SUBDIR}).",
+    )
     ap.add_argument("--taxdump", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--rank-ceiling", default="species",
-                    help="Rank strains and subspecies are promoted to before keying.")
-    ap.add_argument("--published-matrix", type=_triple, default=PUBLISHED_MATRIX,
-                    help="DRUGS,STRAINS,METABOLISED — the published claim this "
-                         "run must reproduce before it writes anything. Defaults "
-                         "to the paper's. Only the test fixtures pass another, "
-                         "and they pass one rather than switching the check off.")
+    ap.add_argument(
+        "--rank-ceiling",
+        default="species",
+        help="Rank strains and subspecies are promoted to before keying.",
+    )
+    ap.add_argument(
+        "--published-matrix",
+        type=_triple,
+        default=PUBLISHED_MATRIX,
+        help="DRUGS,STRAINS,METABOLISED — the published claim this "
+        "run must reproduce before it writes anything. Defaults "
+        "to the paper's. Only the test fixtures pass another, "
+        "and they pass one rather than switching the check off.",
+    )
     args = ap.parse_args(argv)
 
     tables = args.tables or (args.raw / RAW_SUBDIR)
@@ -478,17 +540,25 @@ def main(argv: list[str] | None = None) -> int:
     columns, screen = read_screen(workbook)
     genes = read_genes(workbook)
     controls = [label for label in columns if zm.is_control_column(label)]
-    print(f"read {len(screen):,} drugs x {len(columns)} measured columns = "
-          f"{len(screen) * len(columns):,} cells from {workbook.name}")
-    print(f"  {len(strains):,} strains and {len(library):,} drugs in the "
-          f"dictionaries, {len(genes):,} gene products in the gain-of-function "
-          f"screen")
-    print(f"  {len(controls)} of the measured columns are abiotic controls, not "
-          f"organisms: {', '.join(label.strip() for label in controls)}")
+    print(
+        f"read {len(screen):,} drugs x {len(columns)} measured columns = "
+        f"{len(screen) * len(columns):,} cells from {workbook.name}"
+    )
+    print(
+        f"  {len(strains):,} strains and {len(library):,} drugs in the "
+        f"dictionaries, {len(genes):,} gene products in the gain-of-function "
+        f"screen"
+    )
+    print(
+        f"  {len(controls)} of the measured columns are abiotic controls, not "
+        f"organisms: {', '.join(label.strip() for label in controls)}"
+    )
     metabolised = check_headline(screen, columns, args.published_matrix)
-    print(f"  the call rule reproduces the published headline: {metabolised} of "
-          f"{len(screen)} drugs ({100 * metabolised / len(screen):.0f}%) "
-          f"metabolised by at least one strain")
+    print(
+        f"  the call rule reproduces the published headline: {metabolised} of "
+        f"{len(screen)} drugs ({100 * metabolised / len(screen):.0f}%) "
+        f"metabolised by at least one strain"
+    )
 
     index = DrugIndex.from_csv(out / "drug.csv", exclude_source=SOURCE)
     print(f"drug.csv: {len(index.names):,} names this screen may join to")
@@ -499,37 +569,70 @@ def main(argv: list[str] | None = None) -> int:
 
     edges = {
         zm.RELATION_METABOLISES: Writer(
-            out / "taxon_drug_metabolised.csv", ["tax_id", "drug_id", *EDGE_FIELDS],
-            dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+            out / "taxon_drug_metabolised.csv",
+            ["tax_id", "drug_id", *EDGE_FIELDS],
+            dedupe_full=True,
+            merge=True,
+            owner=("primary_source", SOURCE),
         ),
         zm.RELATION_NO_METABOLISM: Writer(
             out / "taxon_drug_not_metabolised.csv",
             ["tax_id", "drug_id", *EDGE_FIELDS],
-            dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+            dedupe_full=True,
+            merge=True,
+            owner=("primary_source", SOURCE),
         ),
     }
     drugs = Writer(
-        out / "drug.csv", DRUG_FIELDS,
-        key="drug_id", merge=True, owner=("source", SOURCE),
+        out / "drug.csv",
+        DRUG_FIELDS,
+        key="drug_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
-         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
-        key="unresolved_id", merge=True, owner=("source", SOURCE),
+        [
+            "unresolved_id",
+            "raw_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "source",
+            "status",
+            "candidates",
+            "note",
+            "n_signatures",
+        ],
+        key="unresolved_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     ledger = Writer(
-        out / f"unresolved_{SOURCE}.csv", LEDGER_FIELDS,
-        merge=True, owner=("source", SOURCE),
+        out / f"unresolved_{SOURCE}.csv",
+        LEDGER_FIELDS,
+        merge=True,
+        owner=("source", SOURCE),
     )
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     def note(kind: str, record_id: str, subject: str, detail: str, reason: str) -> None:
-        ledger.add({"kind": kind, "record_id": record_id, "subject": subject,
-                    "detail": detail, "reason": reason, "source": SOURCE})
+        ledger.add(
+            {
+                "kind": kind,
+                "record_id": record_id,
+                "subject": subject,
+                "detail": detail,
+                "reason": reason,
+                "source": SOURCE,
+            }
+        )
 
     # ------------------------------------------------- the columns and strains
     #: normalised ``Name`` + ``Reference`` -> the table-1 row, plus the ``Name``
@@ -555,9 +658,14 @@ def main(argv: list[str] | None = None) -> int:
     unresolved_hits: Counter[str] = Counter()
     for label in columns:
         if zm.is_control_column(label):
-            note("column", label.strip(), label.strip(), "",
-                 "an abiotic degradation control, not an organism: loading it "
-                 "would write chemistry as microbial metabolism")
+            note(
+                "column",
+                label.strip(),
+                label.strip(),
+                "",
+                "an abiotic degradation control, not an organism: loading it "
+                "would write chemistry as microbial metabolism",
+            )
             continue
         override = zm.COLUMN_OVERRIDES.get(label)
         key = zm.join_key(override or label)
@@ -567,8 +675,13 @@ def main(argv: list[str] | None = None) -> int:
         if override:
             route = "override"
         if entry is None:
-            note("column", label.strip(), label.strip(), "",
-                 "no supplementary-table-1 row spells this screened column")
+            note(
+                "column",
+                label.strip(),
+                label.strip(),
+                "",
+                "no supplementary-table-1 row spells this screened column",
+            )
             continue
         strain_joins[route] += 1
         reported = entry["name"]
@@ -583,24 +696,37 @@ def main(argv: list[str] | None = None) -> int:
             # is reversible.
             rejected = zm.AMBIGUOUS_STRAINS.get(reported.casefold(), ())
             uid = f"unresolved:{SOURCE}:{reported.casefold()}"
-            unresolved_nodes.add({
-                "unresolved_id": uid, "raw_name": reported,
-                "reported_rank": zm.REPORTED_RANK,
-                "original_rank": res.original_rank or "", "reported_tax_id": "",
-                "source": SOURCE, "status": res.status,
-                "candidates": as_list(
-                    str(c) for c in (res.candidates or [t for t, _n in rejected])
-                ),
-                "note": res.note, "n_signatures": "0",
-            })
+            unresolved_nodes.add(
+                {
+                    "unresolved_id": uid,
+                    "raw_name": reported,
+                    "reported_rank": zm.REPORTED_RANK,
+                    "original_rank": res.original_rank or "",
+                    "reported_tax_id": "",
+                    "source": SOURCE,
+                    "status": res.status,
+                    "candidates": as_list(
+                        str(c) for c in (res.candidates or [t for t, _n in rejected])
+                    ),
+                    "note": res.note,
+                    "n_signatures": "0",
+                }
+            )
             unresolved_hits[uid] += 1
-            note("strain", label.strip(), reported,
-                 "; ".join(f"{name} ({tid})" for tid, name in rejected)
-                 or entry["reference"],
-                 f"taxon {res.status}: {res.note}"
-                 + (" — NCBI holds more than one candidate and nothing in the "
+            note(
+                "strain",
+                label.strip(),
+                reported,
+                "; ".join(f"{name} ({tid})" for tid, name in rejected)
+                or entry["reference"],
+                f"taxon {res.status}: {res.note}"
+                + (
+                    " — NCBI holds more than one candidate and nothing in the "
                     "row chooses between them, so no override is written"
-                    if rejected else ""))
+                    if rejected
+                    else ""
+                ),
+            )
             continue
         rank = idx.rank.get(res.tax_id) or ""
         own, ceiling = rank_depth(rank), rank_depth(zm.RANK_CEILING)
@@ -608,18 +734,25 @@ def main(argv: list[str] | None = None) -> int:
             # Every organism here is one cultured isolate, so a resolution this
             # broad is a surprise rather than a filter — and the ledger row
             # carries the id and rank it did reach, so the ceiling is reversible.
-            note("strain", label.strip(), reported,
-                 f"{res.tax_id} ({rank or 'unplaced'})",
-                 f"resolved rank is broader than {zm.RANK_CEILING!r}")
+            note(
+                "strain",
+                label.strip(),
+                reported,
+                f"{res.tax_id} ({rank or 'unplaced'})",
+                f"resolved rank is broader than {zm.RANK_CEILING!r}",
+            )
             continue
         taxon_joins[taxon_route] += 1
         resolved[label] = {
-            "tax_id": res.tax_id, "reported_name": reported,
-            "strain": entry["reference"], "phylum": entry["phylum"],
+            "tax_id": res.tax_id,
+            "reported_name": reported,
+            "strain": entry["reference"],
+            "phylum": entry["phylum"],
             "reference_key": zm.join_key(entry["reference"]),
             "original_rank": res.original_rank or rank,
             "resolution_status": res.status,
-            "strain_join": route, "taxon_join": taxon_route,
+            "strain_join": route,
+            "taxon_join": taxon_route,
         }
 
     # ------------------------------------------------------------- the drugs
@@ -632,10 +765,15 @@ def main(argv: list[str] | None = None) -> int:
         molename = row["drug"]
         entry = library.get(molename)
         if entry is None:
-            note("drug", molename, molename, "",
-                 "screened drug with no supplementary-table-2 row: it carries no "
-                 "parent name, CAS or indication, and only the verbatim route "
-                 "can reach a node")
+            note(
+                "drug",
+                molename,
+                molename,
+                "",
+                "screened drug with no supplementary-table-2 row: it carries no "
+                "parent name, CAS or indication, and only the verbatim route "
+                "can reach a node",
+            )
             entry = {}
         parent = text(entry.get("name"))
         drug_id, route, others = join_drug(zm.drug_variants(molename, parent), index)
@@ -645,34 +783,55 @@ def main(argv: list[str] | None = None) -> int:
             # ChEMBL's documented parent gap showing through, not a defect here —
             # but a precedence rule that hid it would leave the graph's own count
             # unreadable.
-            note("drug", molename, molename,
-                 f"{route} -> {drug_id}; also {','.join(others)}",
-                 "two join routes reached different Drug nodes; the route the "
-                 "screen's own spelling took wins")
+            note(
+                "drug",
+                molename,
+                molename,
+                f"{route} -> {drug_id}; also {','.join(others)}",
+                "two join routes reached different Drug nodes; the route the "
+                "screen's own spelling took wins",
+            )
         if not drug_id:
             drug_id = mint_id(molename)
             if drug_id not in minted:
                 minted[drug_id] = molename
-                drugs.add({
-                    "drug_id": drug_id, "chembl_id": "", "pref_name": molename,
-                    "molecule_type": "", "max_phase": "", "first_approval": "",
-                    "atc_codes": "",
-                    # Not `true`: every compound here is orally administered and
-                    # marketed, but `approved` in this graph means ChEMBL
-                    # max_phase 4, and inheriting the claim from a screening
-                    # library would put an unverified regulatory status on 23
-                    # nodes.
-                    "approved": "false", "withdrawn": "false", "therapeutic": "",
-                    "oral": "", "parenteral": "", "topical": "",
-                    "smiles": text(entry.get("SMILES")),
-                    "salt_form": "false", "salt_ids": "", "source": SOURCE,
-                    "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
-                    "chembl_release": "", "prestwick_id": "", "pubchem_cid": "",
-                    "screen_drug_class": "", "screen_target_species": "",
-                    "cas": text(entry.get("cas")),
-                    "trade_name": text(entry.get("TradeName")),
-                    "therapeutic_indication": text(entry.get("TherapeuticIndication")),
-                })
+                drugs.add(
+                    {
+                        "drug_id": drug_id,
+                        "chembl_id": "",
+                        "pref_name": molename,
+                        "molecule_type": "",
+                        "max_phase": "",
+                        "first_approval": "",
+                        "atc_codes": "",
+                        # Not `true`: every compound here is orally administered and
+                        # marketed, but `approved` in this graph means ChEMBL
+                        # max_phase 4, and inheriting the claim from a screening
+                        # library would put an unverified regulatory status on 23
+                        # nodes.
+                        "approved": "false",
+                        "withdrawn": "false",
+                        "therapeutic": "",
+                        "oral": "",
+                        "parenteral": "",
+                        "topical": "",
+                        "smiles": text(entry.get("SMILES")),
+                        "salt_form": "false",
+                        "salt_ids": "",
+                        "source": SOURCE,
+                        "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                        "chembl_release": "",
+                        "prestwick_id": "",
+                        "pubchem_cid": "",
+                        "screen_drug_class": "",
+                        "screen_target_species": "",
+                        "cas": text(entry.get("cas")),
+                        "trade_name": text(entry.get("TradeName")),
+                        "therapeutic_indication": text(
+                            entry.get("TherapeuticIndication")
+                        ),
+                    }
+                )
         else:
             joined_via[index.source_of.get(drug_id, "")] += 1
         drug_joins[route] += 1
@@ -715,10 +874,14 @@ def main(argv: list[str] | None = None) -> int:
             relationship = zm.relation_for(values[0], row["threshold"], values[4])
             if relationship is None:
                 counters["not_measured"] += 1
-                note("cell", f"{molename}|{label.strip()}", molename,
-                     strain["reported_name"],
-                     "the screen leaves a number out for this pair: measured as "
-                     "neither a hit nor a non-hit")
+                note(
+                    "cell",
+                    f"{molename}|{label.strip()}",
+                    molename,
+                    strain["reported_name"],
+                    "the screen leaves a number out for this pair: measured as "
+                    "neither a hit nor a non-hit",
+                )
                 continue
             if drug_id is None:
                 counters["unusable_drug"] += 1
@@ -732,52 +895,58 @@ def main(argv: list[str] | None = None) -> int:
             taxa_seen[tax_id] = taxa_seen.get(tax_id, 0) + 1
             per_relation[relationship] += 1
             counters["edges"] += 1
-            edges[relationship].add({
-                "tax_id": str(tax_id),
-                "drug_id": drug_id,
-                "effect": effect,
-                "evidence_level": zm.EVIDENCE_LEVEL,
-                "knowledge_level": ont.knowledge_level(SOURCE),
-                "agent_type": ont.agent_type(SOURCE),
-                "primary_source": SOURCE,
-                "source_record_id": f"{SOURCE}:{molename}|{label.strip()}",
-                "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
-                "source_relation": source_relation,
-                "publications": as_list([zm.PUBLICATION]),
-                "pmid": str(zm.PUBMED_ID),
-                "percent_consumed": _num(values[0]),
-                "percent_consumed_std": _num(values[1]),
-                "fold_change": _num(values[2]),
-                "fold_change_std": _num(values[3]),
-                "fdr_p_value": _num(values[4]),
-                "drug_threshold_percent": _num(row["threshold"]),
-                "incubation_hours": repr(zm.INCUBATION_HOURS),
-                "replicates": str(zm.REPLICATES),
-                "reported_drug_name": molename,
-                "parent_drug_name": text(entry.get("name")),
-                "therapeutic_indication": text(entry.get("TherapeuticIndication")),
-                "drug_join": drug_routes.get(molename, ""),
-                "screen_column": label.strip(),
-                "reported_name": strain["reported_name"],
-                "strain": strain["strain"],
-                "phylum": strain["phylum"],
-                "reported_rank": zm.REPORTED_RANK,
-                "original_rank": strain["original_rank"],
-                "resolution_status": strain["resolution_status"],
-                "strain_join": strain["strain_join"],
-                "taxon_join": strain["taxon_join"],
-                "gene_locus_tags": as_list(g["locus_tag"] for g in found),
-                "gene_products": as_list(g["product"] for g in found),
-                "gene_protein_ids": as_list(g["protein_id"] for g in found),
-                "n_gene_products": str(len(found)) if found else "",
-            })
+            edges[relationship].add(
+                {
+                    "tax_id": str(tax_id),
+                    "drug_id": drug_id,
+                    "effect": effect,
+                    "evidence_level": zm.EVIDENCE_LEVEL,
+                    "knowledge_level": ont.knowledge_level(SOURCE),
+                    "agent_type": ont.agent_type(SOURCE),
+                    "primary_source": SOURCE,
+                    "source_record_id": f"{SOURCE}:{molename}|{label.strip()}",
+                    "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                    "source_relation": source_relation,
+                    "publications": as_list([zm.PUBLICATION]),
+                    "pmid": str(zm.PUBMED_ID),
+                    "percent_consumed": _num(values[0]),
+                    "percent_consumed_std": _num(values[1]),
+                    "fold_change": _num(values[2]),
+                    "fold_change_std": _num(values[3]),
+                    "fdr_p_value": _num(values[4]),
+                    "drug_threshold_percent": _num(row["threshold"]),
+                    "incubation_hours": repr(zm.INCUBATION_HOURS),
+                    "replicates": str(zm.REPLICATES),
+                    "reported_drug_name": molename,
+                    "parent_drug_name": text(entry.get("name")),
+                    "therapeutic_indication": text(entry.get("TherapeuticIndication")),
+                    "drug_join": drug_routes.get(molename, ""),
+                    "screen_column": label.strip(),
+                    "reported_name": strain["reported_name"],
+                    "strain": strain["strain"],
+                    "phylum": strain["phylum"],
+                    "reported_rank": zm.REPORTED_RANK,
+                    "original_rank": strain["original_rank"],
+                    "resolution_status": strain["resolution_status"],
+                    "strain_join": strain["strain_join"],
+                    "taxon_join": strain["taxon_join"],
+                    "gene_locus_tags": as_list(g["locus_tag"] for g in found),
+                    "gene_products": as_list(g["product"] for g in found),
+                    "gene_protein_ids": as_list(g["protein_id"] for g in found),
+                    "n_gene_products": str(len(found)) if found else "",
+                }
+            )
 
     for pair, found in sorted(gene_evidence.items()):
         if pair not in gene_pairs_used:
-            note("gene", f"{found[0]['patric']}|{pair[1]}", pair[0],
-                 "|".join(g["locus_tag"] for g in found),
-                 "the gain-of-function screen names a gene for this pair but the "
-                 "76-strain screen measured no cell for it")
+            note(
+                "gene",
+                f"{found[0]['patric']}|{pair[1]}",
+                pair[0],
+                "|".join(g["locus_tag"] for g in found),
+                "the gain-of-function screen names a gene for this pair but the "
+                "76-strain screen measured no cell for it",
+            )
 
     for row in unresolved_nodes.rows:
         if row["source"] == SOURCE:
@@ -788,38 +957,66 @@ def main(argv: list[str] | None = None) -> int:
     tables_out = (*edges.values(), drugs, unresolved_nodes, ledger, cited)
     counts = {w.path.name: w.flush() for w in tables_out}
 
-    print(f"\nread {counters['cells']:,} cells -> {counters['edges']:,} edges over "
-          f"{len(taxa_seen):,} taxa and {len(drug_ids):,} drugs")
-    print("  by relationship: " + ", ".join(
-        f"{rel} {per_relation[rel]:,}" for rel in zm.METABOLISM_RELATIONSHIPS))
-    print(f"  measured non-hits kept as {zm.RELATION_NO_METABOLISM}: "
-          f"{per_relation[zm.RELATION_NO_METABOLISM]:,} (never folded into the "
-          f"hit edge)")
-    print(f"  pairs carrying a gain-of-function gene product: "
-          f"{sum(gene_on_relation.values()):,} (" + ", ".join(
-              f"{rel} {gene_on_relation[rel]:,}"
-              for rel in zm.METABOLISM_RELATIONSHIPS) + ")")
-    print("  drug join: " + ", ".join(f"{r} {n:,}" for r, n in drug_joins.most_common()))
-    print("  joined to a node written by: " + ", ".join(
-        f"{s or 'unknown'} {n:,}" for s, n in joined_via.most_common()))
-    print("  strain join: " + ", ".join(
-        f"{r} {n:,}" for r, n in strain_joins.most_common()))
-    print("  organism resolution: " + ", ".join(
-        f"{s} {n:,}" for s, n in resolutions.most_common()))
-    print(f"  not loaded: {counters['not_measured']:,} cells the screen left a "
-          f"number out of, {counters['control_column']:,} on an abiotic control "
-          f"column, {counters['unusable_strain']:,} on a strain that reached no "
-          f"taxon, {counters['unusable_drug']:,} on a drug with no identifier")
-    print(f"  minted {len(minted):,} Drug nodes for screened compounds no join "
-          f"route reached")
-    print(f"  gene products the screen's own columns could not place: "
-          f"{unplaced_genes:,} of {len(genes):,}")
+    print(
+        f"\nread {counters['cells']:,} cells -> {counters['edges']:,} edges over "
+        f"{len(taxa_seen):,} taxa and {len(drug_ids):,} drugs"
+    )
+    print(
+        "  by relationship: "
+        + ", ".join(
+            f"{rel} {per_relation[rel]:,}" for rel in zm.METABOLISM_RELATIONSHIPS
+        )
+    )
+    print(
+        f"  measured non-hits kept as {zm.RELATION_NO_METABOLISM}: "
+        f"{per_relation[zm.RELATION_NO_METABOLISM]:,} (never folded into the "
+        f"hit edge)"
+    )
+    print(
+        f"  pairs carrying a gain-of-function gene product: "
+        f"{sum(gene_on_relation.values()):,} ("
+        + ", ".join(
+            f"{rel} {gene_on_relation[rel]:,}" for rel in zm.METABOLISM_RELATIONSHIPS
+        )
+        + ")"
+    )
+    print(
+        "  drug join: " + ", ".join(f"{r} {n:,}" for r, n in drug_joins.most_common())
+    )
+    print(
+        "  joined to a node written by: "
+        + ", ".join(f"{s or 'unknown'} {n:,}" for s, n in joined_via.most_common())
+    )
+    print(
+        "  strain join: "
+        + ", ".join(f"{r} {n:,}" for r, n in strain_joins.most_common())
+    )
+    print(
+        "  organism resolution: "
+        + ", ".join(f"{s} {n:,}" for s, n in resolutions.most_common())
+    )
+    print(
+        f"  not loaded: {counters['not_measured']:,} cells the screen left a "
+        f"number out of, {counters['control_column']:,} on an abiotic control "
+        f"column, {counters['unusable_strain']:,} on a strain that reached no "
+        f"taxon, {counters['unusable_drug']:,} on a drug with no identifier"
+    )
+    print(
+        f"  minted {len(minted):,} Drug nodes for screened compounds no join "
+        f"route reached"
+    )
+    print(
+        f"  gene products the screen's own columns could not place: "
+        f"{unplaced_genes:,} of {len(genes):,}"
+    )
     for name_, n in counts.items():
         print(f"  {name_:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables_out if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name_} +{n:,}" for name_, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name_} +{n:,}" for name_, n in shared.items())
+        )
     return 0
 
 
@@ -827,9 +1024,7 @@ def _triple(value: str) -> tuple[int, int, int]:
     """``"271,76,176"`` -> ``(271, 76, 176)``."""
     parts = [p.strip() for p in str(value).split(",")]
     if len(parts) != 3 or not all(p.isdigit() for p in parts):
-        raise argparse.ArgumentTypeError(
-            f"{value!r} is not DRUGS,STRAINS,METABOLISED"
-        )
+        raise argparse.ArgumentTypeError(f"{value!r} is not DRUGS,STRAINS,METABOLISED")
     a, b, c = (int(p) for p in parts)
     return a, b, c
 

@@ -69,7 +69,9 @@ def client():
             f"no graph at {GRAPH} — build it with "
             f"`.venv/bin/python scripts/build.py --scope microbial`"
         )
-    with MCPClient([BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]) as connected:
+    with MCPClient(
+        [BINARY, "--graph", str(GRAPH), "--mcp-config", str(MANIFEST)]
+    ) as connected:
         yield connected
 
 

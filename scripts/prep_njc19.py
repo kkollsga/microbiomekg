@@ -97,21 +97,51 @@ TABLES: dict[str, str] = {
 }
 
 EXCHANGE_FIELDS = [
-    "evidence_level", "knowledge_level", "agent_type", "primary_source",
-    "source_record_id", "source_licence", "source_relation", "reported_name",
-    "reported_rank", "original_rank", "resolution_status", "reported_compound",
-    "metabolite_join", "genus_level_evidence", "reference_ids", "n_references",
+    "evidence_level",
+    "knowledge_level",
+    "agent_type",
+    "primary_source",
+    "source_record_id",
+    "source_licence",
+    "source_relation",
+    "reported_name",
+    "reported_rank",
+    "original_rank",
+    "resolution_status",
+    "reported_compound",
+    "metabolite_join",
+    "genus_level_evidence",
+    "reference_ids",
+    "n_references",
 ]
 
 METABOLITE_FIELDS = [
-    "metabolite_id", "name", "hmdb_id", "chebi_id", "kegg_id", "pubchem_cid",
-    "inchikey", "status", "biospecimens", "microbial_origin", "origin",
-    "chemical_formula", "secondary_accessions", "selection_rule", "source",
+    "metabolite_id",
+    "name",
+    "hmdb_id",
+    "chebi_id",
+    "kegg_id",
+    "pubchem_cid",
+    "inchikey",
+    "status",
+    "biospecimens",
+    "microbial_origin",
+    "origin",
+    "chemical_formula",
+    "secondary_accessions",
+    "selection_rule",
+    "source",
 ]
 
 LEDGER_FIELDS = [
-    "species", "compound", "activity", "references", "resolved_tax_id",
-    "resolved_rank", "reason", "source",
+    "species",
+    "compound",
+    "activity",
+    "references",
+    "resolved_tax_id",
+    "resolved_rank",
+    "reason",
+    "source",
 ]
 
 
@@ -128,7 +158,7 @@ def read_table(path: Path) -> list[tuple]:
     book.close()
     for i, row in enumerate(rows):
         if any(isinstance(c, str) and c.strip() == HEADER_CELL for c in row):
-            return [r for r in rows[i + 1:] if any(c is not None for c in r)]
+            return [r for r in rows[i + 1 :] if any(c is not None for c in r)]
     raise SystemExit(f"{path}: no header row containing {HEADER_CELL!r}")
 
 
@@ -178,13 +208,20 @@ def resolve_compound(
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--xlsx", type=Path, default=None,
-                    help="Online-only Table 5 (default: "
-                         "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx).")
+    ap.add_argument(
+        "--xlsx",
+        type=Path,
+        default=None,
+        help="Online-only Table 5 (default: "
+        "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx).",
+    )
     ap.add_argument("--taxdump", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--rank-ceiling", default="species",
-                    help="Rank strains and subspecies are promoted to before keying.")
+    ap.add_argument(
+        "--rank-ceiling",
+        default="species",
+        help="Rank strains and subspecies are promoted to before keying.",
+    )
     args = ap.parse_args(argv)
 
     xlsx = args.xlsx or (args.raw / SOURCE / "41597_2020_516_MOESM1_ESM.xlsx")
@@ -212,32 +249,55 @@ def main(argv: list[str] | None = None) -> int:
 
     edges = {
         rel: Writer(
-            out / table, ["tax_id", "metabolite_id", *EXCHANGE_FIELDS],
-            dedupe_full=True, merge=True, owner=("primary_source", SOURCE),
+            out / table,
+            ["tax_id", "metabolite_id", *EXCHANGE_FIELDS],
+            dedupe_full=True,
+            merge=True,
+            owner=("primary_source", SOURCE),
         )
         for rel, table in TABLES.items()
     }
     metabolites = Writer(
-        out / "metabolite.csv", METABOLITE_FIELDS,
-        key="metabolite_id", merge=True, owner=("source", SOURCE),
+        out / "metabolite.csv",
+        METABOLITE_FIELDS,
+        key="metabolite_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     unresolved_nodes = Writer(
         out / "unresolved_taxa.csv",
-        ["unresolved_id", "raw_name", "reported_rank", "original_rank",
-         "reported_tax_id", "source", "status", "candidates", "note", "n_signatures"],
-        key="unresolved_id", merge=True, owner=("source", SOURCE),
+        [
+            "unresolved_id",
+            "raw_name",
+            "reported_rank",
+            "original_rank",
+            "reported_tax_id",
+            "source",
+            "status",
+            "candidates",
+            "note",
+            "n_signatures",
+        ],
+        key="unresolved_id",
+        merge=True,
+        owner=("source", SOURCE),
     )
     # C18's accounting: every input row that becomes no edge, with what it did
     # reach. Three populations live here — the six host cell types, the organism
     # strings NCBI no longer carries, and any activity outside the closed
     # vocabulary — and none of them is a drop.
     ledger = Writer(
-        out / "unresolved_exchange.csv", LEDGER_FIELDS,
-        merge=True, owner=("source", SOURCE),
+        out / "unresolved_exchange.csv",
+        LEDGER_FIELDS,
+        merge=True,
+        owner=("source", SOURCE),
     )
     cited = Writer(
-        out / "cited_taxa.csv", ["tax_id", "source", "n_signatures"],
-        key=("tax_id", "source"), merge=True, owner=("source", SOURCE),
+        out / "cited_taxa.csv",
+        ["tax_id", "source", "n_signatures"],
+        key=("tax_id", "source"),
+        merge=True,
+        owner=("source", SOURCE),
     )
 
     counters: Counter[str] = Counter()
@@ -261,24 +321,35 @@ def main(argv: list[str] | None = None) -> int:
 
         if not species or not compound:
             counters["incomplete_row"] += 1
-            ledger.add({
-                "species": species, "compound": compound, "activity": activity,
-                "references": str(references or ""), "resolved_tax_id": "",
-                "resolved_rank": "",
-                "reason": "row names no organism or no compound", "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "species": species,
+                    "compound": compound,
+                    "activity": activity,
+                    "references": str(references or ""),
+                    "resolved_tax_id": "",
+                    "resolved_rank": "",
+                    "reason": "row names no organism or no compound",
+                    "source": SOURCE,
+                }
+            )
             continue
 
         if species.casefold() in nj.HOST_CELL_TYPES:
             counters["host_cell_type"] += 1
-            ledger.add({
-                "species": species, "compound": compound, "activity": activity,
-                "references": str(references or ""), "resolved_tax_id": "",
-                "resolved_rank": "",
-                "reason": "one of NJC19's six host cell types, not an organism: "
-                          "resolving it would file a cell type as a taxon NCBI lost",
-                "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "species": species,
+                    "compound": compound,
+                    "activity": activity,
+                    "references": str(references or ""),
+                    "resolved_tax_id": "",
+                    "resolved_rank": "",
+                    "reason": "one of NJC19's six host cell types, not an organism: "
+                    "resolving it would file a cell type as a taxon NCBI lost",
+                    "source": SOURCE,
+                }
+            )
             continue
 
         relations = nj.activity_relations(activity)
@@ -286,13 +357,19 @@ def main(argv: list[str] | None = None) -> int:
             counters["combined_rows"] += 1
         if not relations:
             counters["unknown_activity"] += 1
-            ledger.add({
-                "species": species, "compound": compound, "activity": activity,
-                "references": str(references or ""), "resolved_tax_id": "",
-                "resolved_rank": "",
-                "reason": f"metabolic activity {activity!r} is outside NJC19's "
-                          f"closed vocabulary", "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "species": species,
+                    "compound": compound,
+                    "activity": activity,
+                    "references": str(references or ""),
+                    "resolved_tax_id": "",
+                    "resolved_rank": "",
+                    "reason": f"metabolic activity {activity!r} is outside NJC19's "
+                    f"closed vocabulary",
+                    "source": SOURCE,
+                }
+            )
             continue
 
         if species not in resolved:
@@ -304,25 +381,33 @@ def main(argv: list[str] | None = None) -> int:
         if res.tax_id is None:
             counters["unresolved_rows"] += 1
             uid = f"unresolved:{SOURCE}:{species.casefold()}"
-            unresolved_nodes.add({
-                "unresolved_id": uid,
-                "raw_name": species,
-                "reported_rank": "species-level term",
-                "original_rank": res.original_rank or "",
-                "reported_tax_id": "",
-                "source": SOURCE,
-                "status": res.status,
-                "candidates": as_list(str(c) for c in res.candidates),
-                "note": res.note,
-                "n_signatures": "0",
-            })
+            unresolved_nodes.add(
+                {
+                    "unresolved_id": uid,
+                    "raw_name": species,
+                    "reported_rank": "species-level term",
+                    "original_rank": res.original_rank or "",
+                    "reported_tax_id": "",
+                    "source": SOURCE,
+                    "status": res.status,
+                    "candidates": as_list(str(c) for c in res.candidates),
+                    "note": res.note,
+                    "n_signatures": "0",
+                }
+            )
             unresolved_hits[uid] += 1
-            ledger.add({
-                "species": species, "compound": compound, "activity": activity,
-                "references": str(references or ""), "resolved_tax_id": "",
-                "resolved_rank": "",
-                "reason": f"taxon {res.status}: {res.note}", "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "species": species,
+                    "compound": compound,
+                    "activity": activity,
+                    "references": str(references or ""),
+                    "resolved_tax_id": "",
+                    "resolved_rank": "",
+                    "reason": f"taxon {res.status}: {res.note}",
+                    "source": SOURCE,
+                }
+            )
             continue
 
         own = rank_depth(rank)
@@ -333,13 +418,19 @@ def main(argv: list[str] | None = None) -> int:
             # resolved to a family would be an exchange claim about a clade,
             # which is not what the source curated.
             counters["rank_too_broad"] += 1
-            ledger.add({
-                "species": species, "compound": compound, "activity": activity,
-                "references": str(references or ""),
-                "resolved_tax_id": str(res.tax_id), "resolved_rank": rank,
-                "reason": f"resolved rank {rank or 'unplaced'!r} is broader than "
-                          f"{nj.EXCHANGE_RANK_CEILING!r}", "source": SOURCE,
-            })
+            ledger.add(
+                {
+                    "species": species,
+                    "compound": compound,
+                    "activity": activity,
+                    "references": str(references or ""),
+                    "resolved_tax_id": str(res.tax_id),
+                    "resolved_rank": rank,
+                    "reason": f"resolved rank {rank or 'unplaced'!r} is broader than "
+                    f"{nj.EXCHANGE_RANK_CEILING!r}",
+                    "source": SOURCE,
+                }
+            )
             continue
 
         if compound not in compounds:
@@ -349,26 +440,31 @@ def main(argv: list[str] | None = None) -> int:
 
         if route == "minted" and metabolite_id not in minted:
             minted[metabolite_id] = display
-            metabolites.add({
-                "metabolite_id": metabolite_id,
-                "name": display,
-                "hmdb_id": "", "chebi_id": "", "kegg_id": "", "pubchem_cid": "",
-                "inchikey": "",
-                # No `status`: NJC19 does not grade compounds, and writing one
-                # of HMDB's four values here would put a detection claim on a
-                # record nobody detected.
-                "status": "",
-                "biospecimens": "",
-                # Not `true`. NJC19 says an organism exchanges this compound,
-                # which is not the same claim as HMDB's "this compound is of
-                # microbial origin" — pectin is exchanged and is a plant polymer.
-                "microbial_origin": "false",
-                "origin": "",
-                "chemical_formula": "",
-                "secondary_accessions": "",
-                "selection_rule": "njc19-exchange",
-                "source": SOURCE,
-            })
+            metabolites.add(
+                {
+                    "metabolite_id": metabolite_id,
+                    "name": display,
+                    "hmdb_id": "",
+                    "chebi_id": "",
+                    "kegg_id": "",
+                    "pubchem_cid": "",
+                    "inchikey": "",
+                    # No `status`: NJC19 does not grade compounds, and writing one
+                    # of HMDB's four values here would put a detection claim on a
+                    # record nobody detected.
+                    "status": "",
+                    "biospecimens": "",
+                    # Not `true`. NJC19 says an organism exchanges this compound,
+                    # which is not the same claim as HMDB's "this compound is of
+                    # microbial origin" — pectin is exchanged and is a plant polymer.
+                    "microbial_origin": "false",
+                    "origin": "",
+                    "chemical_formula": "",
+                    "secondary_accessions": "",
+                    "selection_rule": "njc19-exchange",
+                    "source": SOURCE,
+                }
+            )
 
         taxa_seen[res.tax_id] = taxa_seen.get(res.tax_id, 0) + 1
         for relationship, negated in relations:
@@ -379,26 +475,28 @@ def main(argv: list[str] | None = None) -> int:
             target = "NO_EXCHANGE_WITH" if negated else relationship
             per_relation[target] += 1
             counters["edges"] += 1
-            edges[target].add({
-                "tax_id": str(res.tax_id),
-                "metabolite_id": metabolite_id,
-                "evidence_level": nj.EVIDENCE_LEVEL,
-                "knowledge_level": ont.knowledge_level(SOURCE),
-                "agent_type": ont.agent_type(SOURCE),
-                "primary_source": SOURCE,
-                "source_record_id": f"{SOURCE}:{species}|{compound}|{source_relation}",
-                "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
-                "source_relation": source_relation,
-                "reported_name": species,
-                "reported_rank": "species-level term",
-                "original_rank": res.original_rank or rank,
-                "resolution_status": res.status,
-                "reported_compound": compound,
-                "metabolite_join": route,
-                "genus_level_evidence": "true" if genus_level else "false",
-                "reference_ids": as_list(refs),
-                "n_references": str(len(refs)),
-            })
+            edges[target].add(
+                {
+                    "tax_id": str(res.tax_id),
+                    "metabolite_id": metabolite_id,
+                    "evidence_level": nj.EVIDENCE_LEVEL,
+                    "knowledge_level": ont.knowledge_level(SOURCE),
+                    "agent_type": ont.agent_type(SOURCE),
+                    "primary_source": SOURCE,
+                    "source_record_id": f"{SOURCE}:{species}|{compound}|{source_relation}",
+                    "source_licence": ont.SOURCE_LICENCE.get(SOURCE, ""),
+                    "source_relation": source_relation,
+                    "reported_name": species,
+                    "reported_rank": "species-level term",
+                    "original_rank": res.original_rank or rank,
+                    "resolution_status": res.status,
+                    "reported_compound": compound,
+                    "metabolite_join": route,
+                    "genus_level_evidence": "true" if genus_level else "false",
+                    "reference_ids": as_list(refs),
+                    "n_references": str(len(refs)),
+                }
+            )
 
     for row in unresolved_nodes.rows:
         if row["source"] == SOURCE:
@@ -410,34 +508,52 @@ def main(argv: list[str] | None = None) -> int:
     counts = {w.path.name: w.flush() for w in tables}
 
     genus_level = sum(
-        1 for w in edges.values() for r in w.rows
+        1
+        for w in edges.values()
+        for r in w.rows
         if r.get("primary_source") == SOURCE and r.get("genus_level_evidence") == "true"
     )
-    print(f"\nread {counters['rows']:,} rows -> {counters['edges']:,} edges over "
-          f"{len(taxa_seen):,} taxa and {len(compounds):,} compounds")
-    print("  by relationship: " + ", ".join(
-        f"{rel} {n:,}" for rel, n in sorted(per_relation.items())))
-    print(f"  negatives kept as NO_EXCHANGE_WITH: {per_relation['NO_EXCHANGE_WITH']:,} "
-          f"(never folded into the positive edge)")
-    print(f"  rows curating both directions, split into two edges: "
-          f"{counters['combined_rows']:,} (their references split with them)")
-    print(f"  species-level rows standing on genus-level references only: "
-          f"{genus_level:,} edges")
-    print("  organism resolution: " + ", ".join(
-        f"{s} {n:,}" for s, n in resolutions.most_common()))
-    print(f"  not loaded: {counters['host_cell_type']:,} rows naming one of NJC19's "
-          f"six host cell types, {counters['unresolved_rows']:,} rows whose organism "
-          f"no NCBI id could be resolved for, {counters['rank_too_broad']:,} broader "
-          f"than {nj.EXCHANGE_RANK_CEILING}, {counters['unknown_activity']:,} with an "
-          f"activity outside the vocabulary")
+    print(
+        f"\nread {counters['rows']:,} rows -> {counters['edges']:,} edges over "
+        f"{len(taxa_seen):,} taxa and {len(compounds):,} compounds"
+    )
+    print(
+        "  by relationship: "
+        + ", ".join(f"{rel} {n:,}" for rel, n in sorted(per_relation.items()))
+    )
+    print(
+        f"  negatives kept as NO_EXCHANGE_WITH: {per_relation['NO_EXCHANGE_WITH']:,} "
+        f"(never folded into the positive edge)"
+    )
+    print(
+        f"  rows curating both directions, split into two edges: "
+        f"{counters['combined_rows']:,} (their references split with them)"
+    )
+    print(
+        f"  species-level rows standing on genus-level references only: "
+        f"{genus_level:,} edges"
+    )
+    print(
+        "  organism resolution: "
+        + ", ".join(f"{s} {n:,}" for s, n in resolutions.most_common())
+    )
+    print(
+        f"  not loaded: {counters['host_cell_type']:,} rows naming one of NJC19's "
+        f"six host cell types, {counters['unresolved_rows']:,} rows whose organism "
+        f"no NCBI id could be resolved for, {counters['rank_too_broad']:,} broader "
+        f"than {nj.EXCHANGE_RANK_CEILING}, {counters['unknown_activity']:,} with an "
+        f"activity outside the vocabulary"
+    )
     print("  compound join: " + ", ".join(f"{r} {n:,}" for r, n in joins.most_common()))
     print(f"  minted {len(minted):,} Metabolite nodes for compounds no source held")
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
     if shared:
-        print("  merged into tables another source had written: " + ", ".join(
-            f"{name} +{n:,}" for name, n in shared.items()))
+        print(
+            "  merged into tables another source had written: "
+            + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
+        )
     return 0
 
 

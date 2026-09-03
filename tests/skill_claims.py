@@ -201,7 +201,9 @@ def claims_by_section(path: Path) -> dict[str, list[Claim]]:
     for name, body in split_sections(path.read_text(encoding="utf-8")):
         for match in CLAIM_RE.finditer(body):
             claim = parse_claim(
-                match.group("payload"), match.group("kind") or "", f"{path.name} [{name}]"
+                match.group("payload"),
+                match.group("kind") or "",
+                f"{path.name} [{name}]",
             )
             sections.setdefault(name, []).append(claim)
     return sections
@@ -239,11 +241,26 @@ LABEL_RE = re.compile(
 #: signature", "at least one taxon") far more often than as a count, and a
 #: detector that flags those trains the author to switch the gate off.
 WORD_NUMBERS = {
-    "zero": "0", "two": "2", "three": "3", "four": "4", "five": "5",
-    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
-    "eleven": "11", "twelve": "12", "thirteen": "13", "fourteen": "14",
-    "fifteen": "15", "sixteen": "16", "seventeen": "17", "eighteen": "18",
-    "nineteen": "19", "twenty": "20",
+    "zero": "0",
+    "two": "2",
+    "three": "3",
+    "four": "4",
+    "five": "5",
+    "six": "6",
+    "seven": "7",
+    "eight": "8",
+    "nine": "9",
+    "ten": "10",
+    "eleven": "11",
+    "twelve": "12",
+    "thirteen": "13",
+    "fourteen": "14",
+    "fifteen": "15",
+    "sixteen": "16",
+    "seventeen": "17",
+    "eighteen": "18",
+    "nineteen": "19",
+    "twenty": "20",
 }
 COUNTABLE_NOUNS = (
     "sources?|edges?|nodes?|taxa|taxon|organisms?|metabolites?|drugs?|diseases?"
@@ -252,7 +269,11 @@ COUNTABLE_NOUNS = (
     r"|fields?|relationships?|studies|papers?"
 )
 WORD_NUMBER_RE = re.compile(
-    r"\b(" + "|".join(WORD_NUMBERS) + r")[\s-](?:\w+[\s-])?(?:" + COUNTABLE_NOUNS + r")\b",
+    r"\b("
+    + "|".join(WORD_NUMBERS)
+    + r")[\s-](?:\w+[\s-])?(?:"
+    + COUNTABLE_NOUNS
+    + r")\b",
     re.IGNORECASE,
 )
 

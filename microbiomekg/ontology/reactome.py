@@ -77,8 +77,12 @@ ASSOCIATION_RELATIONSHIPS: tuple[str, ...] = ()
 #: measurement and not a statistical model.
 EVIDENCE_CODES: dict[str, tuple[str, str, str, str]] = {
     "TAS": ("unknown", "knowledge_assertion", "manual_agent", "ECO:0000304"),
-    "IEA": ("computational-predicted", "logical_entailment", "automated_agent",
-            "ECO:0000501"),
+    "IEA": (
+        "computational-predicted",
+        "logical_entailment",
+        "automated_agent",
+        "ECO:0000501",
+    ),
 }
 
 

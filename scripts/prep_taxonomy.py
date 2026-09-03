@@ -45,8 +45,15 @@ from microbiomekg.reconcile import (  # noqa: E402
 #: no lineage. ``tests/test_build_pipeline.py`` fails if a prep writes the
 #: table and is missing here.
 DEPENDS_ON: list[str] = [
-    "bugsigdb", "card", "chembl", "gutmdisorder", "hmdb", "maier2018", "masi",
-    "njc19", "zimmermann2019",
+    "bugsigdb",
+    "card",
+    "chembl",
+    "gutmdisorder",
+    "hmdb",
+    "maier2018",
+    "masi",
+    "njc19",
+    "zimmermann2019",
 ]
 
 #: The one source that writes *node properties* onto a taxon rather than edges
@@ -181,7 +188,9 @@ def select_scope(
         # warning and nothing else notices.
         outside = cited - seeds
         if outside:
-            print(f"  + {len(outside):,} cited taxa outside the clade roots, kept anyway")
+            print(
+                f"  + {len(outside):,} cited taxa outside the clade roots, kept anyway"
+            )
             seeds |= outside
 
     keep = set(seeds)
@@ -238,7 +247,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--raw", type=Path, default=Path("data/raw"))
     ap.add_argument("--taxdump", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--scope", choices=("cited", "microbial", "all"), default="microbial")
+    ap.add_argument(
+        "--scope", choices=("cited", "microbial", "all"), default="microbial"
+    )
     ap.add_argument("--cited-from", type=Path, default=None)
     ap.add_argument(
         "--roots",
@@ -298,8 +309,10 @@ def main(argv: list[str] | None = None) -> int:
             row.update(probiotics.get(tid, dict.fromkeys(PROBIOTIC_COLUMNS, "")))
             w.writerow(row)
 
-    print(f"wrote {path} ({len(keep):,} rows; {n_placeholder:,} placeholder names; "
-          f"{n_truncated:,} synonym lists capped at {SYNONYM_CAP})")
+    print(
+        f"wrote {path} ({len(keep):,} rows; {n_placeholder:,} placeholder names; "
+        f"{n_truncated:,} synonym lists capped at {SYNONYM_CAP})"
+    )
     return 0
 
 
