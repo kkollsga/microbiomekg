@@ -73,6 +73,12 @@ Build it:
 .venv/bin/python -m pytest -q
 ```
 
+`make` wraps the same commands: `make gate` is the fast pre-commit gate
+(~25 s — lint, the accumulation bounds, blueprint composition, and the two
+gates that hold the documented queries and the agent-facing prose to the
+graph), `make test` is the full suite, `make build ARGS='--with-kegg'` builds
+the graph. The conventions an agent works under are `CLAUDE.md`.
+
 Two things are **off by default and opt in by a flag**, for different reasons.
 `--with-kegg` is a licence gate (above). `--with-vectors` is a cost gate: the
 character-n-gram vector index buys query-time tolerance for a *misspelt*

@@ -173,7 +173,8 @@ alone while two of its compressions were inside one. In this order:
   — goes through `add-todo`. Anything reported as a finding meets `R15`'s bar:
   a concrete failure, or it is not reported.
 - Offload the long form to `dev-docs/temp/clean-comments-report.md` and give
-  the path.
+  the path (the tier lifecycles are `dev-docs/README.md`, the canonical layout
+  map — this skill does not re-describe the folder).
 
 ## Relationship to phased-plan
 

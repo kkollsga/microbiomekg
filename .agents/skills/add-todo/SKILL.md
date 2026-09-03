@@ -17,7 +17,9 @@ scope decision is genuinely ambiguous.
 
 **This skill is the single authority on *how a todo entry is shaped*.** Other
 skills that file todos (`read-inbox`, `clean-comments`, `phased-plan`) follow
-the entry rules below rather than restating them.
+the entry rules below rather than restating them. Where each kind of doc lives
+is *not* this skill's to describe — that is `dev-docs/README.md`, the canonical
+layout map.
 
 ## Two modes
 
