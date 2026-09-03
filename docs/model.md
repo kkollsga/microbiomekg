@@ -2284,6 +2284,20 @@ goes unchecked while its presence is still required.
    is the guard, and the selftest assertion now requires this repo's seven to
    be among the names.
 
+13. **The blueprint reads CSV and nothing else, so every source needs a prep
+   that writes one.** Thirteen raw inputs, none a CSV kglite can read as
+   shipped: NCBI's `\t|\t`-delimited `.dmp`, a CSV with a licence line on
+   top, headerless TSV, Excel sheets with wide matrices to unpivot, a dict of
+   JSON records, JSON Lines, a 6 GB XML that must be streamed, and OBO. The
+   265 MB `data/csv/` directory, `microbiomekg/tables.py`, the load-blueprint
+   copy and `--skip-prep` exist only to bridge that gap. **Asked of kglite on
+   2026-09-03**: a `files:` section declaring each input's format once
+   (delimited with knobs, xlsx, json, jsonl, xml, obo), specs referencing it by
+   name with `"csv"` kept as shorthand, and `from_blueprint(frames={...})` so a
+   source that needs Python reconciliation between the file and the graph
+   hands over a DataFrame instead of a file. Until it lands the CSV layer stays;
+   when it does, the source-to-graph rework is its own phased plan.
+
 One more loader behaviour, recorded because it is the opposite of the usual
 trap: **an undeclared CSV column is still loaded.** Every column a node spec
 does not `skip` reaches the graph as a property, whether or not
