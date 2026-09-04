@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """NJC19's Online-only Table 5 -> the consumption edges D6 was dead without.
 
 ``data/raw/njc19/41597_2020_516_MOESM1_ESM.xlsx`` is a single sheet,
@@ -13,11 +12,12 @@ otherwise holds the three figures.
 
 What comes out, and where each part goes:
 
-* ``Consumption (import)`` -> ``CONSUMES``, in ``taxon_metabolite_consumed.csv``.
-  This is the edge D6 exists for: **MES = 2·P·C / (P + C) is identically zero
-  while C is**, so before this table landed every row of that query returned 0.0.
+* ``Consumption (import)`` -> ``CONSUMES``, in the ``taxon_metabolite_consumed``
+  table. This is the edge D6 exists for: **MES = 2·P·C / (P + C) is identically
+  zero while C is**, so before this table landed every row of that query
+  returned 0.0.
 * ``Production (export)`` -> ``PRODUCES``, merged into HMDB's
-  ``taxon_metabolite.csv``. One relationship, one table, two sources
+  ``taxon_metabolite`` table. One relationship, one table, two sources
   (:mod:`microbiomekg.tables`), told apart by ``primary_source``.
 * ``Macromolecule degradation`` -> ``DEGRADES``. Kept apart from ``CONSUMES``
   because breaking down a polymer outside the cell and importing a small
@@ -64,14 +64,14 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = nj.SOURCE
 
-#: Reads ``metabolite.csv``, which both of them write: the compound join has to
-#: see every ``Metabolite`` node that exists before it decides to mint one, and
-#: MiMeDB's names are what carry 32 of NJC19's compounds that HMDB has no record
-#: of.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = ["njc19/41597_2020_516_MOESM1_ESM.xlsx"]
 
+#: Reads the ``metabolite`` table, which both of them write: the compound join
+#: has to see every ``Metabolite`` node that exists before it decides to mint
+#: one, and MiMeDB's names are what carry 32 of NJC19's compounds that HMDB has
+#: no record of.
 DEPENDS_ON: list[str] = ["hmdb", "mimedb"]
 
 #: The sheet the paper ships. Named rather than "the first sheet" so a future
@@ -87,7 +87,7 @@ HEADER_CELL = "Metabolic activity"
 #: the legend's own indent column and is empty on every one of the 9,136 rows.
 SPECIES, COMPOUND, ACTIVITY, REFERENCES = 1, 2, 3, 4
 
-#: The relationship -> the CSV its rows go in. ``PRODUCES`` is HMDB's table.
+#: The relationship -> the store table its rows go in. ``PRODUCES`` is HMDB's.
 TABLES: dict[str, str] = {
     "PRODUCES": "taxon_metabolite",
     "CONSUMES": "taxon_metabolite_consumed",
@@ -174,9 +174,9 @@ def load_metabolite_names(rows: list[dict[str, str]]) -> dict[str, str]:
     for row in rows:
         name = (row.get("name") or "").strip().casefold()
         key = row.get("metabolite_id") or ""
-        # This source's own minted nodes from a previous run are excluded:
-        # `Writer(owner=...)` drops and rewrites them, so a second run that
-        # saw them would join its compounds to nodes it is about to delete.
+        # This source's own minted nodes from a previous run are excluded: the
+        # table's `owner=` drops and rewrites them, so a second run that saw
+        # them would join its compounds to nodes it is about to delete.
         if name and key and (row.get("source") or "") != SOURCE:
             names.setdefault(name, key)
     return names

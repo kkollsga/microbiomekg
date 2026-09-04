@@ -8,8 +8,8 @@ touch it when it needs a genuinely new *shared* field.
 
 ``Taxon`` lives here rather than in an ``ncbi`` module because the NCBI dump is
 not a source of associations: it is the coordinate system every source resolves
-into, and ``cited_taxa.csv`` — the list of taxa the taxonomy build keeps — is
-written by all of them.
+into, and the store's ``cited_taxa`` table — the list of taxa the taxonomy build
+keeps — is written by all of them.
 """
 
 from __future__ import annotations

@@ -2,7 +2,7 @@
 
 BugSigDB's column is named ``EFO ID`` and is neither EFO nor, in 40% of its
 mentions, a disease. This module is the single place that decides three things
-about a condition term, so no prep script has to re-decide them:
+about a condition term, so no prep has to re-decide them:
 
 1. **Which node type it becomes** — :func:`condition_node_type`, keyed on the
    CURIE prefix, never on the column name (C14).
@@ -15,7 +15,7 @@ about a condition term, so no prep script has to re-decide them:
 
 Anything this module cannot answer is *reported*, never guessed: an unroutable
 vocabulary and an unpairable label both come back as leftovers the caller
-writes to ``data/csv/unresolved_conditions.csv``.
+writes to the ``unresolved_conditions`` ledger table in the store.
 """
 
 from __future__ import annotations
@@ -270,10 +270,9 @@ class MondoIndex:
                         synonyms.append(m.group(1))
         flush()
         idx.obsolete = frozenset(dead)
-        # A synonym only becomes a key while exactly one live term claims it,
-        # and a synonym that is some other term's own `name:` is not a key at
-        # all — the label always wins, so `mondo_by_name` never answers a
-        # question one term has already answered exactly.
+        # Uniqueness is the `by_exact_synonym` rule above; on top of it, a
+        # synonym that is some other term's own `name:` is not a key — the
+        # label wins, so `mondo_by_name` is never shadowed by a synonym.
         idx.by_exact_synonym = {
             text: next(iter(ids))
             for text, ids in claimed.items()

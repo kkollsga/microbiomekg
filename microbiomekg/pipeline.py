@@ -148,7 +148,7 @@ def opted_into(source: str, args: argparse.Namespace) -> bool:
 def declared(script: Path, name: str) -> tuple[str, ...] | None:
     """A module-level ``name = [...]`` a prep declares, read off its source.
 
-    Parsed rather than imported: asking twelve prep modules about themselves
+    Parsed rather than imported: asking thirteen prep modules about themselves
     by importing them would run pandas, the taxdump reader and each module's
     imports before the build has done anything. ``None`` when the module has
     no such assignment.
@@ -377,10 +377,10 @@ def load_blueprint(blueprint: dict, store: Frames, ontology: Path) -> dict:
     """The composed blueprint, bound to *this* build's store.
 
     Every spec's input becomes a ``file`` reference to a ``files`` entry of
-    ``{"format": "frame"}`` — the older ``csv`` spelling is rewritten on the
-    way, so a fragment not yet converted loads the same. ``settings.output``
-    is dropped rather than rewritten: the build saves through
-    ``graph.save(--out)``. The ontology document is named by absolute path.
+    ``{"format": "frame"}`` (a legacy ``csv`` key is folded into the same
+    reference). ``settings.output`` is dropped rather than rewritten: the
+    build saves through ``graph.save(--out)``. The ontology document is named
+    by absolute path.
     """
     document = json.loads(json.dumps(blueprint))
     # Rebuilt from the references, not carried over: the composed document
@@ -552,7 +552,7 @@ def measure(graph, sources: list[str], fragments: Path, store: Frames) -> BuildR
     # and it is the number that says whether "N million edges" means anything.
     # Every relationship the fragments declare gets a row, including one the
     # build loaded no edges for — that absence is the finding, and it is how
-    # `IS_DRUG` sat at zero through a release with its audit reporting 0 / 0.
+    # `IS_DRUG` sat at zero through a build with its audit reporting 0 / 0.
     expansion: list[dict] = []
     for rel, spec in declared_relationships(fragments, sources).items():
         if not any(name in store for name in spec.inputs):
@@ -749,11 +749,8 @@ def prepare(
     if "taxon" not in store:
         return store, [], skipped
 
-    # A source that did not run, and a source whose tables are not in the
-    # store, are left out of both declarations for the same reason: a
-    # blueprint naming a table that is not there loads that node type as
-    # empty, and an ontology rule over an empty type reports 0 / 0 — a gate
-    # that cannot fail, which this project treats as worse than no gate.
+    # A source that did not run, and one whose tables are not in the store,
+    # are both left out — see `sources_with_tables` for why (0 / 0 audits).
     loaded = sources_with_tables(
         FRAGMENTS_DIR,
         [

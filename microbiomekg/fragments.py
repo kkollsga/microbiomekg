@@ -17,8 +17,8 @@ The composition rule is the whole point, and it is deliberately not
   another fragment declared;
 * but if they declare the same key with **different** values, that is a
   :class:`FragmentConflict` naming both fragments and the path, never a silent
-  override. Two sources disagreeing about which CSV backs ``Disease`` is a bug
-  in one of them, and the build must not pick a winner.
+  override. Two sources disagreeing about which table backs ``Disease`` is a
+  bug in one of them, and the build must not pick a winner.
 
 Merging is deterministic: fragments are composed in the order given, lists keep
 first-seen order, and dict key order follows first declaration. The same
@@ -76,7 +76,7 @@ def _merge_into(
             base[key] = _copy(value)
             # Every path inside the subtree, not just its root: the fragment
             # that first declared `nodes.Disease` is the one a later conflict
-            # on `nodes.Disease.csv` has to name.
+            # on `nodes.Disease.file` has to name.
             _claim(origin, value, source, here)
             continue
 
@@ -86,8 +86,8 @@ def _merge_into(
         elif isinstance(current, list) and isinstance(value, list):
             # An ordered union, not a concatenation: a shared junction edge's
             # `properties` list is declared by the source that owns the shape
-            # and extended by the sources that add columns to the same CSV, and
-            # neither should have to know about the other's entries.
+            # and extended by the sources that add columns to the same table,
+            # and neither should have to know about the other's entries.
             for item in value:
                 if item not in current:
                     current.append(_copy(item))
@@ -154,8 +154,8 @@ def compose(directory: Path = FRAGMENTS_DIR, sources: list[str] | None = None) -
     """The composed blueprint. ``sources`` keeps only those (plus the spine).
 
     A partial blueprint is not a convenience: a blueprint declaring a node type
-    whose CSV is not there loads it as empty, and an ontology rule over an
-    empty type is a gate that cannot fail. So a build that prepped only some
+    whose table is not in the store loads it as empty, and an ontology rule
+    over an empty type is a gate that cannot fail. So a build that prepped only some
     sources declares only those (:mod:`microbiomekg.pipeline` does this for a
     source whose raw input is absent), and a per-source test builds its own.
     """

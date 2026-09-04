@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
-"""CARD's model store and ARO ontology -> the flat CSVs blueprint.json loads.
+"""CARD's model store and ARO ontology -> the tables the CARD fragment loads.
 
 Two directories from one download and two licences: ``card-data/card.json`` is
 the model store (© McMaster, non-commercial) and ``card-ontology/aro.obo`` is
-the term graph (CC BY 4.0). This script reads exactly three files —
+the term graph (CC BY 4.0). :func:`run` reads exactly four files —
 ``card.json``, ``aro_index.tsv`` and ``PMID.tsv`` from the first, ``aro.obo``
-from the second — and writes six tables plus two ledgers.
+from the second — and puts ten tables into the store: the six the blueprint
+loads, three ledgers and ``cited_taxa``.
 
 Everything below that is not obvious is a pitfall from
 ``docs/research/source-formats.md`` §3, and each is handled where it says:
@@ -15,8 +15,8 @@ Everything below that is not obvious is a pitfall from
   from the JSON, 36 are in the JSON and absent from the index. The JSON wins
   because it is the only file with the taxids, and because those 36 are exactly
   the 36 meta-models — dropping them would drop a whole model *type*. The
-  index is read only to detect the disagreement, which goes to
-  ``card_model_disagreements.csv`` rather than being resolved silently.
+  index is read only to detect the disagreement, which goes to the
+  ``card_model_disagreements`` table rather than being resolved silently.
 * **The ARO accession is bare in the JSON and prefixed everywhere else.**
   :func:`aro_id` normalises on read; without it every determinant is two nodes
   and no citation reaches either.
@@ -40,10 +40,10 @@ Everything below that is not obvious is a pitfall from
 * **Splitting ``PMID.tsv`` yields empty atoms** from leading and trailing
   semicolons (21 in the real file). :func:`split_pmids` drops them.
 
-CARD curates no taxon–disease association, so this script writes nothing into
-``taxon_condition.csv``. What it shares with the other sources is
-``cited_taxa.csv`` (which decides what the taxonomy build keeps) and
-``unresolved_taxa.csv`` / ``unresolved_associations.csv`` (C18's accounting).
+CARD curates no taxon–disease association, so this prep writes no
+``taxon_condition`` rows. What it shares with the other sources is
+``cited_taxa`` (which decides what the taxonomy build keeps) and
+``unresolved_taxa`` / ``unresolved_associations`` (C18's accounting).
 """
 
 from __future__ import annotations
@@ -62,8 +62,6 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = card.SOURCE
 
-#: Reads no other prep's table. It contributes to ``cited_taxa.csv``, which
-#: is why ``prep_taxonomy`` declares *this* script rather than the reverse.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -73,6 +71,8 @@ RAW_INPUTS: list[str] = [
     "card/card-ontology/aro.obo",
 ]
 
+#: Reads no other prep's table. It contributes to ``cited_taxa``, which is why
+#: ``prep_taxonomy`` declares *this* prep rather than the reverse.
 DEPENDS_ON: list[str] = []
 
 #: ARO category class names, and the table each one lands in. ``AMR Gene
@@ -431,8 +431,7 @@ def run(
         term = aro_id(model.get("ARO_accession"))
         counters["models"] += 1
 
-        # aro.obo is the naming authority: it is the CC BY 4.0 half, it covers
-        # every model term, and a name taken from it can be redistributed.
+        # aro.obo names the term (module docstring: the naming authority).
         card_name = (model.get("ARO_name") or "").strip()
         ontology_name = obo_name(terms, term)
         if ontology_name and card_name and ontology_name != card_name:

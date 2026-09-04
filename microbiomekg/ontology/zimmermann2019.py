@@ -46,9 +46,9 @@ and both matter: ``% consumed >= threshold`` with ``p(FDR) <= 0.05`` reproduces
 the paper's **176 of 271 metabolised by at least one strain** exactly, while
 ``p(FDR) < 0.05`` gives 175, ``p(FDR) <= 0.01`` gives 133, and ignoring the
 per-drug threshold in favour of its 20% floor gives 190.
-:data:`METABOLISED_DRUGS` is that headline and
-``microbiomekg/preps/prep_zimmermann2019.py`` re-derives it on every run, refusing to write
-when it stops holding — the rule decides the *type* of every edge here.
+:data:`METABOLISED_DRUGS` is that headline, and the prep's ``check_headline``
+re-derives it on every run, refusing to write any table when it stops holding —
+the rule decides the *type* of every edge here.
 
 **Two of the 76 strain names stay unresolved on purpose, and five are
 corrected.** :data:`SPECIES_OVERRIDES` carries the five strings the paper
@@ -234,10 +234,10 @@ REPORTED_RANK: str = "strain-level isolate"
 #: a promotion surprise rather than a working filter.
 RANK_CEILING: str = "genus"
 
-#: What the screen's four non-organism columns are called. They are
-#: ``Control pH 4``…``Control pH 7`` and they sit *between* two strain columns in
-#: the sheet, so nothing structural separates them: the prefix is the only
-#: marker, and :func:`is_control_column` is the only place that knows it.
+#: The prefix of the screen's four abiotic-control columns. They sit *between*
+#: strain columns with the same sub-columns, so nothing structural separates
+#: them: the prefix is the only marker, and :func:`is_control_column` is the
+#: only place that reads it.
 CONTROL_PREFIX: str = "Control"
 
 #: Supplementary table 3's column header -> the ``Name`` and ``Reference`` of the
@@ -288,13 +288,9 @@ COLUMN_OVERRIDES: dict[str, str] = {
 #:     prefix of the string, and ``BEI HM-102`` is that strain.
 #:
 #: **``Bacteroides WH2`` and ``Bifidobacterium ruminatum`` are not here.** NCBI
-#: holds *two* candidates for each — ``Bacteroides sp. WH2`` (311784) and
-#: ``Bacteroides cellulosilyticus WH2`` (1268240); *B. ruminantium* (78346) and
-#: *B. ruminale*, which is a synonym of *B. thermophilum* (33905) — and neither
-#: row carries a collection number to choose with. They become tombstones with
-#: both candidates in the ledger, costing 271 measurements each. That is the
-#: honest outcome: picking one would attribute a strain's whole row to an
-#: organism nobody screened, and it would not be visible in any count.
+#: holds two candidates for each and neither row carries a collection number to
+#: choose with; :data:`AMBIGUOUS_STRAINS` names the candidates and says why a
+#: guess would be worse than a tombstone.
 SPECIES_OVERRIDES: dict[str, str] = {
     "pretovella copri": "Prevotella copri",
     "bryantia formataxigens": "Bryantella formatexigens",
@@ -360,10 +356,9 @@ def join_key(label: str | None) -> str:
 def is_control_column(label: str | None) -> bool:
     """Whether a screen column is an abiotic control rather than an organism.
 
-    ``Control pH 4`` through ``Control pH 7``. They carry the same five
-    sub-columns as a strain and sit between two of them, so a reader that walked
-    the block structure would load 1,084 cells of chemistry as microbial
-    metabolism — and would report 80 screened "strains" against the paper's 76.
+    ``Control pH 4`` through ``Control pH 7``, told apart from the 76 strain
+    columns by :data:`CONTROL_PREFIX` alone; the module docstring prices what
+    loading them as organisms would have written.
     """
     return (label or "").strip().startswith(CONTROL_PREFIX)
 
@@ -471,12 +466,9 @@ METABOLISM_CONTRACT: list[str] = [
 #: to an edge, where it covers that (organism, drug) pair at all.
 #:
 #: They are **not** a claim that this strain uses this gene: the genes were
-#: identified by expressing a library of them in *E. coli*, which is a different
-#: experiment from the one every edge here comes from. What they say is "a gene
-#: product of this organism metabolised this drug when expressed heterologously",
-#: which is exactly Part B's W7 field "and the gene where identified" — and
-#: putting it here rather than on a ``Gene`` node is what keeps it answerable in
-#: one hop without a node type no Part D query reads.
+#: identified by expressing a library of them in *E. coli*, a different
+#: experiment from the one every edge here comes from. Why that rides on the
+#: edge instead of a ``Gene`` node is the module docstring's last decision.
 GENE_PROPERTIES: tuple[str, ...] = (
     "gene_locus_tags",
     "gene_products",
@@ -535,10 +527,10 @@ METABOLISM_PROPERTY_TYPES: dict[str, str] = {
 #: on every row the other sources wrote and filled on the ones minted here.
 #:
 #: They are on the *node* only for minted drugs, and that asymmetry is the
-#: model's: ``drug.csv`` is keyed on ``drug_id`` and the first row per key wins,
-#: so a screen fact about a drug ChEMBL or Maier already holds cannot be written
-#: onto its node at all. Anything a query needs for *every* screened drug —
-#: ``therapeutic_indication`` — therefore rides on the edge as well.
+#: store's: the ``drug`` table is keyed on ``drug_id`` and the first row per key
+#: wins, so a screen fact about a drug ChEMBL or Maier already holds cannot be
+#: written onto its node at all. Anything a query needs for *every* screened
+#: drug — ``therapeutic_indication`` — therefore rides on the edge as well.
 DRUG_PROPERTY_TYPES: dict[str, str] = {
     "cas": "string",
     "trade_name": "string",

@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 """KEGG's compound→map links -> Pathway nodes and IN_PATHWAY rows. Off by default.
 
-**This script refuses to run without ``--with-kegg``.** KEGG is not a public
-database: academic users may use the website, a service built on it needs an
-academic service-provider licence, and non-academic use needs a commercial one
-(docs/sources.md §7). A graph carrying KEGG content cannot be published, so the
-default build produces none of it, and ``scripts/build.py`` forwards the flag
-rather than deciding for the operator. The refusal exits **3**, the same code a
-missing raw input uses, because the build's response is the same: leave the
-source out and say so. Every row written carries
-``source_licence = 'KEGG-restricted'``, so a shippable subgraph can be cut by
-one ``WHERE`` clause instead of a rebuild.
+**This prep refuses to run unless the build passes ``opted_in=True``**, which
+only ``--with-kegg`` sets. KEGG is not a public database: academic users may use
+the website, a service built on it needs an academic service-provider licence,
+and non-academic use needs a commercial one (docs/sources.md §7). A graph
+carrying KEGG content cannot be published, so the default build produces none of
+it, and the flag is forwarded rather than decided for the operator. The refusal
+raises :class:`MissingInput`, the same exception an absent raw file raises,
+because the build's response is the same: leave the source out and say so. Every
+row written carries ``source_licence = 'KEGG-restricted'``, so a shippable
+subgraph can be cut by one ``WHERE`` clause instead of a rebuild.
 
 Three files are read and three are deliberately not:
 
@@ -42,12 +41,12 @@ Three files are read and three are deliberately not:
   retired upstream and the roster that replaced it lost the lineage column, so
   there is no taxon–pathway edge to be had from KEGG at all.
 
-The join runs through ``metabolite.csv``'s ``kegg_id``, and the metabolite
-selection rule in ``microbiomekg/preps/prep_hmdb.py`` deliberately never consults KEGG —
-a metabolite kept *because* KEGG links it would be a KEGG-derived row sitting
-in a graph built without the flag. So a KEGG link whose compound is not already
-a selected metabolite reaches no edge and is counted into
-``unresolved_pathway_links.csv``.
+The join runs through the ``metabolite`` table's ``kegg_id``, and the
+metabolite selection rule in ``microbiomekg/preps/prep_hmdb.py`` deliberately
+never consults KEGG — a metabolite kept *because* KEGG links it would be a
+KEGG-derived row sitting in a graph built without the flag. So a KEGG link whose
+compound is not already a selected metabolite reaches no edge and is counted into
+the ``unresolved_pathway_links`` ledger.
 """
 
 from __future__ import annotations
@@ -63,9 +62,6 @@ from microbiomekg.tables import Frames
 
 SOURCE = kg.SOURCE
 
-#: ``IN_PATHWAY`` joins through ``metabolite.csv``'s ``kegg_id``, which
-#: ``prep_hmdb`` writes. (HMDB's selection rule deliberately never consults
-#: KEGG, so the dependency runs one way only.)
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -74,6 +70,9 @@ RAW_INPUTS: list[str] = [
     "kegg/list_compound.tsv",
 ]
 
+#: ``IN_PATHWAY`` joins through the ``metabolite`` table's ``kegg_id``, which
+#: ``prep_hmdb`` puts in the store. (HMDB's selection rule deliberately never
+#: consults KEGG, so the dependency runs one way only.)
 DEPENDS_ON: list[str] = ["hmdb"]
 
 #: A KEGG compound id is `C` and exactly five digits. HMDB's one lowercase
@@ -181,7 +180,7 @@ def run(
         owner=("primary_source", SOURCE),
     )
     # Aggregated per compound, not per link row — see prep_reactome.py: the
-    # same fact restated once per map is a large file and a worse ledger.
+    # same fact restated once per map is a large table and a worse ledger.
     ledger = store.table(
         "unresolved_pathway_links",
         ["source_id", "pathway_id", "reason", "rows", "primary_source"],

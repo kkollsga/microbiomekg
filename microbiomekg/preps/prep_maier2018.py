@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Maier 2018's 1,197 x 40 growth screen -> the drug->taxon edges D8 was missing.
 
 ``data/raw/drug_screens/maier2018/`` holds the six supplementary workbooks of
@@ -21,10 +20,10 @@ PMC's supplementary bundle for PMC6108420. Four of them are read here:
 
 What comes out:
 
-* every cell with ``adjusted p < 0.01`` -> ``INHIBITS_GROWTH_OF``, in
-  ``drug_taxon_inhibited.csv`` — **5,592**;
-* every cell at or above it -> ``DOES_NOT_INHIBIT_GROWTH_OF``, in
-  ``drug_taxon_no_effect.csv`` — **42,233**. A screen measures the whole matrix,
+* every cell with ``adjusted p < 0.01`` -> ``INHIBITS_GROWTH_OF``, in the
+  ``drug_taxon_inhibited`` table — **5,592**;
+* every cell at or above it -> ``DOES_NOT_INHIBIT_GROWTH_OF``, in the
+  ``drug_taxon_no_effect`` table — **42,233**. A screen measures the whole matrix,
   so a non-hit here is a measurement and not an absence of curation, and it is
   its own relationship rather than a flag for the reason NJC19's
   ``NO_EXCHANGE_WITH`` is: nothing in a ``MATCH (d)-[:INHIBITS_GROWTH_OF]->(t)``
@@ -43,13 +42,13 @@ The sheet publishes p-values and an ``n_hit`` count and never states the cutoff.
 ``ontology.maier2018.HIT_THRESHOLD`` reproduces ``n_hit`` on all 1,197 rows
 (0.05 reproduces 791, 0.001 reproduces 879), the per-species human-targeted hit
 counts in both figure source-data workbooks, and the paper's own "24% of the
-drugs with human targets". This script re-checks the ``n_hit`` half on every run
-and refuses to write if it stops holding — the constant decides the *type* of
-every edge in the source, so a silent drift in it is a silent inversion of the
-whole layer.
+drugs with human targets". This prep re-checks the ``n_hit`` half on every run
+and stops before writing any table if it stops holding — the constant decides
+the *type* of every edge in the source, so a silent drift in it is a silent
+inversion of the whole layer.
 
-**The figure source data in ``data/raw/maier2018/`` is deliberately not loaded**,
-and one of its sheets is the reason to say so out loud. ``MOESM15`` sheet ``3c``
+**The paper's figure source-data workbooks are deliberately not loaded**, and
+one of their sheets is the reason to say so out loud. ``MOESM15`` sheet ``3c``
 is a drug x isolate table with a concentration and a qualifier, and it reads
 exactly like a hit list — but **all 29 of its drugs have ``n_hit = 0`` in the
 screen, and none of its 212 pairs is a hit**. Loading it as inhibition would
@@ -73,9 +72,6 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = mz.SOURCE
 
-#: Reads ``drug.csv``, which ChEMBL writes: the three join routes each need to
-#: see every ``Drug`` node that already exists before this source decides to
-#: mint one, and ChEMBL is the only other source that writes that table.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -85,6 +81,10 @@ RAW_INPUTS: list[str] = [
     "drug_screens/maier2018/NIHMS76168-supplement-Supplementary_table_4.xlsx",
 ]
 
+#: Reads the ``drug`` table ChEMBL puts in the store: the three join routes each
+#: need to see every ``Drug`` node that already exists before this source decides
+#: to mint one. Zimmermann 2019 writes ``drug`` too, and depends on this prep for
+#: the same reason.
 DEPENDS_ON: list[str] = ["chembl"]
 
 #: ``<table number>: (filename, sheet)``. Named rather than "the first sheet" so
@@ -97,7 +97,7 @@ WORKBOOKS: dict[int, tuple[str, str]] = {
     4: ("NIHMS76168-supplement-Supplementary_table_4.xlsx", "S4. MICs"),
 }
 
-#: Where ``fetch.py`` puts the bundle. The screen sits under ``drug_screens/``
+#: Where ``fetch`` puts the bundle. The screen sits under ``drug_screens/``
 #: beside Zimmermann 2019 rather than in a directory of its own, because the two
 #: are the pair Part B's W7 names and neither is the whole answer alone.
 RAW_SUBDIR = Path("drug_screens") / SOURCE
@@ -167,9 +167,9 @@ DRUG_FIELDS = [
     "screen_target_species",
 ]
 
-#: The same shape ``unresolved_chembl.csv`` uses. C18's accounting lives here:
-#: every input cell that becomes no edge, and every drug or isolate that reached
-#: something other than what it looks like it reached.
+#: The same shape ChEMBL's ``unresolved_chembl`` table uses. C18's accounting
+#: lives here: every input cell that becomes no edge, and every drug or isolate
+#: that reached something other than what it looks like it reached.
 LEDGER_FIELDS = ["kind", "record_id", "subject", "detail", "reason", "source"]
 
 
@@ -351,7 +351,8 @@ def contested_atc_codes(drug_rows: dict[str, dict]) -> dict[str, list[str]]:
     key for either entry**, which is the same rule
     :meth:`microbiomekg.drugs.DrugIndex.from_rows` already applies from the other
     side to a code two ChEMBL nodes claim. The entries fall through to the
-    salt-strip route or are minted on their catalogue number, and each dropped code is a ledger row.
+    salt-strip route or are minted on their catalogue number, and each dropped
+    code is a ledger row.
     """
     claimed: dict[str, list[str]] = {}
     for prestwick, row in drug_rows.items():

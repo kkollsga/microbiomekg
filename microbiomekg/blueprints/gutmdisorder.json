@@ -1,5 +1,5 @@
 {
-  "_doc": "gutMDisorder (human.xlsx + mouse.xlsx, 2020 v1): the Intervention node and the ABUNDANCE_CHANGED_BY edge — 'a taxon changed BY something', which is the relation D4's intervention leg needs and which no other surveyed source curates. Its taxon-disease associations are rows in core.json's taxon_condition.csv, not a second relationship, so D2/D3/D17 span both sources; the properties it adds to that shared junction edge are declared here and merged additively.",
+  "_doc": "gutMDisorder (human.xlsx + mouse.xlsx, 2020 v1): the Intervention node and the ABUNDANCE_CHANGED_BY edge — 'a taxon changed BY something', which is the relation D4's intervention leg needs and which no other surveyed source curates. Its taxon-disease associations are rows in core.json's taxon_condition table, not a second relationship, so D2/D3/D17 span both sources; the properties it adds to that shared junction edge are declared here and merged additively.",
   "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
   "files": {
     "intervention": {

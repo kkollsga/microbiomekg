@@ -1,16 +1,16 @@
-#!/usr/bin/env python3
-"""NCBI new_taxdump -> ``data/csv/taxon.csv``.
+"""NCBI new_taxdump -> the ``taxon`` table.
 
 Emits one row per taxon in the chosen scope: the canonical key (``tax_id``),
 the scientific name, the rank, the parent pointer that becomes the
 ``HAS_PARENT`` ancestry edge, the ranked lineage columns, and a ``synonyms``
 string for reconciliation and text search.
 
-``--scope`` picks how much of the 3.0M-node taxonomy to emit:
+``scope`` picks how much of the 3.0M-node taxonomy to emit:
 
-* ``cited``     — only the taxa BugSigDB actually cites, plus their ancestors.
-  Reads ``data/csv/cited_taxa.csv``, so run ``prep_bugsigdb.py`` first. This is
-  the fast iteration scope (~20k nodes).
+* ``cited``     — only the taxa the source preps actually cite, plus their
+  ancestors. Reads the store's ``cited_taxa`` table, which every prep in
+  :data:`DEPENDS_ON` writes and so runs first. This is the fast iteration scope
+  (~20k nodes).
 * ``microbial`` — Bacteria + Archaea + Fungi and their ancestors (~863k nodes).
   The default, and what the shipping graph uses.
 * ``all``       — the whole dump (~3.0M nodes).
@@ -34,15 +34,10 @@ from microbiomekg.reconcile import (
     is_placeholder_name,
 )
 
-#: Every prep that writes ``cited_taxa.csv``. This script filters the 3M-row
-#: taxonomy down to what the sources cite, so a source writing that table
-#: after it would have its edges pointing at vivified stubs with no name and
-#: no lineage. ``tests/test_build_pipeline.py`` fails if a prep writes the
-#: table and is missing here.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
-#: ``fetch`` writes. `status` reports on exactly these.
-#: Every prep resolves names against this dump; it is declared here, once,
-#: because this is the prep that reads all five files.
+#: ``fetch`` writes. `status` reports on exactly these. Every prep resolves
+#: names against this dump; it is declared here, once, because this is the
+#: prep that reads all five files.
 RAW_INPUTS: list[str] = [
     "ncbi_taxonomy/nodes.dmp",
     "ncbi_taxonomy/names.dmp",
@@ -51,6 +46,11 @@ RAW_INPUTS: list[str] = [
     "ncbi_taxonomy/delnodes.dmp",
 ]
 
+#: Every prep that writes ``cited_taxa``. This prep filters the 3M-row taxonomy
+#: down to what the sources cite, so a source writing that table after it would
+#: have its edges pointing at vivified stubs with no name and no lineage.
+#: ``tests/test_build_pipeline.py`` fails if a prep writes the table and is
+#: missing here.
 DEPENDS_ON: list[str] = [
     "bugsigdb",
     "card",
@@ -68,12 +68,12 @@ DEPENDS_ON: list[str] = [
 #:
 #: MASI's microbe dictionary says which of the organisms it curates are used as
 #: probiotics, in whom, and how far the evidence has got. Those are properties
-#: of the organism, not of any interaction, and ``Taxon`` is one CSV — so the
+#: of the organism, not of any interaction, and ``Taxon`` is one table — so the
 #: only place they can be written is here, which is why ``masi`` is in
-#: :data:`DEPENDS_ON` above alongside the sources that write ``cited_taxa.csv``.
-#: The columns are written on **every** row whether or not that table exists, so
-#: the header ``microbiomekg/blueprints/core.json`` declares does not depend on which sources
-#: a build ran.
+#: :data:`DEPENDS_ON` above alongside the sources that write ``cited_taxa``.
+#: The columns are written on **every** row whether or not that table exists,
+#: so the column set ``microbiomekg/blueprints/core.json`` declares does not
+#: depend on which sources a build ran.
 PROBIOTIC_TABLE = "taxon_probiotic"
 PROBIOTIC_COLUMNS = (
     "probiotic",
@@ -82,7 +82,7 @@ PROBIOTIC_COLUMNS = (
     "probiotic_reported_name",
 )
 
-#: Clade roots for ``--scope microbial``: Bacteria, Archaea, Fungi.
+#: Clade roots for ``scope="microbial"``: Bacteria, Archaea, Fungi.
 MICROBIAL_ROOTS = (2, 2157, 4751)
 
 #: ``rankedlineage.dmp`` columns after the tax_id. The file's last column is
@@ -129,7 +129,7 @@ FIELDS = [
     *PROBIOTIC_COLUMNS,
 ]
 
-#: Cap on synonyms carried into the CSV. A handful of taxa have hundreds of
+#: Cap on synonyms carried onto the node. A handful of taxa have hundreds of
 #: ``includes`` names; the graph only needs enough for a BM25 hit, and the
 #: authoritative lookup lives in TaxonomyIndex, not in the graph.
 SYNONYM_CAP = 20
@@ -137,12 +137,8 @@ SYNONYM_CAP = 20
 
 def read_probiotics(rows: list[dict[str, str]]) -> dict[int, dict[str, str]]:
     """``tax_id -> {column: value}`` from the table MASI's prep leaves in the
-    store.
-
-    An absent table is an empty map, not an error: a build that did not run
-    MASI's prep still writes the columns, empty on every row, so the header
-    stays a function of this module rather than of which raw files are on
-    the machine.
+    store. An absent table is an empty map, not an error — every row gets the
+    columns regardless; see :data:`PROBIOTIC_TABLE`.
     """
     out: dict[int, dict[str, str]] = {}
     for row in rows:
@@ -220,7 +216,7 @@ def read_ranked_lineage(path: Path, keep: set[int]) -> dict[int, list[str]]:
 
 
 def read_synonyms(path: Path, keep: set[int]) -> dict[int, list[str]]:
-    """tax_id -> its non-scientific names, deduplicated and capped."""
+    """tax_id -> its non-scientific names, deduplicated; ``run`` applies the cap."""
     out: dict[int, list[str]] = defaultdict(list)
     sci: dict[int, str] = {}
     for row in _dmp_rows(path):

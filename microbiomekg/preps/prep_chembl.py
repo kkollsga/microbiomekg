@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""ChEMBL's three JSONL files -> the flat CSVs blueprint.json loads.
+"""ChEMBL's three JSONL files -> the tables the build loads.
 
 ``mechanism.jsonl`` is the edge list, ``molecule_max_phase4.jsonl`` names the
 approved half of its molecules, and ``target.jsonl`` carries the one field that
@@ -42,13 +41,13 @@ ledger rather than the edge table — otherwise the graph grows ``Taxon`` nodes
 whose only name is their own id. Every target taxid is resolved through
 :mod:`microbiomekg.reconcile` first, and only resolved ones are written.
 
-**``IS_DRUG`` needs a table another source writes.** ``intervention.csv`` is
-gutMDisorder's, so this script declares ``DEPENDS_ON = ["gutmdisorder"]`` and
-``scripts/build.py`` runs the preps in declared order. It used to run them in
-*name* order, which puts this one first: the table was not there, the link was
-empty, and the relationship reached the graph with zero edges and an ontology
-rule auditing nothing. Run standalone against a directory that has no
-``intervention.csv`` the link is still empty — and still reported as such.
+**``IS_DRUG`` needs a table another source writes.** ``intervention`` is
+gutMDisorder's, so this prep declares ``DEPENDS_ON = ["gutmdisorder"]`` and the
+build runs the preps in dependency order. It used to run them in *name* order,
+which puts this one first: the table was not in the store, the link was empty,
+and the relationship reached the graph with zero edges and an ontology rule
+auditing nothing. Run against a store with no ``intervention`` table the link is
+still empty — and still reported as such.
 """
 
 from __future__ import annotations
@@ -67,10 +66,6 @@ from microbiomekg.tables import Frames, Table, as_list
 
 SOURCE = chem.SOURCE
 
-#: ``IS_DRUG`` joins ``intervention.csv`` — gutMDisorder's table — to this
-#: source's drugs, so that prep has to have run. Declared rather than
-#: implied by the filename: in name order this script sorts *first*, the
-#: table was absent, and the relationship loaded zero edges.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -79,9 +74,12 @@ RAW_INPUTS: list[str] = [
     "chembl/target.jsonl",
 ]
 
+#: ``IS_DRUG`` reads gutMDisorder's ``intervention`` table off the store, so that
+#: prep has to have run first. Declared, because name order puts this prep
+#: *first* and once loaded the relationship with zero edges (module docstring).
 DEPENDS_ON: list[str] = ["gutmdisorder"]
 
-#: The three files ``scripts/fetch.py`` pulls from the ChEMBL REST API.
+#: The three files ``microbiomekg fetch`` pulls from the ChEMBL REST API.
 MECHANISM_FILE = "mechanism.jsonl"
 MOLECULE_FILE = "molecule_max_phase4.jsonl"
 TARGET_FILE = "target.jsonl"
@@ -90,8 +88,8 @@ TARGET_FILE = "target.jsonl"
 def text(value: Any) -> str:
     """A JSON value as a stripped string; ``None`` becomes empty.
 
-    ``None`` must not reach the CSV as the string ``"None"``: kglite would load
-    it as a value and the audit would count it as present.
+    ``None`` must not reach the table as the string ``"None"``: kglite would
+    load it as a value and the audit would count it as present.
     """
     return "" if value is None else str(value).strip()
 
@@ -351,10 +349,9 @@ def run(
 
     # ---------------------------------------------------------------- drugs
     #
-    # The node set is the union of the approved molecules and the molecules a
-    # mechanism names, collapsed onto parents. Neither half alone is right:
-    # source-formats.md §6 pitfall 1 asks for an explicit decision rather than
-    # half of each, and this is it — load both, flag which is which.
+    # The union of the approved molecules and the molecules a mechanism names,
+    # collapsed onto parents: source-formats.md §6 pitfall 1 asks for an explicit
+    # decision, and this is it — load both, `approved` says which is which.
     parents = parent_index(mechanisms)
     by_key: "OrderedDict[str, list[str]]" = OrderedDict()
     for molecule_id in molecules:
@@ -406,7 +403,7 @@ def run(
 
     # -------------------------------------------------------------- targets
     #
-    # `cited_taxa.csv` is what tells prep_taxonomy which taxa to keep, and a
+    # `cited_taxa` is what tells prep_taxonomy which taxa to keep, and a
     # taxon it does not name is a taxon the OF_ORGANISM junction *vivifies*.
     # So it is filled here, beside the edge it has to cover, rather than in the
     # mechanism loop where the two could drift apart.

@@ -1,11 +1,11 @@
-"""Locate raw source files under a raw root, whatever `fetch.py` called them.
+"""Locate raw source files under a raw root, whatever ``fetch`` called them.
 
-The prep scripts take one ``--raw`` root so they share a CLI. What lives under
-it varies: `fetch.py` writes ``data/raw/ncbi_taxonomy/`` and
-``data/raw/bugsigdb/full_dump_main.csv``, while a test fixture may lay the same
-files out as ``raw/ncbi/`` and ``raw/full_dump.csv``. These two functions
-accept either, and return a clear error naming what they looked for rather than
-failing later on a missing column.
+Every prep's ``run(raw, store, ...)`` takes the build's one ``--raw`` root. What
+lives under it varies: ``microbiomekg fetch`` writes ``data/raw/ncbi_taxonomy/``
+and ``data/raw/bugsigdb/full_dump_main.csv``, while a test fixture may lay the
+same files out as ``raw/ncbi/`` and ``raw/full_dump.csv``. The two finders
+accept either and fail naming what they looked for, rather than later on a
+missing column.
 """
 
 from __future__ import annotations
@@ -36,7 +36,8 @@ def find_taxdump(raw: Path) -> Path:
 def find_bugsigdb_dump(raw: Path) -> Path:
     """The BugSigDB ``full_dump`` CSV, searched from a raw root.
 
-    A file path is returned unchanged, so ``--raw <file>`` still works.
+    A file path is returned unchanged, so a test can pass the fixture CSV itself
+    as ``raw`` (``tests/test_build.py`` does).
     """
     raw = Path(raw)
     if raw.is_file():

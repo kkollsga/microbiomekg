@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """HMDB's 6.5 GB XML -> 7,773 Metabolite nodes and 578 production edges.
 
 ``data/raw/hmdb/hmdb_metabolites.xml`` is one 6,486,862,079-byte XML document
@@ -39,8 +38,8 @@ Deliberately **not** loaded, each for a stated reason:
   would dominate every path query in the graph. Counted and reported here.
 * **`Paper` nodes.** HMDB's references are free-text citation strings with a
   ``pubmed_id``; minting a ``Paper`` from one gives a node with no title, which
-  is what ``paper.csv`` is keyed and BM25-indexed on. The PMIDs ride on the
-  edge as ``publications`` instead, so D5 still answers "which citation".
+  is what the ``paper`` table is keyed and BM25-indexed on. The PMIDs ride on
+  the edge as ``publications`` instead, so D5 still answers "which citation".
 * **`protein_associations`, `normal_concentrations`, `abnormal_concentrations`,
   the SMPDB pathway layer.** Real data, no node type in this increment.
 
@@ -48,8 +47,8 @@ The organism strings are the hard part and :mod:`microbiomekg.ontology.hmdb`
 carries the reasoning: HMDB names organisms as free text at two levels with no
 taxid anywhere, the "genus" level is not a rank, and the string ``Firmicutes``
 resolves through ``names.dmp`` to a **kingdom**. Everything that cannot become
-an honest edge lands in ``unresolved_production.csv`` with the id and rank it
-did reach, so the decision is countable and reversible.
+an honest edge lands in the ``unresolved_production`` table with the id and rank
+it did reach, so the decision is countable and reversible.
 """
 
 from __future__ import annotations
@@ -68,12 +67,12 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = hm.SOURCE
 
-#: Reads no other prep's table. It writes ``metabolite.csv``, which the two
-#: pathway sources join through and therefore declare.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = ["hmdb/hmdb_metabolites.xml"]
 
+#: Reads no other prep's table. It writes ``metabolite``, which KEGG, Reactome,
+#: MiMeDB and NJC19 join through and therefore declare.
 DEPENDS_ON: list[str] = []
 
 #: Every element in the file carries it, so every ``find`` needs it.
@@ -151,9 +150,8 @@ def text(el, tag: str) -> str:
     """A child element's text, stripped. Empty for a missing or empty element.
 
     HMDB writes an absent value as ``<definition/>``, whose ``.text`` is
-    ``None`` rather than ``''`` — reading it straight gives the *string*
-    ``"None"`` in a CSV, which kglite loads as a value and the audit counts as
-    present.
+    ``None`` rather than ``''`` — so it is guarded here, once, rather than at
+    every ``strip``/compare site that would otherwise trip on it.
     """
     child = el.find(NS + tag)
     if child is None or child.text is None:

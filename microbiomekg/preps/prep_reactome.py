@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Reactome's five headerless TSVs -> the Pathway nodes, the DAG and IN_PATHWAY.
 
 ``ReactomePathways.txt`` (23,603 rows: id, name, species),
@@ -34,13 +33,12 @@ all — see :mod:`microbiomekg.ontology.reactome`. Reading its 73,767 numeric id
 as taxids would wire that many imaginary organisms into a 16-species pathway
 set, and 22 of them are not even gene ids but nucleotide accessions.
 
-The ``IN_PATHWAY`` join runs through ``metabolite.csv``, which
-``microbiomekg/preps/prep_hmdb.py`` writes — hence ``DEPENDS_ON = ["hmdb"]``, which is what
-orders the build.
+The ``IN_PATHWAY`` join reads the ``metabolite`` table ``prep_hmdb`` puts in
+the store — hence ``DEPENDS_ON = ["hmdb"]``, which is what orders the build.
 A ChEBI id Reactome maps and HMDB has no record of reaches no edge — there is
 no compound name anywhere in the mapping files, so a minted ``Metabolite``
 would be a bare CURIE with no name, no status and no biospecimen. Those are
-counted into ``unresolved_pathway_links.csv`` rather than dropped.
+counted into the ``unresolved_pathway_links`` table rather than dropped.
 """
 
 from __future__ import annotations
@@ -56,8 +54,6 @@ from microbiomekg.tables import Frames
 
 SOURCE = rx.SOURCE
 
-#: ``IN_PATHWAY`` joins through ``metabolite.csv``, which ``prep_hmdb``
-#: writes; a ChEBI id no loaded metabolite carries reaches no edge.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -66,6 +62,8 @@ RAW_INPUTS: list[str] = [
     "reactome/ChEBI2Reactome.txt",
 ]
 
+#: ``IN_PATHWAY`` joins through the ``metabolite`` table ``prep_hmdb`` puts in
+#: the store — see the module docstring.
 DEPENDS_ON: list[str] = ["hmdb"]
 
 #: `R-HSA-1234`: the three-letter infix is the species. 16 of them, all model
@@ -176,8 +174,8 @@ def run(
     )
     # Aggregated per source id, not per row. 77,649 of the 113,779 mapping
     # rows name a ChEBI id no Metabolite carries, and 2,146 distinct compounds
-    # account for all of them — a row-per-row ledger would be a 15 MB file
-    # restating one fact 36 times each. `rows` carries the count and
+    # account for all of them — a row-per-row ledger would restate one fact
+    # 36 times each. `rows` carries the count (summed on merge) and
     # `pathway_id` one example, so nothing about the loss is unrecoverable.
     ledger = store.table(
         "unresolved_pathway_links",

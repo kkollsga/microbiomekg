@@ -9,7 +9,7 @@ dropping them.
 
 Nothing here raises on bad input. A name that cannot be resolved comes back as
 a :class:`Resolution` with ``tax_id=None`` and a status saying why, which is
-what the prep scripts write to ``data/csv/unresolved_taxa.csv``.
+what the preps write to the ``unresolved_taxa`` ledger table in the build's store.
 
 Input files are the NCBI ``new_taxdump`` ``.dmp`` format: fields separated by
 ``"\\t|\\t"``, every line ending in ``"\\t|"``.
@@ -158,10 +158,9 @@ BELOW_SPECIES_RANKS: frozenset[str] = frozenset(
 #: the rank, and promotion walks it to the genus either way.)
 AMBIGUOUS_RANKS: frozenset[str] = frozenset({"no rank", "clade"})
 
-#: The enumerated below-ceiling sets, by ceiling. Only ``species`` — the
-#: ceiling this project uses — is enumerated from the dump; any other ceiling
-#: falls back to :data:`RANK_LADDER` order, which is a weaker claim and is
-#: why :func:`below_ceiling` can still answer ``None``.
+#: Below-ceiling sets enumerated from the dump, by ceiling. Only ``species`` —
+#: the ceiling this project uses — is; :func:`below_ceiling` says what the
+#: :data:`RANK_LADDER` fallback for any other ceiling can and cannot answer.
 _BELOW_CEILING: dict[str, frozenset[str]] = {"species": BELOW_SPECIES_RANKS}
 
 
@@ -341,7 +340,7 @@ class Resolution:
             one. ``note`` says the same thing in prose; this is the half that
             can be counted.
         candidates: Every id a name matched. Non-empty only for ``ambiguous``.
-        note: Human-readable trace, for the unresolved-taxa report.
+        note: Human-readable trace, for the ``unresolved_taxa`` ledger.
     """
 
     tax_id: int | None
@@ -373,7 +372,7 @@ class TaxonomyIndex:
 
     Built with :meth:`from_taxdump`. Holds roughly 3M parent pointers, 3M
     ranks and 4.7M name keys for the full dump — about 1.5 GB of Python
-    objects, which is why the prep scripts build it once and stream past it.
+    objects, which is why each prep builds it once and streams past it.
     """
 
     parent: dict[int, int] = field(default_factory=dict)
@@ -481,17 +480,15 @@ class TaxonomyIndex:
         """Walk ``tax_id`` up to the nearest ancestor at or above ``ceiling``.
 
         Returns ``(id, promoted, note)``. Whether the taxon is below the
-        ceiling is :func:`below_ceiling`'s answer, which for the ``species``
-        ceiling is a lookup in the enumerated :data:`BELOW_SPECIES_RANKS`
-        rather than a comparison of ladder positions.
+        ceiling is :func:`below_ceiling`'s answer.
 
         When that answer is ``None`` — an :data:`AMBIGUOUS_RANKS` node, which
         NCBI files both above and below species — the *nearest unambiguous
-        ancestor* decides, and it decides by :func:`_at_or_below_ceiling`:
-        83334 ``Escherichia coli O157:H7`` hangs off 562, a node *at* the
-        ceiling, and is below it. Otherwise ``Enterobacteriaceae incertae
-        sedis`` (rank ``no rank``, parent a family) would be "promoted" to its
-        family and a real intermediate node would vanish.
+        ancestor* decides, by :func:`_at_or_below_ceiling` (which says why an
+        ancestor *at* the ceiling counts). Without that check
+        ``Enterobacteriaceae incertae sedis`` (rank ``no rank``, parent a
+        family) would be "promoted" to its family and a real intermediate node
+        would vanish.
         """
         if (
             ceiling.strip().lower() not in _BELOW_CEILING

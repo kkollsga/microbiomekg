@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """MiMeDB's two table dumps -> Metabolite nodes, and no edges, because there are none.
 
 ``data/raw/mimedb/v2/`` holds two Sequel Ace exports of one MySQL table each —
@@ -7,13 +6,13 @@ export = 1``) and ``mimedb_microbes_v2.csv`` (2,648 rows, ``SELECT * FROM
 microbes WHERE export = 1``), plus the same two as XML. ``data/raw/mimedb/``
 holds the v1.0 pair beside them. **Neither release carries the association
 between its two tables** — the measurement and its consequence for D5 are in
-:mod:`microbiomekg.ontology.mimedb`, and the short version is that this script
-writes ``metabolite.csv`` rows and nothing else. It emits no ``PRODUCES``, and
+:mod:`microbiomekg.ontology.mimedb`, and the short version is that this prep
+puts rows into the ``metabolite`` table and nothing else. It emits no ``PRODUCES``, and
 the build report will say so with a zero rather than leaving the reader to
 notice.
 
 **v2.0 is read where it is present and v1.0 is the fallback**, resolved by
-:func:`default_inputs`. Which one was read is stated in this script's own output
+:func:`default_inputs`. Which one was read is stated in this prep's own output
 *and* on every node it writes, as ``Metabolite.mimedb_release``: the build
 report is a terminal scroll and the graph outlives it, so a consumer asking
 "which MiMeDB is in here" must be able to ask the graph. The label comes from
@@ -61,8 +60,9 @@ tests of "already holds", in this order:
 * the name matches a ``Metabolite`` node's name, casefolded — the route NJC19
   itself uses, so a duplicate here would be a second node NJC19 might then pick.
 
-Both are ledger rows in ``unresolved_mimedb.csv`` naming the node that already
-holds the compound, so "MiMeDB added nothing here" is a count rather than an
+A record any of them catches is a row in the ``unresolved_mimedb`` ledger table
+naming the node that already holds the compound, so "MiMeDB added nothing here"
+is a count rather than an
 absence. And an ``hmdb_id`` that **two** MiMeDB records claim is not used as a
 join key at all: 149 accessions are contested over 329 records, mostly by a
 D-/L- enantiomer pair, and joining them would fold two compounds into one node.
@@ -88,20 +88,20 @@ SOURCE = mm.SOURCE
 #: Wayback Machine; v2's were not, and mimedb.org is Cloudflare-challenged).
 RELEASE_DIRS: tuple[tuple[str, str], ...] = (("v2", "v2"), ("", "v1"))
 
-#: Reads ``metabolite.csv``, which HMDB writes: a MiMeDB record whose compound
-#: already has a node must not mint a second one. It also *reads NJC19's raw
-#: spreadsheet* for the ``njc19-compound`` selection rule, which is not a prep
-#: dependency — the dependency runs the other way, and ``prep_njc19`` declares
-#: it.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
-#: ``fetch`` writes. `status` reports on exactly these.
-#: v2.0 is the release the loader reads; the v1.0 files beside `v2/` are a
-#: documented fallback the prep still accepts, not the state `status` asks for.
+#: ``fetch`` writes. `status` reports on exactly these: the v1.0 files beside
+#: `v2/` are a fallback the prep accepts (:data:`RELEASE_DIRS`), not the state
+#: `status` asks for.
 RAW_INPUTS: list[str] = [
     "mimedb/v2/mimedb_metabolites_v2.csv",
     "mimedb/v2/mimedb_microbes_v2.csv",
 ]
 
+#: Reads the ``metabolite`` table HMDB puts in the store: a MiMeDB record whose
+#: compound already has a node must not mint a second one. It also *reads
+#: NJC19's raw spreadsheet* for the ``njc19-compound`` selection rule, which is
+#: not a prep dependency — the dependency runs the other way, and ``prep_njc19``
+#: declares it.
 DEPENDS_ON: list[str] = ["hmdb"]
 
 #: The MySQL dump writes an absent value as the four characters ``NULL``. Read
@@ -158,10 +158,9 @@ def load_metabolite_index(
 ) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
     """``(accession, casefolded name, InChIKey) -> metabolite_id``, three indexes.
 
-    Rows this source wrote on a previous run are skipped — see the comment
-    below; they are about to be replaced.
+    Rows this source wrote on a previous run are skipped (the loop says why).
 
-    Read out of the shared ``metabolite.csv`` rather than re-derived from HMDB's
+    Read off the store's shared ``metabolite`` table rather than re-derived from HMDB's
     XML, for the reason ``docs/model.md`` records under ``IS_DRUG``: a consumer
     that re-derives another source's node ids from its raw input dangles
     silently the day that source changes its keying rule. The accession index
@@ -179,8 +178,8 @@ def load_metabolite_index(
         # already holds the compound": `Table(owner=...)` is about to drop
         # and rewrite them, so counting them here makes a second run load
         # nothing and report every record as a duplicate of itself. That is
-        # the re-run failure `microbiomekg.tables` documents, reached
-        # through the index instead of the writer.
+        # the re-run failure `Table.owner` exists to prevent, reached through
+        # the index instead of the merge.
         if not key or (row.get("source") or "") == SOURCE:
             continue
         for accession in (
@@ -371,8 +370,8 @@ def run(
         f"from {metabolites_csv}"
     )
 
-    #: normalised accession -> the MiMeDB ids claiming it. An accession two
-    #: records claim is not a join key; see the module docstring.
+    # normalised accession -> the MiMeDB ids claiming it. An accession two
+    # records claim is not a join key; see the module docstring.
     claimants: dict[str, list[str]] = defaultdict(list)
     for row in records:
         normalised = mm.normalise_hmdb_id(cell(row, "hmdb_id"))

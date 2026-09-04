@@ -11,19 +11,22 @@ mixed-licence graph shippable in parts instead of not at all (G3).
 
 **This module declares no class and no relationship, and that is the design.**
 KEGG writes rows into the ``Pathway`` node and the ``IN_PATHWAY`` edge
-:mod:`.reactome` declares; it adds no vocabulary of its own. The consequence is
-what makes the flag safe: a default build composes ``microbiomekg/blueprints/kegg.json`` and
-this module anyway, and they contribute nothing — no node type loaded empty, no
-audit rule at ``0 / 0``. The flag's whole blast radius is the rows, which is
-exactly the licence boundary and nothing else.
+:mod:`.reactome` declares; it adds no vocabulary of its own. That is what makes
+the flag safe: the checked-in ``blueprint.json`` is composed from every fragment,
+``microbiomekg/blueprints/kegg.json`` included, and gains no table, node type or
+rule from it; and the build counts KEGG among the sources loaded only when its
+prep ran (:func:`microbiomekg.pipeline.sources_with_tables`), so a default build
+loads no node type empty and audits no rule at ``0 / 0``. The flag's whole blast
+radius is the rows, which is exactly the licence boundary and nothing else.
 
 **The flag does not change which metabolites exist, either.** The metabolite
-selection rule in :mod:`scripts.prep_hmdb` deliberately does not consult KEGG's
-files: a metabolite kept *because* KEGG links it would be a KEGG-derived
-selection sitting in a graph built without the flag. So ``--with-kegg`` adds
-``KEGG:map*`` pathway nodes and their ``IN_PATHWAY`` rows and nothing else, and
-the KEGG links whose compound has no metabolite node are reported rather than
-silently dropped.
+selection rule in :mod:`microbiomekg.preps.prep_hmdb` deliberately does not
+consult KEGG's files: a metabolite kept *because* KEGG links it would be a
+KEGG-derived selection sitting in a graph built without the flag. So
+``--with-kegg`` adds ``KEGG:map*`` pathway nodes and their ``IN_PATHWAY`` rows
+and nothing else, and the KEGG links whose compound has no metabolite node are
+counted into the ``unresolved_pathway_links`` ledger rather than silently
+dropped.
 
 **What KEGG cannot contribute.** No taxon join exists: ``/list/organism`` was
 retired upstream (HTTP 400) and the ``/list/genome`` roster that replaced it has
@@ -52,8 +55,10 @@ __all__ = [
 
 SOURCE = "kegg"
 
-#: The flag ``scripts/build.py`` gates this source on. Named here so the prep
-#: script's refusal message and the build's skip message cannot drift apart.
+#: The flag :mod:`microbiomekg.pipeline` gates this source on; it reaches the
+#: prep as ``opted_in``. Named here so the prep's ``MissingInput`` refusal —
+#: which the build prints as the skip reason — names the flag the operator must
+#: pass.
 BUILD_FLAG: str = "--with-kegg"
 
 #: KEGG maps are drawn by hand, so the claim is a curator's. There is no

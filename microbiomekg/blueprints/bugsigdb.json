@@ -1,5 +1,5 @@
 {
-  "_doc": "BugSigDB: the Signature node (the taxon SET, which a flattened model would destroy and D1's enrichment needs), the body sites, and the REPORTED_BY provenance edge from both Taxon and its UnresolvedTaxon tombstone. The association rows this source writes go into core.json's taxon_condition.csv, and IN_CONDITION spans the three condition types the same way ASSOCIATED_WITH does.",
+  "_doc": "BugSigDB: the Signature node (the taxon SET, which a flattened model would destroy and D1's enrichment needs), the body sites, and the REPORTED_BY provenance edge from both Taxon and its UnresolvedTaxon tombstone. The association rows this source writes go into core.json's taxon_condition table, and IN_CONDITION spans the three condition types the same way ASSOCIATED_WITH does.",
   "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
   "files": {
     "bodysite": {

@@ -1,14 +1,14 @@
 """Reaching an existing ``Drug`` node from a screen's own spelling of a compound.
 
-Two published drug screens now write into the ``drug.csv`` ChEMBL owns, and both
+Two published drug screens write into the ``drug`` table ChEMBL owns, and both
 ask it the same question: *this catalogue calls the compound* ``Ampicillin
-sodium`` *— which node is that?* Maier 2018 answered it with three routes tried
+sodium`` *— which node is that?* Maier 2018 answers it with three routes tried
 verbatim-first; Zimmermann 2019 needs the same machinery over a different set of
 columns. The parts that are **not** specific to either — what a level-5 ATC code
-is, which suffixes are counter-ions rather than the drug's name, how a
-``drug.csv`` becomes two lookup indexes, and what happens when two routes reach
-two different nodes — live here so that neither source owns them and a third
-does not copy them.
+is, which suffixes are counter-ions rather than the drug's name, how the
+``drug`` table becomes two lookup indexes, and what happens when two routes
+reach two different nodes — live here so that neither source owns them and a
+third does not copy them.
 
 What stays with the source is the **order the routes are tried in**, because
 that order is a claim about which of its columns is the most trustworthy
@@ -17,13 +17,13 @@ column, Zimmermann has a screened-compound name and a parent-drug name and no
 ATC at all. Each source therefore builds its own ``(kind, key, route)`` list and
 hands it to :func:`join_drug`.
 
-**The index is over whatever ``drug.csv`` holds when the source runs**, not over
-ChEMBL alone, and that is the point of the prep-order dependency. Maier mints a
-node for every library entry no ChEMBL route reaches; a later screen that
-rebuilt its own node for the same compound would split one drug in two and make
-"does this drug inhibit gut bacteria *or* get metabolised by them" unanswerable
-for it — the exact question D8 asks. So a source declares the sources it must
-run after in its ``DEPENDS_ON``, and this index sees their rows.
+**The index is over whatever the ``drug`` table holds when the source runs**,
+not over ChEMBL alone, and that is the point of the prep-order dependency. Maier
+mints a node for every library entry no ChEMBL route reaches; a later screen
+that rebuilt its own node for the same compound would split one drug in two and
+make "does this drug inhibit gut bacteria *or* get metabolised by them"
+unanswerable for it — the exact question D8 asks. So a source declares the
+sources it must run after in its ``DEPENDS_ON``, and this index sees their rows.
 """
 
 from __future__ import annotations
@@ -69,10 +69,11 @@ def atc_level5(cell: str | None) -> list[str]:
 
     Two shapes reach here and both have to work. A screen's own spreadsheet
     cell is space-joined free text mixing levels — ``QJ01GB90 QJ51GB90
-    QA07AA92``, ``C01EA01 G04BE01``, ``L01BB``, ``-``. ``drug.csv``'s
-    ``atc_codes`` is a JSON array, because the column is a `"list"` property in
-    the blueprint; reading it with the free-text splitter alone returns
-    ``["C01EA01"`` and silently joins nothing.
+    QA07AA92``, ``C01EA01 G04BE01``, ``L01BB``, ``-``. The ``drug`` table's
+    ``atc_codes`` is JSON-array text, because the column is a `"list"`
+    property in the blueprint and the store keeps it as the string
+    :func:`~microbiomekg.tables.as_list` wrote; reading it with the free-text
+    splitter alone returns ``["C01EA01"`` and silently joins nothing.
 
     Only the seven-character human codes survive, in source order and
     deduplicated — a level-4 code names a class rather than a substance, and a
@@ -99,7 +100,7 @@ def strip_salt(name: str) -> str:
 
 
 class DrugIndex:
-    """The two lookups a screen joins its compounds against, over one ``drug.csv``.
+    """The two lookups a screen joins its compounds against, over the ``drug`` table.
 
     :attr:`names` is casefolded ``pref_name`` -> ``drug_id`` and :attr:`atc` is
     level-5 ATC code -> ``drug_id``; :attr:`source_of` says which source wrote
@@ -109,9 +110,9 @@ class DrugIndex:
     **An identifier claimed by more than one node is dropped rather than
     resolved.** A code is only a join key while it names one substance, and
     picking one of two would be the merge-on-a-shared-attribute failure the
-    schema survey catalogues. A *name* collision cannot arise — ``drug.csv`` is
-    keyed on ``drug_id`` and the first row per key wins — so ``pref_name`` keeps
-    first-seen order, and the rule bites on ATC codes only.
+    schema survey catalogues. A *name* collision cannot arise — the ``drug``
+    table is keyed on ``drug_id`` and the first row per key wins — so
+    ``pref_name`` keeps first-seen order, and the rule bites on ATC codes only.
     """
 
     def __init__(

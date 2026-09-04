@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
-"""BugSigDB full_dump.csv -> the flat CSVs blueprint.json loads.
+"""BugSigDB ``full_dump_main.csv`` -> the tables the blueprint loads.
 
 One BugSigDB row is one *signature*: a set of taxa that moved in one direction
-in one experiment. This script fans that row out into the node and edge tables
+in one experiment. This prep fans that row out into the node and edge tables
 the graph wants, routes every taxon through
-:class:`microbiomekg.reconcile.TaxonomyIndex`, and writes what failed to
-``unresolved_taxa.csv`` rather than dropping it.
+:class:`microbiomekg.reconcile.TaxonomyIndex`, and writes what failed to the
+``unresolved_taxa`` table rather than dropping it.
 
-Run this **before** ``prep_taxonomy.py``: it writes ``cited_taxa.csv``, which
-is what ``prep_taxonomy.py --scope cited`` filters the taxonomy down to.
+It runs **before** ``prep_taxonomy``: it writes ``cited_taxa``, which is what
+``prep_taxonomy``'s ``scope="cited"`` filters the taxonomy down to.
 
-Two gotchas in the export, both silent if you get them wrong:
+Three gotchas in the export, all silent if you get them wrong:
 
 * the two taxon columns use **different delimiters** — ``MetaPhlAn taxon
   names`` separates taxa with ``,`` while ``NCBI Taxonomy IDs`` separates them
@@ -18,22 +17,21 @@ Two gotchas in the export, both silent if you get them wrong:
   that way aligns on all 14,225 rows that carry taxa; pairing them with the
   same delimiter misaligns 11,273 of them.
 * missing values are the literal string ``"NA"``. They must become an *empty*
-  CSV cell, because kglite treats an empty cell as an absent property, and an
+  cell, because kglite loads an empty cell as an absent property, and an
   absent property is what the ontology's ``required_properties`` audit counts.
   Passing ``"NA"`` through would make every evidence gap look filled.
 * the column named ``EFO ID`` is neither EFO nor, in 40% of its mentions, a
   disease, and the ``Condition`` column beside it is comma-joined with commas
   *inside* some of its values. Both are :mod:`microbiomekg.conditions`'
-  problem, not this script's: it decides the node type, the key and the
-  pairing, and anything it cannot answer lands in ``unresolved_conditions.csv``
-  rather than in a node type it does not belong to.
+  problem, not this prep's: it decides the node type, the key and the
+  pairing, and anything it cannot answer lands in the ``unresolved_conditions``
+  table rather than in a node type it does not belong to.
 
-This script writes several tables it *shares* with the other sources —
-``paper.csv``, ``study.csv``, ``disease.csv``, ``taxon_condition.csv``,
-``cited_taxa.csv`` and the two ledgers — through
-:class:`microbiomekg.tables.Writer` with ``merge=True``, so running it before
-or after another source's prep gives the same file. ``scripts/build.py`` runs
-the whole pipeline in order.
+Several tables — ``paper``, ``study``, the three condition tables,
+``taxon_condition``, ``cited_taxa`` and the two ledgers — are *shared* with the
+other sources and opened with ``merge=True``, so running this prep before or
+after another source's gives the same table. :mod:`microbiomekg.pipeline`
+orders the preps by ``DEPENDS_ON``.
 """
 
 from __future__ import annotations
@@ -57,11 +55,11 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = "bugsigdb"
 
-#: Reads no other prep's table: BugSigDB is the spine and runs first.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = ["bugsigdb/full_dump_main.csv"]
 
+#: Reads no other prep's table: BugSigDB is the spine and runs first.
 DEPENDS_ON: list[str] = []
 
 #: MetaPhlAn rank prefix -> NCBI rank name.
@@ -305,7 +303,7 @@ def run(
         ],
         key="signature_id",
     )
-    # One junction CSV over the three condition node types. `condition_type`
+    # One junction table over the three condition node types. `condition_type`
     # is the blueprint's `target_type_column`: it routes each row to Disease,
     # Phenotype or Exposure, so one relationship spans the union instead of
     # three names splitting it (docs/model.md section 8). The column is routing

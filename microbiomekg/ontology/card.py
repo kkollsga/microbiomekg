@@ -2,12 +2,12 @@
 
 This source adds three node types — ``ResistanceGene``, ``DrugClass`` and
 ``ResistanceMechanism`` — and the three relationships between them and
-``Taxon``. It writes **no** rows into ``taxon_condition.csv``: CARD curates no
-taxon–disease association, so nothing here lands in the shared
+``Taxon``. It writes **no** rows into the ``taxon_condition`` table: CARD curates
+no taxon–disease association, so nothing here lands in the shared
 ``ASSOCIATED_WITH`` tables and :data:`ASSOCIATION_RELATIONSHIPS` is empty.
 
 Three things about this source are unusual enough to be declared here rather
-than discovered in the prep script.
+than discovered in the prep.
 
 **The licence is per edge, and the two halves disagree about what they cover.**
 ``card-data/`` is © McMaster and non-commercial; ``card-ontology/aro.obo`` is
@@ -71,10 +71,10 @@ DATA_LICENCE = "CARD-noncommercial"
 #: built from ``card.json`` are not.
 ONTOLOGY_LICENCE = "CC-BY-4.0"
 
-#: CARD is expert-curated against a published inclusion bar — "clear
-#: experimental evidence of elevated minimum inhibitory concentration (MIC)
-#: over controls" — so the agent is a person and the default claim is a
-#: knowledge assertion. :func:`knowledge_level` downgrades the individual edges
+#: CARD is expert-curated against a published inclusion bar (an MIC measured
+#: over controls — quoted in full in :func:`evidence_level`), so the agent is a
+#: person and the default claim is a knowledge assertion.
+#: :func:`knowledge_level` downgrades the individual edges
 #: that carry no citation; the registration is the source's default, and the
 #: licence recorded is the one the *records* ship under.
 register_source(

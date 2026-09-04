@@ -66,10 +66,10 @@ organism name.
 *A MiMeDB record whose compound the graph already holds is not written at all.*
 It would be a second node for one compound, and the first one is the one
 Reactome's pathway edges and HMDB's production edges already point at. Those
-rows are counted and ledgered rather than merged, because :class:`Writer`'s
-first-row-per-key rule means a merged row's properties would be silently
-discarded anyway — an outcome that reads like a successful join in the row
-count and is not one.
+rows are counted and ledgered rather than merged, because the store's
+first-row-per-key rule (:class:`~microbiomekg.tables.Table`, ``key=``) means a
+merged row's properties would be silently discarded anyway — an outcome that
+reads like a successful join in the row count and is not one.
 
 **Licence: CC BY-NC 4.0** — non-commercial, which is why `source_licence` is on
 the node. It is stated on `mimedb.org` and in the NAR papers; the dumps
@@ -232,9 +232,8 @@ def release_of(columns) -> str:
     so the label answers "which release is this", and a release that dropped one
     of the four would otherwise be reported as the one it is furthest from.
 
-    Both tables' lists are consulted because one function is asked about both
-    files and they grew different columns; see :data:`V2_ONLY_MICROBE_COLUMNS`
-    and :data:`_RELEASE_MARKERS` for the one name that had to be excluded.
+    Both tables' columns count — :data:`V2_ONLY_MICROBE_COLUMNS` says why — and
+    :data:`_RELEASE_MARKERS` names the one that had to be excluded.
     """
     return "v2.0" if _RELEASE_MARKERS & set(columns or ()) else "v1.0"
 

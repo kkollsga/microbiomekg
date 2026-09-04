@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""gutMDisorder's two workbooks -> the flat CSVs blueprint.json loads.
+"""gutMDisorder's two workbooks -> the tables the build's store loads.
 
 ``human.xlsx`` and ``mouse.xlsx``, three sheets each, joined on one key with
 three spellings: ``Literature.Index`` ← ``Sample.Index`` ←
@@ -67,8 +66,6 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = gmd.SOURCE
 
-#: Reads no other prep's table. ``prep_chembl`` reads *this* one's
-#: ``intervention.csv`` and declares it.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -76,6 +73,8 @@ RAW_INPUTS: list[str] = [
     "gutmdisorder/mouse.xlsx",
 ]
 
+#: Reads no other prep's table. ``prep_chembl`` reads *this* one's
+#: ``intervention`` table and declares the dependency on its side.
 DEPENDS_ON: list[str] = []
 
 #: Workbook → the host every one of its rows is about. gutMDisorder's own
@@ -98,9 +97,9 @@ def text(value) -> str:
     """A cell as a stripped string; NaN, ``None`` and whitespace become empty.
 
     gutMDisorder has no literal ``NA``/``N/A`` spellings — missing is genuinely
-    empty — but pandas turns an empty cell into ``NaN``, and a ``NaN`` written
-    through to a CSV becomes the *string* ``"nan"``, which kglite would load as
-    a value and the audit would count as present.
+    empty — but pandas turns an empty cell into ``NaN``, and the store
+    stringifies cells, so a ``NaN`` would land as the *string* ``"nan"``, which
+    kglite would load as a value and the audit would count as present.
     """
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return ""
@@ -684,18 +683,16 @@ def run(
             direction = DIRECTIONS.get(text(row.get("Alteration")).casefold(), "")
             edge = {
                 "direction": direction,
-                # gutMDisorder records no study design. `Research Type` is a
-                # curation category ("gut microbiota associated with
-                # disorder"), not a design, so writing it here would make the
-                # audit look better by misdescribing the data. The gap is
-                # counted instead, which is what the audit is for.
+                # gutMDisorder records no study design; `Research Type` is a
+                # curation category, not a design (module docstring). The gap
+                # is counted instead, which is what the audit is for.
                 "study_design": "",
                 "evidence_level": meta["evidence_level"],
                 "sequencing_type": meta["sequencing_type"],
                 "statistical_test": text(row.get("Statistical Method")),
-                # Empty, and deliberately: an Association row has no link to a
-                # Sample row, so there is no per-association group size to put
-                # here. The study's arms are carried below, scoped.
+                # Empty, deliberately: an Association row has no link to a
+                # Sample row, so no per-association size exists. The study's
+                # arms are carried below, scoped by `sample_size_scope`.
                 "group_0_size": "",
                 "group_1_size": "",
                 "pmid": meta["pmid"],

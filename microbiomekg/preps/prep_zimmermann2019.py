@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Zimmermann 2019's 271 x 76 metabolism screen -> the taxon->drug edges D8 was
 still missing.
 
@@ -21,10 +20,10 @@ are read here:
 
 What comes out:
 
-* every cell the screen called a hit -> ``METABOLISES``, in
-  ``taxon_drug_metabolised.csv`` — **2,575**;
+* every cell the screen called a hit -> ``METABOLISES``, in the
+  ``taxon_drug_metabolised`` table — **2,575**;
 * every other measured cell -> ``DOES_NOT_METABOLISE``, in
-  ``taxon_drug_not_metabolised.csv`` — **17,479**. A screen measures the whole
+  ``taxon_drug_not_metabolised`` — **17,479**. A screen measures the whole
   matrix, so a non-hit is a measurement and not an absence of curation, and it
   is its own relationship rather than a flag for the reason
   ``DOES_NOT_INHIBIT_GROWTH_OF`` and ``NO_EXCHANGE_WITH`` are;
@@ -81,15 +80,16 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = zm.SOURCE
 
-#: Reads ``drug.csv``, which ChEMBL writes and Maier appends to. Every join route
-#: here reads that table, and ``maier2018`` is named as well as ``chembl``
-#: because 17 of this screen's 271 compounds reach a node **only** because the
-#: other screen minted one for them. Running first would mint a second node for
-#: each, splitting one drug in two along exactly the seam D8 asks across.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = ["drug_screens/zimmermann2019/41586_2019_1291_MOESM1_ESM.xlsx"]
 
+#: Reads the ``drug`` table, which ChEMBL puts in the store and Maier merges
+#: into. Every join route here reads that table, and ``maier2018`` is named as
+#: well as ``chembl`` because 17 of this screen's 271 compounds reach a node
+#: **only** because the other screen minted one for them. Running first would
+#: mint a second node for each, splitting one drug in two along exactly the seam
+#: D8 asks across.
 DEPENDS_ON: list[str] = ["chembl", "maier2018"]
 
 #: The one workbook, and the sheets read from it. Named rather than positional
@@ -161,10 +161,11 @@ EDGE_FIELDS = [
     "n_gene_products",
 ]
 
-#: The same column set ``prep_maier2018.py`` writes, plus this source's three.
-#: Listed in full rather than appended to whatever is already in the file so that
-#: a build where Maier's raw workbooks are absent still writes a ``drug.csv``
-#: whose columns match what ``microbiomekg/blueprints/zimmermann2019.json`` declares.
+#: The same column set ``prep_maier2018.py`` declares, plus this source's three
+#: (``cas``, ``trade_name``, ``therapeutic_indication``). Listed in full rather
+#: than taken from whatever ``drug`` table is already in the store, so that a
+#: build where Maier's raw workbooks are absent still puts a ``drug`` table
+#: whose columns match ``microbiomekg/blueprints/zimmermann2019.json``.
 DRUG_FIELDS = [
     "drug_id",
     "chembl_id",
@@ -194,7 +195,7 @@ DRUG_FIELDS = [
     "therapeutic_indication",
 ]
 
-#: The same shape ``unresolved_maier2018.csv`` uses. C18's accounting lives here:
+#: The same shape ``unresolved_maier2018`` uses. C18's accounting lives here:
 #: every input cell that becomes no edge, and every column, strain, drug or gene
 #: that reached something other than what it looks like it reached.
 LEDGER_FIELDS = ["kind", "record_id", "subject", "detail", "reason", "source"]
@@ -413,10 +414,10 @@ def check_headline(
     **The shape is checked before the count, and both are hard stops.** A gate
     that quietly stopped applying because a re-extraction dropped a column would
     be worse than no gate — and that is the whole reason ``published`` is an
-    argument rather than a module constant read in here. ``--published-matrix``
-    defaults to :data:`PUBLISHED_MATRIX`; the test fixtures pass their own
-    triple, so the reduced workbook runs *this* code path with *this* arithmetic
-    instead of a version of the check that turns itself off.
+    argument rather than a module constant read in here. :func:`run`'s
+    ``published_matrix`` defaults to :data:`PUBLISHED_MATRIX`; the test fixtures
+    pass their own triple, so the reduced workbook runs *this* code path with
+    *this* arithmetic instead of a version of the check that turns itself off.
 
     Returns the number of drugs metabolised by at least one strain.
     """

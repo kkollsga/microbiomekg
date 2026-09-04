@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """MASI v1.0's four downloads -> the curated layer under the two measured ones.
 
 ``data/raw/masi/MASI_v1.0_download_*.xlsx`` are the four tables of MASI (Zeng et
@@ -33,10 +32,10 @@ nodes, its four interaction relationships as its own, and the identity between a
 MASI substance and a graph ``Drug`` as a declared ``SAME_COMPOUND_AS`` edge.
 ``duplicates_primary_source`` then names, per edge, every loaded primary source
 that already measures that exact (taxon, compound) pair — computed here by
-reading the screens' own CSVs, which is what ``DEPENDS_ON`` is for. The
-reasoning is in :mod:`microbiomekg.ontology.masi`.
+reading the screens' own edge tables off the store, which is what ``DEPENDS_ON``
+is for. The reasoning is in :mod:`microbiomekg.ontology.masi`.
 
-The disease records go into the shared ``taxon_condition.csv`` as a fourth source
+The disease records go into the shared ``taxon_condition`` table as a fourth source
 of ``ASSOCIATED_WITH``, keyed through MONDO by **name** — MASI ships no
 condition identifier at all, so :meth:`microbiomekg.conditions.MondoIndex.
 mondo_by_name` is the only route, and the route it took is on the node as
@@ -58,11 +57,6 @@ from microbiomekg.tables import Frames, as_list
 
 SOURCE = ms.SOURCE
 
-#: Reads ``drug.csv`` for the substance join, and the two screens' four edge
-#: tables for the overlap check that fills ``duplicates_primary_source``. Naming
-#: them here is not a convenience: the whole point of this source's shape is that
-#: it never silently restates a measurement, and the only way to know which of
-#: its rows *are* restatements is to have the measurements on disk first.
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
 RAW_INPUTS: list[str] = [
@@ -72,12 +66,18 @@ RAW_INPUTS: list[str] = [
     "masi/MASI_v1.0_download_substanceInfo.xlsx",
 ]
 
+#: Reads the ``drug`` table for the substance join, and the two screens' four
+#: edge tables for the overlap check that fills ``duplicates_primary_source``.
+#: Naming them here is not a convenience: the whole point of this source's shape
+#: is that it never silently restates a measurement, and the only way to know
+#: which of its rows *are* restatements is to have the measurements in the store
+#: first.
 DEPENDS_ON: list[str] = ["chembl", "maier2018", "zimmermann2019"]
 
 RAW_SUBDIR = "masi"
 
-#: The four workbooks, by the role this script reads them in. Named rather than
-#: globbed so a partial download fails on the file it is missing.
+#: The four workbooks, by role. Named rather than globbed so a partial download
+#: fails on the file it is missing.
 WORKBOOKS: dict[str, str] = {
     "interactions": "MASI_v1.0_download_microbeSubstanceInteractionRecords_ver20200928.xlsx",
     "diseases": "MASI_v1.0_download_microbeDiseaseAssociationRecords.xlsx",
@@ -85,7 +85,7 @@ WORKBOOKS: dict[str, str] = {
     "substances": "MASI_v1.0_download_substanceInfo.xlsx",
 }
 
-#: ``(relationship, CSV)`` for the four interaction tables, in report order.
+#: ``relationship -> table name`` for the four interaction tables, in report order.
 EDGE_TABLES: dict[str, str] = {
     ms.RELATION_METABOLISES: "taxon_substance_metabolised",
     ms.RELATION_NO_METABOLISM: "taxon_substance_not_metabolised",
@@ -94,7 +94,7 @@ EDGE_TABLES: dict[str, str] = {
 }
 
 #: The screens' own edge tables, and the source token each belongs to. Read for
-#: the overlap number only; a missing file is an empty set, so a MASI-only run
+#: the overlap number only; a table no prep wrote is an empty set, so a MASI-only run
 #: reports "no primary source loaded to compare against" rather than "no
 #: overlap", which are different findings.
 SCREEN_TABLES: dict[str, tuple[str, str, str]] = {
@@ -140,7 +140,7 @@ ASSOCIATION_FIELDS = [
     "study_id",
     # `condition_join` is on the **edge**, not on the `Disease` node, and the
     # reason is the same one that keeps a screen's `drug_class` off `Drug`:
-    # `disease.csv` is shared and key-deduped, first row per `condition_id`
+    # the `disease` table is shared and key-deduped, first row per `condition_id`
     # wins, so 631 of the MONDO ids MASI reaches were already written by
     # BugSigDB or gutMDisorder and a node column would read null for exactly the
     # edges it describes. The route a *source* took to a shared node is a fact
@@ -159,7 +159,7 @@ ASSOCIATION_FIELDS = [
     "taxon_id_route",
 ]
 
-#: The same six-column shape ``unresolved_zimmermann2019.csv`` uses. C18's
+#: The same six-column shape ``unresolved_zimmermann2019`` uses. C18's
 #: accounting: every input row that becomes no edge, and every join that reached
 #: something other than what it looks like it reached.
 LEDGER_FIELDS = ["kind", "record_id", "subject", "detail", "reason", "source"]
@@ -338,7 +338,7 @@ def run(
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
-    # ------------------------------------------------------------- writers
+    # ---------------------------------------------------------- the tables
     edges = {
         relationship: store.table(
             name,

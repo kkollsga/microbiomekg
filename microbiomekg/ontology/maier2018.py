@@ -25,26 +25,20 @@ states the same rule from the other side — ``ALTERS_TAXON`` and
 edges as well, so a query that wants the population undivided has one property
 to group on rather than a union of two labels.
 
-**The hit threshold is p < 0.01, derived from the file and confirmed three
-ways.** The supplementary table publishes adjusted p-values and an ``n_hit``
-count per drug but never states the cutoff. :data:`HIT_THRESHOLD` reproduces
-``n_hit`` on **all 1,197 rows** — 0.05 reproduces 791 of them and 0.001
-reproduces 879 — and it independently reproduces the per-species
-human-targeted hit counts in *both* figure source-data files (MOESM16 sheet
-``5a``, 40 of 40 species; MOESM13 sheet ``1c``, 25 of 25), and the paper's own
-headline: 203 of 835 human-targeted drugs hit at least one strain = **24.3%**,
-against the abstract's "24% of the drugs with human targets".
+**The hit threshold is p < 0.01, derived from the file, never read from it.**
+The supplementary table publishes adjusted p-values and an ``n_hit`` count per
+drug but never states the cutoff; :data:`HIT_THRESHOLD` carries the derivation
+and the three independent confirmations.
 
 **A drug reaches ChEMBL by three routes and the route is on every edge.** 842
-of 1,197 join — name 455, ATC 361, salt-stripped name 26 — and 355 are minted
-on their Prestwick catalogue number. The
-Prestwick library names salts and catalogue forms; ChEMBL keys on the parent
-molecule. :func:`drug_variants` orders the attempts the way
+of 1,197 join — name 455, ATC 361, salt-stripped name 26 — and the 355 none of
+them reaches are minted on their Prestwick catalogue number rather than
+dropped. The Prestwick library names salts and catalogue forms; ChEMBL keys on
+the parent molecule. :func:`drug_variants` orders the attempts the way
 ``njc19.name_variants`` does — what the source wrote before anything derived
 from it: the exact casefolded ``pref_name``, then a level-5 ATC code, then the
 name with a salt suffix removed. ``drug_join`` says which one matched, so the
-weakest route is countable rather than assumed, and a drug none of them reaches
-is minted on its Prestwick catalogue number rather than dropped.
+weakest route is countable rather than assumed.
 
 **Two routes reaching two different nodes is a ledger row, never a silent
 winner, and there are two shapes of it.** On **29** drugs the name route
@@ -52,9 +46,9 @@ matched a ChEMBL *salt* node while the ATC code matched its parent —
 ``Estradiol Valerate`` reaches CHEMBL1511 by name and CHEMBL135 (estradiol) by
 ATC. That is ChEMBL's documented parent gap showing through (a salt no
 mechanism row names keeps its own id, docs/model.md §ChEMBL), not a defect
-here; the verbatim-first rule decides it and
-``data/csv/unresolved_maier2018.csv`` names both candidates, so the count can be
-read rather than trusted. The other shape runs the other way: **54 ATC codes
+here; the verbatim-first rule decides it and the ``unresolved_maier2018`` ledger
+table in the build's store names both candidates, so the count can be read
+rather than trusted. The other shape runs the other way: **54 ATC codes
 are claimed by two *library* entries** — ``(R)-`` and ``(S)-propranolol
 hydrochloride`` share C07AA05, ``Racecadotril`` shares A06AX02 with its active
 metabolite ``Thiorphan`` — and joining both to the one node that code names
@@ -65,14 +59,11 @@ library's 1,197 entries reach 1,197 distinct nodes rather than 1,180.
 
 **Two of the forty organism strings are not taxon names, and they are named
 here rather than left to fail.** Supplementary table 2's ``Species`` column
-carries the *B. fragilis* toxigenicity phenotype inline — ``Bacteroides
-fragilis nontoxigenic`` and ``Bacteroides fragilis enterotoxigenic (ET)`` —
-which no ``names.dmp`` entry spells. Sending them through ``reconcile`` writes
-two ``UnresolvedTaxon`` tombstones asserting NCBI has lost *Bacteroides
-fragilis*, which is false, and costs 2,394 edges. :data:`SPECIES_OVERRIDES` is
-the same shape as ``njc19.HOST_CELL_TYPES``: a closed, reviewable map of the
-verbatim strings this file uses, with the isolate qualifier kept on the edge as
-``reported_name`` and ``strain`` so nothing about the isolate is lost.
+carries the *B. fragilis* toxigenicity phenotype inline, which no ``names.dmp``
+entry spells. :data:`SPECIES_OVERRIDES` maps the two strings and says what
+leaving them to ``reconcile`` would cost; it is the same shape as
+``njc19.HOST_CELL_TYPES``, a closed, reviewable map of the verbatim strings this
+file uses.
 """
 
 from __future__ import annotations
@@ -136,7 +127,7 @@ ASSOCIATION_RELATIONSHIPS: tuple[str, ...] = ()
 #: The one ``evidence_level`` this source emits. Part B's ``in-vitro`` row names
 #: exactly this shape — "measured in culture: growth, a metabolite assay, an MIC
 #: over controls" — and the file carries no per-row design, host or assay column
-#: that could move it. Stated here rather than spelled at the write site.
+#: that could move it.
 EVIDENCE_LEVEL: str = "in-vitro"
 
 #: The paper, as Part D's D8 cites it. Carried as ``publications`` on every edge
@@ -168,8 +159,7 @@ HIT_THRESHOLD: float = 0.01
 SCREEN_CONCENTRATION_UM: float = 20.0
 
 #: The hit relationship, and the measured non-hit. Two types, never one — the
-#: rule Part D's D8 states for the drug↔taxon layer and the rule NJC19's
-#: ``NO_EXCHANGE_WITH`` already applies to the exchange layer.
+#: module docstring says why.
 RELATION_INHIBITS: str = "INHIBITS_GROWTH_OF"
 RELATION_NO_EFFECT: str = "DOES_NOT_INHIBIT_GROWTH_OF"
 
@@ -303,7 +293,7 @@ def effect_of(relationship: str) -> str:
 
 #: What a growth-screen edge must carry, and the applicable subset it is.
 #:
-#: Eight of the association contract's fourteen describe a differential-
+#: Six of the association contract's fourteen describe a differential-
 #: abundance observation — ``direction``, the two group sizes, ``sequencing_type``,
 #: ``statistical_test``, ``study_design`` — and a monoculture growth screen has
 #: none of them. Declaring them would report a permanent ~100% violation meaning
@@ -371,8 +361,8 @@ GROWTH_PROPERTY_TYPES: dict[str, str] = {
 #: on ChEMBL's 6,030 rows and filled on the ones minted here.
 #:
 #: They are on the *node* only for minted drugs, and that asymmetry is the
-#: model's, not a shortcut: ``drug.csv`` is keyed on ``drug_id`` and the first
-#: row per key wins, so a Prestwick fact about a drug ChEMBL already holds
+#: model's, not a shortcut: the ``drug`` table is keyed on ``drug_id`` and the
+#: first row per key wins, so a Prestwick fact about a drug ChEMBL already holds
 #: cannot be written onto its node at all (docs/model.md §ChEMBL, "one drug,
 #: whatever salt it was curated as"). ``drug_class`` therefore rides on the
 #: **edge**, where it is available for every drug in the screen rather than only
