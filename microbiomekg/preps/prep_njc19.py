@@ -53,17 +53,14 @@ no record of pectin.
 
 from __future__ import annotations
 
-import argparse
-import csv
-import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.ontology import njc19 as nj
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = nj.SOURCE
 
@@ -92,10 +89,10 @@ SPECIES, COMPOUND, ACTIVITY, REFERENCES = 1, 2, 3, 4
 
 #: The relationship -> the CSV its rows go in. ``PRODUCES`` is HMDB's table.
 TABLES: dict[str, str] = {
-    "PRODUCES": "taxon_metabolite.csv",
-    "CONSUMES": "taxon_metabolite_consumed.csv",
-    "DEGRADES": "taxon_metabolite_degraded.csv",
-    "NO_EXCHANGE_WITH": "taxon_metabolite_absent.csv",
+    "PRODUCES": "taxon_metabolite",
+    "CONSUMES": "taxon_metabolite_consumed",
+    "DEGRADES": "taxon_metabolite_degraded",
+    "NO_EXCHANGE_WITH": "taxon_metabolite_absent",
 }
 
 EXCHANGE_FIELDS = [
@@ -164,7 +161,7 @@ def read_table(path: Path) -> list[tuple]:
     raise SystemExit(f"{path}: no header row containing {HEADER_CELL!r}")
 
 
-def load_metabolite_names(path: Path) -> dict[str, str]:
+def load_metabolite_names(rows: list[dict[str, str]]) -> dict[str, str]:
     """``casefolded name -> metabolite_id`` over every ``Metabolite`` node so far.
 
     First writer wins, which is HMDB and then MiMeDB in prep order — the same
@@ -172,17 +169,16 @@ def load_metabolite_names(path: Path) -> dict[str, str]:
     disagree about which node a name reaches.
     """
     names: dict[str, str] = {}
-    if not path.is_file():
+    if not rows:
         return names
-    with path.open(encoding="utf-8", newline="") as fh:
-        for row in csv.DictReader(fh):
-            name = (row.get("name") or "").strip().casefold()
-            key = row.get("metabolite_id") or ""
-            # This source's own minted nodes from a previous run are excluded:
-            # `Writer(owner=...)` drops and rewrites them, so a second run that
-            # saw them would join its compounds to nodes it is about to delete.
-            if name and key and (row.get("source") or "") != SOURCE:
-                names.setdefault(name, key)
+    for row in rows:
+        name = (row.get("name") or "").strip().casefold()
+        key = row.get("metabolite_id") or ""
+        # This source's own minted nodes from a previous run are excluded:
+        # `Writer(owner=...)` drops and rewrites them, so a second run that
+        # saw them would join its compounds to nodes it is about to delete.
+        if name and key and (row.get("source") or "") != SOURCE:
+            names.setdefault(name, key)
     return names
 
 
@@ -207,39 +203,32 @@ def resolve_compound(
     return f"NJC19:{head}", "minted", head, [v for v, _ in variants]
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--xlsx",
-        type=Path,
-        default=None,
-        help="Online-only Table 5 (default: "
-        "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--rank-ceiling",
-        default="species",
-        help="Rank strains and subspecies are promoted to before keying.",
-    )
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    xlsx: Path | None = None,
+    taxdump: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """NJC19's tables into ``store``; returns each table's row count.
 
-    xlsx = args.xlsx or (args.raw / SOURCE / "41597_2020_516_MOESM1_ESM.xlsx")
+    ``xlsx`` defaults to ``raw/njc19/41597_2020_516_MOESM1_ESM.xlsx``. Reads
+    HMDB's ``metabolite`` table off the store. Raises :class:`MissingInput`
+    when the workbook or the taxdump is not there.
+    """
+
+    xlsx = xlsx or (raw / SOURCE / "41597_2020_516_MOESM1_ESM.xlsx")
     if not xlsx.is_file():
         # Exit 3, not 2 — "this source's raw file is not on this machine" rather
         # than "this script was called wrong", so an absent file leaves the build
         # without failing it.
-        print(f"no NJC19 supplementary xlsx at {xlsx}", file=sys.stderr)
-        return 3
+        raise MissingInput(f"no NJC19 supplementary xlsx at {xlsx}")
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
-
-    out = args.out
-    names = load_metabolite_names(out / "metabolite.csv")
+        raise MissingInput(str(e)) from e
+    names = load_metabolite_names(store.rows("metabolite"))
     print(f"metabolite.csv: {len(names):,} names already have a node")
 
     rows = read_table(xlsx)
@@ -250,8 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
     edges = {
-        rel: Writer(
-            out / table,
+        rel: store.table(
+            table,
             ["tax_id", "metabolite_id", *EXCHANGE_FIELDS],
             dedupe_full=True,
             merge=True,
@@ -259,15 +248,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         for rel, table in TABLES.items()
     }
-    metabolites = Writer(
-        out / "metabolite.csv",
+    metabolites = store.table(
+        "metabolite",
         METABOLITE_FIELDS,
         key="metabolite_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -288,14 +277,14 @@ def main(argv: list[str] | None = None) -> int:
     # reach. Three populations live here — the six host cell types, the organism
     # strings NCBI no longer carries, and any activity outside the closed
     # vocabulary — and none of them is a drop.
-    ledger = Writer(
-        out / "unresolved_exchange.csv",
+    ledger = store.table(
+        "unresolved_exchange",
         LEDGER_FIELDS,
         merge=True,
         owner=("source", SOURCE),
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -375,7 +364,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         if species not in resolved:
-            resolved[species] = idx.resolve(species, rank_ceiling=args.rank_ceiling)
+            resolved[species] = idx.resolve(species, rank_ceiling=rank_ceiling)
             resolutions[resolved[species].status] += 1
         res = resolved[species]
         rank = idx.rank.get(res.tax_id) or "" if res.tax_id is not None else ""
@@ -507,7 +496,7 @@ def main(argv: list[str] | None = None) -> int:
         cited.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     tables = (*edges.values(), metabolites, unresolved_nodes, ledger, cited)
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     genus_level = sum(
         1
@@ -550,14 +539,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  minted {len(minted):,} Metabolite nodes for compounds no source held")
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

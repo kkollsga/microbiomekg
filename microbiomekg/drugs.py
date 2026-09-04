@@ -127,40 +127,50 @@ class DrugIndex:
         self.source_of = source_of
 
     @classmethod
-    def from_csv(cls, path: Path, *, exclude_source: str) -> "DrugIndex":
-        """Read ``drug.csv``, skipping the rows ``exclude_source`` wrote.
+    def from_rows(
+        cls, rows: list[dict[str, str]], *, exclude_source: str
+    ) -> "DrugIndex":
+        """Index the ``drug`` table's rows, skipping the rows ``exclude_source``
+        wrote.
 
-        The exclusion is not an optimisation. ``microbiomekg.tables.Writer``
+        The exclusion is not an optimisation. ``microbiomekg.tables.Table``
         given ``owner=("source", <this source>)`` drops and rewrites this
         source's rows, so a second run that indexed them would join a compound
         to a node it is about to delete — and the join route would silently
         change between the first run and every one after it.
 
-        A missing file is an empty index, not an error: a prep run on its own,
+        An empty table is an empty index, not an error: a prep run on its own,
         before the source it depends on, must mint rather than crash.
         """
         names: dict[str, str] = {}
         atc: dict[str, list[str]] = {}
         source_of: dict[str, str] = {}
-        if not path.is_file():
-            return cls(names, {}, source_of)
-        with path.open(encoding="utf-8", newline="") as fh:
-            for row in csv.DictReader(fh):
-                drug_id = row.get("drug_id") or ""
-                source = row.get("source") or ""
-                if not drug_id or source == exclude_source:
-                    continue
-                source_of.setdefault(drug_id, source)
-                name = (row.get("pref_name") or "").strip().casefold()
-                if name:
-                    names.setdefault(name, drug_id)
-                for code in atc_level5(row.get("atc_codes")):
-                    atc.setdefault(code, []).append(drug_id)
+        for row in rows:
+            drug_id = row.get("drug_id") or ""
+            source = row.get("source") or ""
+            if not drug_id or source == exclude_source:
+                continue
+            source_of.setdefault(drug_id, source)
+            name = (row.get("pref_name") or "").strip().casefold()
+            if name:
+                names.setdefault(name, drug_id)
+            for code in atc_level5(row.get("atc_codes")):
+                atc.setdefault(code, []).append(drug_id)
         return cls(
             names,
             {c: ids[0] for c, ids in atc.items() if len(set(ids)) == 1},
             source_of,
         )
+
+    @classmethod
+    def from_csv(cls, path: Path, *, exclude_source: str) -> "DrugIndex":
+        """:meth:`from_rows` over a ``drug.csv``; a missing file is empty."""
+        if not path.is_file():
+            return cls({}, {}, {})
+        with path.open(encoding="utf-8", newline="") as fh:
+            return cls.from_rows(
+                list(csv.DictReader(fh)), exclude_source=exclude_source
+            )
 
     def without_atc(self, codes: object) -> "DrugIndex":
         """The same index with ``codes`` removed from the ATC lookup.

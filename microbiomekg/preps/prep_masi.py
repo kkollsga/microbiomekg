@@ -45,9 +45,6 @@ mondo_by_name` is the only route, and the route it took is on the node as
 
 from __future__ import annotations
 
-import argparse
-import csv
-import sys
 from collections import Counter, OrderedDict, defaultdict
 from pathlib import Path
 
@@ -55,9 +52,9 @@ from microbiomekg import ontology as ont
 from microbiomekg.conditions import MondoIndex
 from microbiomekg.drugs import DrugIndex, join_drug
 from microbiomekg.ontology import masi as ms
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = ms.SOURCE
 
@@ -90,10 +87,10 @@ WORKBOOKS: dict[str, str] = {
 
 #: ``(relationship, CSV)`` for the four interaction tables, in report order.
 EDGE_TABLES: dict[str, str] = {
-    ms.RELATION_METABOLISES: "taxon_substance_metabolised.csv",
-    ms.RELATION_NO_METABOLISM: "taxon_substance_not_metabolised.csv",
-    ms.RELATION_ABUNDANCE_CHANGED: "taxon_substance_abundance.csv",
-    ms.RELATION_ABUNDANCE_UNCHANGED: "taxon_substance_abundance_unchanged.csv",
+    ms.RELATION_METABOLISES: "taxon_substance_metabolised",
+    ms.RELATION_NO_METABOLISM: "taxon_substance_not_metabolised",
+    ms.RELATION_ABUNDANCE_CHANGED: "taxon_substance_abundance",
+    ms.RELATION_ABUNDANCE_UNCHANGED: "taxon_substance_abundance_unchanged",
 }
 
 #: The screens' own edge tables, and the source token each belongs to. Read for
@@ -101,10 +98,10 @@ EDGE_TABLES: dict[str, str] = {
 #: reports "no primary source loaded to compare against" rather than "no
 #: overlap", which are different findings.
 SCREEN_TABLES: dict[str, tuple[str, str, str]] = {
-    "drug_taxon_inhibited.csv": ("maier2018", "tax_id", "drug_id"),
-    "drug_taxon_no_effect.csv": ("maier2018", "tax_id", "drug_id"),
-    "taxon_drug_metabolised.csv": ("zimmermann2019", "tax_id", "drug_id"),
-    "taxon_drug_not_metabolised.csv": ("zimmermann2019", "tax_id", "drug_id"),
+    "drug_taxon_inhibited": ("maier2018", "tax_id", "drug_id"),
+    "drug_taxon_no_effect": ("maier2018", "tax_id", "drug_id"),
+    "taxon_drug_metabolised": ("zimmermann2019", "tax_id", "drug_id"),
+    "taxon_drug_not_metabolised": ("zimmermann2019", "tax_id", "drug_id"),
 }
 
 EDGE_FIELDS = list(ms.INTERACTION_PROPERTY_TYPES)
@@ -205,7 +202,7 @@ def value(row: dict[str, str], column: str) -> str:
     return "" if ms.missing(cell) else cell
 
 
-def screen_pairs(csv_dir: Path) -> dict[tuple[int, str], set[str]]:
+def screen_pairs(store: Frames) -> dict[tuple[int, str], set[str]]:
     """``(tax_id, drug_id) -> {source tokens}`` over the loaded primary screens.
 
     Every cell of both screens, hit and measured non-hit alike, because the
@@ -214,14 +211,10 @@ def screen_pairs(csv_dir: Path) -> dict[tuple[int, str], set[str]]:
     """
     out: dict[tuple[int, str], set[str]] = defaultdict(set)
     for name, (source, tax_column, drug_column) in SCREEN_TABLES.items():
-        path = csv_dir / name
-        if not path.is_file():
-            continue
-        with path.open(encoding="utf-8", newline="") as fh:
-            for row in csv.DictReader(fh):
-                tax_id, drug_id = row.get(tax_column, ""), row.get(drug_column, "")
-                if tax_id.isdigit() and drug_id:
-                    out[(int(tax_id), drug_id)].add(source)
+        for row in store.rows(name):
+            tax_id, drug_id = row.get(tax_column, ""), row.get(drug_column, "")
+            if tax_id.isdigit() and drug_id:
+                out[(int(tax_id), drug_id)].add(source)
     return out
 
 
@@ -271,50 +264,36 @@ def taxon_id_for(
     return None, "none", ""
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--tables",
-        type=Path,
-        default=None,
-        help=f"directory holding the four workbooks (default: <raw>/{RAW_SUBDIR}).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument(
-        "--mondo",
-        type=Path,
-        default=None,
-        help="mondo.obo (default: <raw>/mondo/mondo.obo).",
-    )
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--rank-ceiling",
-        default="species",
-        help="Rank strains and subspecies are promoted to before "
-        "keying (C7). Ranks *above* it are untouched: MASI "
-        "curates at family, class and phylum and this source "
-        "declares no broadest-accepted rank.",
-    )
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    tables: Path | None = None,
+    taxdump: Path | None = None,
+    mondo: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """MASI's tables into ``store``; returns each table's row count.
 
-    tables = args.tables or (args.raw / RAW_SUBDIR)
+    ``tables`` defaults to ``raw/masi/``; ``mondo`` to ``raw/mondo/mondo.obo``.
+    Reads the drug table and the four screen edge tables off the store, to
+    measure what MASI restates. Raises :class:`MissingInput` when a workbook
+    or the taxdump is not there.
+    """
+
+    tables = tables or (raw / RAW_SUBDIR)
     missing_files = [n for n in WORKBOOKS.values() if not (tables / n).is_file()]
     if missing_files:
         # Exit 3, not 2 — "this source's raw files are not on this machine"
         # rather than "this script was called wrong", so an absent download
         # leaves the build without failing it.
-        print(
-            f"no MASI workbooks at {tables}: missing {', '.join(missing_files)}",
-            file=sys.stderr,
+        raise MissingInput(
+            f"no MASI workbooks at {tables}: missing {', '.join(missing_files)}"
         )
-        return 3
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
-
-    out = args.out
+        raise MissingInput(str(e)) from e
     interactions = sheet_rows(tables / WORKBOOKS["interactions"])
     disease_rows = sheet_rows(tables / WORKBOOKS["diseases"])
     microbes = {r["microbe_id"]: r for r in sheet_rows(tables / WORKBOOKS["microbes"])}
@@ -330,7 +309,7 @@ def main(argv: list[str] | None = None) -> int:
     for category, n in by_category.most_common():
         print(f"  {category}: {n:,}")
 
-    mondo_path = args.mondo or (args.raw / "mondo" / "mondo.obo")
+    mondo_path = mondo or (raw / "mondo" / "mondo.obo")
     if mondo_path.is_file():
         print(f"loading MONDO from {mondo_path} ...", flush=True)
         mondo = MondoIndex.from_obo(mondo_path)
@@ -347,9 +326,9 @@ def main(argv: list[str] | None = None) -> int:
             flush=True,
         )
 
-    index = DrugIndex.from_csv(out / "drug.csv", exclude_source=SOURCE)
+    index = DrugIndex.from_rows(store.rows("drug"), exclude_source=SOURCE)
     print(f"drug.csv: {len(index.names):,} names this source may join to")
-    measured = screen_pairs(out)
+    measured = screen_pairs(store)
     print(
         f"primary screens on disk: {len(measured):,} measured (taxon, drug) pairs"
         if measured
@@ -362,8 +341,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # ------------------------------------------------------------- writers
     edges = {
-        relationship: Writer(
-            out / name,
+        relationship: store.table(
+            name,
             ["tax_id", "substance_id", *EDGE_FIELDS],
             dedupe_full=True,
             merge=True,
@@ -371,8 +350,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         for relationship, name in EDGE_TABLES.items()
     }
-    substance_nodes = Writer(
-        out / "substance.csv",
+    substance_nodes = store.table(
+        "substance",
         SUBSTANCE_FIELDS,
         key="substance_id",
         merge=True,
@@ -387,24 +366,22 @@ def main(argv: list[str] | None = None) -> int:
         "source_vocabulary",
         "source_condition",
     ]
-    diseases = Writer(
-        out / "disease.csv", condition_fields, key="condition_id", merge=True
-    )
-    papers = Writer(
-        out / "paper.csv",
+    diseases = store.table("disease", condition_fields, key="condition_id", merge=True)
+    papers = store.table(
+        "paper",
         ["pmid", "title", "journal", "year", "doi"],
         key="pmid",
         merge=True,
     )
-    assoc = Writer(
-        out / "taxon_condition.csv",
+    assoc = store.table(
+        "taxon_condition",
         ["tax_id", "condition_id", "condition_type", *ASSOCIATION_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    probiotics = Writer(
-        out / "taxon_probiotic.csv",
+    probiotics = store.table(
+        "taxon_probiotic",
         ["tax_id", *ms.TAXON_PROBIOTIC_PROPERTIES, "source"],
         key="tax_id",
         merge=True,
@@ -419,8 +396,8 @@ def main(argv: list[str] | None = None) -> int:
     #: if *any* MASI row for the taxon says so, and `probiotic_reported_name`
     #: keeps every name the claim was made under.
     probiotic_claims: "OrderedDict[int, dict[str, object]]" = OrderedDict()
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -437,8 +414,8 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    ledger = Writer(
-        out / f"unresolved_{SOURCE}.csv",
+    ledger = store.table(
+        f"unresolved_{SOURCE}",
         LEDGER_FIELDS,
         # Deduplicated on the whole row: a disease MONDO does not name is one
         # finding, not the 30 identical rows its 30 associations would each
@@ -448,8 +425,8 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -606,7 +583,7 @@ def main(argv: list[str] | None = None) -> int:
             out_entry["resolution_status"] = "unresolved"
             resolved[key] = out_entry
             return out_entry
-        res = idx.resolve(tax_id=tax_id, rank_ceiling=args.rank_ceiling)
+        res = idx.resolve(tax_id=tax_id, rank_ceiling=rank_ceiling)
         resolutions[res.status] += 1
         out_entry.update(
             {
@@ -994,7 +971,7 @@ def main(argv: list[str] | None = None) -> int:
         ledger,
         cited,
     )
-    counts = {w.path.name: w.flush() for w in written}
+    counts = {w.name: store.put(w) for w in written}
 
     # -------------------------------------------------------------- the report
     print(
@@ -1103,14 +1080,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, n in counts.items():
         print(f"  {name:38s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in written if w.merged_in}
+    shared = {w.name: w.merged_in for w in written if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

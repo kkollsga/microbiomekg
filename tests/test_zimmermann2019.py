@@ -24,8 +24,6 @@ relationship: ``Taxon -> Drug``, never the reverse, so
 from __future__ import annotations
 
 import csv
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -1011,26 +1009,18 @@ def test_the_prep_reports_what_it_did_not_load(prep_output):
 
 
 def test_an_absent_workbook_leaves_the_build_without_failing_it(tmp_path):
-    """Exit 3 is "this source's raw file is not on this machine", which
-    `scripts/build.py` treats as a source that did not run rather than as a
-    failure. Exit 2 would take the whole build down with it."""
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(PREP),
-            "--tables",
-            str(tmp_path),
-            "--taxdump",
-            str(TAXDUMP_MINI),
-            "--out",
-            str(tmp_path),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == 3
-    assert WORKBOOK in proc.stderr
+    """ "This source's raw file is not on this machine" is a skip the build
+    reports, never a failure that takes the build down — and it names the
+    file."""
+    from microbiomekg.preps import prep_zimmermann2019
+    from microbiomekg.rawdata import MissingInput
+    from microbiomekg.tables import Frames
+
+    with pytest.raises(MissingInput) as absent:
+        prep_zimmermann2019.run(
+            tmp_path, Frames(), tables=tmp_path, taxdump=TAXDUMP_MINI
+        )
+    assert WORKBOOK in str(absent.value)
 
 
 @pytest.mark.fixture

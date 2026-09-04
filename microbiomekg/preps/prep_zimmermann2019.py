@@ -69,16 +69,15 @@ from __future__ import annotations
 
 import argparse
 import re
-import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.drugs import DrugIndex, join_drug
 from microbiomekg.ontology import zimmermann2019 as zm
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = zm.SOURCE
 
@@ -496,47 +495,34 @@ def gene_column_for(
     return hits[0], ""
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--tables",
-        type=Path,
-        default=None,
-        help=f"directory holding {WORKBOOK} (default: <raw>/{RAW_SUBDIR}).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--rank-ceiling",
-        default="species",
-        help="Rank strains and subspecies are promoted to before keying.",
-    )
-    ap.add_argument(
-        "--published-matrix",
-        type=_triple,
-        default=PUBLISHED_MATRIX,
-        help="DRUGS,STRAINS,METABOLISED — the published claim this "
-        "run must reproduce before it writes anything. Defaults "
-        "to the paper's. Only the test fixtures pass another, "
-        "and they pass one rather than switching the check off.",
-    )
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    tables: Path | None = None,
+    taxdump: Path | None = None,
+    published_matrix: tuple[int, int, int] = PUBLISHED_MATRIX,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """Zimmermann 2019's tables into ``store``; returns each table's row count.
 
-    tables = args.tables or (args.raw / RAW_SUBDIR)
+    ``tables`` defaults to ``raw/drug_screens/zimmermann2019/``. Reads
+    ChEMBL's ``drug`` table off the store. ``published_matrix`` is the claim
+    the run must reproduce before it writes anything. Raises
+    :class:`MissingInput` when the workbook or the taxdump is not there.
+    """
+
+    tables = tables or (raw / RAW_SUBDIR)
     workbook = tables / WORKBOOK
     if not workbook.is_file():
         # Exit 3, not 2 — "this source's raw file is not on this machine" rather
         # than "this script was called wrong", so an absent workbook leaves the
         # build without failing it.
-        print(f"no Zimmermann 2019 workbook at {workbook}", file=sys.stderr)
-        return 3
+        raise MissingInput(f"no Zimmermann 2019 workbook at {workbook}")
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
-
-    out = args.out
+        raise MissingInput(str(e)) from e
     strains = read_strains(workbook)
     library = read_drugs(workbook)
     columns, screen = read_screen(workbook)
@@ -555,14 +541,14 @@ def main(argv: list[str] | None = None) -> int:
         f"  {len(controls)} of the measured columns are abiotic controls, not "
         f"organisms: {', '.join(label.strip() for label in controls)}"
     )
-    metabolised = check_headline(screen, columns, args.published_matrix)
+    metabolised = check_headline(screen, columns, published_matrix)
     print(
         f"  the call rule reproduces the published headline: {metabolised} of "
         f"{len(screen)} drugs ({100 * metabolised / len(screen):.0f}%) "
         f"metabolised by at least one strain"
     )
 
-    index = DrugIndex.from_csv(out / "drug.csv", exclude_source=SOURCE)
+    index = DrugIndex.from_rows(store.rows("drug"), exclude_source=SOURCE)
     print(f"drug.csv: {len(index.names):,} names this screen may join to")
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
@@ -570,30 +556,30 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
     edges = {
-        zm.RELATION_METABOLISES: Writer(
-            out / "taxon_drug_metabolised.csv",
+        zm.RELATION_METABOLISES: store.table(
+            "taxon_drug_metabolised",
             ["tax_id", "drug_id", *EDGE_FIELDS],
             dedupe_full=True,
             merge=True,
             owner=("primary_source", SOURCE),
         ),
-        zm.RELATION_NO_METABOLISM: Writer(
-            out / "taxon_drug_not_metabolised.csv",
+        zm.RELATION_NO_METABOLISM: store.table(
+            "taxon_drug_not_metabolised",
             ["tax_id", "drug_id", *EDGE_FIELDS],
             dedupe_full=True,
             merge=True,
             owner=("primary_source", SOURCE),
         ),
     }
-    drugs = Writer(
-        out / "drug.csv",
+    drugs = store.table(
+        "drug",
         DRUG_FIELDS,
         key="drug_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -610,14 +596,14 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    ledger = Writer(
-        out / f"unresolved_{SOURCE}.csv",
+    ledger = store.table(
+        f"unresolved_{SOURCE}",
         LEDGER_FIELDS,
         merge=True,
         owner=("source", SOURCE),
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -689,7 +675,7 @@ def main(argv: list[str] | None = None) -> int:
         reported = entry["name"]
         species = zm.SPECIES_OVERRIDES.get(reported.casefold())
         taxon_route = "override" if species else "exact"
-        res = idx.resolve(species or reported, rank_ceiling=args.rank_ceiling)
+        res = idx.resolve(species or reported, rank_ceiling=rank_ceiling)
         resolutions[res.status] += 1
         if res.tax_id is None:
             # The taxa this name *could* have meant, where the decision was made
@@ -845,7 +831,7 @@ def main(argv: list[str] | None = None) -> int:
     gene_evidence: dict[tuple[str, str], list[dict]] = {}
     unplaced_genes = 0
     for gene in genes:
-        label, why = gene_column_for(gene, idx, resolved, args.rank_ceiling)
+        label, why = gene_column_for(gene, idx, resolved, rank_ceiling)
         if not label:
             unplaced_genes += 1
             note("gene", gene["locus_tag"], gene["product"], gene["patric"], why)
@@ -957,7 +943,7 @@ def main(argv: list[str] | None = None) -> int:
         cited.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     tables_out = (*edges.values(), drugs, unresolved_nodes, ledger, cited)
-    counts = {w.path.name: w.flush() for w in tables_out}
+    counts = {w.name: store.put(w) for w in tables_out}
 
     print(
         f"\nread {counters['cells']:,} cells -> {counters['edges']:,} edges over "
@@ -1013,13 +999,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name_, n in counts.items():
         print(f"  {name_:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables_out if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables_out if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name_} +{n:,}" for name_, n in shared.items())
         )
-    return 0
+    return counts
 
 
 def _triple(value: str) -> tuple[int, int, int]:
@@ -1040,7 +1026,3 @@ def _num(value: float | None) -> str:
     as "measured, no depletion".
     """
     return "" if value is None else repr(value)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

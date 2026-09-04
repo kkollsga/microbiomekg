@@ -61,17 +61,15 @@ threshold rather than as rows.
 
 from __future__ import annotations
 
-import argparse
-import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.drugs import DrugIndex, atc_level5, join_drug
 from microbiomekg.ontology import maier2018 as mz
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = mz.SOURCE
 
@@ -362,44 +360,36 @@ def contested_atc_codes(drug_rows: dict[str, dict]) -> dict[str, list[str]]:
     return {code: ids for code, ids in claimed.items() if len(set(ids)) > 1}
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--tables",
-        type=Path,
-        default=None,
-        help=f"directory holding the six supplementary workbooks "
-        f"(default: <raw>/{RAW_SUBDIR}).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--rank-ceiling",
-        default="species",
-        help="Rank strains and subspecies are promoted to before keying.",
-    )
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    tables: Path | None = None,
+    taxdump: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """Maier 2018's tables into ``store``; returns each table's row count.
 
-    tables = args.tables or (args.raw / RAW_SUBDIR)
+    ``tables`` defaults to ``raw/drug_screens/maier2018/``. Reads ChEMBL's
+    ``drug`` table off the store. Raises :class:`MissingInput` when a
+    workbook or the taxdump is not there.
+    """
+
+    tables = tables or (raw / RAW_SUBDIR)
     paths = {n: tables / filename for n, (filename, _sheet) in WORKBOOKS.items()}
     missing = sorted(p.name for p in paths.values() if not p.is_file())
     if missing:
         # Exit 3, not 2 — "this source's raw files are not on this machine"
         # rather than "this script was called wrong", so an absent bundle leaves
         # the build without failing it.
-        print(
+        raise MissingInput(
             f"no Maier 2018 supplementary tables under {tables} "
-            f"(missing {', '.join(missing)})",
-            file=sys.stderr,
+            f"(missing {', '.join(missing)})"
         )
-        return 3
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
-
-    out = args.out
+        raise MissingInput(str(e)) from e
     drug_rows = read_drugs(paths[1])
     isolates = read_species(paths[2])
     validation = read_validation(paths[4])
@@ -419,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     contested = contested_atc_codes(drug_rows)
-    index = DrugIndex.from_csv(out / "drug.csv", exclude_source=SOURCE).without_atc(
+    index = DrugIndex.from_rows(store.rows("drug"), exclude_source=SOURCE).without_atc(
         contested
     )
     print(
@@ -437,30 +427,30 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
     edges = {
-        mz.RELATION_INHIBITS: Writer(
-            out / "drug_taxon_inhibited.csv",
+        mz.RELATION_INHIBITS: store.table(
+            "drug_taxon_inhibited",
             ["drug_id", "tax_id", *EDGE_FIELDS],
             dedupe_full=True,
             merge=True,
             owner=("primary_source", SOURCE),
         ),
-        mz.RELATION_NO_EFFECT: Writer(
-            out / "drug_taxon_no_effect.csv",
+        mz.RELATION_NO_EFFECT: store.table(
+            "drug_taxon_no_effect",
             ["drug_id", "tax_id", *EDGE_FIELDS],
             dedupe_full=True,
             merge=True,
             owner=("primary_source", SOURCE),
         ),
     }
-    drugs = Writer(
-        out / "drug.csv",
+    drugs = store.table(
+        "drug",
         DRUG_FIELDS,
         key="drug_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -477,14 +467,14 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    ledger = Writer(
-        out / "unresolved_maier2018.csv",
+    ledger = store.table(
+        "unresolved_maier2018",
         LEDGER_FIELDS,
         merge=True,
         owner=("source", SOURCE),
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -534,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
         override = mz.SPECIES_OVERRIDES.get(reported.casefold())
         lookup = override or reported
         route = "override" if override else "exact"
-        res = idx.resolve(lookup, rank_ceiling=args.rank_ceiling)
+        res = idx.resolve(lookup, rank_ceiling=rank_ceiling)
         resolutions[res.status] += 1
         if res.tax_id is None:
             uid = f"unresolved:{SOURCE}:{reported.casefold()}"
@@ -738,7 +728,7 @@ def main(argv: list[str] | None = None) -> int:
         cited.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     tables_out = (*edges.values(), drugs, unresolved_nodes, ledger, cited)
-    counts = {w.path.name: w.flush() for w in tables_out}
+    counts = {w.name: store.put(w) for w in tables_out}
 
     validated = sum(
         1
@@ -781,13 +771,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name_, n in counts.items():
         print(f"  {name_:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables_out if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables_out if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name_} +{n:,}" for name_, n in shared.items())
         )
-    return 0
+    return counts
 
 
 def _num(value) -> str:
@@ -800,7 +790,3 @@ def _num(value) -> str:
     """
     number = as_float(value)
     return "" if number is None else repr(number)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
