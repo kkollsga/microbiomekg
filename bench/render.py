@@ -128,8 +128,8 @@ def section_build(build: dict[str, Any]) -> list[str]:
         "",
         f"Wall time **{fmt_time(build['wall_seconds'])}** "
         f"(exit {build['returncode']}), writing "
-        f"{fmt_int(build['csv_rows']['total_rows'])} CSV rows across "
-        f"{build['csv_rows']['files']} tables and a "
+        f"{fmt_int(build['tables']['total_rows'])} table rows across "
+        f"{build['tables']['files']} tables and a "
         f"{fmt_mb(build['graph_bytes'])} `.kgl`.",
         "",
         f"Sources the build itself reports loading: **{build.get('sources_loaded') or '—'}**.",
@@ -175,7 +175,7 @@ def section_build(build: dict[str, Any]) -> list[str]:
         "| table | rows |",
         "|---|---|",
     ]
-    top = sorted(build["csv_rows"]["per_file"].items(), key=lambda kv: -kv[1])[:15]
+    top = sorted(build["tables"]["per_file"].items(), key=lambda kv: -kv[1])[:15]
     for name, rows in top:
         lines.append(f"| `{name}` | {rows:,} |")
     lines.append("")

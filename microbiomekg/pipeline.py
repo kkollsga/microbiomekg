@@ -719,6 +719,56 @@ def load_graph(
     return graph, pruned
 
 
+def prepare(
+    raw: Path,
+    *,
+    scope: str = "microbial",
+    gates: frozenset[str] = frozenset(),
+    store: Frames | None = None,
+) -> tuple[Frames, list[str], list[str]]:
+    """The prep half of a build: every prep into ``store``, in declared order.
+
+    Returns ``(store, loaded, skipped)`` — the sources whose declared tables
+    are all in the store, and the sources whose prep skipped. ``loaded`` is
+    empty when only the taxonomy ran, and the store has no ``taxon`` table
+    when nothing at all did. Split from :func:`build` so a caller that wants
+    the load on its own — the bench harness times it apart from the preps —
+    can have it.
+    """
+    raw = Path(raw).resolve()
+    store = store if store is not None else Frames()
+    preps = order_preps(PREPS_DIR)
+    sources = [
+        p.stem.removeprefix("prep_") for p in preps if p.name != "prep_taxonomy.py"
+    ]
+    skipped: list[str] = []
+    for prep in preps:
+        source = prep.stem.removeprefix("prep_")
+        if not run_prep(source, raw, store, scope=scope, gates=gates):
+            skipped.append(source)
+    if "taxon" not in store:
+        return store, [], skipped
+
+    # A source that did not run, and a source whose tables are not in the
+    # store, are left out of both declarations for the same reason: a
+    # blueprint naming a table that is not there loads that node type as
+    # empty, and an ontology rule over an empty type reports 0 / 0 — a gate
+    # that cannot fail, which this project treats as worse than no gate.
+    loaded = sources_with_tables(
+        FRAGMENTS_DIR,
+        [
+            s
+            for s in sources
+            if s not in skipped and (s not in LICENCE_GATED or s in gates)
+        ],
+        store,
+    )
+    print("\n--- tables")
+    for name in store.names():
+        print(f"  {name:<40s} {len(store.rows(name)):>10,}")
+    return store, loaded, skipped
+
+
 def build(
     raw: Path,
     *,
@@ -737,19 +787,8 @@ def build(
     build is minutes long and the report is its record — and returns what it
     made, so :mod:`microbiomekg.api` can hand the graph to a caller.
     """
-    raw = Path(raw).resolve()
     out = (Path(out) if out is not None else Path("graph/microbiomekg.kgl")).resolve()
-    store = store if store is not None else Frames()
-    preps = order_preps(PREPS_DIR)
-    sources = [
-        p.stem.removeprefix("prep_") for p in preps if p.name != "prep_taxonomy.py"
-    ]
-    skipped: list[str] = []
-
-    for prep in preps:
-        source = prep.stem.removeprefix("prep_")
-        if not run_prep(source, raw, store, scope=scope, gates=gates):
-            skipped.append(source)
+    store, loaded, skipped = prepare(raw, scope=scope, gates=gates, store=store)
 
     # Every prep needs the taxdump, so a build whose taxonomy prep skipped has
     # nothing at all — and an empty data directory is the fresh-clone state,
@@ -766,21 +805,7 @@ def build(
         print("    fills what it can, and docs/sources.md has the rest.")
         return BuildResult(None, None, [], skipped, None, store=store)
 
-    # A source that did not run, and a source whose tables are not in the
-    # store, are left out of both declarations for the same reason: a
-    # blueprint naming a table that is not there loads that node type as
-    # empty, and an ontology rule over an empty type reports 0 / 0 — a gate
-    # that cannot fail, which this project treats as worse than no gate.
     fragments = FRAGMENTS_DIR
-    loaded = sources_with_tables(
-        fragments,
-        [
-            s
-            for s in sources
-            if s not in skipped and (s not in LICENCE_GATED or s in gates)
-        ],
-        store,
-    )
     print(f"\n=== blueprint <- {fragments.name}/ ({len(loaded)} sources loaded)")
     if not loaded:
         print("=== taxonomy-only build: no association source loaded")

@@ -16,10 +16,10 @@ re-measuring is `bench/render.py`'s `render_markdown()` over the JSON.
 
 ## What it will and will not touch
 
-The build section runs `scripts/build.py` with `--csv` and `--out` pointed at a
+The build section runs `scripts/build.py` with `--out` pointed at a
 **scratch directory outside the repo** —
 `/Volumes/EksternalHome/coding-cache/microbiomekg-bench`, `--scratch` to move
-it. It never writes `data/csv/` or `graph/microbiomekg.kgl`: the shipped graph
+it. It never writes `graph/microbiomekg.kgl`: the shipped graph
 is what `scripts/serve.py` serves and what `tests/test_acceptance.py` asserts
 its goldens against, and a benchmark that could invalidate either is a
 liability. The scratch holds ~1.7 GB (a 240 MB CSV set, and one `.kgl` per
@@ -57,8 +57,8 @@ below.
 
 `--sections` takes any comma-separated subset. `load`, `saveload` and `index`
 share one child process and one `from_blueprint`, so asking for any of them
-runs all three; they need a `blueprint.load.json` in the scratch CSV directory,
-which is what the `build` section leaves behind.
+runs all three; the child runs the preps itself, untimed, and times the load
+from the tables they leave in memory — nothing on disk stands between them.
 
 **The `build` section no longer includes the vector lane by default** (changed
 after the 2026-09-03 capture): `scripts/build.py` builds it only under

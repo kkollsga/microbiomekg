@@ -71,6 +71,8 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 ROOT = Path(__file__).resolve().parent.parent
+#: The raw data root the build reads; `data` is a symlink into the sibling data folder.
+RAW = ROOT / "data" / "raw"
 sys.path.insert(0, str(ROOT))
 
 USECASES = ROOT / "docs" / "usecases-and-pitfalls.md"
@@ -551,14 +553,13 @@ def run_build(
     ``tests/test_acceptance.py`` asserts against, and a benchmark must not be
     able to invalidate either.
     """
-    csv_dir = scratch / "csv"
     out = scratch / "build.kgl"
-    csv_dir.mkdir(parents=True, exist_ok=True)
+    scratch.mkdir(parents=True, exist_ok=True)
     argv = [
         sys.executable,
         str(ROOT / "scripts" / "build.py"),
-        "--csv",
-        str(csv_dir),
+        "--raw",
+        str(RAW),
         "--out",
         str(out),
         "--scope",
@@ -635,26 +636,32 @@ def run_build(
         # sampler missed a spike between two 200 ms ticks.
         "getrusage_children_peak_mb": after / 1e6,
         "getrusage_children_peak_before_mb": before / 1e6,
-        "csv_dir": str(csv_dir),
         "graph": str(out),
         "graph_bytes": out.stat().st_size if out.exists() else 0,
-        "csv_rows": csv_row_census(csv_dir),
+        "tables": table_census(log),
         "log": str(log),
     }
 
 
-def csv_row_census(csv_dir: Path) -> dict[str, Any]:
-    """Data rows per CSV the build wrote, counted the way ``build.py`` counts."""
-    per_file, total = {}, 0
-    for path in sorted(csv_dir.glob("*.csv")):
-        rows = 0
-        with path.open("rb") as fh:
-            while chunk := fh.read(1 << 20):
-                rows += chunk.count(b"\n")
-        rows = max(rows - 1, 0)
-        per_file[path.name] = rows
-        total += rows
-    return {"total_rows": total, "files": len(per_file), "per_file": per_file}
+def table_census(log: Path) -> dict[str, Any]:
+    """Rows per table the preps produced, read off the build's ``--- tables``
+    block — the store's own census, since nothing is written to disk."""
+    per_table: dict[str, int] = {}
+    in_block = False
+    for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith("--- tables"):
+            in_block = True
+            continue
+        if in_block:
+            if not line.startswith("  "):
+                break
+            name, _, count = line.strip().rpartition(" ")
+            per_table[name.strip()] = int(count.replace(",", ""))
+    return {
+        "total_rows": sum(per_table.values()),
+        "files": len(per_table),
+        "per_file": per_table,
+    }
 
 
 # --------------------------------------------------------------------------
@@ -676,17 +683,20 @@ def child_build_graph(args: argparse.Namespace) -> None:
     this index joined the ones before it", in ``scripts/build.py``'s order.
     """
     os.environ["KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE"] = JUNCTION_CHUNK_SIZE
-    import kglite
 
     from microbiomekg.pipeline import TEXT_INDEXES, VECTOR_INDEXES  # noqa: PLC0415
     from microbiomekg.embedder import CharGramEmbedder  # noqa: PLC0415
 
+    from microbiomekg import pipeline  # noqa: PLC0415
+
     result: dict[str, Any] = {"indexes": [], "saves": []}
-    blueprint = Path(args.blueprint)
     scratch = Path(args.scratch)
 
+    # The preps, untimed: the load is what this child measures, and with the
+    # tables held in memory there is nothing on disk to load from instead.
+    store, loaded, _ = pipeline.prepare(Path(args.raw), scope="microbial")
     t = time.perf_counter()
-    graph = kglite.from_blueprint(blueprint, verbose=False, save=False)
+    graph, _ = pipeline.load_graph(store, loaded, verbose=False)
     result["from_blueprint_seconds"] = time.perf_counter() - t
     result["rss_after_load_mb"] = (
         resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
@@ -1037,7 +1047,7 @@ def main(argv: list[str] | None = None) -> int:
     child = sub.add_parser("child", help=argparse.SUPPRESS)
     child.add_argument("--task", required=True, choices=("build_graph", "load"))
     child.add_argument("--json-out", required=True)
-    child.add_argument("--blueprint")
+    child.add_argument("--raw")
     child.add_argument("--scratch")
     child.add_argument("--file")
     child.add_argument("--counts", action="store_true")
@@ -1069,7 +1079,7 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="extra argv for scripts/build.py, space separated "
         "(`--with-kegg`, or `--skip-prep` to time a load-only "
-        "build against CSVs already in --scratch/csv)",
+        "e.g. --with-vectors)",
     )
     ap.add_argument("--load-repeats", type=int, default=4)
     ap.add_argument(
@@ -1101,21 +1111,14 @@ def main(argv: list[str] | None = None) -> int:
             args.scratch, args.scratch / "build.log", args.build_args.split()
         )
 
-    blueprint = args.scratch / "csv" / "blueprint.load.json"
     if {"load", "saveload", "index"} & set(wanted):
-        if not blueprint.is_file():
-            raise SystemExit(
-                f"no {blueprint} — run the build section first, or point --scratch "
-                f"at a scratch directory that has one"
-            )
         print(
-            "[load/index] from_blueprint + every index, one at a time …",
+            "[load/index] the preps (untimed), then from_blueprint + every index, "
+            "one at a time …",
             file=sys.stderr,
             flush=True,
         )
-        staged = run_child(
-            "build_graph", args.scratch, blueprint=blueprint, scratch=args.scratch
-        )
+        staged = run_child("build_graph", args.scratch, raw=RAW, scratch=args.scratch)
         capture["sections"]["load"] = {
             "from_blueprint_seconds": staged["from_blueprint_seconds"],
             "peak_rss_after_load_mb": staged["rss_after_load_mb"],
