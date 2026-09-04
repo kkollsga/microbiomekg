@@ -315,7 +315,7 @@ def test_an_exact_name_beats_every_derived_spelling(graph):
 
 
 def test_produces_is_one_table_two_sources(graph, csv_dir):
-    """`taxon_metabolite.csv` is HMDB's file and NJC19 appends to it — a shared
+    """the `taxon_metabolite` table is HMDB's and NJC19 merges into it — a shared
     table is how a second source contributes to one relationship, not a second
     relationship (microbiomekg.tables). `primary_source` is what tells them
     apart, and it is on every edge."""
@@ -643,7 +643,7 @@ def test_hmdb_status_is_not_required_of_a_source_that_has_no_such_column(graph):
 
 
 def test_every_exchanging_taxon_is_cited_and_loaded(graph, csv_dir):
-    """`cited_taxa.csv` drives which taxa the taxonomy build keeps; a source
+    """`cited_taxa` drives which taxa the taxonomy build keeps; a source
     that did not contribute to it would have its edges point at nothing."""
     got = {
         r["tax_id"]

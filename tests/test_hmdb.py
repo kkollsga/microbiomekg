@@ -721,7 +721,7 @@ def test_no_rule_this_source_declares_audits_nothing(graph):
 
 
 def test_the_producing_taxa_are_all_cited_and_loaded(graph, csv_dir):
-    """`cited_taxa.csv` drives which taxa the taxonomy build keeps; a source
+    """`cited_taxa` drives which taxa the taxonomy build keeps; a source
     that did not contribute to it would have its edges point at nothing."""
     got = {
         r["tax_id"]

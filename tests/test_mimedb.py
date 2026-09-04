@@ -561,7 +561,7 @@ def test_a_contested_hmdb_accession_is_not_a_join_key(graph, csv_dir):
 def test_an_already_held_compound_is_a_ledger_row_and_not_a_merge(
     graph, csv_dir, prep_output
 ):
-    """`Writer` keys `metabolite.csv` on `metabolite_id` and the first row per
+    """`Table` keys `metabolite` on `metabolite_id` and the first row per
     key wins, so a MiMeDB row written for a compound HMDB already has would
     have its properties silently discarded — an outcome that reads like a
     successful join in the row count and is not one. Ledgering it makes

@@ -109,7 +109,7 @@ def built(tmp_path_factory):
         return run_prep(script, *args)
 
     # Prep order is the build's: `prep_maier2018` declares DEPENDS_ON = [chembl]
-    # because all three of its drug join routes read `drug.csv`.
+    # because all three of its drug join routes read `drug`.
     run(
         PREPS_DIR / "prep_chembl.py",
         "--chembl",
@@ -394,7 +394,7 @@ def test_a_drug_no_route_reaches_is_minted_not_dropped(graph, csv_dir):
 
 
 def test_the_drug_table_is_one_table_two_sources(graph, csv_dir):
-    """`drug.csv` is ChEMBL's file and this source appends to it — a shared
+    """the `drug` table is ChEMBL's and this source merges into it — a shared
     table is how a second source contributes to one node type, not a second
     node type (microbiomekg.tables). `source` is what tells them apart."""
     written = {r["source"] for r in table(csv_dir, "drug.csv")}
@@ -408,7 +408,7 @@ def test_the_drug_table_is_one_table_two_sources(graph, csv_dir):
 
 
 def test_a_screen_fact_about_a_chembl_drug_rides_on_the_edge(graph):
-    """`drug.csv` is keyed on `drug_id` and the first row per key wins, so a
+    """`drug` is keyed on `drug_id` and the first row per key wins, so a
     Prestwick fact about a drug ChEMBL already holds **cannot** be written onto
     its node — docs/model.md §ChEMBL records the constraint. `drug_class`
     therefore rides on the edge, where it is there for all 1,197 screened drugs
@@ -534,7 +534,7 @@ def test_an_unresolvable_isolate_is_a_tombstone_and_a_ledger_row_not_a_drop(
 
 
 def test_every_screened_taxon_is_cited_and_loaded(graph, csv_dir):
-    """`cited_taxa.csv` drives which taxa the taxonomy build keeps; a source
+    """`cited_taxa` drives which taxa the taxonomy build keeps; a source
     that did not contribute to it would have its edges pointing at vivified
     stubs with no name and no lineage."""
     got = {

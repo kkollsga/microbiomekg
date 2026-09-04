@@ -59,7 +59,7 @@ NODE_COUNTS = {
     # The 20 distinct terms of the `EFO ID` column, routed by vocabulary:
     # 6 MONDO + 9 EFO are diseases, HP:0002745 is a phenotype, 2 CHEBI + EXO +
     # GSSO are exposures, and NCBITAXON:568703 is an organism and gets no node
-    # at all — it is in `unresolved_conditions.csv` instead (C14).
+    # at all — it is in `unresolved_conditions` instead (C14).
     "Disease": 15,
     "Phenotype": 1,
     "Exposure": 4,
@@ -416,7 +416,7 @@ def test_non_disease_terms_are_not_disease_nodes(graph, condition_ledger):
     """C14: `NCBITAXON:568703` is *Lacticaseibacillus rhamnosus* GG — an organism
     used as the exposure, not a disease and not a term this model types at all.
 
-    It is not dropped: it is in `unresolved_conditions.csv` with its raw
+    It is not dropped: it is in `unresolved_conditions` with its raw
     strings and the reason.
     """
     for label in ("Disease", "Phenotype", "Exposure"):

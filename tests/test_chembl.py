@@ -102,7 +102,7 @@ EVIDENCE_SPLIT = {"interventional-rct": 11, "in-vitro": 12, "unknown": 5}
 #: The two rows gutMDisorder's mini workbook does not curate but its real
 #: workbook does. Appended to the intervention table in gutMDisorder's own
 #: column shape rather than editing another source's fixture: the real
-#: `intervention.csv` carries Metformin (DB00331) and Vancomycin, and without a
+#: The `intervention` table carries Metformin (DB00331) and Vancomycin, and without a
 #: drug-named intervention there is nothing for `IS_DRUG` to link.
 EXTRA_INTERVENTIONS = [
     {
@@ -655,7 +655,7 @@ def test_uniprot_accessions_come_from_the_components(graph):
 
 
 def test_the_target_taxa_reach_the_cited_taxa_table(csv_dir):
-    """`cited_taxa.csv` is what tells the taxonomy build which taxa to keep. A
+    """The `cited_taxa` table is what tells the taxonomy build which taxa to keep. A
     target organism missing from it becomes a dangling junction endpoint — and
     the loader vivifies those rather than complaining."""
     cited = {r["tax_id"] for r in table(csv_dir, "cited_taxa.csv")}

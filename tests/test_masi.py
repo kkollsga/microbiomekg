@@ -133,7 +133,7 @@ def built(tmp_path_factory):
     """ChEMBL, both screens and MASI through their real preps, then the real
     blueprint. The order is the build's own: this prep declares
     ``DEPENDS_ON = ["chembl", "maier2018", "zimmermann2019"]`` because its
-    substance join reads the ``drug.csv`` all three write into, and its overlap
+    substance join reads the ``drug`` table all three write into, and its overlap
     check reads the screens' four edge tables."""
     work = tmp_path_factory.mktemp("masi")
     csv_dir = work / "csv"
@@ -738,8 +738,8 @@ def test_an_organism_that_is_not_one_becomes_a_tombstone_and_no_edges(graph, csv
 def test_a_probiotic_claim_survives_two_microbes_collapsing_onto_one_taxon(graph):
     """**A regression test for a data-loss bug in this loader.** 806 MASI
     microbes collapse onto 540 taxa, so several land on one node — *E. coli*
-    Nissle 1917 promotes onto the same 562 as plain *E. coli*. `taxon_probiotic.csv`
-    is keyed on tax_id and `Writer` keeps the first row per key, so whichever row
+    Nissle 1917 promotes onto the same 562 as plain *E. coli*. `taxon_probiotic`
+    is keyed on tax_id and `Table` keeps the first row per key, so whichever row
     was written first used to decide, and 5 of the real file's 46 probiotic
     claims disappeared that way. A claim beats a non-claim, and
     `probiotic_reported_name` keeps the name the claim was made under."""
@@ -811,7 +811,7 @@ def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
 
 def test_the_disease_records_are_rows_in_the_shared_association_table(graph):
     """MASI is the fourth source of `ASSOCIATED_WITH` and writes into the same
-    `taxon_condition.csv` BugSigDB, gutMDisorder and CARD do — a row, never a
+    `taxon_condition` BugSigDB, gutMDisorder and CARD do — a row, never a
     second relationship, so D2/D3/D17 span it without knowing it arrived."""
     assert (
         one(
@@ -832,7 +832,7 @@ def test_a_disease_reaches_mondo_by_name_or_keeps_masi_own_id(graph):
     own-CURIE terms already have.
 
     **The route is not on the `Disease` node**, and that is a correction rather
-    than a preference: `disease.csv` is shared and key-deduped on
+    than a preference: `disease` is shared and key-deduped on
     `condition_id`, so on the real build 631 of the 783 MONDO ids MASI reaches
     were already written by BugSigDB or gutMDisorder — a node column would have
     read null for exactly the edges it was meant to describe. It is the same

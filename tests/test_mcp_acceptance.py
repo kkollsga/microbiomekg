@@ -1,8 +1,8 @@
 """The acceptance queries, driven through the MCP protocol rather than the API.
 
-``tests/test_acceptance.py`` asserts Part D's goldens against a graph built
-in-process from ``data/csv/``. That leaves a whole layer untested: the agent
-never touches that API. It sends JSON-RPC over stdio to ``kglite-mcp-server``,
+``tests/test_acceptance.py`` asserts Part D's goldens through the Python API,
+over the shipped ``graph/microbiomekg.kgl`` loaded in-process. That leaves a
+whole layer untested: the agent never touches that API. It sends JSON-RPC over stdio to ``kglite-mcp-server``,
 which loads the *saved* ``graph/microbiomekg.kgl``, applies the manifest, and
 returns text. Every step of that is somewhere a golden can quietly stop being
 true — a rebuild that dropped a source, a manifest that opened writes, a

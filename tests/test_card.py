@@ -826,7 +826,7 @@ def test_the_prep_reports_what_it_did_not_load(prep_output):
 
 
 def test_the_taxa_reach_the_taxonomy_build(graph, csv_dir):
-    """`cited_taxa.csv` decides which taxa the taxonomy keeps. A source that
+    """The `cited_taxa` table decides which taxa the taxonomy keeps. A source that
     did not write it would have every one of its carriage edges point at a
     vivified stub with no name and no lineage."""
     cited = {r["tax_id"] for r in table(csv_dir, "cited_taxa.csv")}

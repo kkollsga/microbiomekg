@@ -122,7 +122,7 @@ def built(tmp_path_factory):
     """ChEMBL, Maier and Zimmermann through their real preps, then the real
     blueprint. The order is the build's own: this prep declares
     ``DEPENDS_ON = ["chembl", "maier2018"]`` because its join routes read the
-    ``drug.csv`` both of them write into."""
+    ``drug`` table both of them write into."""
     work = tmp_path_factory.mktemp("zimmermann2019")
     csv_dir = work / "csv"
     csv_dir.mkdir()
@@ -540,7 +540,7 @@ def test_a_drug_no_route_reaches_is_minted_not_dropped(graph, csv_dir):
 
 
 def test_the_drug_table_is_one_table_three_sources(csv_dir):
-    """`drug.csv` is ChEMBL's file and both screens append to it — a shared
+    """the `drug` table is ChEMBL's and both screens merge into it — a shared
     table is how a further source contributes to one node type, not a second
     node type (microbiomekg.tables). `source` is what tells them apart, and the
     three columns this source adds are empty on the other two's rows rather than
@@ -553,11 +553,11 @@ def test_the_drug_table_is_one_table_three_sources(csv_dir):
 
 
 def test_a_screen_fact_about_a_known_drug_rides_on_the_edge(graph):
-    """`drug.csv` is keyed on `drug_id` and the first row per key wins, so this
+    """`drug` is keyed on `drug_id` and the first row per key wins, so this
     screen's annotation for a compound ChEMBL already holds **cannot** be
     written onto its node — the constraint docs/model.md §ChEMBL records, and
     the one Maier's `drug_class` already answers to. It is also half of why
-    MASI's substances are their own node type rather than rows in `drug.csv`.
+    MASI's substances are their own node type rather than rows in `drug`.
     `therapeutic_indication` therefore rides on
     the edge, where it is there for all 271 screened compounds rather than only
     the 23 minted here."""
@@ -715,7 +715,7 @@ def test_an_ambiguous_strain_is_a_tombstone_naming_what_was_rejected(graph, csv_
 
 
 def test_every_screened_taxon_is_cited_and_loaded(graph, csv_dir):
-    """`cited_taxa.csv` drives which taxa the taxonomy build keeps; a source that
+    """`cited_taxa` drives which taxa the taxonomy build keeps; a source that
     did not contribute to it would have its edges pointing at vivified stubs with
     no name and no lineage."""
     got = {

@@ -5,7 +5,7 @@ second screen needed the same three questions answered — what a level-5 ATC co
 is, which suffixes are counter-ions, and which node one spelling reaches. The
 per-source tests exercise it through a real build; what is asserted here is the
 part neither of them can see from the outside: the index is built over
-**whatever ``drug.csv`` holds when the source runs**, and the rules about which
+**whatever the ``drug`` table holds when the source runs**, and the rules about which
 identifiers are join keys at all.
 """
 
@@ -32,7 +32,7 @@ def test_an_absent_drug_csv_is_an_empty_index_not_an_error(tmp_path):
 
 
 def test_the_index_skips_the_rows_this_source_wrote_on_a_previous_run(tmp_path):
-    """`Writer(owner=("source", <this source>))` drops and rewrites this source's
+    """`Table(owner=("source", <this source>))` drops and rewrites this source's
     rows, so a second run that indexed them would join a compound to a node it
     is about to delete — and the recorded join route would differ between the
     first run and every one after it, which no count in the build report would
@@ -88,7 +88,7 @@ def test_an_atc_code_two_nodes_claim_is_a_join_key_for_neither(tmp_path):
     index = DrugIndex.from_rows(path, exclude_source="maier2018")
     assert "C07AA05" not in index.atc
     assert index.atc["N02BE01"] == "CHEMBL:B"
-    # A *name* collision cannot arise — `drug.csv` is keyed on `drug_id` and the
+    # A *name* collision cannot arise — `drug` is keyed on `drug_id` and the
     # first row per key wins — so both names stay keys.
     assert set(index.names) == {"alpha", "beta"}
 

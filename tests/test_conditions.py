@@ -241,7 +241,7 @@ def test_vocabularies_with_no_node_type_are_routed_to_the_ledger(curie):
     cell type and a surgical procedure in the disease list.
 
     They are not dropped — `condition_node_type` returning None is what sends
-    them to `unresolved_conditions.csv` with their raw strings.
+    them to the `unresolved_conditions` ledger with their raw strings.
     """
     assert condition_node_type(curie) is None
 

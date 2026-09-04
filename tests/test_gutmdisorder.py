@@ -653,7 +653,7 @@ def test_a_taxon_cited_by_both_sources_is_one_node(graph):
 
 
 def test_the_cited_taxa_table_carries_both_sources_counts(csv_dir):
-    """`cited_taxa.csv` drives which taxa the taxonomy build keeps, so a source
+    """`cited_taxa` drives which taxa the taxonomy build keeps, so a source
     that overwrote another's rows instead of merging would silently shrink the
     graph to whichever source ran last.
 

@@ -198,7 +198,7 @@ def junction_edges() -> dict[str, list[str]]:
 def test_every_junction_row_became_an_edge(graph, relationship):
     """The regression detector for C13, and the reason the override is gone.
 
-    A junction row is an evidence record: `taxon_condition.csv` is 112,966 rows
+    A junction row is an evidence record: the `taxon_condition` table is 112,966 rows
     of deliberately parallel edges, and kglite < 0.16.22 kept only the first
     100,000-row chunk's — 7.7% of the associations gone with no warning, no
     error and a plausible-looking graph. Equality with the CSV is the check
@@ -1138,7 +1138,7 @@ CHEMBL_GOLDEN = {
     # max_phase-4 file does not carry.
     # 6,030 ChEMBL nodes plus the 355 Prestwick library entries Maier 2018
     # mints and the 23 screened compounds Zimmermann 2019 does, which is why
-    # this number keeps moving: `drug.csv` is a shared table and a further
+    # this number keeps moving: the `drug` table is shared and a further
     # source's rows are rows, not a second node type.
     "drugs": 6408,
     "chembl_drugs": 6030,
@@ -1861,7 +1861,7 @@ def test_d6_the_negatives_are_countable_and_not_reachable_as_observations(
     type** — explicit negatives are rare enough in this field to be worth their
     own shape". 894 of the 912 survive; the other 18 sit on rows whose organism
     is one of NJC19's six host cell types or a taxon NCBI has renamed, and they
-    are ledger rows in `unresolved_exchange.csv` rather than losses.
+    are rows in the `unresolved_exchange` ledger rather than losses.
 
     The shape is the point. A refutation stored as a property of a `CONSUMES`
     edge would be counted as an observation by every query that did not know to
@@ -3062,7 +3062,7 @@ def test_masi_mints_no_drug_node_and_the_identity_is_an_edge(graph):
 
 
 def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(graph):
-    """Its 784 disease records land as rows in the shared `taxon_condition.csv`,
+    """Its 784 disease records land as rows in the shared `taxon_condition` table,
     not as a fourth relationship, so D2/D3/D17 span them without knowing MASI
     arrived. All 783 edges violate the fourteen-property contract, and that is
     the audit working for the third time: the export has eleven columns and not
@@ -3092,7 +3092,7 @@ def test_masi_is_the_fourth_association_source_and_all_of_it_is_a_violation(grap
     }
     assert routes == {"mondo-name": 358, "mondo-exact-synonym": 326, "unmatched": 99}
     # **`condition_join` is on the edge and not on the node**, because
-    # `disease.csv` is shared and key-deduped: 631 of the MONDO ids MASI reaches
+    # The `disease` table is shared and key-deduped: 631 of the MONDO ids MASI reaches
     # were written by BugSigDB or gutMDisorder first, so a node column would be
     # null for exactly the edges it describes. Same constraint as a screen's
     # `drug_class`, same answer.
