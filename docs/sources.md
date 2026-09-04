@@ -958,7 +958,8 @@ its place and what would change that.
 | `--force` | re-download even when a complete file is present |
 
 Source names: `ncbi`, `bugsigdb`, `disbiome`, `hmdb`, `card`, `reactome`,
-`kegg`, `chembl`, `gutmdisorder`, `pubmed`.
+`kegg`, `chembl`, `gutmdisorder`, `mimedb`, `njc19`, `masi`, `drug_screens`,
+`mondo`, `pubmed`.
 
 ## 11. MONDO (disease id hub) — added by the coordinator, 2026-09-02
 
@@ -969,8 +970,12 @@ Source names: `ncbi`, `bugsigdb`, `disbiome`, `hmdb`, `card`, `reactome`,
 - **Format** — OBO. Equivalences are `xref:` lines carrying
   `source="MONDO:equivalentTo"`: 2,400 to EFO (BugSigDB's disease ids) and
   12,091 to DOID (gutMDisorder's), plus MeSH/NCIT/UMLS.
-- **Status** — fetched. `data/raw/mondo/mondo.obo`, 53,134,854 bytes, sha256 in
-  `data/raw/mondo/PROVENANCE.md`.
+- **Status** — fetched by `microbiomekg fetch --only mondo` (the BugSigDB and
+  gutMDisorder fetchers pull it too). `data/raw/mondo/mondo.obo`, 53,134,854
+  bytes, sha256 in `data/raw/mondo/PROVENANCE.md`.
+- **Declared by** — `prep_bugsigdb`, `prep_gutmdisorder` and `prep_masi`, each
+  in its `RAW_INPUTS`; an absent file skips the source with the reason, it no
+  longer degrades every disease to its source's own id.
 - **Why** — the schema survey (`docs/research/existing-graphs-and-schemas.md`)
   recommends MONDO as the canonical disease key with source ids kept as
   properties; without it, the same condition arrives as an EFO id from one

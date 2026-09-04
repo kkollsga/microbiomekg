@@ -463,6 +463,7 @@ def fetch_bugsigdb(args) -> None:
     )
     download("bugsigdb", tagged, "full_dump_v1.3.1.csv", force=args.force)
     download("bugsigdb", main, "full_dump_main.csv", force=args.force)
+    fetch_mondo(args)
 
 
 DISBIOME_ENDPOINTS = [
@@ -846,6 +847,7 @@ GUTMDISORDER_WAYBACK = [
 
 def fetch_gutmdisorder(args) -> None:
     log("gutMDisorder")
+    fetch_mondo(args)
 
     # Origin first only if something is missing; otherwise record and move on.
     have = [
@@ -1274,6 +1276,20 @@ def note_pubmed(args) -> None:
     )
 
 
+MONDO_URL = (
+    "https://github.com/monarch-initiative/mondo/releases/latest/download/mondo.obo"
+)
+
+
+def fetch_mondo(args) -> None:
+    """MONDO (CC BY 4.0), the disease id hub three preps key their conditions
+    on. Not a source of its own — it fills the last entry of BugSigDB's,
+    gutMDisorder's and MASI's ``RAW_INPUTS`` — so the fetchers for the two
+    automated origins call it, and MASI's by-hand steps name it."""
+    log("MONDO")
+    download("mondo", MONDO_URL, "mondo.obo", timeout=600, force=args.force)
+
+
 #: prep source → the fetcher that fills its ``RAW_INPUTS``. Two screens share
 #: one bundle and the taxonomy prep reads NCBI's dump, so this is not identity.
 FETCHES: dict[str, str] = {
@@ -1317,7 +1333,9 @@ MANUAL: dict[str, str] = {
         f"curl -k -A 'Mozilla/5.0' -o data/raw/masi/<name> '{MASI_ORIGIN}<name>'  "
         "— or download them in a browser from "
         "https://www.aiddlab.com/MASI/download.html after accepting the "
-        "certificate warning. The four .xlsx files are the ones the prep reads."
+        "certificate warning. The four .xlsx files are the ones the prep reads. "
+        "The prep also reads data/raw/mondo/mondo.obo: microbiomekg fetch "
+        "--only mondo."
     ),
 }
 
@@ -1343,6 +1361,7 @@ SOURCES = {
     "njc19": fetch_njc19,
     "masi": fetch_masi,
     "drug_screens": fetch_drug_screens,
+    "mondo": fetch_mondo,
     "pubmed": note_pubmed,
 }
 

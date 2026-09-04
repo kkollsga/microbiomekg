@@ -2,7 +2,7 @@
 
 Two things are asserted that no other test holds: that every prep declares
 the raw files it reads (``RAW_INPUTS``) and that the declaration is *true* —
-withholding a declared file makes the prep refuse with exit 3 and name it —
+withholding a declared file makes the prep raise ``MissingInput`` naming it —
 and that the three tables ``status`` joins (preps, the fetch table, the
 licence registry) cover the same set of sources.
 """
@@ -73,20 +73,32 @@ def test_a_source_with_every_file_is_present_and_a_replaced_file_is_stale(tmp_pa
     assert st.state == "stale" and st.missing == ()
 
 
-@pytest.mark.parametrize("name", SOURCES)
-def test_withholding_a_declared_input_makes_the_prep_refuse_by_name(tmp_path, name):
+#: Every (source, declared input) pair — each file is withheld in turn.
+WITHHELD = [
+    (name, rel)
+    for name in SOURCES
+    for rel in sources.declared_inputs(PREPS_DIR / f"prep_{name}.py")
+]
+
+
+@pytest.mark.parametrize(
+    "name,withheld", WITHHELD, ids=[f"{n}:{Path(r).name}" for n, r in WITHHELD]
+)
+def test_withholding_a_declared_input_makes_the_prep_refuse_by_name(
+    tmp_path, name, withheld
+):
     """The declaration is the check: with every declared file present except
-    the first, the prep must refuse and name what it wanted. A file declared
-    but not needed would let the prep run on into the empty files and die
-    some other way; a file needed but not declared would be complained about
-    instead of the one withheld."""
+    one, the prep must refuse and name that one — for *each* declared file
+    in turn, so a trailing declaration is as tested as the first. A file
+    declared but not needed would let the prep run on into the empty files
+    and die some other way; a file needed but not declared would be
+    complained about instead of the one withheld."""
     raw = tmp_path / "raw"
     inputs = sources.declared_inputs(PREPS_DIR / f"prep_{name}.py")
-    withheld = inputs[0]
-    for rel in inputs[1:]:
+    for rel in inputs:
         (raw / rel).parent.mkdir(parents=True, exist_ok=True)
-        (raw / rel).write_bytes(b"")
-    (raw / withheld).parent.mkdir(parents=True, exist_ok=True)
+        if rel != withheld:
+            (raw / rel).write_bytes(b"")
     module = importlib.import_module(f"microbiomekg.preps.prep_{name}")
     from microbiomekg.rawdata import MissingInput
     from microbiomekg.tables import Frames

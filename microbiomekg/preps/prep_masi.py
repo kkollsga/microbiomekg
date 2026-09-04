@@ -51,7 +51,7 @@ from microbiomekg import ontology as ont
 from microbiomekg.conditions import MondoIndex
 from microbiomekg.drugs import DrugIndex, join_drug
 from microbiomekg.ontology import masi as ms
-from microbiomekg.rawdata import MissingInput, find_taxdump
+from microbiomekg.rawdata import MissingInput, find_mondo, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
 from microbiomekg.tables import Frames, as_list
 
@@ -64,6 +64,7 @@ RAW_INPUTS: list[str] = [
     "masi/MASI_v1.0_download_microbeDiseaseAssociationRecords.xlsx",
     "masi/MASI_v1.0_download_microbesInfo.xlsx",
     "masi/MASI_v1.0_download_substanceInfo.xlsx",
+    "mondo/mondo.obo",
 ]
 
 #: Reads the ``drug`` table for the substance join, and the two screens' four
@@ -277,8 +278,8 @@ def run(
 
     ``tables`` defaults to ``raw/masi/``; ``mondo`` to ``raw/mondo/mondo.obo``.
     Reads the drug table and the four screen edge tables off the store, to
-    measure what MASI restates. Raises :class:`MissingInput` when a workbook
-    or the taxdump is not there.
+    measure what MASI restates. Raises :class:`MissingInput` when a workbook,
+    ``mondo.obo`` or the taxdump is not there.
     """
 
     tables = tables or (raw / RAW_SUBDIR)
@@ -290,6 +291,7 @@ def run(
             f"no MASI workbooks at {tables}: missing {', '.join(missing_files)}"
         )
     try:
+        mondo_path = find_mondo(raw, mondo)
         taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
         raise MissingInput(str(e)) from e
@@ -308,22 +310,13 @@ def run(
     for category, n in by_category.most_common():
         print(f"  {category}: {n:,}")
 
-    mondo_path = mondo or (raw / "mondo" / "mondo.obo")
-    if mondo_path.is_file():
-        print(f"loading MONDO from {mondo_path} ...", flush=True)
-        mondo = MondoIndex.from_obo(mondo_path)
-        print(
-            f"  {len(mondo.label):,} live terms, "
-            f"{len(mondo.by_exact_synonym):,} unambiguous exact synonyms",
-            flush=True,
-        )
-    else:
-        mondo = MondoIndex()
-        print(
-            f"no mondo.obo at {mondo_path}; every disease keeps MASI's own id "
-            f"as key and mondo_id will be null",
-            flush=True,
-        )
+    print(f"loading MONDO from {mondo_path} ...", flush=True)
+    mondo = MondoIndex.from_obo(mondo_path)
+    print(
+        f"  {len(mondo.label):,} live terms, "
+        f"{len(mondo.by_exact_synonym):,} unambiguous exact synonyms",
+        flush=True,
+    )
 
     index = DrugIndex.from_rows(store.rows("drug"), exclude_source=SOURCE)
     print(f"drug table: {len(index.names):,} names this source may join to")

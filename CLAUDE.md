@@ -237,7 +237,7 @@ checkout are symlinks to it, so every path below and every default still
 resolves, and `microbiomekg build --data ../MicrobiomeKG-Data` is the same
 build without the links. 7.3 GB of third-party raw input, gitignored, **never
 pruned automatically and never rebuilt by a gate**. Pruned by hand on
-2026-09-03 to the files the preps declare in `RAW_INPUTS` plus `mondo/`, the
+2026-09-03 to the files the preps declare in `RAW_INPUTS` (`mondo/` included), the
 provenance notes, the browser-only siblings (MASI's `.txt`, MiMeDB's v2 `.xml`)
 and ChEMBL's licence; every archive and every fetched-but-unread file went,
 all of them re-fetchable by `microbiomekg fetch`. Re-fetching it costs hours and, for three origins,

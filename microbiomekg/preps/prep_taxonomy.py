@@ -261,6 +261,15 @@ def run(
         taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
         raise MissingInput(str(e)) from e
+    # find_taxdump keys on nodes.dmp alone; the other four declared dumps are
+    # what the index reads next, and an absent one is a skip, not a traceback.
+    absent = [
+        n
+        for n in (r.rsplit("/", 1)[1] for r in RAW_INPUTS)
+        if not (taxdump / n).is_file()
+    ]
+    if absent:
+        raise MissingInput(f"no {', '.join(absent)} in {taxdump}")
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)

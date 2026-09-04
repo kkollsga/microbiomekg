@@ -60,7 +60,7 @@ from microbiomekg.conditions import (
     split_curies,
 )
 from microbiomekg.ontology import gutmdisorder as gmd
-from microbiomekg.rawdata import MissingInput, find_taxdump
+from microbiomekg.rawdata import MissingInput, find_mondo, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
 from microbiomekg.tables import Frames, as_list
 
@@ -71,6 +71,7 @@ SOURCE = gmd.SOURCE
 RAW_INPUTS: list[str] = [
     "gutmdisorder/human.xlsx",
     "gutmdisorder/mouse.xlsx",
+    "mondo/mondo.obo",
 ]
 
 #: Reads no other prep's table. ``prep_chembl`` reads *this* one's
@@ -225,7 +226,7 @@ def run(
 
     ``workbooks`` defaults to ``raw/gutmdisorder/`` (``human.xlsx``, ``mouse.xlsx``);
     ``mondo`` to ``raw/mondo/mondo.obo``. Raises :class:`MissingInput` when a
-    workbook or the taxdump is not there.
+    workbook, ``mondo.obo`` or the taxdump is not there.
     """
 
     books = workbooks or (raw / SOURCE)
@@ -238,6 +239,7 @@ def run(
             f"no {', '.join(w + '.xlsx' for w in missing)} under {books}"
         )
     try:
+        mondo_path = find_mondo(raw, mondo)
         taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
         raise MissingInput(str(e)) from e
@@ -247,21 +249,12 @@ def run(
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
-    mondo_path = mondo or (raw / "mondo" / "mondo.obo")
-    if mondo_path.is_file():
-        mondo = MondoIndex.from_obo(mondo_path)
-        print(
-            f"loaded MONDO: {len(mondo.label):,} live terms, "
-            f"{len(mondo.equivalent):,} equivalences",
-            flush=True,
-        )
-    else:
-        mondo = MondoIndex()
-        print(
-            f"no mondo.obo at {mondo_path}; every DOID keeps its own CURIE "
-            f"as key and mondo_id will be null",
-            flush=True,
-        )
+    mondo = MondoIndex.from_obo(mondo_path)
+    print(
+        f"loaded MONDO: {len(mondo.label):,} live terms, "
+        f"{len(mondo.equivalent):,} equivalences",
+        flush=True,
+    )
     studies = store.table(
         "study",
         [

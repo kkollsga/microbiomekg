@@ -333,6 +333,10 @@ def run(
             f"{raw / SOURCE / 'v2'}/ — see data/raw/mimedb/v2/PROVENANCE.md"
         )
     microbes_csv = microbes or default_microbes
+    if not microbes_csv.is_file():
+        raise MissingInput(
+            f"no MiMeDB microbes dump at {microbes_csv} beside {metabolites_csv.name}"
+        )
     njc19_xlsx = njc19 or (raw / "njc19" / "41597_2020_516_MOESM1_ESM.xlsx")
 
     try:

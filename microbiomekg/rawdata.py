@@ -54,6 +54,20 @@ def find_bugsigdb_dump(raw: Path) -> Path:
     )
 
 
+def find_mondo(raw: Path, mondo: Path | None = None) -> Path:
+    """``mondo/mondo.obo`` under ``raw``, or ``mondo`` when a caller names it.
+
+    Three preps key their conditions on MONDO, so the file is declared in each
+    of their ``RAW_INPUTS`` and its absence is a :class:`MissingInput` like any
+    other: a build without it would write every disease under its source's own
+    id and never join them, which is a different graph, not a degraded one.
+    """
+    path = Path(mondo) if mondo else Path(raw) / "mondo" / "mondo.obo"
+    if not path.is_file():
+        raise MissingInput(f"no mondo.obo at {path} (microbiomekg fetch --only mondo)")
+    return path
+
+
 class MissingInput(FileNotFoundError):
     """A prep's raw input is not on this machine.
 

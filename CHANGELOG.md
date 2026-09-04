@@ -37,6 +37,13 @@ changes and formatting do not get entries. Nothing has been released yet:
   also claim-gated.
 
 ### Changed
+- **`mondo.obo` is a declared input.** The three preps that key conditions on
+  MONDO list `mondo/mondo.obo` in `RAW_INPUTS`, `status` reports it, `fetch`
+  pulls it (`--only mondo`, and with BugSigDB and gutMDisorder), and an absent
+  file skips the source with the reason instead of silently writing every
+  disease under its source's own id. Withholding any declared input — not only
+  the first — now makes its prep refuse by name; that also caught MiMeDB's
+  microbes dump and four of the five taxonomy dumps.
 - `--csv` and `--skip-prep` are gone from the build: there is no CSV
   directory to point at or reuse, and `microbiomekg build --data D` reads
   `D/raw/` only. A prep's absent input is a `MissingInput` exception the

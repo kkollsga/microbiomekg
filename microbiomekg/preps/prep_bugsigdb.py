@@ -49,7 +49,12 @@ from microbiomekg.conditions import (
     pair_conditions,
     split_curies,
 )
-from microbiomekg.rawdata import MissingInput, find_bugsigdb_dump, find_taxdump
+from microbiomekg.rawdata import (
+    MissingInput,
+    find_bugsigdb_dump,
+    find_mondo,
+    find_taxdump,
+)
 from microbiomekg.reconcile import Resolution, TaxonomyIndex
 from microbiomekg.tables import Frames, as_list
 
@@ -57,7 +62,7 @@ SOURCE = "bugsigdb"
 
 #: The raw files this prep reads, relative to ``--raw``, in the layout
 #: ``fetch`` writes. `status` reports on exactly these.
-RAW_INPUTS: list[str] = ["bugsigdb/full_dump_main.csv"]
+RAW_INPUTS: list[str] = ["bugsigdb/full_dump_main.csv", "mondo/mondo.obo"]
 
 #: Reads no other prep's table: BugSigDB is the spine and runs first.
 DEPENDS_ON: list[str] = []
@@ -156,10 +161,12 @@ def run(
     defaults to ``raw/mondo/mondo.obo``; absent, every condition keeps its
     own CURIE as key and ``mondo_id`` is null everywhere, and the build says
     so. ``limit`` reads only the first N rows (smoke tests). Raises
-    :class:`MissingInput` when the dump or the taxdump is not there.
+    :class:`MissingInput` when the dump, ``mondo.obo`` or the taxdump is not
+    there.
     """
     try:
         dump = dump or find_bugsigdb_dump(raw)
+        mondo_path = find_mondo(raw, mondo)
         taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
         # "The raw files are not on this machine" is a different fact from a
@@ -172,22 +179,13 @@ def run(
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
-    mondo_path = mondo or (raw / "mondo" / "mondo.obo")
-    if mondo_path.is_file():
-        print(f"loading MONDO from {mondo_path} ...", flush=True)
-        mondo = MondoIndex.from_obo(mondo_path)
-        print(
-            f"  {len(mondo.label):,} live terms, {len(mondo.equivalent):,} "
-            f"equivalences, {len(mondo.obsolete):,} obsolete",
-            flush=True,
-        )
-    else:
-        mondo = MondoIndex()
-        print(
-            f"no mondo.obo at {mondo_path}; every condition keeps its own CURIE "
-            f"as key and mondo_id will be null",
-            flush=True,
-        )
+    print(f"loading MONDO from {mondo_path} ...", flush=True)
+    mondo = MondoIndex.from_obo(mondo_path)
+    print(
+        f"  {len(mondo.label):,} live terms, {len(mondo.equivalent):,} "
+        f"equivalences, {len(mondo.obsolete):,} obsolete",
+        flush=True,
+    )
 
     studies = store.table(
         "study",
