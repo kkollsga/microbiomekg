@@ -180,3 +180,48 @@ the number: `overlap@10` of five or more validates the proxy; fewer moves
 GMrepo's healthy baselines to the top of the source backlog. Nine validates
 it — the breadth of one curation reproduces a cross-study meta-analysis — and
 the healthy-prevalence half of D14 stays a separate, still-open item.
+
+## G6 — Coverage of two external curations
+
+How much of HMDAD (Ma et al. 2017; licence unstated) and Peryton (Skoufos et
+al. 2021; CC BY-NC) does this graph independently assert? Neither is loaded —
+one has no licence and the other is non-commercial — so `microbiomekg.coverage`
+reads each, reconciles it the way the preps reconcile their own rows (taxon
+→ NCBI `tax_id`, disease → MONDO; no name hand-mapped), and asks the graph. The
+numbers are in `bench/results/2026-09-04-external-coverage.json`, written by
+`python -m microbiomekg.coverage`, and are re-run from the two raw files, not
+from anything checked in.
+
+Decided before the numbers: HMDAD's denominator is its distinct
+`(disease, microbe, direction)` rows; Peryton's is the rows whose comparator is
+`Healthy Controls`, because its disease-vs-disease rows are a different fact;
+`Present` / `Absent` are not directions. A pair whose taxon or disease does not
+resolve leaves the denominator and is counted beside it.
+
+| | HMDAD | Peryton |
+|---|---:|---:|
+| curated claims | 450 | 3,583 |
+| taxa resolved | 431 (95.8%) | 3,583 (100.0%) |
+| diseases resolved to MONDO | 350 (77.8%) | 3,162 (88.3%) |
+| pairs with both resolved | 333 | 3,162 |
+| **pairs the graph asserts** | **173 (52.0%)** | **1,209 (38.2%)** |
+| direction: comparable pairs | 173 | 1,184 |
+| the graph's reports agree | 105 | 544 |
+| the graph's reports contradict | 8 | 152 |
+| the graph's reports are split | 60 | 488 |
+
+The covered pairs' own reports are mostly observational 16S (381 of
+HMDAD's covered reports, 4,190 of Peryton's), with `unknown`
+next (165 and 323) — the histogram is in the capture. The
+agree-to-contradict ratio also settles a reading the research notes left
+open: Peryton's `Increased` is the disease group's abundance relative to the
+healthy comparator, the same convention as BugSigDB's `increased`; read the
+other way, the 544 agreements would be contradictions.
+
+Half of HMDAD and a third of Peryton is the finding, not a target missed: the
+stop rule for this benchmark was on the reconciler (fewer than four in five
+microbe strings resolving would have made the number about it, and
+95.8% and 100.0% resolved), not on
+coverage. What the uncovered pairs are — a disease MONDO does not spell,
+100 of HMDAD's rows; a pair the sources here never reported — is
+the next question, and this page does not guess at it.

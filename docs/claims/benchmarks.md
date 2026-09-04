@@ -139,3 +139,11 @@ what the other side published, not what this graph measures.
      ORDER BY n DESC LIMIT 20
      RETURN sum(CASE WHEN genus IN ['Varibaculum', 'Bifidobacterium', 'Collinsella', 'Bacteroides', 'Barnesiella', 'Porphyromonas', 'Prevotella', 'Alistipes', 'Staphylococcus', 'Enterococcus', 'Lactobacillus', 'Leuconostoc', 'Weissella', 'Streptococcus', 'Anaerococcus', 'Finegoldia', 'Parvimonas', 'Peptoniphilus', 'Anaerovorax', 'Mogibacterium', 'Murdochiella', 'Anaerostipes', 'Blautia', 'Clostridium_XlVb', 'Coprococcus', 'Howardella', 'Lachnospiracea_incertae_sedis', 'Roseburia', 'Clostridium_XI', 'Peptostreptococcus', 'Anaerofilum', 'Clostridium_IV', 'Ethanoligenens', 'Faecalibacterium', 'Flavonifractor', 'Gemmiger', 'Oscillibacter', 'Pseudoflavonifractor', 'Ruminococcus', 'Sporobacter', 'Catenibacterium', 'Clostridium_XVIII', 'Coprobacillus', 'Turicibacter', 'Phascolarctobacterium', 'Veillonella', 'Fusobacterium', 'Campylobacter', 'Escherichia/Shigella', 'Pyramidobacter', 'Akkermansia'] THEN 1 ELSE 0 END) AS overlap
      == 14 -->
+
+## G6 — Coverage of two external curations
+
+<!-- claim external: 450, 431, 95.8, 350, 77.8, 333, 173, 52.0, 173, 105, 8, 60, 381, 165, 100 — HMDAD scored by microbiomekg.coverage on 2026-09-04; the capture is bench/results/2026-09-04-external-coverage.json, re-run from data/raw/hmdad/data_download.txt against the shipped graph -->
+
+<!-- claim external: 3583, 3583, 100.0, 3162, 88.3, 3162, 1209, 38.2, 1184, 544, 152, 488, 4190, 323 — Peryton scored by microbiomekg.coverage on 2026-09-04; the capture is bench/results/2026-09-04-external-coverage.json, re-run from data/raw/peryton/associations.json against the shipped graph -->
+
+<!-- claim external: 2017, 2021, 4, 5, 2, 3 — the two sources' publication years and the words of the stop rule (four in five) and the summary (half, a third); thresholds and pointers, not graph measurements -->

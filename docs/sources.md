@@ -931,6 +931,16 @@ comes from them, `status` does not report them, and their only use is a row in
   MicrobiomeHD repository into `data/raw/duvallet2017/`; provenance beside it.
   Cut to `tests/fixtures/duvallet2017_genera.tsv` by
   `tests/fixtures/make_duvallet2017_reference.py`; scored in G7.
+- **HMDAD** (`--only hmdad`) — Ma et al., *Brief Bioinform* 18:85 (2017);
+  483 curated microbe–disease rows, **licence unstated** upstream, recorded
+  as `HMDAD-unstated`. Served over plain HTTP from `cuilab.cn` (the host's
+  TLS certificate has expired); 36,244 bytes into `data/raw/hmdad/`. Scored in
+  G6 by `microbiomekg.coverage`.
+- **Peryton** (`--only peryton`) — Skoufos et al., *NAR* 49:D1328 (2021),
+  **CC BY-NC**, recorded as `Peryton-CC-BY-NC` and never loaded. The web app's
+  association endpoint, called without filters, returns all 7,977 rows as one
+  JSON list (13,042,941 bytes) into `data/raw/peryton/`. Scored in G6, kept to
+  the rows whose comparator is `Healthy Controls`.
 
 ## How `scripts/fetch.py` behaves
 

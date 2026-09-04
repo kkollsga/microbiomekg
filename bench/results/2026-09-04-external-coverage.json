@@ -1,0 +1,73 @@
+{
+ "graph": "microbiomekg.kgl",
+ "sets": [
+  {
+   "set_name": "hmdad",
+   "references": 450,
+   "taxa_resolved": 431,
+   "diseases_resolved": 350,
+   "pairs_resolvable": 333,
+   "pairs_covered": 173,
+   "evidence": {
+    "observational-16S": 381,
+    "unknown": 165,
+    "observational-shotgun": 26,
+    "interventional-rct": 22,
+    "in-vivo-model": 14,
+    "meta-analysis": 11,
+    "observational-unspecified": 2,
+    "observational-targeted": 2
+   },
+   "direction_comparable": 173,
+   "direction_agree": 105,
+   "direction_contradict": 8,
+   "direction_split": 60,
+   "taxon_statuses": {
+    "exact": 359,
+    "synonym": 72,
+    "ambiguous": 17,
+    "unresolved": 2
+   },
+   "disease_routes": {
+    "mondo-exact-synonym": 226,
+    "mondo-name": 124,
+    "unmatched": 100
+   },
+   "coverage": 0.5195
+  },
+  {
+   "set_name": "peryton",
+   "references": 3583,
+   "taxa_resolved": 3583,
+   "diseases_resolved": 3162,
+   "pairs_resolvable": 3162,
+   "pairs_covered": 1209,
+   "evidence": {
+    "observational-16S": 4190,
+    "observational-shotgun": 493,
+    "meta-analysis": 386,
+    "unknown": 323,
+    "in-vivo-model": 232,
+    "interventional-rct": 103,
+    "observational-targeted": 47,
+    "observational-unspecified": 29,
+    "in-vitro": 11
+   },
+   "direction_comparable": 1184,
+   "direction_agree": 544,
+   "direction_contradict": 152,
+   "direction_split": 488,
+   "taxon_statuses": {
+    "exact": 3520,
+    "merged": 53,
+    "promoted": 10
+   },
+   "disease_routes": {
+    "equivalence": 3023,
+    "unmatched": 421,
+    "mondo-exact-synonym": 139
+   },
+   "coverage": 0.3824
+  }
+ ]
+}

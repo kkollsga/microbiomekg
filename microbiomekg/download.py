@@ -1319,6 +1319,41 @@ def fetch_duvallet2017(args) -> None:
     )
 
 
+HMDAD_URL = "http://www.cuilab.cn/files/dmi/data_download.txt"
+PERYTON_URL = "https://dianalab.e-ce.uth.gr/peryton_backend/api/associations"
+
+
+def fetch_hmdad(args) -> None:
+    """HMDAD (Ma et al., Brief Bioinform 2017): 483 curated microbe–disease
+    rows, licence unstated upstream (recorded as ``HMDAD-unstated``, the MASI
+    convention). The host's TLS certificate has expired, but the file is
+    served over plain HTTP with no redirect, so this is a normal fetch."""
+    log("HMDAD (reference set, not loaded)")
+    download(
+        "hmdad",
+        HMDAD_URL,
+        "data_download.txt",
+        force=args.force,
+        expect_prefix=b"Disease\tMicrobe",
+    )
+
+
+def fetch_peryton(args) -> None:
+    """Peryton (Skoufos et al., NAR 2021; CC BY-NC): the web app's own
+    association endpoint, which returns every curated row as one JSON list
+    when called without filters — the "TSV download" the site offers is a
+    client-side export of the same response."""
+    log("Peryton (reference set, not loaded)")
+    download(
+        "peryton",
+        PERYTON_URL,
+        "associations.json",
+        timeout=300,
+        force=args.force,
+        expect_prefix=b'[{"association_id"',
+    )
+
+
 #: prep source → the fetcher that fills its ``RAW_INPUTS``. Two screens share
 #: one bundle and the taxonomy prep reads NCBI's dump, so this is not identity.
 FETCHES: dict[str, str] = {
@@ -1392,6 +1427,8 @@ SOURCES = {
     "drug_screens": fetch_drug_screens,
     "mondo": fetch_mondo,
     "duvallet2017": fetch_duvallet2017,
+    "hmdad": fetch_hmdad,
+    "peryton": fetch_peryton,
     "pubmed": note_pubmed,
 }
 

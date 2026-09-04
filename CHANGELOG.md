@@ -12,6 +12,12 @@ changes and formatting do not get entries. Nothing has been released yet:
 ## [Unreleased]
 
 ### Added
+- **G6, coverage of two external curations.** `microbiomekg.coverage` reads
+  HMDAD and Peryton, reconciles them the way the preps do, and reports how
+  many of their (taxon, disease) pairs the graph asserts, with the evidence
+  histogram and direction agreement; neither set is loaded. Both are fetched
+  by `microbiomekg fetch --only hmdad` / `--only peryton`, and the numbers
+  ride into `docs/benchmarks.md` from a tracked capture.
 - **G7, the breadth proxy against a published meta-analysis.** D14's
   signature-breadth ranking scored against Duvallet et al. 2017's non-specific
   genus set: nine of the top ten at genus rank, claim-gated in

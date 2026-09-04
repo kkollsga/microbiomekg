@@ -17,6 +17,11 @@ re-measuring is `bench/render.py`'s `render_markdown()` over the JSON.
 ## What it will and will not touch
 
 The build section runs `scripts/build.py` with `--out` pointed at a
+`bench/results/` also holds the external-coverage captures `docs/benchmarks.md`
+G6 points at (`<date>-external-coverage.json`, written by
+`python -m microbiomekg.coverage --out`) — not a timing, but a longitudinal
+number with the same never-deleted lifetime.
+
 **scratch directory outside the repo** —
 `/Volumes/EksternalHome/coding-cache/microbiomekg-bench`, `--scratch` to move
 it. It never writes `graph/microbiomekg.kgl`: the shipped graph
