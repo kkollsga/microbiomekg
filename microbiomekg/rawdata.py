@@ -73,5 +73,19 @@ class MissingInput(FileNotFoundError):
 
     Raised by a prep's ``run()`` and caught by the build, which skips the
     source and prints the message. The message says what was looked for and,
-    for a browser-only origin, where to get it.
+    for a browser-only origin, where to get it. :class:`MalformedInput` is
+    the same channel for a file that is there but not the shape the prep
+    reads; the build catches both and reports which.
+    """
+
+
+class MalformedInput(MissingInput):
+    """A prep's raw input is on this machine but is not what the prep reads:
+    a sheet or header row it finds by name is gone, or a rule it derives from
+    the file no longer reproduces the paper's own numbers.
+
+    A skip with a reason, like an absent file, and reported apart from it —
+    "present but malformed" is a different fix. Never an exit: one renamed
+    header in one supplementary table must not end a multi-minute build with
+    no report and no census.
     """

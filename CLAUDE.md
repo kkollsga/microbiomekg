@@ -124,7 +124,11 @@ half-loaded rather than rejected, and its test file is the thing that notices.
   loaded `IS_DRUG` with zero edges (`docs/model.md` §8).
 - **`MissingInput` means "my raw input is absent"** — a prep's `run()` raises
   it naming the file, and the build catches it as a skip with a reason, never
-  an error and never a half-load. A dependent of a skipped source is itself a
+  an error and never a half-load. `MalformedInput`, its subclass, is the same
+  channel for a file that is present but not the shape the prep reads (a
+  header row gone, a derived rule that no longer reproduces the paper); the
+  build reports it apart, and the census records every skip's reason. Nothing
+  in a prep raises `SystemExit`. A dependent of a skipped source is itself a
   skip with a reason. A skipped source is dropped from the *load* blueprint
   and the ontology, because a node type loaded empty gives its audit rules a
   0/0 denominator — a gate that cannot fail (`R1`).

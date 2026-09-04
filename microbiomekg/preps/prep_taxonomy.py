@@ -163,7 +163,9 @@ def select_scope(
     cited = read_cited(cited_rows)
     if scope == "cited":
         if not cited:
-            raise SystemExit(
+            # A build-order defect, not an input: DEPENDS_ON places this prep
+            # after every writer of cited_taxa, and a test holds that.
+            raise RuntimeError(
                 'scope="cited" needs a cited_taxa table in the store; run a source prep first'
             )
         seeds = set(cited)

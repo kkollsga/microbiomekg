@@ -27,6 +27,8 @@ from pathlib import Path
 
 import pytest
 
+from microbiomekg.rawdata import MalformedInput
+
 from prep_support import load_graph_for, rows_of, run_prep
 
 from conftest import TAXDUMP_MINI
@@ -884,10 +886,10 @@ def test_the_headline_check_refuses_to_write_when_it_stops_holding():
     columns = ["Strain one"]
     # One of the two drugs is metabolised, and the rule reproduces it.
     assert prep.check_headline(screen, columns, (2, 1, 1)) == 1
-    with pytest.raises(SystemExit) as wrong_count:
+    with pytest.raises(MalformedInput) as wrong_count:
         prep.check_headline(screen, columns, (2, 1, 2))
     assert "metabolised by at least one strain" in str(wrong_count.value)
-    with pytest.raises(SystemExit) as wrong_shape:
+    with pytest.raises(MalformedInput) as wrong_shape:
         prep.check_headline(screen, columns, (271, 76, 176))
     assert "not 271 x 76" in str(wrong_shape.value)
     # And the real build's triple is the paper's, not something a caller chose.

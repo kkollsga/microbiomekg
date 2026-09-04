@@ -27,6 +27,8 @@ from pathlib import Path
 
 import pytest
 
+from microbiomekg.rawdata import MalformedInput
+
 from prep_support import load_graph_for, rows_of, run_prep
 
 from conftest import TAXDUMP_MINI
@@ -586,7 +588,7 @@ def test_the_threshold_check_refuses_to_write_when_it_stops_holding(tmp_path):
             "cells": [("NT5001", 0.5), ("NT5002", 0.5)],
         }
     ]
-    with pytest.raises(SystemExit) as excinfo:
+    with pytest.raises(MalformedInput) as excinfo:
         prep.check_threshold(screen)
     assert "does not reproduce" in str(excinfo.value)
     assert "Prestw-1" in str(excinfo.value)

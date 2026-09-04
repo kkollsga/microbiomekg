@@ -73,7 +73,7 @@ from pathlib import Path
 from microbiomekg import ontology as ont
 from microbiomekg.drugs import DrugIndex, join_drug
 from microbiomekg.ontology import zimmermann2019 as zm
-from microbiomekg.rawdata import MissingInput, find_taxdump
+from microbiomekg.rawdata import MalformedInput, MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
 from microbiomekg.tables import Frames, as_list
 
@@ -212,7 +212,7 @@ def sheet_rows(path: Path, sheet: str) -> list[tuple]:
     book = openpyxl.load_workbook(path, data_only=True)
     try:
         if sheet not in book.sheetnames:
-            raise SystemExit(
+            raise MalformedInput(
                 f"{path} has no sheet named {sheet!r} "
                 f"(found {', '.join(book.sheetnames)})"
             )
@@ -255,7 +255,7 @@ def read_strains(path: Path) -> list[dict]:
         (i for i, row in enumerate(rows) if text(row[0]) == STRAIN_HEADER_CELL), None
     )
     if start is None:
-        raise SystemExit(
+        raise MalformedInput(
             f"{path}: no header row whose first cell is "
             f"{STRAIN_HEADER_CELL!r} in {SHEETS['strains']}"
         )
@@ -283,7 +283,7 @@ def read_drugs(path: Path) -> dict[str, dict]:
     rows = sheet_rows(path, SHEETS["drugs"])
     start = next((i for i, row in enumerate(rows) if text(row[0]) == "MOLENAME"), None)
     if start is None:
-        raise SystemExit(f"{path}: no MOLENAME header in {SHEETS['drugs']}")
+        raise MalformedInput(f"{path}: no MOLENAME header in {SHEETS['drugs']}")
     header = [text(c) for c in rows[start]]
     out: dict[str, dict] = {}
     for row in rows[start + 1 :]:
@@ -307,16 +307,16 @@ def read_screen(path: Path) -> tuple[list[str], list[dict]]:
     rows = sheet_rows(path, SHEETS["screen"])
     blocks = next((i for i, row in enumerate(rows) if text(row[0]) == "DrugName"), None)
     if blocks is None:
-        raise SystemExit(f"{path}: no DrugName header row in {SHEETS['screen']}")
+        raise MalformedInput(f"{path}: no DrugName header row in {SHEETS['screen']}")
     header, sub = rows[blocks], rows[blocks + 1]
     starts = [(i, text(v)) for i, v in enumerate(header) if text(v)][1:]
     if not starts:
-        raise SystemExit(f"{path}: {SHEETS['screen']} names no measured column")
+        raise MalformedInput(f"{path}: {SHEETS['screen']} names no measured column")
     for at, label in starts:
         got = [text(sub[at + k]) for k in range(len(SCREEN_COLUMN_SUBHEADS))]
         want = [f"{s} {label}".strip() for s in SCREEN_COLUMN_SUBHEADS]
         if [g.replace(" ", "") for g in got] != [w.replace(" ", "") for w in want]:
-            raise SystemExit(
+            raise MalformedInput(
                 f"{path}: {SHEETS['screen']} column block {label!r} is "
                 f"{got} where {want} was expected — the five sub-columns are "
                 f"read positionally and one of them decides every hit call"
@@ -351,7 +351,7 @@ def read_genes(path: Path) -> list[dict]:
     rows = sheet_rows(path, SHEETS["genes"])
     start = next((i for i, row in enumerate(rows) if text(row[0]) == "Gene"), None)
     if start is None:
-        raise SystemExit(f"{path}: no Gene header row in {SHEETS['genes']}")
+        raise MalformedInput(f"{path}: no Gene header row in {SHEETS['genes']}")
     header, sub = rows[start], rows[start + 1]
     parents = [
         (i, text(v))
@@ -359,7 +359,7 @@ def read_genes(path: Path) -> list[dict]:
         if text(v) and text(sub[i]) == "Parent drug"
     ]
     if not parents:
-        raise SystemExit(f"{path}: {SHEETS['genes']} names no 'Parent drug' column")
+        raise MalformedInput(f"{path}: {SHEETS['genes']} names no 'Parent drug' column")
     out: list[dict] = []
     for row in rows[start + 2 :]:
         tag = text(row[0])
@@ -423,7 +423,7 @@ def check_headline(
     drugs, strain_columns, headline = published
     strains = [label for label in columns if not zm.is_control_column(label)]
     if (len(screen), len(strains)) != (drugs, strain_columns):
-        raise SystemExit(
+        raise MalformedInput(
             f"the screen is {len(screen)} drugs x {len(strains)} strain columns "
             f"(plus {len(columns) - len(strains)} controls), not "
             f"{drugs} x {strain_columns}. Every published number this loader "
@@ -440,7 +440,7 @@ def check_headline(
         )
     )
     if metabolised != headline:
-        raise SystemExit(
+        raise MalformedInput(
             f"the call rule makes {metabolised} of {len(screen)} drugs "
             f"metabolised by at least one strain; {headline} was published. "
             f"The rule is derived, not stated: re-derive it before writing, "

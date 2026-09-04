@@ -62,7 +62,7 @@ from typing import NamedTuple
 
 from microbiomekg.fragments import FRAGMENTS_DIR, compose
 from microbiomekg.ontology.kegg import BUILD_FLAG as KEGG_BUILD_FLAG
-from microbiomekg.rawdata import MissingInput
+from microbiomekg.rawdata import MalformedInput, MissingInput
 from microbiomekg.tables import Frames, declared_types
 
 #: The preps ship inside the package; one module per source.
@@ -250,18 +250,31 @@ def prep_options(source: str, scope: str, gates: frozenset[str]) -> dict:
 
 def run_prep(
     source: str, raw: Path, store: Frames, *, scope: str, gates: frozenset[str]
-) -> bool:
-    """Run one source's prep into ``store``; ``False`` when it was skipped."""
+) -> str | None:
+    """Run one source's prep into ``store``; the reason when it was skipped,
+    ``None`` when it ran.
+
+    Two things skip a source and nothing else does: its raw input is absent
+    (or not opted into), or it is present and not the shape the prep reads —
+    :class:`MalformedInput`, a subclass, reported apart because the fix is
+    different. Any other exception is a defect in the prep and propagates.
+    """
     print(f"\n=== prep_{source}", flush=True)
     try:
         prep_module(source).run(raw, store, **prep_options(source, scope, gates))
+    except MalformedInput as bad:
+        print(str(bad), file=sys.stderr)
+        print(
+            f"    ... {source}: raw input present but malformed, skipping this source"
+        )
+        return str(bad)
     except MissingInput as absent:
         print(str(absent), file=sys.stderr)
         print(
             f"    ... {source}: raw input absent or not opted into, skipping this source"
         )
-        return False
-    return True
+        return str(absent)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -506,13 +519,14 @@ class BuildReport:
 @dataclass
 class BuildResult:
     """What a build produced. ``graph`` is ``None`` when nothing loaded — the
-    empty-directory case — and then ``skipped`` names every source. ``store``
-    holds every table the preps produced, ledgers included."""
+    empty-directory case — and then ``skipped`` names every source, each with
+    the reason its prep gave. ``store`` holds every table the preps produced,
+    ledgers included."""
 
     graph: object | None
     report: BuildReport | None
     loaded: list[str]
-    skipped: list[str]
+    skipped: dict[str, str]
     out: Path | None
     taxonomy_only: bool = False
     store: Frames = field(default_factory=Frames)
@@ -726,11 +740,12 @@ def prepare(
     scope: str = "microbial",
     gates: frozenset[str] = frozenset(),
     store: Frames | None = None,
-) -> tuple[Frames, list[str], list[str]]:
+) -> tuple[Frames, list[str], dict[str, str]]:
     """The prep half of a build: every prep into ``store``, in declared order.
 
     Returns ``(store, loaded, skipped)`` — the sources whose declared tables
-    are all in the store, and the sources whose prep skipped. ``loaded`` is
+    are all in the store, and the sources whose prep skipped, each with the
+    reason its prep gave (absent, malformed, not opted into). ``loaded`` is
     empty when only the taxonomy ran, and the store has no ``taxon`` table
     when nothing at all did. Split from :func:`build` so a caller that wants
     the load on its own — the bench harness times it apart from the preps —
@@ -742,11 +757,12 @@ def prepare(
     sources = [
         p.stem.removeprefix("prep_") for p in preps if p.name != "prep_taxonomy.py"
     ]
-    skipped: list[str] = []
+    skipped: dict[str, str] = {}
     for prep in preps:
         source = prep.stem.removeprefix("prep_")
-        if not run_prep(source, raw, store, scope=scope, gates=gates):
-            skipped.append(source)
+        reason = run_prep(source, raw, store, scope=scope, gates=gates)
+        if reason is not None:
+            skipped[source] = reason
     if "taxon" not in store:
         return store, [], skipped
 
@@ -883,10 +899,11 @@ def census_path(out: Path) -> Path:
 
 
 def write_census(
-    out: Path, store: Frames, loaded: list[str], skipped: list[str]
+    out: Path, store: Frames, loaded: list[str], skipped: dict[str, str]
 ) -> Path:
     """The record of what went into a saved graph: the sources loaded and
-    skipped, every table's row count, and the engine that loaded it.
+    skipped (with each skip's reason), every table's row count, and the
+    engine that loaded it.
 
     Nothing between a prep and the graph is kept, so this is what a reader —
     the acceptance suite's rows-to-edges family, a bench comparison, a person
@@ -903,6 +920,7 @@ def write_census(
                 "kglite": kglite.__version__,
                 "sources": list(loaded),
                 "skipped": list(skipped),
+                "skip_reasons": dict(skipped),
                 "tables": {name: len(store.rows(name)) for name in store.names()},
             },
             indent=1,

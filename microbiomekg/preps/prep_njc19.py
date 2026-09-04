@@ -58,7 +58,7 @@ from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.ontology import njc19 as nj
-from microbiomekg.rawdata import MissingInput, find_taxdump
+from microbiomekg.rawdata import MalformedInput, MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
 from microbiomekg.tables import Frames, as_list
 
@@ -150,7 +150,7 @@ def read_table(path: Path) -> list[tuple]:
 
     book = openpyxl.load_workbook(path, read_only=True, data_only=True)
     if SHEET not in book.sheetnames:
-        raise SystemExit(
+        raise MalformedInput(
             f"{path} has no sheet named {SHEET!r} (found {', '.join(book.sheetnames)})"
         )
     rows = list(book[SHEET].iter_rows(values_only=True))
@@ -158,7 +158,7 @@ def read_table(path: Path) -> list[tuple]:
     for i, row in enumerate(rows):
         if any(isinstance(c, str) and c.strip() == HEADER_CELL for c in row):
             return [r for r in rows[i + 1 :] if any(c is not None for c in r)]
-    raise SystemExit(f"{path}: no header row containing {HEADER_CELL!r}")
+    raise MalformedInput(f"{path}: no header row containing {HEADER_CELL!r}")
 
 
 def load_metabolite_names(rows: list[dict[str, str]]) -> dict[str, str]:

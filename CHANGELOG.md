@@ -60,6 +60,14 @@ changes and formatting do not get entries. Nothing has been released yet:
   MCP prose.
 
 ### Fixed
+- **A malformed raw file skips its source instead of ending the build.** The
+  workbook preps (Maier 2018, Zimmermann 2019, NJC19) raised `SystemExit`
+  when a sheet or header row was not where the paper put it, or when a rule
+  derived from the file stopped reproducing the paper's own numbers; the
+  build caught none of it, so one renamed header ended a multi-minute build
+  with no report and no census. They raise `MalformedInput` now, the build
+  reports the source as present-but-malformed beside the absent ones, and
+  `<graph>.build.json` carries every skip's reason under `skip_reasons`.
 - Ten preps reported a missing NCBI taxdump through argparse (exit 2), which
   the build reads as fatal; every prep now exits 3, the skip code.
 - A relative `--csv` loaded the ontology from a doubled path; the build

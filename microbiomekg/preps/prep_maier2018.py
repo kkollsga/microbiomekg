@@ -66,7 +66,7 @@ from pathlib import Path
 from microbiomekg import ontology as ont
 from microbiomekg.drugs import DrugIndex, atc_level5, join_drug
 from microbiomekg.ontology import maier2018 as mz
-from microbiomekg.rawdata import MissingInput, find_taxdump
+from microbiomekg.rawdata import MalformedInput, MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
 from microbiomekg.tables import Frames, as_list
 
@@ -186,7 +186,7 @@ def sheet_rows(path: Path, sheet: str) -> list[tuple]:
     book = openpyxl.load_workbook(path, data_only=True)
     try:
         if sheet not in book.sheetnames:
-            raise SystemExit(
+            raise MalformedInput(
                 f"{path} has no sheet named {sheet!r} "
                 f"(found {', '.join(book.sheetnames)})"
             )
@@ -242,7 +242,9 @@ def read_species(path: Path) -> dict[str, dict]:
         None,
     )
     if start is None:
-        raise SystemExit(f"{path}: no header row containing {SPECIES_HEADER_CELL!r}")
+        raise MalformedInput(
+            f"{path}: no header row containing {SPECIES_HEADER_CELL!r}"
+        )
     header = [str(c or "").strip() for c in rows[start]]
     out: dict[str, dict] = {}
     for row in rows[start + 1 :]:
@@ -288,7 +290,7 @@ def read_screen(path: Path) -> tuple[list[str], list[dict]]:
     codes = [mz.nt_code_of(c) for c in header]
     species_at = [i for i, code in enumerate(codes) if code]
     if not species_at:
-        raise SystemExit(f"{path}: no column header names an NT code")
+        raise MalformedInput(f"{path}: no column header names an NT code")
     index = {name: i for i, name in enumerate(header)}
     out: list[dict] = []
     for row in rows[1:]:
@@ -324,7 +326,7 @@ def check_threshold(screen: list[dict]) -> int:
         != int(row["n_hit"])
     ]
     if mismatched:
-        raise SystemExit(
+        raise MalformedInput(
             f"HIT_THRESHOLD {mz.HIT_THRESHOLD} does not reproduce the sheet's own "
             f"n_hit on {len(mismatched)} of {len(screen)} drugs "
             f"(e.g. {', '.join(mismatched[:5])}). The threshold is derived, not "
