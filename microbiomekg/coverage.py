@@ -112,10 +112,12 @@ class Resolved:
 
 
 def read_hmdad(path: Path) -> list[Reference]:
-    """HMDAD's ``data_download.txt``: ``Disease, Microbe, Position, Evidence,
-    PMID``, tab-separated, 483 rows of which 450 are distinct on
-    ``(disease, microbe, direction)``. ``Evidence`` is ``Increase`` /
-    ``Decrease``."""
+    """HMDAD's ``data_download.txt``, tab-separated.
+
+    Columns ``Disease, Microbe, Position, Evidence, PMID``; 483 rows of which
+    450 are distinct on ``(disease, microbe, direction)``. ``Evidence`` is
+    ``Increase`` / ``Decrease``.
+    """
     out: dict[tuple[str, str, str | None], Reference] = {}
     with Path(path).open(encoding="utf-8", newline="") as fh:
         for row in csv.DictReader(fh, delimiter="\t"):
@@ -131,9 +133,11 @@ def read_hmdad(path: Path) -> list[Reference]:
 
 
 def read_peryton(path: Path) -> list[Reference]:
-    """Peryton's ``/api/associations`` export (one JSON list, 7,977 rows),
-    kept to the rows whose comparator is ``Healthy Controls`` and de-duplicated
-    on ``(tax_id, MeSH id, direction)``."""
+    """Peryton's ``/api/associations`` export, one JSON list of 7,977 rows.
+
+    Kept to the rows whose comparator is ``Healthy Controls`` and
+    de-duplicated on ``(tax_id, MeSH id, direction)``.
+    """
     rows = json.loads(Path(path).read_text(encoding="utf-8"))
     out: dict[tuple, Reference] = {}
     for row in rows:
