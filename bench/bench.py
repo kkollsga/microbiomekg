@@ -524,7 +524,7 @@ class RSSSampler(threading.Thread):
 #: them as they arrive segments the whole build from one run, rather than
 #: re-running each prep separately and paying for the build twice.
 BUILD_MARKERS = (
-    (re.compile(r"^=== (prep_\w+\.py)"), "prep"),
+    (re.compile(r"^=== (prep_\w+)"), "prep"),
     (re.compile(r"^=== blueprint <-"), "blueprint"),
     (re.compile(r"^=== ontology ->"), "ontology"),
     (re.compile(r"^=== from_blueprint"), "from_blueprint"),
@@ -648,7 +648,10 @@ def table_census(log: Path) -> dict[str, Any]:
     block — the store's own census, since nothing is written to disk."""
     per_table: dict[str, int] = {}
     in_block = False
-    for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+    for raw_line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+        # The log is timestamped per line (`run_build` prefixes the seconds);
+        # the build's own text starts after that prefix.
+        line = re.sub(r"^\s*\d+\.\d+ ", "", raw_line)
         if line.startswith("--- tables"):
             in_block = True
             continue

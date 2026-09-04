@@ -98,12 +98,12 @@ check-data-bounds:
 	@echo "== [3/6] data + artifact bounds (R4) =="
 	@fail=0; \
 	if [ -d data/raw ]; then \
-		echo "  data/raw/         $$(du -sh data/raw | cut -f1)  operator-owned, never pruned automatically"; \
+		echo "  data/raw/         $$(du -shL data/raw | cut -f1)  operator-owned, never pruned automatically"; \
 	fi; \
 	for pair in "graph:$(GRAPH_MAX_MB)" "bench/results:$(BENCH_RESULTS_MAX_MB)"; do \
 		d=$${pair%%:*}; cap=$${pair##*:}; \
 		[ -d "$$d" ] || continue; \
-		mb=$$(du -sm "$$d" | cut -f1); \
+		mb=$$(du -sLm "$$d" | cut -f1); \
 		if [ "$${mb:-0}" -ge "$$cap" ]; then \
 			echo "  FAIL: $$d/ is $${mb} MB (>= $${cap} MB)"; \
 			du -sm "$$d"/* 2>/dev/null | sort -rn | head -5 | sed 's/^/      /'; \

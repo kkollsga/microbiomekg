@@ -9,9 +9,9 @@ deduplicated parallel edges, and every number below exists because a plausible
 non-empty answer was wrong.
 
 Unlike ``tests/test_build.py``, which builds a 43-row fixture, this module
-needs the **real** ``data/csv/`` — the goldens are measurements of the full
-BugSigDB dump. It skips, naming the command that produces them, when those
-CSVs are not on this machine.
+needs the **real** shipped graph and its build census — the goldens are
+measurements of the full BugSigDB dump. It skips, naming the command that
+produces them, when they are not on this machine.
 
 The goldens are re-measured whenever a source lands: they are properties of the
 loaded data, not of the code, and a new source moving them is the expected
@@ -131,7 +131,7 @@ D14_TOP_TAXA = {
 
 @pytest.fixture(scope="session")
 def graph():
-    """The real graph, built once from ``data/csv/`` — at the default chunk size.
+    """The real graph the build saved — loaded at the default chunk size.
 
     Deliberately not raising ``KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE``. Until
     kglite 0.16.22 the junction loader deduplicated parallel edges from the
@@ -1414,7 +1414,7 @@ def metabolite_graph(graph):
     """
     if not rows(graph, "MATCH (m:Metabolite) RETURN m LIMIT 1"):
         pytest.skip(
-            "no Metabolite nodes in data/csv — run "
+            "no Metabolite nodes in this build — run "
             "`.venv/bin/python scripts/build.py --scope microbial` with "
             "data/raw/hmdb/hmdb_metabolites.xml present"
         )
