@@ -2050,8 +2050,11 @@ path), loads it with `frames=` — the store typed once for the loader
 (`Frames.typed`: an all-digit column is an integer column, a declared `list`
 column is the list itself) — builds §6's five BM25 indexes, prints the counts,
 the audit and G10's expansion factor for every declared relationship, and
-saves `graph/microbiomekg.kgl`. Nothing is written between a prep and the
-graph.
+saves `graph/microbiomekg.kgl` beside a `microbiomekg.build.json` census —
+the sources loaded and skipped, every table's row count, the engine version.
+Nothing is written between a prep and the graph; the census is what a reader
+has instead of a directory of CSVs, and it is what the acceptance suite's
+rows-to-edges family reads.
 
 Two of those are answers to defects rather than choices. The **order** is
 declared because name order silently loaded `IS_DRUG` with zero edges. And the

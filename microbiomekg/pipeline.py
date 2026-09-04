@@ -870,10 +870,49 @@ def build(
     if save:
         out.parent.mkdir(parents=True, exist_ok=True)
         graph.save(str(out))
-        print(f"\nsaved {out} ({out.stat().st_size / 1e6:.1f} MB)")
+        census = write_census(out, store, loaded, skipped)
+        print(
+            f"\nsaved {out} ({out.stat().st_size / 1e6:.1f} MB), census {census.name}"
+        )
     return BuildResult(
         graph, measured, loaded, skipped, out if save else None, not loaded, store
     )
+
+
+def census_path(out: Path) -> Path:
+    """``<graph>.build.json`` beside a saved graph."""
+    return Path(out).with_suffix(".build.json")
+
+
+def write_census(
+    out: Path, store: Frames, loaded: list[str], skipped: list[str]
+) -> Path:
+    """The record of what went into a saved graph: the sources loaded and
+    skipped, every table's row count, and the engine that loaded it.
+
+    Nothing between a prep and the graph is kept, so this is what a reader —
+    the acceptance suite's rows-to-edges family, a bench comparison, a person
+    asking "what was this built from" — has instead of a directory of CSVs.
+    """
+    import kglite
+
+    path = census_path(out)
+    path.write_text(
+        json.dumps(
+            {
+                "graph": out.name,
+                "built": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                "kglite": kglite.__version__,
+                "sources": list(loaded),
+                "skipped": list(skipped),
+                "tables": {name: len(store.rows(name)) for name in store.names()},
+            },
+            indent=1,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def main(argv: list[str] | None = None) -> int:

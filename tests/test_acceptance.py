@@ -20,7 +20,6 @@ outcome, not a regression. Each block says which build it was measured on.
 
 from __future__ import annotations
 
-import csv
 import json
 from pathlib import Path
 
@@ -29,12 +28,13 @@ import pytest
 kglite = pytest.importorskip("kglite")
 
 ROOT = Path(__file__).resolve().parents[1]
-CSV_DIR = ROOT / "data" / "csv"
 GRAPH = ROOT / "graph" / "microbiomekg.kgl"
+#: What the build put in: written beside the graph by the build itself.
+CENSUS = GRAPH.with_suffix(".build.json")
 BLUEPRINT = ROOT / "blueprint.json"
 
 #: Files without which there is nothing to assert against.
-REQUIRED_CSVS = ("signature.csv", "taxon.csv", "taxon_condition.csv", "disease.csv")
+REQUIRED_TABLES = ("signature", "taxon", "taxon_condition", "disease")
 
 #: The sources these goldens were measured over. A build missing one of them is
 #: not a failure of this module — it is a different build — so the fixture
@@ -141,19 +141,21 @@ def graph():
     return of that defect now shows up here — and in
     ``test_every_association_row_became_an_edge`` — rather than being masked.
     """
-    missing = [name for name in REQUIRED_CSVS if not (CSV_DIR / name).is_file()]
-    if missing:
+    if not CENSUS.is_file():
         pytest.skip(
-            f"no built CSVs at {CSV_DIR} (missing {', '.join(missing)}) — "
+            f"no build census at {CENSUS} — "
             f"run `.venv/bin/python scripts/build.py --scope microbial` first"
         )
+    census = json.loads(CENSUS.read_text(encoding="utf-8"))
+    missing = [name for name in REQUIRED_TABLES if name not in census["tables"]]
+    if missing:
+        pytest.skip(f"the build census lacks {', '.join(missing)} — a partial build")
     if not BLUEPRINT.is_file():
         pytest.skip("blueprint.json does not exist yet")
-    with (CSV_DIR / "taxon_condition.csv").open(encoding="utf-8", newline="") as fh:
-        loaded = {row["primary_source"] for row in csv.DictReader(fh)}
+    loaded = set(census["sources"])
     if not REQUIRED_SOURCES <= loaded:
         pytest.skip(
-            f"the built CSVs carry {sorted(loaded)}; these goldens were measured "
+            f"the build loaded {sorted(loaded)}; these goldens were measured "
             f"over {sorted(REQUIRED_SOURCES)} — a build that skipped a source "
             f"whose raw files are absent is a different build, not a regression"
         )
@@ -182,19 +184,13 @@ def one(graph, query: str) -> dict:
 
 
 def junction_edges() -> dict[str, list[str]]:
-    """``relationship -> the junction CSV(s) blueprint.json loads it from``."""
+    """``relationship -> the junction table(s) blueprint.json loads it from``."""
     blueprint = json.loads(BLUEPRINT.read_text())
     tables: dict[str, list[str]] = {}
     for spec in blueprint.get("nodes", {}).values():
         for rel, edge in spec.get("connections", {}).get("junction_edges", {}).items():
-            tables.setdefault(rel, []).append(f"{edge['file']}.csv")
+            tables.setdefault(rel, []).append(edge["file"])
     return tables
-
-
-def logical_rows(path: Path) -> int:
-    """Data rows, read as CSV — six of these tables carry quoted newlines."""
-    with path.open(encoding="utf-8", newline="") as fh:
-        return sum(1 for _ in csv.reader(fh)) - 1
 
 
 @pytest.mark.parametrize("relationship", sorted(junction_edges()))
@@ -213,11 +209,12 @@ def test_every_junction_row_became_an_edge(graph, relationship):
     a stub rather than dropping the row — so the equality holds for all of
     them, not only the association tables.
     """
-    tables = [CSV_DIR / name for name in junction_edges()[relationship]]
-    missing = [p.name for p in tables if not p.is_file()]
+    census = json.loads(CENSUS.read_text(encoding="utf-8"))["tables"]
+    tables = junction_edges()[relationship]
+    missing = [name for name in tables if name not in census]
     if missing:
         pytest.skip(f"{relationship} is loaded from {missing}, not in this build")
-    rows_in = sum(logical_rows(p) for p in tables)
+    rows_in = sum(census[name] for name in tables)
     edges = one(graph, f"MATCH ()-[r:{relationship}]->() RETURN count(r) AS n")["n"]
     assert edges == rows_in, (
         f"{relationship}: {rows_in:,} rows in "
@@ -1127,10 +1124,10 @@ CHEMBL_GOLDEN = {
 @pytest.fixture(scope="session")
 def chembl_graph(graph):
     """The same graph, skipped when the build did not include ChEMBL."""
-    if not (CSV_DIR / "drug.csv").is_file():
+    if "chembl" not in json.loads(CENSUS.read_text(encoding="utf-8"))["sources"]:
         pytest.skip(
-            "no drug.csv in the built CSVs — this build did not load ChEMBL, "
-            "which is a different build rather than a regression"
+            "this build did not load ChEMBL, which is a different build rather "
+            "than a regression"
         )
     return graph
 

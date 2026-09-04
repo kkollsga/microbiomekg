@@ -362,6 +362,8 @@ def both_builds(tmp_path_factory, fixture_raw) -> dict[str, tuple[Path, str]]:
                 with_vectors=with_vectors,
             )
         assert kgl.is_file()
+        census = json.loads(pipeline.census_path(kgl).read_text())
+        assert census["sources"] == ["bugsigdb"] and census["tables"]["signature"] == 43
         built[name] = (kgl, buffer.getvalue())
     return built
 
