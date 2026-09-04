@@ -25,12 +25,11 @@ that records it is
 from __future__ import annotations
 
 import csv
-import json
 from pathlib import Path
 
 import pytest
 
-from prep_support import run_prep
+from prep_support import load_from_csv_dir, run_prep
 
 from conftest import TAXDUMP_MINI
 
@@ -133,22 +132,8 @@ def built(tmp_path_factory):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    from microbiomekg.fragments import compose
-
-    from microbiomekg.ontology import ontology_for, write_json
-
     sources = [SOURCE, "reactome"]
-    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
-    settings = blueprint.setdefault("settings", {})
-    settings["root"] = str(csv_dir)
-    for key in ("output", "output_path", "output_file"):
-        settings.pop(key, None)
-    write_json(csv_dir / "ontology.json", ontology_for(sources))
-    blueprint["ontology"] = str(csv_dir / "ontology.json")
-    local = csv_dir / "blueprint.test.json"
-    local.write_text(json.dumps(blueprint))
-
-    return kglite.from_blueprint(local, verbose=False, save=False), csv_dir, prep.stdout
+    return load_from_csv_dir(csv_dir, sources), csv_dir, prep.stdout
 
 
 @pytest.fixture(scope="module")

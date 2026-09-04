@@ -1,8 +1,20 @@
 {
   "_doc": "Reactome (five headerless TSVs, CC0): the Pathway node, the PART_OF_PATHWAY hierarchy and the Metabolite-[:IN_PATHWAY]->Pathway edge joined to HMDB's chebi_id. The hierarchy is a DAG (388 children have more than one parent), so no cardinality cap is declared on it. IN_PATHWAY is declared under Metabolite as an addition to blueprints/hmdb.json's node, and blueprints/kegg.json declares the same junction because both sources write rows into one CSV — one relationship, one file, two contributors. NCBI2Reactome is NCBI *Gene*, not taxonomy, and is not loaded.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "metabolite_pathway": {
+      "format": "frame"
+    },
+    "pathway": {
+      "format": "frame"
+    },
+    "pathway_pathway": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Pathway": {
-      "csv": "pathway.csv",
+      "file": "pathway",
       "pk": "pathway_id",
       "title": "name",
       "properties": {
@@ -15,7 +27,7 @@
       "connections": {
         "junction_edges": {
           "PART_OF_PATHWAY": {
-            "csv": "pathway_pathway.csv",
+            "file": "pathway_pathway",
             "source_fk": "pathway_id",
             "target": "Pathway",
             "target_fk": "parent_pathway_id",
@@ -37,7 +49,7 @@
       "connections": {
         "junction_edges": {
           "IN_PATHWAY": {
-            "csv": "metabolite_pathway.csv",
+            "file": "metabolite_pathway",
             "source_fk": "metabolite_id",
             "target": "Pathway",
             "target_fk": "pathway_id",

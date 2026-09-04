@@ -1,8 +1,14 @@
 {
   "_doc": "MiMeDB v2.0 (mimedb_metabolites_v2.csv / mimedb_microbes_v2.csv, dumped 2025-10-08; CC BY-NC 4.0), with v1.0 as the fallback the loader reports on the node as mimedb_release: Metabolite nodes and NOTHING ELSE. Every bulk download is one MySQL table and the join between them is in none of them - zero MMDBm ids in the metabolites dump (CSV and XML), zero MMDBc ids in the microbes dump, in v1 AND v2 - so this source cannot write the Taxon-[:PRODUCES]->Metabolite edge D5 is waiting for, and it declares no relationship rather than deriving one from the microbes table's compound-less `activity` column. v2's microbe_relations column is an integer COUNT of related microbes (830,984 summed over the file) naming none of them; it rides on the node as mimedb_microbe_relation_count, named so it cannot be read as an edge degree. What this source contributes is compound identity: the names that let NJC19's otherwise-unidentified exchange compounds reach a real node, plus the vmh_id / cmmc_inchikey / EPA DSSTox cross-references nothing else here carries. See microbiomekg/ontology/mimedb.py for the measurement and the identity traps in hmdb_id and cmmc_inchikey.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "metabolite": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Metabolite": {
-      "csv": "metabolite.csv",
+      "file": "metabolite",
       "pk": "metabolite_id",
       "title": "name",
       "properties": {

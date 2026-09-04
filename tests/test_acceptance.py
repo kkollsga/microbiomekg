@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import csv
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -31,6 +30,7 @@ kglite = pytest.importorskip("kglite")
 
 ROOT = Path(__file__).resolve().parents[1]
 CSV_DIR = ROOT / "data" / "csv"
+GRAPH = ROOT / "graph" / "microbiomekg.kgl"
 BLUEPRINT = ROOT / "blueprint.json"
 
 #: Files without which there is nothing to assert against.
@@ -158,19 +158,12 @@ def graph():
             f"whose raw files are absent is a different build, not a regression"
         )
 
-    from microbiomekg.ontology import write_json
-
-    work = Path(tempfile.mkdtemp(prefix="acceptance-"))
-    blueprint = json.loads(BLUEPRINT.read_text())
-    settings = blueprint.setdefault("settings", {})
-    settings["root"] = str(CSV_DIR)
-    for key in ("output", "output_path", "output_file"):
-        settings.pop(key, None)
-    write_json(work / "ontology.json")
-    blueprint["ontology"] = str(work / "ontology.json")
-    (work / "blueprint.json").write_text(json.dumps(blueprint))
-
-    return kglite.from_blueprint(work / "blueprint.json", verbose=False, save=False)
+    # The shipped graph itself, which is what the goldens describe and what
+    # the MCP server serves. The build loaded it at the default chunk size
+    # from the same tables the rows-to-edges family reads back below.
+    if not GRAPH.is_file():
+        pytest.skip(f"no graph at {GRAPH} — build it first")
+    return kglite.load(str(GRAPH))
 
 
 def rows(graph, query: str) -> list[dict]:
@@ -194,7 +187,7 @@ def junction_edges() -> dict[str, list[str]]:
     tables: dict[str, list[str]] = {}
     for spec in blueprint.get("nodes", {}).values():
         for rel, edge in spec.get("connections", {}).get("junction_edges", {}).items():
-            tables.setdefault(rel, []).append(edge["csv"])
+            tables.setdefault(rel, []).append(f"{edge['file']}.csv")
     return tables
 
 

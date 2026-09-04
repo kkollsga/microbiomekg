@@ -25,12 +25,11 @@ graph that looks right.
 from __future__ import annotations
 
 import csv
-import json
 from pathlib import Path
 
 import pytest
 
-from prep_support import run_prep
+from prep_support import load_from_csv_dir, run_prep
 
 from conftest import TAXDUMP_MINI
 
@@ -112,20 +111,7 @@ def prep_sources(csv_dir: Path, with_kegg: bool) -> str:
 
 
 def load(csv_dir: Path, sources: list[str]):
-    from microbiomekg.fragments import compose
-
-    from microbiomekg.ontology import ontology_for, write_json
-
-    blueprint = compose(ROOT / "microbiomekg" / "blueprints", sources)
-    settings = blueprint.setdefault("settings", {})
-    settings["root"] = str(csv_dir)
-    for key in ("output", "output_path", "output_file"):
-        settings.pop(key, None)
-    write_json(csv_dir / "ontology.json", ontology_for(sources))
-    blueprint["ontology"] = str(csv_dir / "ontology.json")
-    local = csv_dir / "blueprint.test.json"
-    local.write_text(json.dumps(blueprint))
-    return kglite.from_blueprint(local, verbose=False, save=False)
+    return load_from_csv_dir(csv_dir, sources)
 
 
 @pytest.fixture(scope="module")

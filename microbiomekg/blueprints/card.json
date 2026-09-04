@@ -1,8 +1,29 @@
 {
   "_doc": "CARD 4.0.2 (card-data/card.json as the model authority, card-ontology/aro.obo for names and hierarchy): the ResistanceGene / DrugClass / ResistanceMechanism nodes and the three edges D7 walks. CARD curates no taxon-disease association, so this fragment adds nothing to core.json's taxon_condition.csv; what it adds under Taxon is CARRIES_RESISTANCE_GENE, whose taxid is the *reference sequence's* organism and says so on the edge (sequence_derived, taxon_scope, taxon_specificity). Licence is per edge, not per source: a fact aro.obo also states is CC-BY-4.0, a fact only card.json states is CARD-noncommercial.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "drug_class": {
+      "format": "frame"
+    },
+    "resistance_gene": {
+      "format": "frame"
+    },
+    "resistance_gene_drug_class": {
+      "format": "frame"
+    },
+    "resistance_gene_mechanism": {
+      "format": "frame"
+    },
+    "resistance_mechanism": {
+      "format": "frame"
+    },
+    "taxon_resistance_gene": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "ResistanceGene": {
-      "csv": "resistance_gene.csv",
+      "file": "resistance_gene",
       "pk": "aro_id",
       "title": "name",
       "properties": {
@@ -26,7 +47,7 @@
       "connections": {
         "junction_edges": {
           "CONFERS_RESISTANCE_TO": {
-            "csv": "resistance_gene_drug_class.csv",
+            "file": "resistance_gene_drug_class",
             "source_fk": "aro_id",
             "target": "DrugClass",
             "target_fk": "drug_class_id",
@@ -62,7 +83,7 @@
             }
           },
           "VIA_MECHANISM": {
-            "csv": "resistance_gene_mechanism.csv",
+            "file": "resistance_gene_mechanism",
             "source_fk": "aro_id",
             "target": "ResistanceMechanism",
             "target_fk": "mechanism_id",
@@ -101,7 +122,7 @@
       }
     },
     "DrugClass": {
-      "csv": "drug_class.csv",
+      "file": "drug_class",
       "pk": "drug_class_id",
       "title": "label",
       "properties": {
@@ -112,7 +133,7 @@
       }
     },
     "ResistanceMechanism": {
-      "csv": "resistance_mechanism.csv",
+      "file": "resistance_mechanism",
       "pk": "mechanism_id",
       "title": "label",
       "properties": {
@@ -126,7 +147,7 @@
       "connections": {
         "junction_edges": {
           "CARRIES_RESISTANCE_GENE": {
-            "csv": "taxon_resistance_gene.csv",
+            "file": "taxon_resistance_gene",
             "source_fk": "tax_id",
             "target": "ResistanceGene",
             "target_fk": "aro_id",

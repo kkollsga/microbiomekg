@@ -1,8 +1,26 @@
 {
-  "_doc": "ChEMBL 37 (mechanism.jsonl + molecule_max_phase4.jsonl + target.jsonl): the Drug and ProteinTarget nodes, the HAS_MECHANISM edge between them, the OF_ORGANISM edge that carries a target onto an NCBI Taxon \u2014 the one field in ChEMBL that touches a microbe, and what makes D8 partially answerable while MASI is pending \u2014 and IS_DRUG, which makes the Intervention nodes gutMDisorder mints from DrugBank ids reachable from a ChEMBL id. Drug is keyed on the PARENT molecule, so a salt form is the same drug: 1,626 mechanism rows name a salt and keying on molecule_chembl_id would split those drugs in half. The Intervention entry declares connections only \u2014 gutMDisorder owns that node's table, the way core.json owns Taxon's.",
+  "_doc": "ChEMBL 37 (mechanism.jsonl + molecule_max_phase4.jsonl + target.jsonl): the Drug and ProteinTarget nodes, the HAS_MECHANISM edge between them, the OF_ORGANISM edge that carries a target onto an NCBI Taxon — the one field in ChEMBL that touches a microbe, and what makes D8 partially answerable while MASI is pending — and IS_DRUG, which makes the Intervention nodes gutMDisorder mints from DrugBank ids reachable from a ChEMBL id. Drug is keyed on the PARENT molecule, so a salt form is the same drug: 1,626 mechanism rows name a salt and keying on molecule_chembl_id would split those drugs in half. The Intervention entry declares connections only — gutMDisorder owns that node's table, the way core.json owns Taxon's.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "drug": {
+      "format": "frame"
+    },
+    "drug_target": {
+      "format": "frame"
+    },
+    "intervention_drug": {
+      "format": "frame"
+    },
+    "protein_target": {
+      "format": "frame"
+    },
+    "protein_target_taxon": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Drug": {
-      "csv": "drug.csv",
+      "file": "drug",
       "pk": "drug_id",
       "title": "pref_name",
       "properties": {
@@ -28,7 +46,7 @@
       "connections": {
         "junction_edges": {
           "HAS_MECHANISM": {
-            "csv": "drug_target.csv",
+            "file": "drug_target",
             "source_fk": "drug_id",
             "target": "ProteinTarget",
             "target_fk": "target_id",
@@ -77,7 +95,7 @@
       }
     },
     "ProteinTarget": {
-      "csv": "protein_target.csv",
+      "file": "protein_target",
       "pk": "target_id",
       "title": "pref_name",
       "properties": {
@@ -96,7 +114,7 @@
       "connections": {
         "junction_edges": {
           "OF_ORGANISM": {
-            "csv": "protein_target_taxon.csv",
+            "file": "protein_target_taxon",
             "source_fk": "target_id",
             "target": "Taxon",
             "target_fk": "tax_id",
@@ -122,7 +140,7 @@
       "connections": {
         "junction_edges": {
           "IS_DRUG": {
-            "csv": "intervention_drug.csv",
+            "file": "intervention_drug",
             "source_fk": "intervention_id",
             "target": "Drug",
             "target_fk": "drug_id",

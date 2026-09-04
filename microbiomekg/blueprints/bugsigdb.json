@@ -1,8 +1,29 @@
 {
   "_doc": "BugSigDB: the Signature node (the taxon SET, which a flattened model would destroy and D1's enrichment needs), the body sites, and the REPORTED_BY provenance edge from both Taxon and its UnresolvedTaxon tombstone. The association rows this source writes go into core.json's taxon_condition.csv, and IN_CONDITION spans the three condition types the same way ASSOCIATED_WITH does.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "bodysite": {
+      "format": "frame"
+    },
+    "signature": {
+      "format": "frame"
+    },
+    "signature_bodysite": {
+      "format": "frame"
+    },
+    "signature_condition": {
+      "format": "frame"
+    },
+    "taxon_signature": {
+      "format": "frame"
+    },
+    "unresolved_taxon_signature": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Signature": {
-      "csv": "signature.csv",
+      "file": "signature",
       "pk": "signature_id",
       "title": "description",
       "properties": {
@@ -45,7 +66,7 @@
         },
         "junction_edges": {
           "IN_CONDITION": {
-            "csv": "signature_condition.csv",
+            "file": "signature_condition",
             "source_fk": "signature_id",
             "target": [
               "Disease",
@@ -56,7 +77,7 @@
             "target_fk": "condition_id"
           },
           "AT_BODY_SITE": {
-            "csv": "signature_bodysite.csv",
+            "file": "signature_bodysite",
             "source_fk": "signature_id",
             "target": "BodySite",
             "target_fk": "bodysite_id"
@@ -65,7 +86,7 @@
       }
     },
     "BodySite": {
-      "csv": "bodysite.csv",
+      "file": "bodysite",
       "pk": "bodysite_id",
       "title": "label",
       "properties": {
@@ -78,7 +99,7 @@
       "connections": {
         "junction_edges": {
           "REPORTED_BY": {
-            "csv": "taxon_signature.csv",
+            "file": "taxon_signature",
             "source_fk": "tax_id",
             "target": "Signature",
             "target_fk": "signature_id",
@@ -112,7 +133,7 @@
       "connections": {
         "junction_edges": {
           "REPORTED_BY": {
-            "csv": "unresolved_taxon_signature.csv",
+            "file": "unresolved_taxon_signature",
             "source_fk": "unresolved_id",
             "target": "Signature",
             "target_fk": "signature_id",

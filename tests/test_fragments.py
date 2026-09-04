@@ -265,6 +265,27 @@ def test_the_spine_fragment_is_composed_first():
 # --------------------------------------------------------------------------
 
 
+def _as_csv(document: dict) -> dict:
+    """The document with every ``file`` reference spelled as a ``csv`` against
+    ``root`` — the loader then reports each absent file as an error line and
+    still runs the unknown-key scan, without a frame having to be supplied."""
+
+    def walk(value):
+        if isinstance(value, dict):
+            out = {}
+            for k, v in value.items():
+                if k == "file" and isinstance(v, str):
+                    out["csv"] = f"{v}.csv"
+                elif k != "files":
+                    out[k] = walk(v)
+            return out
+        if isinstance(value, list):
+            return [walk(v) for v in value]
+        return value
+
+    return walk(document)
+
+
 def _load_report(blueprint: dict, root: Path, tmp_path: Path, capfd) -> str:
     """Load ``blueprint`` against ``root`` and return the build report text.
 
@@ -279,7 +300,7 @@ def _load_report(blueprint: dict, root: Path, tmp_path: Path, capfd) -> str:
     """
     kglite = pytest.importorskip("kglite")
 
-    document = dict(blueprint)
+    document = _as_csv(dict(blueprint))
     settings = {
         k: v
         for k, v in (document.get("settings") or {}).items()
@@ -336,3 +357,69 @@ def test_the_unknown_key_gate_can_fail(tmp_path, capfd):
         "the loader no longer reports an unknown blueprint key, so the gate "
         f"above cannot fail:\n{report}"
     )
+
+
+def test_the_same_relationship_backed_by_two_inputs_is_an_error():
+    """The ``file`` spelling of the rule above: one relationship, one input."""
+    with pytest.raises(FragmentConflict):
+        merge_fragments(
+            [
+                (
+                    "a.json",
+                    {
+                        "nodes": {
+                            "Taxon": {
+                                "connections": {
+                                    "junction_edges": {
+                                        "ASSOCIATED_WITH": {"file": "taxon_condition"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                ),
+                (
+                    "b.json",
+                    {
+                        "nodes": {
+                            "Taxon": {
+                                "connections": {
+                                    "junction_edges": {
+                                        "ASSOCIATED_WITH": {"file": "taxon_association"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                ),
+            ]
+        )
+
+
+def test_every_input_a_spec_names_is_declared_in_the_files_section():
+    """A ``file`` reference names a ``files`` entry — the loader refuses one
+    that does not — and every entry is a frame: nothing on disk backs a table."""
+    from microbiomekg.fragments import compose
+    from microbiomekg.pipeline import input_name
+
+    composed = compose(FRAGMENTS)
+    referenced: set[str] = set()
+
+    def walk(value):
+        if isinstance(value, dict):
+            name = input_name(value)
+            if name:
+                referenced.add(name)
+            assert "csv" not in value, "a fragment still says csv"
+            for v in value.values():
+                walk(v)
+        elif isinstance(value, list):
+            for v in value:
+                walk(v)
+
+    walk(composed["nodes"])
+    assert referenced, "no spec names an input — vacuous"
+    assert referenced <= set(composed["files"]), sorted(
+        referenced - set(composed["files"])
+    )
+    assert all(entry == {"format": "frame"} for entry in composed["files"].values())

@@ -1,8 +1,17 @@
 {
-  "_doc": "HMDB 5.0 (hmdb_metabolites.xml, 2021-11-17): the Metabolite node and the Taxon-[:PRODUCES]->Metabolite edge, which is D5's whole answer until MiMeDB lands. Only a selected slice of the 217,920 metabolites is loaded \u2014 microbial-origin, or detected in feces, or carrying a ChEBI id Reactome has a pathway for \u2014 and `selection_rule` on the node says which of those kept it, so the rule is countable rather than described. The disease layer is deliberately not loaded: 20,020 of its 27,670 rows carry one disease name. PRODUCES carries its own contract rather than the fourteen-property association one, because a production claim has no direction, no assay and no cohort.",
+  "_doc": "HMDB 5.0 (hmdb_metabolites.xml, 2021-11-17): the Metabolite node and the Taxon-[:PRODUCES]->Metabolite edge, which is D5's whole answer until MiMeDB lands. Only a selected slice of the 217,920 metabolites is loaded — microbial-origin, or detected in feces, or carrying a ChEBI id Reactome has a pathway for — and `selection_rule` on the node says which of those kept it, so the rule is countable rather than described. The disease layer is deliberately not loaded: 20,020 of its 27,670 rows carry one disease name. PRODUCES carries its own contract rather than the fourteen-property association one, because a production claim has no direction, no assay and no cohort.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "metabolite": {
+      "format": "frame"
+    },
+    "taxon_metabolite": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Metabolite": {
-      "csv": "metabolite.csv",
+      "file": "metabolite",
       "pk": "metabolite_id",
       "title": "name",
       "properties": {
@@ -26,7 +35,7 @@
       "connections": {
         "junction_edges": {
           "PRODUCES": {
-            "csv": "taxon_metabolite.csv",
+            "file": "taxon_metabolite",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",

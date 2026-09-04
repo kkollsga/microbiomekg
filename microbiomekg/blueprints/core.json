@@ -1,13 +1,39 @@
 {
   "_doc": "The shared spine every source writes rows into: the taxon side of the graph (Taxon + HAS_PARENT + the UnresolvedTaxon tombstone), the three condition types the CURIE prefix routes to, Study/Paper, and the one ASSOCIATED_WITH junction edge that spans them. `target` is a list and `target_type_column` names the column holding each row's target type, so one relation is one relationship name over a union range (kglite 0.16.22; docs/model.md section 8). Disease/Phenotype/Exposure carry the secondary label `Condition`, so the ontology's abstract union class is matchable as `(:Condition)` without materialize_ontology() and without re-rooting the is_a forest. A source fragment adds to this; it only edits this file when it needs a genuinely new shared column.",
   "settings": {
-    "root": "./data/csv",
     "output": "graph/microbiomekg.kgl"
   },
   "ontology": "ontology.json",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "disease": {
+      "format": "frame"
+    },
+    "exposure": {
+      "format": "frame"
+    },
+    "paper": {
+      "format": "frame"
+    },
+    "phenotype": {
+      "format": "frame"
+    },
+    "study": {
+      "format": "frame"
+    },
+    "taxon": {
+      "format": "frame"
+    },
+    "taxon_condition": {
+      "format": "frame"
+    },
+    "unresolved_taxa": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Taxon": {
-      "csv": "taxon.csv",
+      "file": "taxon",
       "pk": "tax_id",
       "title": "scientific_name",
       "properties": {
@@ -42,7 +68,7 @@
         },
         "junction_edges": {
           "ASSOCIATED_WITH": {
-            "csv": "taxon_condition.csv",
+            "file": "taxon_condition",
             "source_fk": "tax_id",
             "target": [
               "Disease",
@@ -100,7 +126,7 @@
       }
     },
     "UnresolvedTaxon": {
-      "csv": "unresolved_taxa.csv",
+      "file": "unresolved_taxa",
       "pk": "unresolved_id",
       "title": "raw_name",
       "properties": {
@@ -116,7 +142,7 @@
       }
     },
     "Study": {
-      "csv": "study.csv",
+      "file": "study",
       "pk": "study_id",
       "title": "title",
       "properties": {
@@ -141,7 +167,7 @@
       }
     },
     "Paper": {
-      "csv": "paper.csv",
+      "file": "paper",
       "pk": "pmid",
       "title": "title",
       "properties": {
@@ -152,7 +178,7 @@
       }
     },
     "Disease": {
-      "csv": "disease.csv",
+      "file": "disease",
       "pk": "condition_id",
       "title": "label",
       "labels": [
@@ -168,7 +194,7 @@
       }
     },
     "Phenotype": {
-      "csv": "phenotype.csv",
+      "file": "phenotype",
       "pk": "condition_id",
       "title": "label",
       "labels": [
@@ -184,7 +210,7 @@
       }
     },
     "Exposure": {
-      "csv": "exposure.csv",
+      "file": "exposure",
       "pk": "condition_id",
       "title": "label",
       "labels": [

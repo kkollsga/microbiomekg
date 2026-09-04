@@ -454,7 +454,11 @@ def load_blueprint(blueprint: dict, store: Frames, ontology: Path) -> dict:
     ``graph.save(--out)``. The ontology document is named by absolute path.
     """
     document = json.loads(json.dumps(blueprint))
-    files: dict[str, dict] = dict(document.get("files", {}))
+    # Rebuilt from the references, not carried over: the composed document
+    # declares every table any fragment reads, and a table a pruned spec would
+    # have read must not stay declared with no frame behind it — the loader
+    # refuses a declared frame that was not passed.
+    files: dict[str, dict] = {}
 
     def rewrite(value) -> None:
         if isinstance(value, dict):
@@ -462,7 +466,7 @@ def load_blueprint(blueprint: dict, store: Frames, ontology: Path) -> dict:
             if name is not None:
                 value.pop("csv", None)
                 value["file"] = name
-                files.setdefault(name, {"format": "frame"})
+                files[name] = {"format": "frame"}
             for v in value.values():
                 rewrite(v)
         elif isinstance(value, list):

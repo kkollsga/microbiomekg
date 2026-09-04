@@ -75,3 +75,16 @@ def run_prep(script: Path, *args: str, expect: int = 0) -> subprocess.CompletedP
         module.run(raw, store, **opts)
     pipeline.export_csv(store, out)
     return subprocess.CompletedProcess([str(script), *args], 0, buffer.getvalue(), "")
+
+
+def load_from_csv_dir(csv_dir: Path, sources: list[str]):
+    """The graph for the CSVs a fixture's preps wrote, loaded through the
+    store the way the build loads — the fragments declare frames, so a
+    directory is read into a store first. Transitional, like :func:`run_prep`."""
+    from microbiomekg import pipeline
+    from microbiomekg.tables import Frames
+
+    store = Frames()
+    pipeline.ingest_csv(store, csv_dir)
+    graph, _ = pipeline.load_graph(store, list(sources), verbose=False)
+    return graph

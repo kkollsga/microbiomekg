@@ -181,9 +181,10 @@ def test_the_load_blueprint_declares_every_input_as_a_frame(tmp_path):
     ]
     assert junction["file"] == "taxon_condition"
     assert set(loaded["files"]) >= {"taxon", "taxon_condition", "disease", "paper"}
-    # The composed document is not mutated: it is also the checked-in
-    # blueprint.json, where `./data/csv` is correct.
-    assert composed["settings"]["root"] == "./data/csv"
+    # The composed document is not mutated, and declares no root: there is no
+    # directory a build reads, only the store.
+    assert "root" not in composed.get("settings", {})
+    assert set(composed["files"]) >= {"taxon", "taxon_condition", "disease", "paper"}
 
 
 def test_a_build_from_the_fixture_reports_the_fixture(fixture_raw, capsys):

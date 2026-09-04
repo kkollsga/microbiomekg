@@ -1,12 +1,145 @@
 {
   "settings": {
-    "root": "./data/csv",
     "output": "graph/microbiomekg.kgl"
   },
   "ontology": "ontology.json",
+  "files": {
+    "disease": {
+      "format": "frame"
+    },
+    "exposure": {
+      "format": "frame"
+    },
+    "paper": {
+      "format": "frame"
+    },
+    "phenotype": {
+      "format": "frame"
+    },
+    "study": {
+      "format": "frame"
+    },
+    "taxon": {
+      "format": "frame"
+    },
+    "taxon_condition": {
+      "format": "frame"
+    },
+    "unresolved_taxa": {
+      "format": "frame"
+    },
+    "bodysite": {
+      "format": "frame"
+    },
+    "signature": {
+      "format": "frame"
+    },
+    "signature_bodysite": {
+      "format": "frame"
+    },
+    "signature_condition": {
+      "format": "frame"
+    },
+    "taxon_signature": {
+      "format": "frame"
+    },
+    "unresolved_taxon_signature": {
+      "format": "frame"
+    },
+    "drug_class": {
+      "format": "frame"
+    },
+    "resistance_gene": {
+      "format": "frame"
+    },
+    "resistance_gene_drug_class": {
+      "format": "frame"
+    },
+    "resistance_gene_mechanism": {
+      "format": "frame"
+    },
+    "resistance_mechanism": {
+      "format": "frame"
+    },
+    "taxon_resistance_gene": {
+      "format": "frame"
+    },
+    "drug": {
+      "format": "frame"
+    },
+    "drug_target": {
+      "format": "frame"
+    },
+    "intervention_drug": {
+      "format": "frame"
+    },
+    "protein_target": {
+      "format": "frame"
+    },
+    "protein_target_taxon": {
+      "format": "frame"
+    },
+    "intervention": {
+      "format": "frame"
+    },
+    "taxon_intervention": {
+      "format": "frame"
+    },
+    "metabolite": {
+      "format": "frame"
+    },
+    "taxon_metabolite": {
+      "format": "frame"
+    },
+    "metabolite_pathway": {
+      "format": "frame"
+    },
+    "pathway": {
+      "format": "frame"
+    },
+    "drug_taxon_inhibited": {
+      "format": "frame"
+    },
+    "drug_taxon_no_effect": {
+      "format": "frame"
+    },
+    "substance": {
+      "format": "frame"
+    },
+    "taxon_substance_abundance": {
+      "format": "frame"
+    },
+    "taxon_substance_abundance_unchanged": {
+      "format": "frame"
+    },
+    "taxon_substance_metabolised": {
+      "format": "frame"
+    },
+    "taxon_substance_not_metabolised": {
+      "format": "frame"
+    },
+    "taxon_metabolite_absent": {
+      "format": "frame"
+    },
+    "taxon_metabolite_consumed": {
+      "format": "frame"
+    },
+    "taxon_metabolite_degraded": {
+      "format": "frame"
+    },
+    "pathway_pathway": {
+      "format": "frame"
+    },
+    "taxon_drug_metabolised": {
+      "format": "frame"
+    },
+    "taxon_drug_not_metabolised": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Taxon": {
-      "csv": "taxon.csv",
+      "file": "taxon",
       "pk": "tax_id",
       "title": "scientific_name",
       "properties": {
@@ -41,7 +174,7 @@
         },
         "junction_edges": {
           "ASSOCIATED_WITH": {
-            "csv": "taxon_condition.csv",
+            "file": "taxon_condition",
             "source_fk": "tax_id",
             "target": [
               "Disease",
@@ -132,7 +265,7 @@
             }
           },
           "REPORTED_BY": {
-            "csv": "taxon_signature.csv",
+            "file": "taxon_signature",
             "source_fk": "tax_id",
             "target": "Signature",
             "target_fk": "signature_id",
@@ -160,7 +293,7 @@
             }
           },
           "CARRIES_RESISTANCE_GENE": {
-            "csv": "taxon_resistance_gene.csv",
+            "file": "taxon_resistance_gene",
             "source_fk": "tax_id",
             "target": "ResistanceGene",
             "target_fk": "aro_id",
@@ -210,7 +343,7 @@
             }
           },
           "ABUNDANCE_CHANGED_BY": {
-            "csv": "taxon_intervention.csv",
+            "file": "taxon_intervention",
             "source_fk": "tax_id",
             "target": "Intervention",
             "target_fk": "intervention_id",
@@ -274,7 +407,7 @@
             }
           },
           "PRODUCES": {
-            "csv": "taxon_metabolite.csv",
+            "file": "taxon_metabolite",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -324,7 +457,7 @@
             }
           },
           "METABOLISES_SUBSTANCE": {
-            "csv": "taxon_substance_metabolised.csv",
+            "file": "taxon_substance_metabolised",
             "source_fk": "tax_id",
             "target": "Substance",
             "target_fk": "substance_id",
@@ -414,7 +547,7 @@
             }
           },
           "DOES_NOT_METABOLISE_SUBSTANCE": {
-            "csv": "taxon_substance_not_metabolised.csv",
+            "file": "taxon_substance_not_metabolised",
             "source_fk": "tax_id",
             "target": "Substance",
             "target_fk": "substance_id",
@@ -504,7 +637,7 @@
             }
           },
           "ABUNDANCE_CHANGED_BY_SUBSTANCE": {
-            "csv": "taxon_substance_abundance.csv",
+            "file": "taxon_substance_abundance",
             "source_fk": "tax_id",
             "target": "Substance",
             "target_fk": "substance_id",
@@ -594,7 +727,7 @@
             }
           },
           "ABUNDANCE_UNCHANGED_BY_SUBSTANCE": {
-            "csv": "taxon_substance_abundance_unchanged.csv",
+            "file": "taxon_substance_abundance_unchanged",
             "source_fk": "tax_id",
             "target": "Substance",
             "target_fk": "substance_id",
@@ -684,7 +817,7 @@
             }
           },
           "CONSUMES": {
-            "csv": "taxon_metabolite_consumed.csv",
+            "file": "taxon_metabolite_consumed",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -726,7 +859,7 @@
             }
           },
           "DEGRADES": {
-            "csv": "taxon_metabolite_degraded.csv",
+            "file": "taxon_metabolite_degraded",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -768,7 +901,7 @@
             }
           },
           "NO_EXCHANGE_WITH": {
-            "csv": "taxon_metabolite_absent.csv",
+            "file": "taxon_metabolite_absent",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -810,7 +943,7 @@
             }
           },
           "METABOLISES": {
-            "csv": "taxon_drug_metabolised.csv",
+            "file": "taxon_drug_metabolised",
             "source_fk": "tax_id",
             "target": "Drug",
             "target_fk": "drug_id",
@@ -890,7 +1023,7 @@
             }
           },
           "DOES_NOT_METABOLISE": {
-            "csv": "taxon_drug_not_metabolised.csv",
+            "file": "taxon_drug_not_metabolised",
             "source_fk": "tax_id",
             "target": "Drug",
             "target_fk": "drug_id",
@@ -973,7 +1106,7 @@
       }
     },
     "UnresolvedTaxon": {
-      "csv": "unresolved_taxa.csv",
+      "file": "unresolved_taxa",
       "pk": "unresolved_id",
       "title": "raw_name",
       "properties": {
@@ -990,7 +1123,7 @@
       "connections": {
         "junction_edges": {
           "REPORTED_BY": {
-            "csv": "unresolved_taxon_signature.csv",
+            "file": "unresolved_taxon_signature",
             "source_fk": "unresolved_id",
             "target": "Signature",
             "target_fk": "signature_id",
@@ -1021,7 +1154,7 @@
       }
     },
     "Study": {
-      "csv": "study.csv",
+      "file": "study",
       "pk": "study_id",
       "title": "title",
       "properties": {
@@ -1046,7 +1179,7 @@
       }
     },
     "Paper": {
-      "csv": "paper.csv",
+      "file": "paper",
       "pk": "pmid",
       "title": "title",
       "properties": {
@@ -1057,7 +1190,7 @@
       }
     },
     "Disease": {
-      "csv": "disease.csv",
+      "file": "disease",
       "pk": "condition_id",
       "title": "label",
       "labels": [
@@ -1073,7 +1206,7 @@
       }
     },
     "Phenotype": {
-      "csv": "phenotype.csv",
+      "file": "phenotype",
       "pk": "condition_id",
       "title": "label",
       "labels": [
@@ -1089,7 +1222,7 @@
       }
     },
     "Exposure": {
-      "csv": "exposure.csv",
+      "file": "exposure",
       "pk": "condition_id",
       "title": "label",
       "labels": [
@@ -1105,7 +1238,7 @@
       }
     },
     "Signature": {
-      "csv": "signature.csv",
+      "file": "signature",
       "pk": "signature_id",
       "title": "description",
       "properties": {
@@ -1148,7 +1281,7 @@
         },
         "junction_edges": {
           "IN_CONDITION": {
-            "csv": "signature_condition.csv",
+            "file": "signature_condition",
             "source_fk": "signature_id",
             "target": [
               "Disease",
@@ -1159,7 +1292,7 @@
             "target_fk": "condition_id"
           },
           "AT_BODY_SITE": {
-            "csv": "signature_bodysite.csv",
+            "file": "signature_bodysite",
             "source_fk": "signature_id",
             "target": "BodySite",
             "target_fk": "bodysite_id"
@@ -1168,7 +1301,7 @@
       }
     },
     "BodySite": {
-      "csv": "bodysite.csv",
+      "file": "bodysite",
       "pk": "bodysite_id",
       "title": "label",
       "properties": {
@@ -1178,7 +1311,7 @@
       }
     },
     "ResistanceGene": {
-      "csv": "resistance_gene.csv",
+      "file": "resistance_gene",
       "pk": "aro_id",
       "title": "name",
       "properties": {
@@ -1202,7 +1335,7 @@
       "connections": {
         "junction_edges": {
           "CONFERS_RESISTANCE_TO": {
-            "csv": "resistance_gene_drug_class.csv",
+            "file": "resistance_gene_drug_class",
             "source_fk": "aro_id",
             "target": "DrugClass",
             "target_fk": "drug_class_id",
@@ -1238,7 +1371,7 @@
             }
           },
           "VIA_MECHANISM": {
-            "csv": "resistance_gene_mechanism.csv",
+            "file": "resistance_gene_mechanism",
             "source_fk": "aro_id",
             "target": "ResistanceMechanism",
             "target_fk": "mechanism_id",
@@ -1277,7 +1410,7 @@
       }
     },
     "DrugClass": {
-      "csv": "drug_class.csv",
+      "file": "drug_class",
       "pk": "drug_class_id",
       "title": "label",
       "properties": {
@@ -1288,7 +1421,7 @@
       }
     },
     "ResistanceMechanism": {
-      "csv": "resistance_mechanism.csv",
+      "file": "resistance_mechanism",
       "pk": "mechanism_id",
       "title": "label",
       "properties": {
@@ -1299,7 +1432,7 @@
       }
     },
     "Drug": {
-      "csv": "drug.csv",
+      "file": "drug",
       "pk": "drug_id",
       "title": "pref_name",
       "properties": {
@@ -1332,7 +1465,7 @@
       "connections": {
         "junction_edges": {
           "HAS_MECHANISM": {
-            "csv": "drug_target.csv",
+            "file": "drug_target",
             "source_fk": "drug_id",
             "target": "ProteinTarget",
             "target_fk": "target_id",
@@ -1378,7 +1511,7 @@
             }
           },
           "INHIBITS_GROWTH_OF": {
-            "csv": "drug_taxon_inhibited.csv",
+            "file": "drug_taxon_inhibited",
             "source_fk": "drug_id",
             "target": "Taxon",
             "target_fk": "tax_id",
@@ -1446,7 +1579,7 @@
             }
           },
           "DOES_NOT_INHIBIT_GROWTH_OF": {
-            "csv": "drug_taxon_no_effect.csv",
+            "file": "drug_taxon_no_effect",
             "source_fk": "drug_id",
             "target": "Taxon",
             "target_fk": "tax_id",
@@ -1517,7 +1650,7 @@
       }
     },
     "ProteinTarget": {
-      "csv": "protein_target.csv",
+      "file": "protein_target",
       "pk": "target_id",
       "title": "pref_name",
       "properties": {
@@ -1536,7 +1669,7 @@
       "connections": {
         "junction_edges": {
           "OF_ORGANISM": {
-            "csv": "protein_target_taxon.csv",
+            "file": "protein_target_taxon",
             "source_fk": "target_id",
             "target": "Taxon",
             "target_fk": "tax_id",
@@ -1562,7 +1695,7 @@
       "connections": {
         "junction_edges": {
           "IS_DRUG": {
-            "csv": "intervention_drug.csv",
+            "file": "intervention_drug",
             "source_fk": "intervention_id",
             "target": "Drug",
             "target_fk": "drug_id",
@@ -1583,7 +1716,7 @@
           }
         }
       },
-      "csv": "intervention.csv",
+      "file": "intervention",
       "pk": "intervention_id",
       "title": "label",
       "properties": {
@@ -1594,7 +1727,7 @@
       }
     },
     "Metabolite": {
-      "csv": "metabolite.csv",
+      "file": "metabolite",
       "pk": "metabolite_id",
       "title": "name",
       "properties": {
@@ -1626,7 +1759,7 @@
       "connections": {
         "junction_edges": {
           "IN_PATHWAY": {
-            "csv": "metabolite_pathway.csv",
+            "file": "metabolite_pathway",
             "source_fk": "metabolite_id",
             "target": "Pathway",
             "target_fk": "pathway_id",
@@ -1659,7 +1792,7 @@
       }
     },
     "Pathway": {
-      "csv": "pathway.csv",
+      "file": "pathway",
       "pk": "pathway_id",
       "title": "name",
       "properties": {
@@ -1672,7 +1805,7 @@
       "connections": {
         "junction_edges": {
           "PART_OF_PATHWAY": {
-            "csv": "pathway_pathway.csv",
+            "file": "pathway_pathway",
             "source_fk": "pathway_id",
             "target": "Pathway",
             "target_fk": "parent_pathway_id",
@@ -1691,7 +1824,7 @@
       }
     },
     "Substance": {
-      "csv": "substance.csv",
+      "file": "substance",
       "pk": "substance_id",
       "title": "name",
       "properties": {

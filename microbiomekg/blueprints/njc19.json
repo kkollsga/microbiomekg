@@ -1,8 +1,26 @@
 {
-  "_doc": "NJC19 (Lim et al., Sci Data 7:204, 2020; Dryad doi:10.5061/dryad.dr7sqv9v8, CC0-1.0): the curated transport network. 9,136 rows of Online-only Table 5 become CONSUMES, DEGRADES and NO_EXCHANGE_WITH, plus export events written into the PRODUCES table HMDB declared. CONSUMES is the edge D6's Metabolite Exchange Score MES = 2PC/(P+C) is identically zero without, and the 912 negatives are their own relationship rather than a flag, so no query counts a refutation as an observation by omission. The Metabolite node is declared here as well as in hmdb.json because this source mints nodes for the compounds HMDB has no record of \u2014 macromolecules, mostly, which a metabolome database has no reason to hold.",
+  "_doc": "NJC19 (Lim et al., Sci Data 7:204, 2020; Dryad doi:10.5061/dryad.dr7sqv9v8, CC0-1.0): the curated transport network. 9,136 rows of Online-only Table 5 become CONSUMES, DEGRADES and NO_EXCHANGE_WITH, plus export events written into the PRODUCES table HMDB declared. CONSUMES is the edge D6's Metabolite Exchange Score MES = 2PC/(P+C) is identically zero without, and the 912 negatives are their own relationship rather than a flag, so no query counts a refutation as an observation by omission. The Metabolite node is declared here as well as in hmdb.json because this source mints nodes for the compounds HMDB has no record of — macromolecules, mostly, which a metabolome database has no reason to hold.",
+  "_files": "Every table this fragment reads, declared once. A frame the build hands over by name; the preps fill it, nothing on disk backs it.",
+  "files": {
+    "metabolite": {
+      "format": "frame"
+    },
+    "taxon_metabolite": {
+      "format": "frame"
+    },
+    "taxon_metabolite_absent": {
+      "format": "frame"
+    },
+    "taxon_metabolite_consumed": {
+      "format": "frame"
+    },
+    "taxon_metabolite_degraded": {
+      "format": "frame"
+    }
+  },
   "nodes": {
     "Metabolite": {
-      "csv": "metabolite.csv",
+      "file": "metabolite",
       "pk": "metabolite_id",
       "title": "name",
       "properties": {
@@ -26,7 +44,7 @@
       "connections": {
         "junction_edges": {
           "PRODUCES": {
-            "csv": "taxon_metabolite.csv",
+            "file": "taxon_metabolite",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -68,7 +86,7 @@
             }
           },
           "CONSUMES": {
-            "csv": "taxon_metabolite_consumed.csv",
+            "file": "taxon_metabolite_consumed",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -110,7 +128,7 @@
             }
           },
           "DEGRADES": {
-            "csv": "taxon_metabolite_degraded.csv",
+            "file": "taxon_metabolite_degraded",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
@@ -152,7 +170,7 @@
             }
           },
           "NO_EXCHANGE_WITH": {
-            "csv": "taxon_metabolite_absent.csv",
+            "file": "taxon_metabolite_absent",
             "source_fk": "tax_id",
             "target": "Metabolite",
             "target_fk": "metabolite_id",
