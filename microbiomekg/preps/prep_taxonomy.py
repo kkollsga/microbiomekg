@@ -22,13 +22,11 @@ reaches a domain.
 
 from __future__ import annotations
 
-import argparse
-import csv
 from collections import defaultdict
 from pathlib import Path
 
-from microbiomekg.rawdata import find_taxdump, missing_input
-from microbiomekg.tables import as_list
+from microbiomekg.rawdata import MissingInput, find_taxdump
+from microbiomekg.tables import Frames, as_list
 from microbiomekg.reconcile import (
     NAME_CLASSES,
     TaxonomyIndex,
@@ -76,7 +74,7 @@ DEPENDS_ON: list[str] = [
 #: The columns are written on **every** row whether or not that table exists, so
 #: the header ``microbiomekg/blueprints/core.json`` declares does not depend on which sources
 #: a build ran.
-PROBIOTIC_TABLE = "taxon_probiotic.csv"
+PROBIOTIC_TABLE = "taxon_probiotic"
 PROBIOTIC_COLUMNS = (
     "probiotic",
     "probiotic_use_species",
@@ -137,44 +135,40 @@ FIELDS = [
 SYNONYM_CAP = 20
 
 
-def read_probiotics(path: Path) -> dict[int, dict[str, str]]:
-    """``tax_id -> {column: value}`` from the table MASI's prep leaves behind.
+def read_probiotics(rows: list[dict[str, str]]) -> dict[int, dict[str, str]]:
+    """``tax_id -> {column: value}`` from the table MASI's prep leaves in the
+    store.
 
-    An absent file is an empty map, not an error: a build that did not run
-    ``prep_masi.py`` still writes the columns, empty on every row, so the
-    header stays a function of this script rather than of which raw files are
-    on the machine.
+    An absent table is an empty map, not an error: a build that did not run
+    MASI's prep still writes the columns, empty on every row, so the header
+    stays a function of this module rather than of which raw files are on
+    the machine.
     """
-    if not path.is_file():
-        return {}
     out: dict[int, dict[str, str]] = {}
-    with path.open(newline="", encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            if row.get("tax_id", "").isdigit():
-                out[int(row["tax_id"])] = {
-                    c: (row.get(c) or "") for c in PROBIOTIC_COLUMNS
-                }
+    for row in rows:
+        if row.get("tax_id", "").isdigit():
+            out[int(row["tax_id"])] = {c: (row.get(c) or "") for c in PROBIOTIC_COLUMNS}
     return out
 
 
-def read_cited(cited_path: Path) -> set[int]:
-    if not cited_path.is_file():
-        return set()
-    with cited_path.open(newline="", encoding="utf-8") as fh:
-        return {int(r["tax_id"]) for r in csv.DictReader(fh) if r["tax_id"].isdigit()}
+def read_cited(rows: list[dict[str, str]]) -> set[int]:
+    return {int(r["tax_id"]) for r in rows if r.get("tax_id", "").isdigit()}
 
 
 def select_scope(
-    idx: TaxonomyIndex, scope: str, roots: tuple[int, ...], cited_path: Path
+    idx: TaxonomyIndex,
+    scope: str,
+    roots: tuple[int, ...],
+    cited_rows: list[dict[str, str]],
 ) -> set[int]:
     if scope == "all":
         return set(idx.parent)
 
-    cited = read_cited(cited_path)
+    cited = read_cited(cited_rows)
     if scope == "cited":
         if not cited:
             raise SystemExit(
-                f"--scope cited needs {cited_path}; run microbiomekg/preps/prep_bugsigdb.py first"
+                "--scope cited needs a cited_taxa table in the store; run a source prep first"
             )
         seeds = set(cited)
     else:  # microbial
@@ -251,48 +245,43 @@ def read_synonyms(path: Path, keep: set[int]) -> dict[int, list[str]]:
     return out
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--scope", choices=("cited", "microbial", "all"), default="microbial"
-    )
-    ap.add_argument("--cited-from", type=Path, default=None)
-    ap.add_argument(
-        "--roots",
-        default=",".join(str(r) for r in MICROBIAL_ROOTS),
-        help="Comma-separated clade roots for --scope microbial "
-        "(default 2,2157,4751 = Bacteria, Archaea, Fungi; add 10239 for Viruses).",
-    )
-    args = ap.parse_args(argv)
-    cited_path = args.cited_from or (args.out / "cited_taxa.csv")
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    taxdump: Path | None = None,
+    scope: str = "microbial",
+    roots: tuple[int, ...] = MICROBIAL_ROOTS,
+) -> dict[str, int]:
+    """The ``taxon`` table into ``store``; returns its row count.
+
+    ``scope`` is ``cited`` (only the taxa the store's ``cited_taxa`` table
+    names), ``microbial`` (the clades under ``roots`` — Bacteria, Archaea,
+    Fungi by default; add 10239 for Viruses — plus every cited taxon outside
+    them) or ``all``. MASI's probiotic annotation is read off the store when
+    its prep ran. Raises :class:`MissingInput` when the taxdump is not there.
+    """
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
+        raise MissingInput(str(e)) from e
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa", flush=True)
 
-    roots = tuple(int(r) for r in args.roots.split(",") if r.strip())
-    keep = select_scope(idx, args.scope, roots, cited_path)
-    print(f"scope={args.scope}: {len(keep):,} taxa in scope", flush=True)
+    keep = select_scope(idx, scope, tuple(roots), store.rows("cited_taxa"))
+    print(f"scope={scope}: {len(keep):,} taxa in scope", flush=True)
 
     lineage = read_ranked_lineage(taxdump / "rankedlineage.dmp", keep)
     synonyms = read_synonyms(taxdump / "names.dmp", keep)
-    probiotics = read_probiotics(args.out / PROBIOTIC_TABLE)
+    probiotics = read_probiotics(store.rows(PROBIOTIC_TABLE))
     if probiotics:
         print(f"  {len(probiotics):,} taxa carry MASI probiotic annotation")
 
-    args.out.mkdir(parents=True, exist_ok=True)
-    path = args.out / "taxon.csv"
+    taxa = store.table("taxon", FIELDS, key="tax_id")
     n_truncated = n_placeholder = 0
-    with path.open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=FIELDS)
-        w.writeheader()
+    if True:
         for tid in sorted(keep):
             parent = idx.parent.get(tid, tid)
             lin = lineage.get(tid, [""] * 9)
@@ -316,14 +305,11 @@ def main(argv: list[str] | None = None) -> int:
             }
             row.update(zip(LINEAGE_COLUMNS[1:], lin[1:]))
             row.update(probiotics.get(tid, dict.fromkeys(PROBIOTIC_COLUMNS, "")))
-            w.writerow(row)
+            taxa.add({k: str(v) for k, v in row.items()})
+    n = store.put(taxa)
 
     print(
-        f"wrote {path} ({len(keep):,} rows; {n_placeholder:,} placeholder names; "
-        f"{n_truncated:,} synonym lists capped at {SYNONYM_CAP})"
+        f"taxon: {n:,} rows; {n_placeholder:,} placeholder names; "
+        f"{n_truncated:,} synonym lists capped at {SYNONYM_CAP}"
     )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return {"taxon": n}

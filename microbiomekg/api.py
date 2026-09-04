@@ -1,9 +1,10 @@
 """The three verbs, as Python: ``status``, ``fetch``, ``build``.
 
 One directory is the entire input (``docs/design/library-pipeline.md``): raw
-files under ``<data_dir>/raw/<source>/``, the flat CSVs a build writes under
-``<data_dir>/csv/``. Each function takes that directory and nothing else it
-has to be told; the flags are the two gates.
+files under ``<data_dir>/raw/<source>/``, and nothing else — a build holds its
+tables in memory and hands them to the engine as frames. Each function takes
+that directory and nothing else it has to be told; the flags are the two
+gates.
 
     import microbiomekg as mkg
     mkg.status("./data")                         # {source: SourceStatus}
@@ -58,14 +59,14 @@ def build(
 
     Returns a :class:`BuildResult` whose ``graph`` is the kglite graph, or
     ``None`` when nothing loaded (an empty directory — then ``skipped`` names
-    every source). ``save`` writes ``out`` (default ``graph/microbiomekg.kgl``);
+    every source), and whose ``store`` holds every table the preps produced,
+    the ledgers of what would not resolve included. ``save`` writes ``out`` (default ``graph/microbiomekg.kgl``);
     off by default here, because a caller holding the graph object usually
     wants to query it, not a file.
     """
     data_dir = Path(data_dir)
     return _build.build(
         data_dir / "raw",
-        data_dir / "csv",
         scope=scope,
         out=out,
         save=save,

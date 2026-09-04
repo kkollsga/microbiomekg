@@ -31,6 +31,8 @@ from pathlib import Path
 
 import pytest
 
+from prep_support import run_prep
+
 from conftest import TAXDUMP_MINI
 
 kglite = pytest.importorskip("kglite")
@@ -128,16 +130,7 @@ def built(tmp_path_factory):
     csv_dir.mkdir()
 
     def run(script, *args):
-        proc = subprocess.run(
-            [sys.executable, str(script), *args],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, (
-            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
-        )
-        return proc
+        return run_prep(script, *args)
 
     run(
         PREPS_DIR / "prep_chembl.py",

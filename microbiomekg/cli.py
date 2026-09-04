@@ -61,9 +61,7 @@ def main(argv: list[str] | None = None) -> int:
         return print_status(data)
     if args.verb == "fetch":
         return download.main(["--raw", str(data / "raw"), *rest])
-    return pipeline.main(
-        ["--raw", str(data / "raw"), "--csv", str(data / "csv"), *rest]
-    )
+    return pipeline.main(["--raw", str(data / "raw"), *rest])
 
 
 if __name__ == "__main__":

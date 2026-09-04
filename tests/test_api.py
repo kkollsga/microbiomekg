@@ -59,7 +59,8 @@ def test_build_on_an_empty_directory_returns_no_graph_and_every_source(tmp_path)
     result = api.build(tmp_path)
     assert result.graph is None and result.report is None
     assert set(result.skipped) == set(api.status(tmp_path))
-    assert not (tmp_path / "csv").exists() or not list((tmp_path / "csv").glob("*.csv"))
+    assert not (tmp_path / "csv").exists()
+    assert result.store.names() == []
 
 
 def test_build_from_a_taxdump_returns_a_graph_and_a_report(tmp_path):
@@ -72,6 +73,7 @@ def test_build_from_a_taxdump_returns_a_graph_and_a_report(tmp_path):
     assert result.graph is not None and result.out is None
     assert result.report.node_count("Taxon") == 170
     assert result.report.edge_count("HAS_PARENT") == 169
+    assert result.store.names() == ["taxon"] and len(result.store.rows("taxon")) == 170
     assert result.graph.cypher("MATCH (t:Taxon) RETURN count(*) AS n")[0]["n"] == 170
     # save=True writes where it was told, and nowhere else
     out = tmp_path / "g" / "x.kgl"

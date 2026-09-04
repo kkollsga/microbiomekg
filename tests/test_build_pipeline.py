@@ -1,16 +1,18 @@
-"""``microbiomekg/pipeline.py``'s own machinery: prep order, the CSV root, the report.
+"""``microbiomekg/pipeline.py``'s own machinery: prep order, the store, the report.
 
-This is about the *build script*, not about a source. Each thing it tests
-failed silently before it was tested:
+This is about the *build*, not about a source. Each thing it tests failed
+silently before it was tested:
 
-* prep scripts ran in **name** order, so ``prep_chembl`` read gutMDisorder's
-  ``intervention.csv`` before ``prep_gutmdisorder`` wrote it and the ``IS_DRUG``
-  relationship loaded zero edges — with its ontology rule reporting 0 / 0, the
-  gate-that-cannot-fail this project treats as worse than no gate;
-* ``--csv`` was accepted and then ignored, because the composed blueprint's
-  ``settings.root`` still said ``./data/csv`` — so a build into a temp
-  directory loaded the default one and reported *its* numbers;
-* ``cited_taxa.csv`` had no column saying which source wrote a row, so a prep
+* preps ran in **name** order, so ``prep_chembl`` read gutMDisorder's
+  ``intervention`` table before ``prep_gutmdisorder`` wrote it and the
+  ``IS_DRUG`` relationship loaded zero edges — with its ontology rule
+  reporting 0 / 0, the gate-that-cannot-fail this project treats as worse
+  than no gate;
+* the composed blueprint's paths were bound to the default directory, so a
+  build into a temp directory loaded the default one and reported *its*
+  numbers — now every input is a frame handed over by name, and the load
+  blueprint carries no path at all;
+* ``cited_taxa`` had no column saying which source wrote a row, so a prep
   re-run added its mention counts to its own previous ones;
 * the G10 expansion factor covered three relationship names spelled out in a
   tuple, so every relationship a later source added was outside the report
@@ -19,9 +21,8 @@ failed silently before it was tested:
 
 from __future__ import annotations
 
-import csv
+import importlib
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -30,42 +31,11 @@ import pytest
 
 from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
 from microbiomekg import pipeline
+from microbiomekg.tables import Frames
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "scripts"
-PREPS_DIR = ROOT / "microbiomekg" / "preps"
 FRAGMENTS = ROOT / "microbiomekg" / "blueprints"
-
-
-@pytest.fixture(scope="module")
-def fixture_csvs(tmp_path_factory) -> Path:
-    """A CSV directory built from the 43-row fixture, not from ``data/csv``."""
-    csv_dir = tmp_path_factory.mktemp("fixture-csv")
-    for script, extra in (
-        (PREPS_DIR / "prep_bugsigdb.py", ["--mondo", str(MONDO_MINI)]),
-        (
-            PREPS_DIR / "prep_taxonomy.py",
-            ["--scope", "cited", "--cited-from", str(csv_dir / "cited_taxa.csv")],
-        ),
-    ):
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(script),
-                "--raw",
-                str(BUGSIGDB_MINI),
-                "--taxdump",
-                str(TAXDUMP_MINI),
-                "--out",
-                str(csv_dir),
-                *extra,
-            ],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, f"{script.name}:\n{proc.stdout}\n{proc.stderr}"
-    return csv_dir
+PREPS_DIR = ROOT / "microbiomekg" / "preps"
 
 
 def names(preps: list[Path]) -> list[str]:
@@ -82,42 +52,48 @@ def write_preps(directory: Path, declared: dict[str, list[str]]) -> None:
         )
 
 
+def bugsigdb_into(store: Frames) -> dict[str, int]:
+    from microbiomekg.preps import prep_bugsigdb
+
+    return prep_bugsigdb.run(
+        BUGSIGDB_MINI, store, taxdump=TAXDUMP_MINI, mondo=MONDO_MINI
+    )
+
+
 # --------------------------------------------------------------------------
 # The declared order
 # --------------------------------------------------------------------------
 
 
 def test_every_prep_script_declares_its_dependencies():
-    """A prep with no ``DEPENDS_ON`` is a prep whose position in the build is
-    an accident of its filename. The declaration is required rather than
-    defaulted to empty, so adding a source forces the question to be answered."""
     for script in sorted(PREPS_DIR.glob("prep_*.py")):
-        assert isinstance(pipeline.declared_dependencies(script), tuple), script.name
+        deps = pipeline.declared_dependencies(script)
+        assert isinstance(deps, tuple), script.name
+        assert all(isinstance(d, str) for d in deps), script.name
 
 
 def test_chembl_runs_after_the_source_whose_table_it_reads():
-    """``prep_chembl`` writes ``IS_DRUG`` by reading gutMDisorder's
-    ``intervention.csv``. In name order it ran first, the table was not there,
-    and the relationship loaded zero edges."""
+    """The bug that motivated declared order: ``IS_DRUG`` joins ChEMBL drugs to
+    gutMDisorder interventions and read an ``intervention`` table that did not
+    exist yet."""
     order = names(pipeline.order_preps(PREPS_DIR))
     assert order.index("gutmdisorder") < order.index("chembl")
 
 
 def test_the_taxonomy_runs_after_every_source_that_writes_cited_taxa():
-    """``prep_taxonomy`` filters the 3M-row taxonomy down to what the sources
-    cite, so a source that writes ``cited_taxa.csv`` after it has its edges
-    pointing at vivified stubs with no name and no lineage."""
+    """The taxonomy's ``cited`` scope is read from the table every source
+    contributes to, so it goes last among the writers — and the declaration
+    is checked against what the modules actually say."""
     writers = {
         script.stem.removeprefix("prep_")
         for script in PREPS_DIR.glob("prep_*.py")
-        if "cited_taxa.csv" in script.read_text(encoding="utf-8")
-        and script.name != "prep_taxonomy.py"
+        if "cited_taxa" in script.read_text(encoding="utf-8")
+        and script.stem != "prep_taxonomy"
     }
-    assert writers, "no prep writes cited_taxa.csv — this test stopped measuring"
+    assert writers, "no prep writes cited_taxa — this test stopped measuring"
     declared = set(pipeline.declared_dependencies(PREPS_DIR / "prep_taxonomy.py"))
     assert writers <= declared, (
-        f"{sorted(writers - declared)} write cited_taxa.csv but prep_taxonomy "
-        f"does not declare them, so the build may run the taxonomy first"
+        f"prep_taxonomy.py's DEPENDS_ON is missing {sorted(writers - declared)}"
     )
     order = names(pipeline.order_preps(PREPS_DIR))
     assert all(order.index(w) < order.index("taxonomy") for w in writers)
@@ -129,346 +105,214 @@ def test_the_order_respects_every_declared_edge():
         p.stem.removeprefix("prep_") for p in PREPS_DIR.glob("prep_*.py")
     )
     for script in PREPS_DIR.glob("prep_*.py"):
-        source = script.stem.removeprefix("prep_")
+        me = script.stem.removeprefix("prep_")
         for dep in pipeline.declared_dependencies(script):
-            assert order.index(dep) < order.index(source), f"{source} before {dep}"
+            assert order.index(dep) < order.index(me), f"{dep} must precede {me}"
 
 
 def test_the_order_is_deterministic_and_breaks_ties_by_name(tmp_path):
-    """Two preps with no relation between them have no *correct* order, so the
-    build picks one and always picks the same one: a build whose output depends
-    on dictionary iteration is not reproducible."""
-    write_preps(tmp_path, {"zulu": [], "alpha": [], "mike": ["zulu"]})
-    assert names(pipeline.order_preps(tmp_path)) == ["alpha", "zulu", "mike"]
-    assert names(pipeline.order_preps(tmp_path)) == ["alpha", "zulu", "mike"]
+    write_preps(tmp_path, {"c": [], "a": [], "b": ["c"]})
+    assert names(pipeline.order_preps(tmp_path)) == ["a", "c", "b"]
+    assert names(pipeline.order_preps(tmp_path)) == names(
+        pipeline.order_preps(tmp_path)
+    )
 
 
 def test_a_dependency_cycle_is_an_error_not_an_arbitrary_order(tmp_path):
-    """Picking a winner would produce a build that half-works and never says
-    which half."""
-    write_preps(tmp_path, {"one": ["two"], "two": ["one"], "free": []})
+    write_preps(tmp_path, {"a": ["b"], "b": ["c"], "c": ["a"]})
     with pytest.raises(SystemExit) as excinfo:
         pipeline.order_preps(tmp_path)
-    assert "one" in str(excinfo.value) and "two" in str(excinfo.value)
-    assert "free" not in str(excinfo.value)
+    assert "cycle" in str(excinfo.value)
+    assert "a -> b -> c -> a" in str(excinfo.value)
 
 
 def test_a_dependency_on_a_prep_that_does_not_exist_is_an_error(tmp_path):
-    write_preps(tmp_path, {"one": ["ghost"]})
+    write_preps(tmp_path, {"a": ["ghost"]})
     with pytest.raises(SystemExit) as excinfo:
         pipeline.order_preps(tmp_path)
     assert "ghost" in str(excinfo.value)
 
 
 def test_a_prep_without_the_declaration_is_an_error(tmp_path):
-    (tmp_path / "prep_silent.py").write_text("X = 1\n", encoding="utf-8")
+    (tmp_path / "prep_silent.py").write_text('"""no DEPENDS_ON"""\n')
     with pytest.raises(SystemExit) as excinfo:
         pipeline.order_preps(tmp_path)
+    assert "prep_silent.py" in str(excinfo.value)
     assert "DEPENDS_ON" in str(excinfo.value)
 
 
 def test_reading_the_declaration_does_not_import_the_module(tmp_path):
-    """The declaration is read off the source, not by importing it: importing
-    every prep to ask about its order would drag in pandas, the taxdump reader
-    and each module's argument parser before the build has started."""
-    (tmp_path / "prep_explosive.py").write_text(
-        "DEPENDS_ON = ['a']\nraise RuntimeError('imported')\n", encoding="utf-8"
+    """Importing a prep would run its imports (pandas, the taxdump reader) and
+    any module-level side effect; the declaration is parsed off the source
+    instead, so a prep that raises on import still orders correctly."""
+    (tmp_path / "prep_loud.py").write_text(
+        'DEPENDS_ON = ["quiet"]\nraise RuntimeError("imported")\n'
     )
-    assert pipeline.declared_dependencies(tmp_path / "prep_explosive.py") == ("a",)
+    (tmp_path / "prep_quiet.py").write_text("DEPENDS_ON = []\n")
+    assert names(pipeline.order_preps(tmp_path)) == ["quiet", "loud"]
 
 
 # --------------------------------------------------------------------------
-# --csv: the directory the build loads from
+# The store, and the load blueprint bound to it
 # --------------------------------------------------------------------------
 
 
-def test_the_load_blueprint_binds_its_paths_to_this_builds_directories(tmp_path):
-    """``--csv`` was accepted and ignored: the composed blueprint's
-    ``settings.root`` stayed ``./data/csv``, so a build into a temp directory
-    loaded the default one and reported the default build's numbers as if they
-    were the temp build's."""
-    composed = {
-        "settings": {"root": "./data/csv", "output": "graph/x.kgl"},
-        "ontology": "ontology.json",
-        "nodes": {},
-    }
-    csv_dir = tmp_path / "elsewhere"
-    csv_dir.mkdir()
-    out = pipeline.write_load_blueprint(
-        composed, csv_dir, csv_dir / "ontology.json", tmp_path / "load.json"
-    )
-    loaded = json.loads(out.read_text())
-    assert loaded["settings"]["root"] == str(csv_dir)
-    assert loaded["ontology"] == str(csv_dir / "ontology.json")
-    # Dropped, not rewritten: the build saves through `graph.save(--out)`, and a
-    # relative output would resolve against the CSV directory.
-    assert "output" not in loaded["settings"]
-    # The composed document is not mutated: it is also what gets written to the
-    # checked-in blueprint.json, where `./data/csv` is correct.
+def test_the_load_blueprint_declares_every_input_as_a_frame(tmp_path):
+    """The composed blueprint says ``csv`` per spec and ``settings.root``
+    points at a directory; the copy the build loads says ``file`` per spec
+    with a ``files`` entry of format ``frame`` for each, no root, no output,
+    and the ontology by absolute path — so what gets loaded is what the
+    store holds, never a directory that happens to exist."""
+    from microbiomekg.fragments import compose
+
+    composed = compose(FRAGMENTS)
+    store = Frames()
+    bugsigdb_into(store)
+    ontology = tmp_path / "ontology.json"
+    loaded = pipeline.load_blueprint(composed, store, ontology)
+    assert loaded["ontology"] == str(ontology)
+    assert "root" not in loaded["settings"] and "output" not in loaded["settings"]
+    text = json.dumps(loaded["nodes"])
+    assert '"csv"' not in text
+    assert loaded["nodes"]["Taxon"]["file"] == "taxon"
+    assert loaded["files"]["taxon"] == {"format": "frame"}
+    junction = loaded["nodes"]["Taxon"]["connections"]["junction_edges"][
+        "ASSOCIATED_WITH"
+    ]
+    assert junction["file"] == "taxon_condition"
+    assert set(loaded["files"]) >= {"taxon", "taxon_condition", "disease", "paper"}
+    # The composed document is not mutated: it is also the checked-in
+    # blueprint.json, where `./data/csv` is correct.
     assert composed["settings"]["root"] == "./data/csv"
 
 
-def test_a_build_into_a_temp_csv_directory_loads_that_directory(tmp_path, fixture_csvs):
-    """The end-to-end form, and the one that would have caught the bug: a build
-    pointed at a 43-row fixture must report 43 signatures. Pointed at the
-    default directory it reports 14,846, so the assertion cannot pass by
-    accident on a machine that has the real CSVs."""
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPTS / "build.py"),
-            "--skip-prep",
-            "--csv",
-            str(fixture_csvs),
-            "--no-save",
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert "  Signature                    43" in proc.stdout, proc.stdout
+def test_a_build_from_the_fixture_reports_the_fixture(fixture_raw, capsys):
+    """The end-to-end form: a build pointed at a 43-row fixture laid out as a
+    raw root must report 43 signatures, one source loaded, and every other
+    source skipped for its absent input."""
+    result = pipeline.build(fixture_raw, scope="cited", save=False)
+    out = capsys.readouterr().out
+    assert result.graph is not None and result.report is not None
+    assert result.loaded == ["bugsigdb"], result.loaded
+    assert result.report.node_count("Signature") == 43
+    assert "  Signature                    43" in out, out
+    assert "taxon" in result.store and "signature" in result.store
+    assert len(result.store.rows("signature")) == 43
+    assert "hmdb" in result.skipped and "masi" in result.skipped
 
 
-# --------------------------------------------------------------------------
-# Re-running one prep replaces its own rows
-# --------------------------------------------------------------------------
-
-
-def test_re_running_a_prep_leaves_the_csv_directory_unchanged(tmp_path):
+def test_re_running_a_prep_leaves_the_store_unchanged():
     """The shared tables are *merged into*, so a prep run twice must replace
     its own contribution rather than add to it. Every table but one did, by
-    deduping on a key or on the whole row; ``cited_taxa.csv`` accumulated
+    deduping on a key or on the whole row; ``cited_taxa`` accumulated
     ``n_signatures`` across runs instead, because it had no column saying which
     source wrote a row. A doubled count is invisible — the *set* of taxa is
     what the taxonomy build reads — so nothing downstream fails and the number
     is simply wrong."""
-
-    def prep_once() -> dict[str, str]:
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(PREPS_DIR / "prep_bugsigdb.py"),
-                "--raw",
-                str(BUGSIGDB_MINI),
-                "--taxdump",
-                str(TAXDUMP_MINI),
-                "--mondo",
-                str(MONDO_MINI),
-                "--out",
-                str(tmp_path),
-            ],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, proc.stdout + proc.stderr
-        return {
-            p.name: p.read_text(encoding="utf-8")
-            for p in sorted(tmp_path.glob("*.csv"))
-        }
-
-    first = prep_once()
-    assert "cited_taxa.csv" in first
-    second = prep_once()
+    store = Frames()
+    bugsigdb_into(store)
+    first = {
+        name: (t.fields, [dict(r) for r in t.rows]) for name, t in store.tables.items()
+    }
+    assert "cited_taxa" in first
+    bugsigdb_into(store)
+    second = {
+        name: (t.fields, [dict(r) for r in t.rows]) for name, t in store.tables.items()
+    }
     assert sorted(second) == sorted(first)
     differing = sorted(name for name in first if first[name] != second[name])
     assert differing == [], f"a re-run changed {differing}"
 
 
-def test_the_cited_taxa_table_says_which_source_claimed_each_taxon(tmp_path):
+def test_the_cited_taxa_table_says_which_source_claimed_each_taxon():
     """The column that makes the re-run safe is also the one that makes the
     table readable: a taxon two sources cite is two rows with two counts, not
     one row carrying a sum nobody can attribute."""
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(PREPS_DIR / "prep_bugsigdb.py"),
-            "--raw",
-            str(BUGSIGDB_MINI),
-            "--taxdump",
-            str(TAXDUMP_MINI),
-            "--mondo",
-            str(MONDO_MINI),
-            "--out",
-            str(tmp_path),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    with (tmp_path / "cited_taxa.csv").open(encoding="utf-8", newline="") as fh:
-        rows = list(csv.DictReader(fh))
-    assert rows, "cited_taxa.csv is empty"
+    store = Frames()
+    bugsigdb_into(store)
+    rows = store.rows("cited_taxa")
+    assert rows, "cited_taxa is empty"
     assert {"tax_id", "source", "n_signatures"} <= set(rows[0])
     assert {row["source"] for row in rows} == {"bugsigdb"}
-    # One row per (taxon, source): the key the owner column completes.
-    keys = [(row["tax_id"], row["source"]) for row in rows]
-    assert len(set(keys)) == len(keys)
 
 
 # --------------------------------------------------------------------------
-# G10 — the expansion factor, over every relationship the fragments declare
+# The expansion report covers every declared relationship
 # --------------------------------------------------------------------------
 
 
 def test_the_expansion_report_covers_every_declared_relationship():
-    """G10 is "edges per source record, published rather than assumed". The
-    report named three relationships in a tuple, which was the whole graph when
-    it was written and is a fifth of it now — so the number that says what an
-    edge count means was missing for every relationship four later sources
-    added, including the one that was loading zero edges."""
+    """Every relationship any fragment declares — junction and FK — has a row
+    in G10's report, with the tables its records came from."""
     declared = pipeline.declared_relationships(FRAGMENTS)
-    assert {
-        "ASSOCIATED_WITH",
-        "IN_CONDITION",
-        "AT_BODY_SITE",
-        "ABUNDANCE_CHANGED_BY",
-        "IS_DRUG",
-        "PRODUCES",
-        "HAS_MECHANISM",
-        "CARRIES_RESISTANCE_GENE",
-        "CONFERS_RESISTANCE_TO",
-        "IN_PATHWAY",
-        "PART_OF_PATHWAY",
-        "REPORTED_BY",
-        "HAS_PARENT",
-    } <= set(declared)
+    in_fragments: set[str] = set()
+    for path in FRAGMENTS.glob("*.json"):
+        for spec in json.loads(path.read_text()).get("nodes", {}).values():
+            connections = spec.get("connections", {})
+            in_fragments.update(connections.get("junction_edges", {}))
+            in_fragments.update(connections.get("fk_edges", {}))
+    assert in_fragments, "no fragment declares a relationship — vacuous"
+    assert set(declared) == in_fragments
     for rel, spec in declared.items():
-        assert spec.csvs, f"{rel} names no CSV to count records in"
+        assert spec.inputs, f"{rel} names no input table"
         assert spec.fragments, f"{rel} is declared by no fragment"
-    # One relationship name, two CSVs: a taxon mention that resolved and one
-    # that did not are the same edge type from two tables, and a report keyed
-    # on the name alone would count the rows of whichever it saw last.
-    assert pipeline.declared_relationships(FRAGMENTS)["REPORTED_BY"].csvs == (
-        "taxon_signature.csv",
-        "unresolved_taxon_signature.csv",
-    )
-    # An `fk_edges` relationship has no junction CSV of its own: its records
-    # are the rows of the node table carrying the foreign key.
-    assert declared["HAS_PARENT"].csvs == ("taxon.csv",)
 
 
-def test_every_csv_a_fragment_names_is_one_the_report_can_count():
-    """The report reads its record counts off the fragments, so a relationship
-    whose CSV a fragment misnames would be reported as zero records rather than
-    as an error."""
-    csv_dir = ROOT / "data" / "csv"
-    if not (csv_dir / "taxon_condition.csv").is_file():
-        pytest.skip("no built CSVs — run scripts/build.py first")
-    missing = sorted(
-        name
-        for spec in pipeline.declared_relationships(FRAGMENTS).values()
-        for name in spec.csvs
-        if not (csv_dir / name).is_file()
-    )
-    assert missing == []
+def test_every_input_a_fragment_names_is_a_table_the_store_holds(fixture_raw):
+    """For every source a build loaded, every table its fragment reads is in
+    the store — the rule `sources_with_tables` applies, checked the other
+    way round after a real build."""
+    result = pipeline.build(fixture_raw, scope="cited", save=False)
+    assert result.loaded
+    for source in ("core", *result.loaded):
+        for name in pipeline.fragment_inputs(FRAGMENTS, source):
+            if source == "core" and name not in result.store:
+                continue  # the spine's absent tables are pruned, and reported
+            assert name in result.store, f"{source} reads {name}, not in the store"
 
 
-def test_a_licence_gated_source_is_not_reported_as_loaded_without_its_flag(
-    fixture_csvs,
-):
-    """`--skip-prep` hears no exit code, so the gate has to be asked directly.
-
-    KEGG's fragment declares no key of its own — it writes rows into
-    Reactome's `pathway.csv` and `metabolite_pathway.csv` — so "all my CSVs are
-    present" was true of it in any build that ran Reactome, and a `--skip-prep`
-    build printed `kegg` under "sources loaded" while carrying none of it. The
-    graph was right and the report was not, which for a licence gate is the
-    part that matters.
-    """
+def test_a_licence_gated_source_is_not_reported_as_loaded_without_its_flag():
+    """KEGG's fragment declares no table of its own — it writes rows into
+    Reactome's ``pathway`` and ``metabolite_pathway`` — so "all my tables are
+    present" was true of it in any build that ran Reactome, and a build once
+    printed `kegg` under "sources loaded" while carrying none of it. The graph
+    was right and the report was not, which for a licence gate is the part
+    that matters."""
     import argparse
 
     args = argparse.Namespace(with_kegg=False)
     assert not pipeline.opted_into("kegg", args)
+    store = Frames()
+    for name in ("pathway", "metabolite_pathway"):
+        store.put(store.table(name, ["id"]))
     assert "kegg" not in pipeline.sources_with_tables(
         FRAGMENTS,
         [
             s
-            for s in ("bugsigdb", "reactome", "kegg")
+            for s in ("reactome", "kegg")
             if s not in pipeline.LICENCE_GATED or pipeline.opted_into(s, args)
         ],
-        fixture_csvs,
+        store,
     )
     assert pipeline.opted_into("kegg", argparse.Namespace(with_kegg=True))
+    assert pipeline.prep_options("kegg", "microbial", frozenset({"kegg"})) == {
+        "opted_in": True
+    }
 
 
-def test_the_record_count_is_rows_and_not_newlines(tmp_path):
-    """G10's denominator was newlines, and six of these tables carry quoted ones.
-
-    ``signature.csv`` is 14,846 rows and 15,820 newlines — a BugSigDB title
-    with a line break in it — so the report printed
-    ``PART_OF_STUDY 14,846 edges / 15,820 rows = 0.9x``: an FK edge expanding
-    to *less* than one edge per row, which cannot happen and was the counter
-    rather than the loader. Also `taxon_condition.csv` (49), `study.csv` (92),
-    `drug_target.csv` (34), `taxon_intervention.csv` (35) and `paper.csv` (1).
-    """
-    path = tmp_path / "t.csv"
-    with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.writer(fh)
-        writer.writerow(["id", "text"])
-        writer.writerows(
-            [
-                (i, ["plain", "two\nlines", 'a "quoted" word', "a,b"][i % 4])
-                for i in range(400)
-            ]
-        )
-    with path.open(encoding="utf-8", newline="") as fh:
-        real = sum(1 for _ in csv.reader(fh)) - 1
-    assert real == 400
-    assert path.read_bytes().count(b"\n") - 1 > real, (
-        "this fixture must contain quoted newlines or it measures nothing"
-    )
-    assert pipeline.csv_rows(path) == real
+def test_the_expansion_report_names_every_relationship_it_declared(fixture_raw, capsys):
+    """A relationship the build loaded no edges for is a *line* in G10, not an
+    absence — that is how ``IS_DRUG`` sat at zero unnoticed."""
+    result = pipeline.build(fixture_raw, scope="cited", save=False)
+    out = capsys.readouterr().out
+    section = out.split("expansion factor")[1]
+    for rel in pipeline.declared_relationships(FRAGMENTS, result.loaded):
+        assert rel in section, f"{rel} is not in the G10 report"
+    rows = {r["rel"] for r in result.report.expansion}
+    assert rows == set(pipeline.declared_relationships(FRAGMENTS, result.loaded))
 
 
-def test_the_record_count_survives_a_chunk_boundary(tmp_path):
-    """The scan is chunked at 1 MiB and the quote state has to cross it."""
-    path = tmp_path / "big.csv"
-    with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.writer(fh)
-        writer.writerow(["id", "text"])
-        writer.writerows([(i, "pad " * 8 + "two\nlines") for i in range(40_000)])
-    assert path.stat().st_size > (1 << 20), "smaller than one chunk: no boundary"
-    with path.open(encoding="utf-8", newline="") as fh:
-        assert pipeline.csv_rows(path) == sum(1 for _ in csv.reader(fh)) - 1
-
-
-def test_the_expansion_report_names_every_relationship_it_declared(
-    tmp_path, fixture_csvs
-):
-    """The report is what publishes G10, so it is asserted from the build's own
-    output rather than from the function behind it. A relationship the build
-    loaded **zero** edges for gets a line too — that absence is the finding."""
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPTS / "build.py"),
-            "--skip-prep",
-            "--csv",
-            str(fixture_csvs),
-            "--no-save",
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    section = proc.stdout.split("expansion factor (G10)")[1]
-    for rel in (
-        "ASSOCIATED_WITH",
-        "IN_CONDITION",
-        "REPORTED_BY",
-        "HAS_PARENT",
-        "PART_OF_STUDY",
-        "PUBLISHED_AS",
-        "AT_BODY_SITE",
-    ):
-        assert rel in section, f"{rel} is declared and unreported"
-
-
-def test_the_report_prints_the_per_field_census(tmp_path, fixture_csvs):
+def test_the_report_prints_the_per_field_census(fixture_raw, capsys):
     """The audit's single percentage is not the number this project is about.
 
     A `required_properties` rule rolls a fourteen-field contract into one
@@ -477,21 +321,9 @@ def test_the_report_prints_the_per_field_census(tmp_path, fixture_csvs):
     which field. `{by: 'property'}` is in the report now, and it prints the
     complete fields too, so a field at zero is stated rather than inferred.
     """
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPTS / "build.py"),
-            "--skip-prep",
-            "--csv",
-            str(fixture_csvs),
-            "--no-save",
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    section = proc.stdout.split("per-field census")[1].split("expansion factor")[0]
+    pipeline.build(fixture_raw, scope="cited", save=False)
+    out = capsys.readouterr().out
+    section = out.split("per-field census")[1].split("expansion factor")[0]
     assert "ASSOCIATED_WITH.required_properties" in section
     for field in ("group_0_size", "study_design", "pmid"):
         assert field in section, f"{field} is not in the census"
@@ -507,34 +339,31 @@ def test_the_report_prints_the_per_field_census(tmp_path, fixture_csvs):
 
 
 @pytest.fixture(scope="module")
-def both_builds(tmp_path_factory, fixture_csvs) -> dict[str, tuple[Path, str]]:
-    """The same fixture CSVs built twice: the default, and ``--with-vectors``.
+def both_builds(tmp_path_factory, fixture_raw) -> dict[str, tuple[Path, str]]:
+    """The same fixture built twice: the default, and with the vector lane.
 
     One fixture rather than two tests each running a build, because the point
     is the *difference* between two graphs built from identical input — the
     only variable is the flag.
     """
+    import contextlib
+    import io
+
     out = tmp_path_factory.mktemp("vector-lane")
     built: dict[str, tuple[Path, str]] = {}
-    for name, extra in (("default", []), ("with_vectors", ["--with-vectors"])):
+    for name, with_vectors in (("default", False), ("with_vectors", True)):
         kgl = out / f"{name}.kgl"
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPTS / "build.py"),
-                "--skip-prep",
-                "--csv",
-                str(fixture_csvs),
-                "--out",
-                str(kgl),
-                *extra,
-            ],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, proc.stdout + proc.stderr
-        built[name] = (kgl, proc.stdout)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            pipeline.build(
+                fixture_raw,
+                scope="cited",
+                out=kgl,
+                save=True,
+                with_vectors=with_vectors,
+            )
+        assert kgl.is_file()
+        built[name] = (kgl, buffer.getvalue())
     return built
 
 
@@ -616,7 +445,7 @@ def test_text_score_raises_on_the_default_graph_and_answers_on_the_flagged_one(
 
 
 # --------------------------------------------------------------------------
-# Absent input is exit 3 for every prep, and a build with nothing in it
+# Absent input is a skip for every prep, and a build with nothing in it
 # succeeds and says so
 # --------------------------------------------------------------------------
 
@@ -625,16 +454,35 @@ assert PREPS, "the prep glob found nothing — this parametrisation would be vac
 
 
 @pytest.mark.parametrize("prep", PREPS, ids=[p.stem for p in PREPS])
-def test_every_prep_reports_an_absent_input_as_missing_input(tmp_path, prep):
-    """Exit 3 is the one channel ``build.py`` reads as "skip this source".
-    Exit 2 is argparse's "you called me wrong", and ``build.py`` reads it as
-    fatal — so a prep that routes a missing raw file through ``ap.error``
-    takes the whole build down with it. Every prep, against an empty raw
-    directory, must leave by the same door, and must say what it wanted."""
+def test_every_prep_reports_an_absent_input_as_a_skip(tmp_path, prep):
+    """The one channel the build reads as "skip this source": a converted prep
+    raises ``MissingInput`` naming what it wanted; a prep not yet converted
+    exits 3 (argparse's 2 would be read as fatal) and says so on stderr."""
+    from microbiomekg.rawdata import MissingInput
+
     raw = tmp_path / "raw"
     raw.mkdir()
+    name = prep.stem.removeprefix("prep_")
+    module = importlib.import_module(f"microbiomekg.preps.{prep.stem}")
+    if hasattr(module, "run"):
+        with pytest.raises(MissingInput) as absent:
+            module.run(
+                raw, Frames(), **pipeline.prep_options(name, "microbial", frozenset())
+            )
+        assert str(absent.value).strip(), (
+            f"{prep.name} said nothing about what it wanted"
+        )
+        return
     proc = subprocess.run(
-        [sys.executable, str(prep), "--raw", str(raw), "--out", str(tmp_path / "csv")],
+        [
+            sys.executable,
+            "-m",
+            f"microbiomekg.preps.{prep.stem}",
+            "--raw",
+            str(raw),
+            "--out",
+            str(tmp_path / "csv"),
+        ],
         capture_output=True,
         text=True,
         cwd=ROOT,
@@ -647,11 +495,11 @@ def test_every_prep_reports_an_absent_input_as_missing_input(tmp_path, prep):
     assert "usage:" not in proc.stderr, f"{prep.name} refused through argparse"
 
 
-def test_a_prep_with_its_own_file_but_no_taxdump_exits_missing_input(tmp_path):
+def test_a_prep_with_its_own_file_but_no_taxdump_is_a_skip(tmp_path):
     """The class, not the instance: nine preps check their own file before the
     taxdump, so an empty directory never reaches their taxdump lookup. With the
     source's own file present and no taxdump, the lookup is reached — and it
-    must still be exit 3, not a usage error."""
+    must still be a skip, not a usage error."""
     raw = tmp_path / "raw"
     (raw / "hmdb").mkdir(parents=True)
     (raw / "hmdb" / "hmdb_metabolites.xml").write_bytes(
@@ -662,7 +510,8 @@ def test_a_prep_with_its_own_file_but_no_taxdump_exits_missing_input(tmp_path):
     proc = subprocess.run(
         [
             sys.executable,
-            str(PREPS_DIR / "prep_hmdb.py"),
+            "-m",
+            "microbiomekg.preps.prep_hmdb",
             "--raw",
             str(raw),
             "--out",
@@ -677,36 +526,30 @@ def test_a_prep_with_its_own_file_but_no_taxdump_exits_missing_input(tmp_path):
     assert "usage:" not in proc.stderr
 
 
-def run_build(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        [sys.executable, str(SCRIPTS / "build.py"), *args],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-
-
-def test_a_build_with_nothing_in_it_succeeds_and_reports_every_source_absent(tmp_path):
+def test_a_build_with_nothing_in_it_succeeds_and_reports_every_source_absent(
+    tmp_path, capsys
+):
     """docs/design/library-pipeline.md rule 2: absent means skipped, loudly.
     An empty data directory is the fresh-clone state, and the build's answer
-    to it is a to-do list, not a traceback — exit 0, no graph file, and every
-    source named as skipped."""
+    to it is a to-do list, not a traceback — no graph file, and every source
+    named as skipped."""
     raw = tmp_path / "raw"
     raw.mkdir()
     out = tmp_path / "graph" / "x.kgl"
-    proc = run_build(
-        "--raw", str(raw), "--csv", str(tmp_path / "csv"), "--out", str(out)
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
+    result = pipeline.build(raw, out=out, save=True)
+    printed = capsys.readouterr().out
+    assert result.graph is None and result.out is None
     assert not out.exists(), "a build that loaded nothing wrote a graph"
     for prep in PREPS:
         source = prep.stem.removeprefix("prep_")
-        assert f"{source}: raw input absent" in proc.stdout, source
-    assert "nothing loaded" in proc.stdout
-    assert "no graph written" in proc.stdout
+        assert f"{source}: raw input absent" in printed, source
+        assert source in result.skipped
+    assert "nothing loaded" in printed
+    assert "no graph written" in printed
+    assert result.store.names() == []
 
 
-def test_a_build_from_a_taxdump_alone_is_a_taxonomy_only_graph(tmp_path):
+def test_a_build_from_a_taxdump_alone_is_a_taxonomy_only_graph(tmp_path, capsys):
     """The taxdump fetches automatically, so "only the taxdump" is the first
     state a fresh clone reaches after ``fetch``. It builds — a Taxon spine and
     nothing else — and the report says that is what it is."""
@@ -714,23 +557,10 @@ def test_a_build_from_a_taxdump_alone_is_a_taxonomy_only_graph(tmp_path):
     raw.mkdir(parents=True)
     for f in TAXDUMP_MINI.iterdir():
         (raw / f.name).write_bytes(f.read_bytes())
-    proc = run_build(
-        "--raw", str(tmp_path / "raw"), "--csv", str(tmp_path / "csv"), "--no-save"
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert "taxonomy-only" in proc.stdout, proc.stdout
-    assert "  Taxon " in proc.stdout
-    assert "Signature" not in proc.stdout.split("--- nodes")[1].split("--- edges")[0]
-
-
-def test_a_relative_csv_directory_loads_the_same_as_an_absolute_one(fixture_csvs):
-    """The build's defaults are relative to the working directory, and the
-    load blueprint's ``ontology`` path is resolved by the engine against
-    ``settings.root`` — so a relative ``--csv`` once produced
-    ``data/csv/data/csv/ontology.json`` and a build that died at the load.
-    Every other test here passes absolute temp paths and could not see it."""
-    relative = os.path.relpath(fixture_csvs, ROOT)
-    assert not os.path.isabs(relative)
-    proc = run_build("--skip-prep", "--csv", relative, "--no-save")
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert "  Signature                    43" in proc.stdout, proc.stdout
+    result = pipeline.build(tmp_path / "raw", save=False)
+    printed = capsys.readouterr().out
+    assert result.taxonomy_only and result.loaded == []
+    assert "taxonomy-only" in printed, printed
+    assert result.report.node_count("Taxon") == 170
+    assert result.report.node_count("Signature") == 0
+    assert result.store.names() == ["taxon"]

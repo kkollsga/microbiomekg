@@ -38,10 +38,8 @@ the whole pipeline in order.
 
 from __future__ import annotations
 
-import argparse
 import csv
 import re
-import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
@@ -53,9 +51,9 @@ from microbiomekg.conditions import (
     pair_conditions,
     split_curies,
 )
-from microbiomekg.rawdata import find_bugsigdb_dump, find_taxdump
+from microbiomekg.rawdata import MissingInput, find_bugsigdb_dump, find_taxdump
 from microbiomekg.reconcile import Resolution, TaxonomyIndex
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = "bugsigdb"
 
@@ -143,54 +141,40 @@ def strip_prefix(name_terminal: str) -> str:
     return name_terminal[3:] if name_terminal[:3] in RANK_PREFIX else name_terminal
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    # One `--raw` root for both prep scripts; `--dump`/`--taxdump` override it.
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument("--dump", type=Path, default=None)
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument(
-        "--mondo",
-        type=Path,
-        default=None,
-        help="mondo.obo, the disease-id hub (default: <raw>/mondo/mondo.obo). "
-        "Absent, every condition keeps its own CURIE as key and mondo_id is "
-        "null everywhere — the build still runs, and says so.",
-    )
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--rank-ceiling",
-        default="species",
-        help="Promote anything more specific than this to its nearest ancestor at "
-        "or above it (default: species).",
-    )
-    ap.add_argument(
-        "--ontology-json",
-        type=Path,
-        default=Path("ontology.json"),
-        help="Where to write the define_ontology document the blueprint gate reads.",
-    )
-    ap.add_argument(
-        "--limit", type=int, default=0, help="Only read N rows (smoke tests)."
-    )
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    dump: Path | None = None,
+    taxdump: Path | None = None,
+    mondo: Path | None = None,
+    rank_ceiling: str = "species",
+    limit: int = 0,
+) -> dict[str, int]:
+    """BugSigDB's tables into ``store``; returns each table's row count.
 
+    ``raw`` is the data root (``raw/bugsigdb/full_dump_main.csv`` and the
+    taxdump under it) — or, for a fixture, the dump file itself. ``mondo``
+    defaults to ``raw/mondo/mondo.obo``; absent, every condition keeps its
+    own CURIE as key and ``mondo_id`` is null everywhere, and the build says
+    so. ``limit`` reads only the first N rows (smoke tests). Raises
+    :class:`MissingInput` when the dump or the taxdump is not there.
+    """
     try:
-        dump = args.dump or find_bugsigdb_dump(args.raw)
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        dump = dump or find_bugsigdb_dump(raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        # Exit 3, not 2: "the raw files are not on this machine" is a different
-        # fact from "this script was called wrong", and scripts/build.py acts
-        # on the difference by leaving this source out of the blueprint rather
-        # than declaring node types with no CSV behind them.
-        print(str(e), file=sys.stderr)
-        return 3
+        # "The raw files are not on this machine" is a different fact from a
+        # defect, and the build acts on the difference by leaving this source
+        # out of the blueprint rather than declaring node types with nothing
+        # behind them.
+        raise MissingInput(str(e)) from e
     print(f"reading {dump}", flush=True)
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
-    mondo_path = args.mondo or (args.raw / "mondo" / "mondo.obo")
+    mondo_path = mondo or (raw / "mondo" / "mondo.obo")
     if mondo_path.is_file():
         print(f"loading MONDO from {mondo_path} ...", flush=True)
         mondo = MondoIndex.from_obo(mondo_path)
@@ -207,9 +191,8 @@ def main(argv: list[str] | None = None) -> int:
             flush=True,
         )
 
-    out = args.out
-    studies = Writer(
-        out / "study.csv",
+    studies = store.table(
+        "study",
         [
             "study_id",
             "study_number",
@@ -226,8 +209,8 @@ def main(argv: list[str] | None = None) -> int:
         key="study_id",
         merge=True,
     )
-    papers = Writer(
-        out / "paper.csv",
+    papers = store.table(
+        "paper",
         ["pmid", "title", "journal", "year", "doi"],
         key="pmid",
         merge=True,
@@ -246,21 +229,21 @@ def main(argv: list[str] | None = None) -> int:
         "source_condition",
     ]
     conditions = {
-        "Disease": Writer(
-            out / "disease.csv", condition_fields, key="condition_id", merge=True
+        "Disease": store.table(
+            "disease", condition_fields, key="condition_id", merge=True
         ),
-        "Phenotype": Writer(
-            out / "phenotype.csv", condition_fields, key="condition_id", merge=True
+        "Phenotype": store.table(
+            "phenotype", condition_fields, key="condition_id", merge=True
         ),
-        "Exposure": Writer(
-            out / "exposure.csv", condition_fields, key="condition_id", merge=True
+        "Exposure": store.table(
+            "exposure", condition_fields, key="condition_id", merge=True
         ),
     }
     # Nothing is dropped and nothing is guessed: a vocabulary with no node type
     # and a condition string no id could be attached to both land here, with
     # the raw strings and the reason.
-    unresolved_conditions = Writer(
-        out / "unresolved_conditions.csv",
+    unresolved_conditions = store.table(
+        "unresolved_conditions",
         [
             "signature_id",
             "source_id",
@@ -274,13 +257,13 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    bodysites = Writer(
-        out / "bodysite.csv",
+    bodysites = store.table(
+        "bodysite",
         ["bodysite_id", "label", "source_id", "ontology"],
         key="bodysite_id",
     )
-    signatures = Writer(
-        out / "signature.csv",
+    signatures = store.table(
+        "signature",
         [
             "signature_id",
             "study_id",
@@ -328,18 +311,18 @@ def main(argv: list[str] | None = None) -> int:
     # three names splitting it (docs/model.md section 8). The column is routing
     # only — it is not in the edge's `properties`, so it never lands as an edge
     # property; the target node's own label is what a query narrows on.
-    sig_condition = Writer(
-        out / "signature_condition.csv",
+    sig_condition = store.table(
+        "signature_condition",
         ["signature_id", "condition_id", "condition_type"],
         dedupe_full=True,
     )
-    sig_bodysite = Writer(
-        out / "signature_bodysite.csv",
+    sig_bodysite = store.table(
+        "signature_bodysite",
         ["signature_id", "bodysite_id"],
         dedupe_full=True,
     )
-    reported = Writer(
-        out / "taxon_signature.csv",
+    reported = store.table(
+        "taxon_signature",
         [
             "tax_id",
             "signature_id",
@@ -355,8 +338,8 @@ def main(argv: list[str] | None = None) -> int:
         ],
         dedupe_full=True,
     )
-    reported_unres = Writer(
-        out / "unresolved_taxon_signature.csv",
+    reported_unres = store.table(
+        "unresolved_taxon_signature",
         [
             "unresolved_id",
             "signature_id",
@@ -372,8 +355,8 @@ def main(argv: list[str] | None = None) -> int:
         ],
         dedupe_full=True,
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -415,8 +398,8 @@ def main(argv: list[str] | None = None) -> int:
         "significance_threshold",
         "mht_correction",
     ]
-    assoc = Writer(
-        out / "taxon_condition.csv",
+    assoc = store.table(
+        "taxon_condition",
         assoc_fields,
         dedupe_full=True,
         merge=True,
@@ -436,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
         reader = csv.DictReader(fh)
         for row in reader:
             n_rows += 1
-            if args.limit and n_rows > args.limit:
+            if limit and n_rows > limit:
                 n_rows -= 1
                 break
 
@@ -606,10 +589,10 @@ def main(argv: list[str] | None = None) -> int:
 
                 if raw_id.isdigit():
                     res: Resolution = idx.resolve(
-                        tax_id=int(raw_id), rank_ceiling=args.rank_ceiling
+                        tax_id=int(raw_id), rank_ceiling=rank_ceiling
                     )
                 else:
-                    res = idx.resolve(pretty or None, rank_ceiling=args.rank_ceiling)
+                    res = idx.resolve(pretty or None, rank_ceiling=rank_ceiling)
                 reported_name = (
                     pretty or idx.scientific_name.get(res.tax_id or -1) or raw_id
                 )
@@ -760,8 +743,8 @@ def main(argv: list[str] | None = None) -> int:
     for r in unresolved_nodes.rows:
         r["n_signatures"] = str(unresolved_hits.get(r["unresolved_id"], 0))
 
-    cited_writer = Writer(
-        out / "cited_taxa.csv",
+    cited_writer = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -771,7 +754,7 @@ def main(argv: list[str] | None = None) -> int:
         cited_writer.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     counts = {
-        w.path.name: w.flush()
+        w.name: store.put(w)
         for w in (
             studies,
             papers,
@@ -788,8 +771,6 @@ def main(argv: list[str] | None = None) -> int:
             cited_writer,
         )
     }
-
-    ont_path = ont.write_json(args.ontology_json)
 
     n_terms = sum(len(w.seen) for w in conditions.values())
     print(
@@ -808,7 +789,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
     shared = {
-        w.path.name: w.merged_in
+        w.name: w.merged_in
         for w in (
             studies,
             papers,
@@ -825,9 +806,4 @@ def main(argv: list[str] | None = None) -> int:
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    print(f"  {ont_path.name:34s}  (ontology document)")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

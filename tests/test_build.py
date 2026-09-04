@@ -13,10 +13,6 @@ implementation, the prep scripts or the blueprint are not there.
 
 from __future__ import annotations
 
-import csv
-import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -105,78 +101,26 @@ CONDITIONS_WITHOUT_MONDO = 14
 # counts edges, not property-instances, so this is the union.
 EDGES_MISSING_EVIDENCE = 16
 
-UNRESOLVED_REPORT = "unresolved_taxa.csv"
-CONDITION_LEDGER = "unresolved_conditions.csv"
+UNRESOLVED_REPORT = "unresolved_taxa"
+CONDITION_LEDGER = "unresolved_conditions"
 
 
 @pytest.fixture(scope="module")
 def built(tmp_path_factory):
-    """Run the real prep scripts over the fixture, then the real blueprint."""
-    work = tmp_path_factory.mktemp("build")
-    csv_dir = work / "csv"
-    csv_dir.mkdir()
+    """Run the real preps over the fixture, in process, then the real blueprint."""
+    from microbiomekg import pipeline
+    from microbiomekg.preps import prep_bugsigdb, prep_taxonomy
+    from microbiomekg.tables import Frames
 
-    def run(script, *args):
-        proc = subprocess.run(
-            [sys.executable, str(script), *args],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, (
-            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
-        )
-        return proc
-
-    run(
-        PREP_BUGSIGDB,
-        "--raw",
-        str(BUGSIGDB_MINI),
-        "--taxdump",
-        str(TAXDUMP_MINI),
-        "--mondo",
-        str(MONDO_MINI),
-        "--out",
-        str(csv_dir),
-    )
-    run(
-        PREP_TAXONOMY,
-        "--taxdump",
-        str(TAXDUMP_MINI),
-        "--out",
-        str(csv_dir),
-        "--scope",
-        "cited",
-        "--cited-from",
-        str(csv_dir / "cited_taxa.csv"),
-    )
-
+    store = Frames()
+    prep_bugsigdb.run(BUGSIGDB_MINI, store, taxdump=TAXDUMP_MINI, mondo=MONDO_MINI)
+    prep_taxonomy.run(BUGSIGDB_MINI.parent, store, taxdump=TAXDUMP_MINI, scope="cited")
     # The BugSigDB slice of the blueprint, not the shipped whole: this fixture
     # preps one source, and a blueprint declaring another source's node types
     # would load them as empty — which makes every ontology rule over them a
     # gate that cannot fail (`test_audit_denominators_are_not_zero`).
-    from microbiomekg.fragments import compose
-
-    blueprint = compose(ROOT / "microbiomekg" / "blueprints", ["bugsigdb"])
-    settings = blueprint.setdefault("settings", {})
-    settings["root"] = str(csv_dir)
-    for key in ("output", "output_path", "output_file"):
-        settings.pop(key, None)
-    # Materialise the ontology from the module, not from the repo-root
-    # artifact: a stale ontology.json gates the build on property names that
-    # do not exist, which is a silent no-op audit (test_ontology.py has the
-    # drift guard).
-    ontology_ref = blueprint.get("ontology")
-    if isinstance(ontology_ref, str):
-        from microbiomekg.ontology import ontology_for, write_json
-
-        # BugSigDB's slice again: a rule over a relationship this build did not
-        # load would report 0 / 0, which is a gate that cannot fail.
-        write_json(csv_dir / Path(ontology_ref).name, ontology_for(["bugsigdb"]))
-    local = csv_dir / "blueprint.test.json"
-    local.write_text(json.dumps(blueprint))
-
-    return kglite.from_blueprint(local, verbose=False, save=False), csv_dir
+    graph, _ = pipeline.load_graph(store, ["bugsigdb"], verbose=False)
+    return graph, store
 
 
 @pytest.fixture(scope="module")
@@ -185,24 +129,20 @@ def graph(built):
 
 
 @pytest.fixture(scope="module")
-def csv_dir(built):
+def store(built):
     return built[1]
 
 
 @pytest.fixture(scope="module")
-def condition_ledger(csv_dir):
-    path = csv_dir / CONDITION_LEDGER
-    assert path.is_file(), f"the build wrote no {CONDITION_LEDGER}"
-    with path.open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+def condition_ledger(store):
+    assert CONDITION_LEDGER in store, f"the build wrote no {CONDITION_LEDGER}"
+    return store.rows(CONDITION_LEDGER)
 
 
 @pytest.fixture(scope="module")
-def unresolved_report(csv_dir):
-    path = csv_dir / UNRESOLVED_REPORT
-    assert path.is_file(), f"the build wrote no {UNRESOLVED_REPORT}"
-    with path.open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+def unresolved_report(store):
+    assert UNRESOLVED_REPORT in store, f"the build wrote no {UNRESOLVED_REPORT}"
+    return store.rows(UNRESOLVED_REPORT)
 
 
 def rows(graph, query):

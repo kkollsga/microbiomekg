@@ -23,11 +23,11 @@ from __future__ import annotations
 
 import csv
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
+
+from prep_support import run_prep
 
 from conftest import MONDO_MINI, TAXDUMP_MINI
 
@@ -142,16 +142,7 @@ def built(tmp_path_factory):
     csv_dir.mkdir()
 
     def run(script, *args):
-        proc = subprocess.run(
-            [sys.executable, str(script), *args],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, (
-            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
-        )
-        return proc
+        return run_prep(script, *args)
 
     run(
         PREPS_DIR / "prep_chembl.py",
@@ -812,24 +803,17 @@ def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
     (out / "cited_taxa.csv").write_text(
         "tax_id,source,n_signatures\n818,test,1\n", encoding="utf-8"
     )
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(PREPS_DIR / "prep_taxonomy.py"),
-            "--taxdump",
-            str(TAXDUMP_MINI),
-            "--out",
-            str(out),
-            "--scope",
-            "cited",
-            "--cited-from",
-            str(out / "cited_taxa.csv"),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
+    run_prep(
+        PREPS_DIR / "prep_taxonomy.py",
+        "--taxdump",
+        str(TAXDUMP_MINI),
+        "--out",
+        str(out),
+        "--scope",
+        "cited",
+        "--cited-from",
+        str(out / "cited_taxa.csv"),
     )
-    assert proc.returncode == 0, proc.stderr
     written = table(out, "taxon.csv")
     assert written and all(
         row["probiotic"] == "" and row["probiotic_reported_name"] == ""

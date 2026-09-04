@@ -63,3 +63,20 @@ os.environ["PYTHONPATH"] = os.pathsep.join(
     [str(Path(__file__).resolve().parents[1])]
     + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])
 )
+
+
+@pytest.fixture(scope="session")
+def fixture_raw(tmp_path_factory) -> Path:
+    """The fixture cuts laid out as a raw data root — ``bugsigdb/``,
+    ``ncbi_taxonomy/``, ``mondo/`` — so a build can be pointed at it the way
+    it is pointed at ``data/raw``. Every other source is absent, which is the
+    skip path the build takes on a fresh clone."""
+    raw = tmp_path_factory.mktemp("raw")
+    (raw / "bugsigdb").mkdir()
+    (raw / "bugsigdb" / "full_dump_main.csv").write_bytes(BUGSIGDB_MINI.read_bytes())
+    (raw / "ncbi_taxonomy").mkdir()
+    for f in TAXDUMP_MINI.iterdir():
+        (raw / "ncbi_taxonomy" / f.name).write_bytes(f.read_bytes())
+    (raw / "mondo").mkdir()
+    (raw / "mondo" / "mondo.obo").write_bytes(MONDO_MINI.read_bytes())
+    return raw

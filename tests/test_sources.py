@@ -9,6 +9,7 @@ licence registry) cover the same set of sources.
 
 from __future__ import annotations
 
+import importlib
 import json
 import subprocess
 import sys
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from microbiomekg import download, sources
+from microbiomekg import download, pipeline, sources
 from microbiomekg.pipeline import LICENCE_GATED, PREPS_DIR
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +89,16 @@ def test_withholding_a_declared_input_makes_the_prep_refuse_by_name(tmp_path, na
         (raw / rel).parent.mkdir(parents=True, exist_ok=True)
         (raw / rel).write_bytes(b"")
     (raw / withheld).parent.mkdir(parents=True, exist_ok=True)
+    module = importlib.import_module(f"microbiomekg.preps.prep_{name}")
+    if hasattr(module, "run"):
+        from microbiomekg.rawdata import MissingInput
+        from microbiomekg.tables import Frames
+
+        opts = pipeline.prep_options(name, "microbial", frozenset(LICENCE_GATED))
+        with pytest.raises(MissingInput) as absent:
+            module.run(raw, Frames(), **opts)
+        assert Path(withheld).name in str(absent.value), (name, withheld, absent.value)
+        return
     gate = [LICENCE_GATED[name]] if name in LICENCE_GATED else []
     proc = subprocess.run(
         [

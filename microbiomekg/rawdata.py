@@ -13,7 +13,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-__all__ = ["MISSING_INPUT", "find_taxdump", "find_bugsigdb_dump", "missing_input"]
+__all__ = [
+    "MISSING_INPUT",
+    "MissingInput",
+    "find_taxdump",
+    "find_bugsigdb_dump",
+    "missing_input",
+]
 
 #: The exit code a prep uses for "my raw input is not on this machine".
 #: Distinct from a real failure so ``build.py`` can go on without that source
@@ -59,6 +65,17 @@ def find_bugsigdb_dump(raw: Path) -> Path:
     raise FileNotFoundError(
         f"no {' or '.join(_DUMP_NAMES)} under {raw} (looked in bugsigdb/ and the root)"
     )
+
+
+class MissingInput(FileNotFoundError):
+    """A prep's raw input is not on this machine.
+
+    Raised by a prep's ``run()`` and caught by the build, which skips the
+    source and prints the message — the same fact the exit code
+    :data:`MISSING_INPUT` carried between processes, now that a prep is a
+    function. The message says what was looked for and, for a browser-only
+    origin, where to get it.
+    """
 
 
 def missing_input(exc: Exception) -> int:

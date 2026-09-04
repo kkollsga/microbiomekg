@@ -26,11 +26,11 @@ from __future__ import annotations
 
 import csv
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
+
+from prep_support import run_prep
 
 from conftest import TAXDUMP_MINI
 
@@ -64,14 +64,7 @@ KEGG_LEDGER_ROWS = 2
 
 
 def run(script, *args, expect=0):
-    proc = subprocess.run(
-        [sys.executable, str(script), *args], capture_output=True, text=True, cwd=ROOT
-    )
-    assert proc.returncode == expect, (
-        f"{script.name} exited {proc.returncode}, expected {expect}:\n"
-        f"{proc.stdout}\n{proc.stderr}"
-    )
-    return proc
+    return run_prep(script, *args, expect=expect)
 
 
 def prep_sources(csv_dir: Path, with_kegg: bool) -> str:

@@ -24,11 +24,11 @@ from __future__ import annotations
 
 import csv
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
+
+from prep_support import run_prep
 
 from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
 
@@ -83,16 +83,7 @@ def built(tmp_path_factory):
     csv_dir.mkdir()
 
     def run(script, *args):
-        proc = subprocess.run(
-            [sys.executable, str(script), *args],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == 0, (
-            f"{script.name} failed:\n{proc.stdout}\n{proc.stderr}"
-        )
-        return proc
+        return run_prep(script, *args)
 
     # BugSigDB first, so every shared table is one another source merges into
     # — which is the order scripts/build.py uses and the only thing that makes
