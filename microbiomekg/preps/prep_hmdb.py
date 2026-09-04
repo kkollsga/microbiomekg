@@ -54,8 +54,6 @@ did reach, so the decision is countable and reversible.
 
 from __future__ import annotations
 
-import argparse
-import sys
 import time
 import xml.etree.ElementTree as ET
 from collections import Counter, OrderedDict
@@ -64,9 +62,9 @@ from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.ontology import hmdb as hm
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex, rank_depth
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = hm.SOURCE
 
@@ -309,41 +307,36 @@ def metabolite_key(chebi: str, accession: str) -> str:
     return f"CHEBI:{chebi}" if chebi else f"HMDB:{accession}"
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--xml",
-        type=Path,
-        default=None,
-        help="The metabolites XML (default: <raw>/hmdb/hmdb_metabolites.xml).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument(
-        "--reactome",
-        type=Path,
-        default=None,
-        help="Directory holding ChEBI2Reactome.txt (default: <raw>/reactome). "
-        "Absent means the reactome-chebi selection rule contributes nothing.",
-    )
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--rank-ceiling", default="species")
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    xml: Path | None = None,
+    taxdump: Path | None = None,
+    reactome: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """HMDB's tables into ``store``; returns each table's row count.
 
-    xml = args.xml or (args.raw / SOURCE / "hmdb_metabolites.xml")
+    ``xml`` defaults to ``raw/hmdb/hmdb_metabolites.xml``; ``reactome`` to
+    ``raw/reactome/`` (its ``ChEBI2Reactome.txt`` feeds a selection rule, and
+    is optional). Raises :class:`MissingInput` when the XML or the taxdump is
+    not there.
+    """
+
+    xml = xml or (raw / SOURCE / "hmdb_metabolites.xml")
     if not xml.is_file():
         # Exit 3, not 2: "this source's raw file is not on this machine" is a
         # different fact from "this script was called wrong". HMDB is fetched by
         # hand — hmdb.ca answers every non-browser client with a Cloudflare 403
         # — so an absent file is the expected state of a fresh clone.
-        print(f"no hmdb_metabolites.xml at {xml}", file=sys.stderr)
-        return 3
+        raise MissingInput(f"no hmdb_metabolites.xml at {xml}")
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
+        raise MissingInput(str(e)) from e
 
-    chebi_path = (args.reactome or (args.raw / "reactome")) / "ChEBI2Reactome.txt"
+    chebi_path = (reactome or (raw / "reactome")) / "ChEBI2Reactome.txt"
     if chebi_path.is_file():
         reactome_chebi = reactome_chebi_ids(chebi_path)
         print(f"reactome bridge: {len(reactome_chebi):,} ChEBI ids from {chebi_path}")
@@ -354,24 +347,22 @@ def main(argv: list[str] | None = None) -> int:
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
-
-    out = args.out
-    metabolites = Writer(
-        out / "metabolite.csv",
+    metabolites = store.table(
+        "metabolite",
         METABOLITE_FIELDS,
         key="metabolite_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    produces = Writer(
-        out / "taxon_metabolite.csv",
+    produces = store.table(
+        "taxon_metabolite",
         ["tax_id", "metabolite_id", *PRODUCES_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -392,8 +383,8 @@ def main(argv: list[str] | None = None) -> int:
     # resolved to nothing, one that resolved above the production rank ceiling,
     # and a metabolite whose ChEBI key another accession already claimed. Each
     # carries what it *did* reach, so none of them is a drop.
-    ledger = Writer(
-        out / "unresolved_production.csv",
+    ledger = store.table(
+        "unresolved_production",
         [
             "accession",
             "metabolite_id",
@@ -408,8 +399,8 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -537,13 +528,13 @@ def main(argv: list[str] | None = None) -> int:
         verdicts: dict[tuple[str, ...], tuple] = {}
         for path in terms:
             name = path[-1]
-            res = idx.resolve(name, rank_ceiling=args.rank_ceiling)
+            res = idx.resolve(name, rank_ceiling=rank_ceiling)
             if res.status == "ambiguous":
                 pick = microbial_candidate(idx, res.candidates)
                 if pick is not None:
                     counters["kingdom_disambiguated"] += 1
                     res = replace(
-                        idx.resolve(tax_id=pick, rank_ceiling=args.rank_ceiling),
+                        idx.resolve(tax_id=pick, rank_ceiling=rank_ceiling),
                         matched_name=name,
                         status="kingdom-disambiguated",
                         note=f"{len(res.candidates)} taxa share this name; "
@@ -686,7 +677,7 @@ def main(argv: list[str] | None = None) -> int:
         cited.add({"tax_id": str(tid), "source": SOURCE, "n_signatures": str(n)})
 
     tables = (metabolites, produces, unresolved_nodes, ledger, cited)
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     print(f"\nread {counters['records']:,} metabolites in {time.time() - started:.0f}s")
     print(
@@ -704,7 +695,7 @@ def main(argv: list[str] | None = None) -> int:
         "  selection rule: " + ", ".join(f"{r} {n:,}" for r, n in sorted(rules.items()))
     )
     print(
-        f"  kept {counts['metabolite.csv']:,} metabolites, "
+        f"  kept {counts['metabolite']:,} metabolites, "
         f"skipped {counters['not_selected']:,} that no rule selected"
     )
     print(
@@ -739,14 +730,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

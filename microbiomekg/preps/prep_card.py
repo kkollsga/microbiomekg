@@ -48,19 +48,17 @@ CARD curates no taxon–disease association, so this script writes nothing into
 
 from __future__ import annotations
 
-import argparse
 import csv
 import json
 import re
-import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.ontology import card
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = card.SOURCE
 
@@ -236,21 +234,21 @@ CARRIES_FIELDS = [
 ]
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--card",
-        type=Path,
-        default=None,
-        help="Directory holding card-data/ and card-ontology/ (default: <raw>/card).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--rank-ceiling", default="species")
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    card_dir: Path | None = None,
+    taxdump: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """CARD's tables into ``store``; returns each table's row count.
 
-    root = args.card or (args.raw / SOURCE)
+    ``card_dir`` defaults to ``raw/card/`` (``card-data/``, ``card-ontology/``).
+    Raises :class:`MissingInput` when a CARD file or the taxdump is not there.
+    """
+
+    root = card_dir or (raw / SOURCE)
     models_path = root / "card-data" / "card.json"
     index_path = root / "card-data" / "aro_index.tsv"
     pmid_path = root / "card-data" / "PMID.tsv"
@@ -263,12 +261,11 @@ def main(argv: list[str] | None = None) -> int:
         # different fact from "this script was called wrong", and
         # scripts/build.py acts on the difference by skipping the source and
         # leaving it out of the blueprint rather than declaring an empty one.
-        print(f"missing {', '.join(str(p) for p in missing)}", file=sys.stderr)
-        return 3
+        raise MissingInput(f"missing {', '.join(str(p) for p in missing)}")
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
+        raise MissingInput(str(e)) from e
 
     print(f"reading {models_path}", flush=True)
     document = json.loads(models_path.read_text(encoding="utf-8"))
@@ -294,10 +291,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
-
-    out = args.out
-    genes = Writer(
-        out / "resistance_gene.csv",
+    genes = store.table(
+        "resistance_gene",
         [
             "aro_id",
             "name",
@@ -321,43 +316,43 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    drug_classes = Writer(
-        out / "drug_class.csv",
+    drug_classes = store.table(
+        "drug_class",
         ["drug_class_id", "label", "aro_parents", "source", "source_licence"],
         key="drug_class_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    mechanisms = Writer(
-        out / "resistance_mechanism.csv",
+    mechanisms = store.table(
+        "resistance_mechanism",
         ["mechanism_id", "label", "aro_parents", "source", "source_licence"],
         key="mechanism_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    confers = Writer(
-        out / "resistance_gene_drug_class.csv",
+    confers = store.table(
+        "resistance_gene_drug_class",
         ["aro_id", "drug_class_id", *EDGE_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    via = Writer(
-        out / "resistance_gene_mechanism.csv",
+    via = store.table(
+        "resistance_gene_mechanism",
         ["aro_id", "mechanism_id", *EDGE_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    carries = Writer(
-        out / "taxon_resistance_gene.csv",
+    carries = store.table(
+        "taxon_resistance_gene",
         ["tax_id", "aro_id", *CARRIES_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -377,21 +372,21 @@ def main(argv: list[str] | None = None) -> int:
     # C18's accounting, shared with the other sources: a model that becomes no
     # carriage edge is recorded here rather than vanishing into the difference
     # between 6,451 models and 6,415 edges.
-    unresolved_assoc = Writer(
-        out / "unresolved_associations.csv",
+    unresolved_assoc = store.table(
+        "unresolved_associations",
         ["source_record_id", "reported_name", "reported_tax_id", "reason", "source"],
         merge=True,
         owner=("source", SOURCE),
     )
     # The source contradicting itself, which is neither a dropped row nor a
     # resolution — it is a fact about the release, and it is reportable.
-    disagreements = Writer(
-        out / "card_model_disagreements.csv",
+    disagreements = store.table(
+        "card_model_disagreements",
         ["model_id", "aro_id", "kind", "card_json", "aro_index", "source"],
         dedupe_full=True,
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -596,7 +591,7 @@ def main(argv: list[str] | None = None) -> int:
         # "Bacteria, Viruses, Fungi, and other genome sequence associated with
         # antimicrobial resistance", which is not a taxon name.
         reported_name = (taxonomy.get("NCBI_taxonomy_name") or "").strip()
-        resolution = idx.resolve(tax_id=int(raw_id), rank_ceiling=args.rank_ceiling)
+        resolution = idx.resolve(tax_id=int(raw_id), rank_ceiling=rank_ceiling)
         if resolution.tax_id is None:
             counters["unresolved_taxa"] += 1
             uid = f"unresolved:{SOURCE}:{raw_id}"
@@ -667,7 +662,7 @@ def main(argv: list[str] | None = None) -> int:
         disagreements,
         cited,
     )
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     print(f"\nread {counters['models']:,} models from card.json (CARD {version})")
     print(
@@ -698,13 +693,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
+    return counts
 
 
 def _stated_in_obo(terms: dict, term_id: str, relation: str, target: str) -> bool:
@@ -729,7 +724,3 @@ def _as_int(value: str) -> int:
         return int(value)
     except (TypeError, ValueError):
         return -1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

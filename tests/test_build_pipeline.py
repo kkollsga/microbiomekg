@@ -500,7 +500,10 @@ def test_a_prep_with_its_own_file_but_no_taxdump_is_a_skip(tmp_path):
     """The class, not the instance: nine preps check their own file before the
     taxdump, so an empty directory never reaches their taxdump lookup. With the
     source's own file present and no taxdump, the lookup is reached — and it
-    must still be a skip, not a usage error."""
+    must still be a skip naming the dump, not a usage error."""
+    from microbiomekg.preps import prep_hmdb
+    from microbiomekg.rawdata import MissingInput
+
     raw = tmp_path / "raw"
     (raw / "hmdb").mkdir(parents=True)
     (raw / "hmdb" / "hmdb_metabolites.xml").write_bytes(
@@ -508,23 +511,9 @@ def test_a_prep_with_its_own_file_but_no_taxdump_is_a_skip(tmp_path):
             ROOT / "tests" / "fixtures" / "hmdb_mini" / "hmdb_metabolites.xml"
         ).read_bytes()
     )
-    proc = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "microbiomekg.preps.prep_hmdb",
-            "--raw",
-            str(raw),
-            "--out",
-            str(tmp_path / "csv"),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == pipeline.MISSING_INPUT, proc.stderr
-    assert "nodes.dmp" in proc.stderr
-    assert "usage:" not in proc.stderr
+    with pytest.raises(MissingInput) as absent:
+        prep_hmdb.run(raw, Frames())
+    assert "nodes.dmp" in str(absent.value)
 
 
 def test_a_build_with_nothing_in_it_succeeds_and_reports_every_source_absent(

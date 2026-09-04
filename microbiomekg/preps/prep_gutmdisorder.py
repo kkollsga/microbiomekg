@@ -45,9 +45,7 @@ design column would make the audit look better by misdescribing the data.
 
 from __future__ import annotations
 
-import argparse
 import math
-import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
@@ -63,9 +61,9 @@ from microbiomekg.conditions import (
     split_curies,
 )
 from microbiomekg.ontology import gutmdisorder as gmd
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, as_list
 
 SOURCE = gmd.SOURCE
 
@@ -215,45 +213,43 @@ class Sheets:
             yield index, row
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--workbooks",
-        type=Path,
-        default=None,
-        help="Directory holding human.xlsx and mouse.xlsx "
-        "(default: <raw>/gutmdisorder).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--mondo", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument("--rank-ceiling", default="species")
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    workbooks: Path | None = None,
+    taxdump: Path | None = None,
+    mondo: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """gutMDisorder's tables into ``store``; returns each table's row count.
 
-    books = args.workbooks or (args.raw / SOURCE)
+    ``workbooks`` defaults to ``raw/gutmdisorder/`` (``human.xlsx``, ``mouse.xlsx``);
+    ``mondo`` to ``raw/mondo/mondo.obo``. Raises :class:`MissingInput` when a
+    workbook or the taxdump is not there.
+    """
+
+    books = workbooks or (raw / SOURCE)
     missing = [w for w in HOST_SPECIES if not (books / f"{w}.xlsx").is_file()]
     if missing:
         # Exit 3, not 2: "this source's raw files are not on this machine" is a
         # different fact from "this script was called wrong", and
         # scripts/build.py acts on the difference by skipping the source and
         # leaving it out of the blueprint rather than declaring an empty one.
-        print(
-            f"no {', '.join(w + '.xlsx' for w in missing)} under {books}",
-            file=sys.stderr,
+        raise MissingInput(
+            f"no {', '.join(w + '.xlsx' for w in missing)} under {books}"
         )
-        return 3
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
+        raise MissingInput(str(e)) from e
 
     print(f"reading {books}/{{human,mouse}}.xlsx", flush=True)
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
 
-    mondo_path = args.mondo or (args.raw / "mondo" / "mondo.obo")
+    mondo_path = mondo or (raw / "mondo" / "mondo.obo")
     if mondo_path.is_file():
         mondo = MondoIndex.from_obo(mondo_path)
         print(
@@ -268,10 +264,8 @@ def main(argv: list[str] | None = None) -> int:
             f"as key and mondo_id will be null",
             flush=True,
         )
-
-    out = args.out
-    studies = Writer(
-        out / "study.csv",
+    studies = store.table(
+        "study",
         [
             "study_id",
             "study_number",
@@ -304,8 +298,8 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    papers = Writer(
-        out / "paper.csv",
+    papers = store.table(
+        "paper",
         ["pmid", "title", "journal", "year", "doi"],
         key="pmid",
         merge=True,
@@ -319,32 +313,30 @@ def main(argv: list[str] | None = None) -> int:
         "source_vocabulary",
         "source_condition",
     ]
-    diseases = Writer(
-        out / "disease.csv", condition_fields, key="condition_id", merge=True
-    )
-    interventions = Writer(
-        out / "intervention.csv",
+    diseases = store.table("disease", condition_fields, key="condition_id", merge=True)
+    interventions = store.table(
+        "intervention",
         ["intervention_id", "label", "intervention_type", "drugbank_id", "source"],
         key="intervention_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    assoc = Writer(
-        out / "taxon_condition.csv",
+    assoc = store.table(
+        "taxon_condition",
         ["tax_id", "condition_id", "condition_type", *ASSOCIATION_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    changed_by = Writer(
-        out / "taxon_intervention.csv",
+    changed_by = store.table(
+        "taxon_intervention",
         ["tax_id", "intervention_id", *ASSOCIATION_FIELDS],
         dedupe_full=True,
         merge=True,
         owner=("primary_source", SOURCE),
     )
-    unresolved_nodes = Writer(
-        out / "unresolved_taxa.csv",
+    unresolved_nodes = store.table(
+        "unresolved_taxa",
         [
             "unresolved_id",
             "raw_name",
@@ -361,8 +353,8 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    unresolved_conditions = Writer(
-        out / "unresolved_conditions.csv",
+    unresolved_conditions = store.table(
+        "unresolved_conditions",
         [
             "signature_id",
             "source_id",
@@ -380,8 +372,8 @@ def main(argv: list[str] | None = None) -> int:
     # has no Signature node to hang an unresolved taxon off — BugSigDB's
     # tombstones are wired to theirs by REPORTED_BY — so the association it
     # would have carried is recorded here instead of vanishing.
-    unresolved_assoc = Writer(
-        out / "unresolved_associations.csv",
+    unresolved_assoc = store.table(
+        "unresolved_associations",
         [
             "workbook",
             "study_index",
@@ -394,8 +386,8 @@ def main(argv: list[str] | None = None) -> int:
         merge=True,
         owner=("source", SOURCE),
     )
-    cited = Writer(
-        out / "cited_taxa.csv",
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -656,9 +648,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
 
             if raw_id:
-                res = idx.resolve(tax_id=int(raw_id), rank_ceiling=args.rank_ceiling)
+                res = idx.resolve(tax_id=int(raw_id), rank_ceiling=rank_ceiling)
             else:
-                res = idx.resolve(reported_name or None, rank_ceiling=args.rank_ceiling)
+                res = idx.resolve(reported_name or None, rank_ceiling=rank_ceiling)
             if res.tax_id is None:
                 counters["unresolved_taxa"] += 1
                 uid = f"unresolved:{SOURCE}:{raw_id or slug(reported_name)}"
@@ -804,7 +796,7 @@ def main(argv: list[str] | None = None) -> int:
         unresolved_assoc,
         cited,
     )
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     print(
         f"\nread {counters['association_rows']:,} association rows across "
@@ -833,14 +825,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

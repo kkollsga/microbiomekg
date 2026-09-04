@@ -31,7 +31,22 @@ OPTIONS = {
     "--scope": "scope",
     "--out": "out",
     "--cited-from": "cited_from",
+    "--workbooks": "workbooks",
+    "--card": "card_dir",
+    "--xml": "xml",
+    "--reactome": "reactome",
+    "--chembl": "chembl",
+    "--interventions": "interventions",
+    "--kegg": "kegg",
+    "--tables": "tables",
+    "--metabolites": "metabolites",
+    "--microbes": "microbes",
+    "--njc19": "njc19",
+    "--xlsx": "xlsx",
+    "--published-matrix": "published_matrix",
 }
+#: Flags that take no value.
+SWITCHES = {"--with-kegg": ("opted_in", True)}
 
 
 def run_prep(script: Path, *args: str, expect: int = 0) -> subprocess.CompletedProcess:
@@ -56,15 +71,20 @@ def run_prep(script: Path, *args: str, expect: int = 0) -> subprocess.CompletedP
     opts: dict = {}
     it = iter(args)
     for flag in it:
+        if flag in SWITCHES:
+            key, value = SWITCHES[flag]
+            opts[key] = value
+            continue
         key = OPTIONS[flag]
         value = next(it)
-        opts[key] = (
-            int(value)
-            if key == "limit"
-            else Path(value)
-            if key not in ("scope", "rank_ceiling")
-            else value
-        )
+        if key == "limit":
+            opts[key] = int(value)
+        elif key == "published_matrix":
+            opts[key] = tuple(int(v) for v in value.split(","))
+        elif key in ("scope", "rank_ceiling"):
+            opts[key] = value
+        else:
+            opts[key] = Path(value)
     out = opts.pop("out")
     opts.pop("cited_from", None)  # the store's cited_taxa table is what it reads
     raw = opts.pop("raw", out)
