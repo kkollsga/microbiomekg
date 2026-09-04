@@ -127,8 +127,8 @@ jobs:
       - name: Build with nothing in it
         run: |
           set -o pipefail
-          mkdir -p /tmp/empty /tmp/csv
-          .venv/bin/python scripts/build.py --raw /tmp/empty --csv /tmp/csv \
+          mkdir -p /tmp/empty
+          .venv/bin/python scripts/build.py --raw /tmp/empty \
             --out /tmp/graph/x.kgl | tee /tmp/build.log
           grep -q "nothing loaded" /tmp/build.log
           grep -q "no graph written" /tmp/build.log

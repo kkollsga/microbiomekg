@@ -131,7 +131,7 @@ value is a build error naming both fragments.
   the truth gate executes.
 - `bench/` — the longitudinal cost record.
 - `data/` and `graph/` are not in the tree: a checkout symlinks them to the
-  sibling `../MicrobiomeKG-Data/` (`raw/`, `csv/`, `graph/`), and
+  sibling `../MicrobiomeKG-Data/` (`raw/`, `graph/`), and
   `--data ../MicrobiomeKG-Data` names the same directory without the links.
 
 ## Building and testing

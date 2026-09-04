@@ -64,7 +64,7 @@ processes, `OBA` measurements, `CL` cell types, `OBI` protocols,
 *Lacticaseibacillus rhamnosus* GG, a probiotic used as the exposure; typing it
 `:Disease` puts a bacterial strain in the disease list, and inventing an
 `Anything` type for the other twelve would be the same error with more steps.
-Those 116 terms and 1,027 mentions go to `data/csv/unresolved_conditions.csv`
+Those 116 terms and 1,027 mentions go to the `unresolved_conditions` table on the build result
 with their raw strings and the reason — recorded, never dropped. `Phenotype` is
 kept apart from `Disease` on the schema survey's own counter-example: PrimeKG
 folded HPO phenotypes and drug side effects into one type and cannot undo it.
@@ -175,7 +175,7 @@ so a metabolite that has one is keyed on it. The consequence is that HMDB's
 13,701 `chebi_id` values over 13,562 distinct ids merge a handful of record
 pairs onto one node, which is correct (they are one compound) but drops the
 second record's scalar properties; each merge is a row in
-`data/csv/unresolved_production.csv` naming both accessions.
+the `unresolved_production` table on the build result naming both accessions.
 
 **HMDB's disease layer is not loaded at all.** 20,020 of its 27,670 disease
 rows — 72% — carry the single name `3-methylglutaconic aciduria type II,
@@ -274,7 +274,7 @@ per taxon (BugSigDB does not).
 **One relation, one relationship name, over a union range.** `ASSOCIATED_WITH`
 runs from a `Taxon` to a `Condition` — the abstract class `Disease`, `Phenotype`
 and `Exposure` are `is_a`, the way `ReportedTaxon` works on the domain side.
-The blueprint expresses it directly: `taxon_condition.csv` is one junction CSV,
+The blueprint expresses it directly: `taxon_condition` is one junction CSV,
 the entry's `target` is the list of the three types, and `target_type_column`
 names the `condition_type` column that routes each row (kglite 0.16.22). The
 routing column is *not* an edge property; the target node's own type is what a
@@ -522,7 +522,7 @@ model. **`card.json` is the model authority, not `aro_index.tsv`**: they
 disagree about 84 models in the same tarball (48 index-only, 36 JSON-only), the
 JSON is the only file with taxids, and its accessions are unique across all
 6,451 models while the index duplicates five of them. The 84 go to
-`data/csv/card_model_disagreements.csv` rather than being resolved silently.
+the `card_model_disagreements` table on the build result rather than being resolved silently.
 Names and `is_a` parents come from `card-ontology/aro.obo`, which covers every
 model term and every category and is the redistributable half; `gene_family`
 stays a property because nothing joins to it, while `DrugClass` is a node
@@ -599,7 +599,7 @@ coarse edge there, it writes a wrong one. G5's split is kept: `reported_rank` is
 HMDB's own level (`genus-level term` / `species-level term`, and the point is
 that neither *is* a rank) and `original_rank` is NCBI's, so the mixing is one
 `WHERE` clause away. Everything refused lands in
-`data/csv/unresolved_production.csv` **with the id and rank it did reach**, so
+the `unresolved_production` table on the build result **with the id and rank it did reach**, so
 the ceiling is reversible rather than a drop.
 
 **A species term suppresses its own genus only when the species resolved.**
@@ -635,7 +635,7 @@ folding them would make `prediction` mean "nobody has run the assay yet".
 it — the count is the untruncated one, so `size(r.publications)` and
 `r.n_publications` disagree by design on 353 edges — and HMDB mints **no `Paper` node**: its references are free-text
 citation strings, so a minted node would have no title, which is what
-`paper.csv` is keyed and BM25-indexed on.
+`paper` is keyed and BM25-indexed on.
 
 ### NJC19 — the consumption edge, and the conjugate join that makes it count
 
@@ -646,7 +646,7 @@ Score — **MES = 2·P·C / (P + C)** — is identically zero for every metaboli
 while the consumer count is. 96 metabolites now carry both halves.
 
 **`PRODUCES` is one relationship with two authors.** NJC19's export events go
-into `taxon_metabolite.csv`, the file HMDB wrote, because a blueprint junction
+into `taxon_metabolite`, the file HMDB wrote, because a blueprint junction
 entry names one relationship, one CSV and one target type (§8) — so a second
 source's production claim is a *row*, not a second relationship
 (`microbiomekg.tables`). `primary_source` is what tells them apart and it is on
@@ -694,7 +694,7 @@ nothing in the query text would say so. `source_relation` names which activity
 was refuted (`import-negative` 720, `degrade-negative` 87, `export-negative` 87);
 894 of the 912 survive, and the 18 that do not sit on rows whose organism is a
 host cell type or a taxon NCBI renamed, each a ledger row in
-`unresolved_exchange.csv`.
+`unresolved_exchange`.
 
 **Three shapes the sheet's own legend defines, and all three are load-bearing.**
 180 rows carry two activities and a *scoped* reference cell
@@ -843,11 +843,11 @@ A record whose compound the graph already holds is **not written at all**, and
 "already holds" is tested three ways in order: the normalised accession, the
 **full** `moldb_inchikey` (never its first block — block 2 is stereochemistry,
 isotopes and protonation, so a skeleton match folds `D-` onto `L-`; and never
-`cmmc_inchikey`), then the casefolded name. `Writer` keys `metabolite.csv` on
+`cmmc_inchikey`), then the casefolded name. The `Table` keys `metabolite` on
 `metabolite_id` and the first row per key wins, so a merged row's properties
 would be discarded silently — an outcome that reads like a successful join in
 the row count and is not one. Each skip is a row in
-`data/csv/unresolved_mimedb.csv` naming the node that won.
+the `unresolved_mimedb` table on the build result naming the node that won.
 
 **Licence: CC BY-NC 4.0**, on the node rather than the graph, so a commercially
 redistributable cut is one `WHERE m.source <> 'mimedb'`. It is documented
@@ -936,7 +936,7 @@ microbiota`, which is not an organism and reaches no NCBI id.
 
 **`SAME_COMPOUND_AS`: 883 of 1,350, by two name routes, and no identifier
 route exists.** The join is the shared `microbiomekg.drugs` module over
-`drug.csv` — the substance's own spelling (727) then its salt-stripped form
+`drug` — the substance's own spelling (727) then its salt-stripped form
 (156) — and where it lands, the `Substance` node carries `drug_id` and one
 `SAME_COMPOUND_AS` edge onto the existing `Drug`. **MASI mints no `Drug` node
 ever**, which is the one thing that separates it from both screens and is
@@ -1020,7 +1020,7 @@ source never named. `probiotic_use_species`, `probiotic_research_stage` and
 table this prep leaves behind, which is why that prep names `masi` in its
 `DEPENDS_ON`. **The reported name is not decoration**: 806 MASI microbes collapse
 onto 540 taxa, so *E. coli* Nissle 1917 promotes onto the same 562 as plain
-*E. coli*, and `taxon_probiotic.csv` is keyed on `tax_id` with first-row-per-key
+*E. coli*, and `taxon_probiotic` is keyed on `tax_id` with first-row-per-key
 winning — which silently dropped 5 of the 46 claims until a probiotic claim was
 made to beat a non-claim. `tests/test_masi.py` keeps that fixed.
 
@@ -1043,7 +1043,7 @@ statement about two microbes — so `source_record_id` is
 3,260 ChEBI ids; HMDB carries 13,562; 1,114 are in both, and that intersection
 is the bridge. A ChEBI id no HMDB record carries reaches no edge — the mapping
 files carry no compound name, so a minted `Metabolite` would be a bare CURIE —
-and lands in `data/csv/unresolved_pathway_links.csv` instead.
+and lands in the `unresolved_pathway_links` table on the build result instead.
 
 **`evidence_code` is the cleanest `knowledge_level` signal in the increment and
 it is 100% filled.** `TAS` (a curator read a paper) →
@@ -1155,7 +1155,7 @@ again. What is required is the §5(b) provenance set plus `evidence_level`, all
 written by our prep unconditionally — so the rule is declared at **`error`**,
 where a violation is a regression here rather than a gap upstream. The upstream
 gaps stay countable elsewhere: 577 mechanisms with no target and 25 targets
-with no `tax_id` are ledger rows in `unresolved_chembl.csv`, and the 42
+with no `tax_id` are ledger rows in `unresolved_chembl`, and the 42
 reference-less rows land in `evidence_level = 'unknown'`.
 
 **Three evidence levels, from a source with no study design.** `max_phase = 4`
@@ -1176,18 +1176,18 @@ cross-references at all (the REST pull's `only=` kept 13 of 34 fields), so
 there is no DrugBank, ChEBI or PubChem id on the ChEMBL side to join to. The
 link is therefore an **exact, casefolded, whole-label** match against ChEMBL's
 `pref_name` (a salt's name resolves onto its parent's node), and it is thin on
-purpose: **15 of 222**. Every miss is a row in `unresolved_chembl.csv` naming
+purpose: **15 of 222**. Every miss is a row in `unresolved_chembl` naming
 the drugs it would have reached — `Acetylsalicylic acid` is ASPIRIN to ChEMBL,
 and `Clarithromycin,Metronidazole` is one cell naming two molecules — because
 accepting either would invent an intervention gutMDisorder never curated.
 
 > **The link needed a prep-order hook, and that is now what orders the build.**
-> `intervention.csv` is gutMDisorder's, and `scripts/build.py` used to run the
+> `intervention` is gutMDisorder's, and the build used to run the
 > prep scripts in **name** order, which puts `prep_chembl.py` first — so a
 > single-pass build found no table, loaded `IS_DRUG` with **zero** edges, and
 > reported `IS_DRUG.required_properties` as 0 of 0: a rule that cannot fail.
 > Each prep now declares `DEPENDS_ON` (`prep_chembl` names `gutmdisorder`,
-> `prep_taxonomy` names every source that writes `cited_taxa.csv`) and
+> `prep_taxonomy` names every source that writes `cited_taxa`) and
 > `build.py` topologically sorts them. A consumer that re-derived another
 > source's node ids from its raw input would dangle silently instead, and a
 > dangling junction endpoint is vivified rather than refused.
@@ -1260,18 +1260,18 @@ lands on its parent: `Estradiol Valerate` reaches CHEMBL1511 by name and
 CHEMBL135 (estradiol) by ATC. That is this model's own documented parent gap
 showing through — a salt no `mechanism.jsonl` row names has no parent evidence
 in the fetched subset and keeps its own id (§ChEMBL above) — not a defect in the
-join. Verbatim-first decides it and `unresolved_maier2018.csv` names both
+join. Verbatim-first decides it and `unresolved_maier2018` names both
 candidates, so the number is read rather than trusted.
 
 **A screen fact about a drug ChEMBL already holds cannot go on its node, and
-`drug_class` is therefore on the edge.** `drug.csv` is keyed on `drug_id` and
+`drug_class` is therefore on the edge.** `drug` is keyed on `drug_id` and
 the first row per key wins, so the Prestwick annotation for the 867 joined drugs
 is discarded at the node — the same constraint recorded for MASI. Putting
 `drug_class` on the edge is what makes "which *human-targeted* drugs inhibit
 this taxon" answerable for all 1,197 rather than only for the 330 minted here.
 The four `prestwick_id` / `pubchem_cid` / `screen_drug_class` /
 `screen_target_species` node columns are filled on minted nodes and empty on
-ChEMBL's 6,030, which is what `microbiomekg.tables.Writer`'s merge is for.
+ChEMBL's 6,030, which is what the store's merge (`Frames.table(merge=True)`) is for.
 
 **Two of the forty organism strings are not taxon names, and the fix is a closed
 map rather than a rule.** 38 resolve verbatim (24 exact, 12 synonym, 4 promoted;
@@ -1574,7 +1574,7 @@ in the prep scripts, so every source routes through one policy.
    `deleted`, `unresolved` — becomes an `UnresolvedTaxon` node with the raw
    string, the status, the candidates and the note, wired to its signatures by
    the same `REPORTED_BY` edge a resolved taxon uses, and written to
-   `data/csv/unresolved_taxa.csv`. Measured: 1 such node — NCBI **deleted**
+   the `unresolved_taxa` table on the build result. Measured: 1 such node — NCBI **deleted**
    `3120442` (*Staphylococcales*), still cited by 16 BugSigDB signatures. That
    one node is the whole argument for the policy: a silent drop would have
    removed 16 real observations and left no trace.
@@ -1725,7 +1725,7 @@ under Eukaryota and will never be cited by a microbiome source.
 live outside Bacteria/Archaea/Fungi (viruses, protists, host plants). Without
 special handling the loader vivifies them as untitled stub nodes and says so in
 a single warning nobody reads. `prep_taxonomy.py --scope microbial` therefore
-unions the clade walk with `cited_taxa.csv`; verified afterwards by
+unions the clade walk with `cited_taxa`; verified afterwards by
 `build_text_index('Taxon','scientific_name')` reporting `skipped: 0` where it
 previously reported `skipped: 192`.
 
@@ -2035,30 +2035,32 @@ uv venv .venv && uv pip install --python .venv/bin/python pandas openpyxl kglite
 .venv/bin/python scripts/build.py --scope microbial
 ```
 
-`build.py` is the whole pipeline and the only supported entry point: it empties
-`data/csv/`, runs every `microbiomekg/preps/prep_<source>.py` (discovered, not listed) in
-**declared dependency order** — each prep names the preps whose tables it reads
-in its own `DEPENDS_ON` and `build.py` topologically sorts them, so
-`prep_taxonomy` runs after everything that writes `cited_taxa.csv` and
+`microbiomekg.pipeline.build` is the whole pipeline and the only supported
+entry point: it runs every `microbiomekg/preps/prep_<source>.py` (discovered,
+not listed) **in memory and in declared dependency order** — each prep is a
+function `run(raw, store, …)` that puts its tables into one
+`microbiomekg.tables.Frames` store, names the preps whose tables it reads in
+its own `DEPENDS_ON`, and the build topologically sorts them, so
+`prep_taxonomy` runs after everything that writes `cited_taxa` and
 `prep_chembl` after the gutMDisorder table its `IS_DRUG` join reads — composes
-`blueprint.json` from `microbiomekg/blueprints/*.json`, writes the ontology document and a
-`blueprint.load.json` **into the CSV directory** with every path bound to that
-build, loads it, builds §6's five BM25
-indexes, prints the counts, the audit and G10's expansion factor for every
-declared relationship, and saves `graph/microbiomekg.kgl`.
+the blueprint from `microbiomekg/blueprints/*.json`, declares every table the
+store holds as a `files:` entry of format `frame`, writes that copy and the
+ontology document to a temporary directory (the engine reads a blueprint by
+path), loads it with `frames=` — the store typed once for the loader
+(`Frames.typed`: an all-digit column is an integer column, a declared `list`
+column is the list itself) — builds §6's five BM25 indexes, prints the counts,
+the audit and G10's expansion factor for every declared relationship, and
+saves `graph/microbiomekg.kgl`. Nothing is written between a prep and the
+graph.
 
-Three of those are answers to defects rather than choices. The **order** is
-declared because name order silently loaded `IS_DRUG` with zero edges. The
-load blueprint is **written beside the CSVs** because `blueprint.json`'s
-`settings.root` is `./data/csv` and a build given `--csv` elsewhere loaded the
-default directory and reported its numbers. And the *checked-in*
-`blueprint.json` is always composed from the whole fragment set, never from the
-sources one machine happened to have, because it is a tracked artifact with a
-drift gate (`tests/test_fragments.py`) — a partial build rewriting it left the
-repo dirty and the gate red. A source whose declared CSVs are not in `--csv` is
-left out of the *load* blueprint instead, which is the same rule as the
-`MISSING_INPUT` skip: a node type loaded empty gives its ontology rules a 0 / 0
-denominator.
+Two of those are answers to defects rather than choices. The **order** is
+declared because name order silently loaded `IS_DRUG` with zero edges. And the
+*checked-in* `blueprint.json` is always composed from the whole fragment set,
+never from the sources one machine happened to have, because it is a tracked
+artifact with a drift gate (`tests/test_fragments.py`); the build never writes
+it. A source whose declared tables are not in the store is left out of the
+*load* blueprint, which is the same rule as the `MissingInput` skip: a node
+type loaded empty gives its ontology rules a 0 / 0 denominator.
 
 **Adding a source is adding files, never editing shared ones.** A source brings
 `microbiomekg/preps/prep_<source>.py`, `microbiomekg/blueprints/<source>.json`,
@@ -2071,9 +2073,9 @@ the same key with a **different** value raises `FragmentConflict` naming both
 fragments. A merger that let the last writer win would turn a real
 disagreement about which CSV backs `Disease` into a silently different graph.
 Shared *rows* work the same way: a second source's taxon–disease association is
-a row in `taxon_condition.csv`, not a second relationship, because a junction
+a row in `taxon_condition`, not a second relationship, because a junction
 entry names one relationship and one CSV. That is what
-`microbiomekg.tables.Writer(merge=True, owner=…)` is for. The *target type* is
+`Frames.table(…, merge=True, owner=…)` is for. The *target type* is
 no longer part of that constraint — the entry names a list of them and a
 routing column (item 5 below) — which is why the three condition tables are now
 one.
@@ -2082,7 +2084,7 @@ one.
 this build sets no chunk size at all.** It was here because the blueprint
 junction-edge loader streamed each junction CSV in 100,000-row chunks and
 re-decided *per chunk* whether the connection type was new: the first chunk
-registered it and every later chunk merged by endpoints, so `taxon_condition.csv`
+registered it and every later chunk merged by endpoints, so `taxon_condition`
 — 112,966 rows of deliberately parallel edges — lost every repeat of a pair the
 first chunk had seen, with no warning and no error. kglite 0.16.22 decides the
 regime once per CSV and holds it, so the chunk size bounds peak RAM without
@@ -2144,7 +2146,7 @@ goes unchecked while its presence is still required.
 2. **FK edges cannot carry properties** — only junction edges can. **Closed by
    kglite 0.16.22**: an `fk_edges` entry now reads `properties`,
    `property_types` and `rename`, the same three keys a junction edge reads.
-   Nothing here moves because of it — `taxon_condition.csv` is many-to-many and
+   Nothing here moves because of it — `taxon_condition` is many-to-many and
    would be a junction table whatever FK edges could carry — but the reason it
    is a separate file is now "the relation is many-to-many", not "the engine
    cannot put a property on an FK edge".
@@ -2189,7 +2191,7 @@ goes unchecked while its presence is still required.
    **Closed by kglite 0.16.22.** A junction entry's `target` now takes a list
    of node types plus an optional `target_type_column` naming the column that
    holds each row's target type, so `ASSOCIATED_WITH` is one relationship over
-   `Disease` ∪ `Phenotype` ∪ `Exposure` loaded from one `taxon_condition.csv`,
+   `Disease` ∪ `Phenotype` ∪ `Exposure` loaded from one `taxon_condition`,
    and `IN_CONDITION` is the same. The ontology `range` is the abstract
    `Condition` the three are `is_a`, exactly as `ReportedTaxon` works on the
    domain side, so `ontology_audit()` reports **one** rule.
@@ -2295,8 +2297,14 @@ goes unchecked while its presence is still required.
    (delimited with knobs, xlsx, json, jsonl, xml, obo), specs referencing it by
    name with `"csv"` kept as shorthand, and `from_blueprint(frames={...})` so a
    source that needs Python reconciliation between the file and the graph
-   hands over a DataFrame instead of a file. Until it lands the CSV layer stays;
-   when it does, the source-to-graph rework is its own phased plan.
+   hands over a DataFrame instead of a file. **Closed by kglite 0.16.23
+   (2026-09-04)** for the `files:` section, `frames=`, `delimited` and
+   `xlsx`; `json`, `jsonl`, `xml` and `obo` are kglite's next program. Adopted
+   the same day: every prep returns frames into a store, the load is
+   `frames=`, and `data/csv/`, `tables.Writer`, the load-blueprint copy and
+   `--skip-prep` are gone. No prep could be replaced by a reader — each
+   reconciles or joins in Python before its rows are loadable — so the readers
+   stay the route for a future source that needs neither.
 
 One more loader behaviour, recorded because it is the opposite of the usual
 trap: **an undeclared CSV column is still loaded.** Every column a node spec

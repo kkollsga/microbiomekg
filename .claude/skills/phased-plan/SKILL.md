@@ -21,10 +21,10 @@ is only the phased-plan-relevant subset:
 - Open threads → a lean one-line backlink in **`dev-docs/todos.md`**.
 - **Offload large output to `dev-docs/temp/`** (>1-day purge) and report the
   path instead of printing it.
-- Heavy generated artifacts — a scratch graph, a full CSV set, a bench capture
-  — go **outside the repo**, to the scratch dir `bench/README.md` names. Never
-  into `data/csv/` or `graph/`: those are what `scripts/serve.py` serves and
-  what `tests/test_acceptance.py` asserts its goldens against.
+- Heavy generated artifacts — a scratch graph, a bench capture — go
+  **outside the repo**, to the scratch dir `bench/README.md` names. Never into
+  `graph/`: that is what `scripts/serve.py` serves and what
+  `tests/test_acceptance.py` asserts its goldens against.
 
 ## No remote, no CI — what carries their weight
 
@@ -220,7 +220,7 @@ CLAUDE.md — release-mode wheel, the statistic the harness records per cell,
 retake for a verdict near its threshold. A *control* that regresses means the
 instrument moved, not the code (`R11`).
 
-**A capture must not write `data/csv/` or `graph/`.** The harness points its
+**A capture must not write `graph/`.** The harness points its
 build at a scratch dir outside the repo; a capture that rewrites the shipped
 graph invalidates the goldens the truth gates assert. Check `git status` after
 one: a capture taken while a fragment is being edited materialises that

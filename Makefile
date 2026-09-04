@@ -87,12 +87,11 @@ check-dev-docs:
 ## are browser-only downloads that cannot be re-fetched by a script. This target
 ## reports its size and touches nothing.
 ##
-## The other three regenerate: data/csv/ is emptied by every build, graph/ holds
-## one .kgl per build, and bench/results/ is the tracked longitudinal record
+## The other two regenerate: graph/ holds one .kgl per build, and
+## bench/results/ is the tracked longitudinal record
 ## (small json/md — heavy capture output goes to the scratch dir bench/README.md
 ## names, outside the repo). Each ceiling is generous: the failure being caught
 ## is an accumulation nothing owns, not a legitimate large build.
-DATA_CSV_MAX_MB ?= 2048
 GRAPH_MAX_MB    ?= 512
 BENCH_RESULTS_MAX_MB ?= 5
 check-data-bounds:
@@ -101,7 +100,7 @@ check-data-bounds:
 	if [ -d data/raw ]; then \
 		echo "  data/raw/         $$(du -sh data/raw | cut -f1)  operator-owned, never pruned automatically"; \
 	fi; \
-	for pair in "data/csv:$(DATA_CSV_MAX_MB)" "graph:$(GRAPH_MAX_MB)" "bench/results:$(BENCH_RESULTS_MAX_MB)"; do \
+	for pair in "graph:$(GRAPH_MAX_MB)" "bench/results:$(BENCH_RESULTS_MAX_MB)"; do \
 		d=$${pair%%:*}; cap=$${pair##*:}; \
 		[ -d "$$d" ] || continue; \
 		mb=$$(du -sm "$$d" | cut -f1); \
@@ -114,7 +113,7 @@ check-data-bounds:
 		fi; \
 	done; \
 	if [ "$$fail" = 1 ]; then \
-		echo "  -> a build rewrites data/csv/ and graph/; anything else in them is an"; \
+		echo "  -> a build rewrites graph/; anything else in it is an"; \
 		echo "     accumulation nobody owns. Reclaim it, or give it a tier (CLAUDE.md R4 table)."; \
 		exit 1; \
 	fi
@@ -206,8 +205,8 @@ docs:
 	$(PY) -m sphinx -W --keep-going -b html docs docs/_build/html
 
 ## The regenerable tiers, and only those (R4). Never touches data/raw/ (the
-## operator owns it and three of its sources are browser-only), data/csv/ or
-## graph/ (a build owns those), or bench/results/ (the tracked record).
+## operator owns it and three of its sources are browser-only), graph/ (a build
+## owns it), or bench/results/ (the tracked record).
 prune-dev:
 	@echo "purging regenerable caches and the time-boxed dev-docs tiers"
 	@rm -rf .pytest_cache .ruff_cache docs/_build
@@ -216,4 +215,4 @@ prune-dev:
 	@mkdir -p dev-docs/temp dev-docs/bin
 	@find dev-docs/temp -type f -mmin +1440 -print -delete 2>/dev/null || true
 	@find dev-docs/bin  -type f -mtime +7   -print -delete 2>/dev/null || true
-	@echo "kept: data/raw (operator-owned), data/csv, graph/, bench/results, .venv"
+	@echo "kept: data/raw (operator-owned), graph/, bench/results, .venv"

@@ -545,7 +545,7 @@ about one time in three; every guard below follows from that.
 - **G2 — No bare names, no surrogate ids, nothing dropped.** Every taxon is an
   NCBI tax_id chased transitively through `merged.dmp`; a deleted id becomes an
   `UnresolvedTaxon` tombstone with `status="deleted"` and **no** `tax_id`.
-  Testable: input rows = edges + `unresolved_taxa.csv` records + explicitly
+  Testable: input rows = edges + `unresolved_taxa` records + explicitly
   reported filter counts, and taxid 3120442 exists as a tombstone still wired
   to its 16 signatures. *(C6, C18.)*
 - **G3 — Per-edge provenance and per-edge licence.** Every association edge
@@ -958,7 +958,7 @@ kglite 0.16.21 while writing these tests: the blueprint's junction-CSV loader
 streamed in chunks and **deduplicated parallel edges from the second chunk
 onwards**. With `KGLITE_BLUEPRINT_JUNCTION_CHUNK_SIZE=3` and a junction CSV
 holding ten identical `A1 -> B1` pairs, the built graph had **three** edges.
-The default chunk is 100,000 rows and `taxon_condition.csv` is 112,966 rows of
+The default chunk is 100,000 rows and `taxon_condition` is 112,966 rows of
 deliberately parallel edges, so a default build dropped 7.7% of them —
 precisely the evidence multiplicity this whole document exists to protect,
 removed with no warning and no error, which is why the build raised the chunk
@@ -1019,7 +1019,7 @@ column. 18 are reassembled by matching MONDO's label, 24 by the single-id
 identity, 0 lost. `MONDO`/`EFO`/`DOID`/`ORPHANET` become `Disease`, `HP`
 becomes `Phenotype`, `CHEBI`/`ENVO`/`EXO`/`GSSO` become `Exposure`, and the
 other 13 vocabularies (116 terms, 1,027 mentions) get no node type and go to
-`data/csv/unresolved_conditions.csv`. See `docs/model.md` §1.
+the `unresolved_conditions` table on the build result. See `docs/model.md` §1.
 
 Guard: `tests/test_conditions.py` (the whole module),
 `tests/test_build.py::test_condition_terms_keep_their_source_vocabulary`,
@@ -1160,7 +1160,7 @@ Guard: `tests/test_ontology.py::test_every_evidence_property_is_required_on_asso
 
 The failure mode that hides all the others: a row that resolves to nothing
 and leaves no trace. Every row must land in exactly one of three places —
-an edge, a record in `unresolved_taxa.csv`, or an explicit, reported filter
+an edge, a record in `unresolved_taxa`, or an explicit, reported filter
 count. The three sinks must sum to the input row count.
 
 Concrete leaks in this data:
@@ -1170,7 +1170,7 @@ Concrete leaks in this data:
   signature*. It contributes zero taxon edges. **621** rows of the full dump
   are like it. That is a legitimate filter, but it must be counted, not
   absorbed.
-- The three adversarial rows that must appear in `unresolved_taxa.csv` with
+- The three adversarial rows that must appear in `unresolved_taxa` with
   the stated status: `bsdb:adv-deleted/1/1` (tax 1009, `deleted`),
   `bsdb:adv-ambig/1/1` (`Bacteroides corrodens`, `ambiguous`, candidates
   539 and 827), `bsdb:adv-unknown/1/1` (tax 999999999, `unresolved`).
@@ -1531,7 +1531,7 @@ associated with this disease" are different claims with different directions,
 and collapsing them is MDAD's documented weakness. Only 220 of gutMDisorder's
 930 mouse association rows have a DOID at all, so most mouse edges are this
 relation rather than a disease association — 389 of its 3,193 rows reach
-neither and sit in `unresolved_associations.csv` with that reason.
+neither and sit in `unresolved_associations` with that reason.
 
 ### D5 — "Which metabolites does taxon X produce, and is that measured or predicted?" (and the reverse: which taxa produce metabolite M?)
 
@@ -1737,7 +1737,7 @@ negatives as their own edge type** landed as `NO_EXCHANGE_WITH` as proposed —
 **894 of the 912**, with `source_relation` naming the refuted activity
 (`import-negative` 720, `degrade-negative` 87, `export-negative` 87); the other
 18 sit on rows whose organism is one of NJC19's six host cell types or a taxon
-NCBI has renamed, and each is a ledger row in `unresolved_exchange.csv` rather
+NCBI has renamed, and each is a ledger row in `unresolved_exchange` rather
 than a loss.
 
 **One field this entry did not ask for and the data forced.** 2,426 of NJC19's
@@ -2727,5 +2727,5 @@ Each screen carries its own control on the claim: the 55 cells Maier wrote `NA`
 for are neither relationship, because a pair nobody measured is not a negative,
 and the four `Control pH` columns Zimmermann interleaved among its strains are
 neither either, because abiotic degradation is not metabolism. Both are ledger
-rows in `data/csv/unresolved_maier2018.csv` and
-`data/csv/unresolved_zimmermann2019.csv` rather than rounding errors.
+rows in the `unresolved_maier2018` table on the build result and
+the `unresolved_zimmermann2019` table on the build result rather than rounding errors.

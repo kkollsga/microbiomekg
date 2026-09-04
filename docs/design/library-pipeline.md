@@ -70,14 +70,15 @@ Rules that make it a contract rather than a convention:
 
 | Contract piece | Where it lives today |
 |---|---|
-| Source discovery | `scripts/build.py` (pkgutil over `microbiomekg.ontology`, glob over `microbiomekg/blueprints/`) |
-| Absent → skipped, no 0/0 rules | `build_blueprint --sources`, `ontology_for(sources)`, prep exit code 3 |
+| Source discovery | `microbiomekg/pipeline.py` (glob over `microbiomekg/preps/`, pkgutil over `microbiomekg.ontology`, glob over `microbiomekg/blueprints/`) |
+| Absent → skipped, no 0/0 rules | `compose(sources)`, `ontology_for(sources)`, a prep's `MissingInput` |
 | Dependency order | `DEPENDS_ON` in each prep, topologically sorted with cycle detection |
 | Licence / cost flags | `--with-kegg`, `--with-vectors` |
 | Manual-source detection | `fetch.py`'s `manual-present` status (HMDB, MiMeDB v2, MASI) |
 | `status` as data | `microbiomekg.sources.status(data_dir)` → `{source: SourceStatus(state, path, inputs, missing, how_to_get, licence, gated_by)}`; each prep declares `RAW_INPUTS`, `fetch.FETCHES`/`fetch.MANUAL` say how to get them |
 | Per-source provenance | `data/raw/<src>/PROVENANCE.md` (gitignored) + `docs/sources.md` (tracked) |
 | Truth gates | `tests/test_skill_claims.py`, `tests/test_documented_queries.py`, the junction rows-to-edges pin |
+| Source to graph | every prep returns frames into `microbiomekg.tables.Frames`; the load is `from_blueprint(frames=)` (kglite 0.16.23); no intermediate on disk |
 
 ## What the library release needs (in order, when there is time)
 

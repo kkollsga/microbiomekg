@@ -73,8 +73,8 @@ construction (231 files, −0.2%; the information test, 104 files, −12.4%).
   their positives. Deleting one of these invites a "simplification" that
   destroys the evidence model;
 - regression rationale in tests — the reason the test is not deletable;
-- the reason a source is skipped or a row is rejected (the `MISSING_INPUT`
-  branches, the reconciler's status strings): the audit gates cannot catch a
+- the reason a source is skipped or a row is rejected (the `MissingInput`
+  raises, the reconciler's status strings): the audit gates cannot catch a
   wrong bail reason, because a wrong skip returns the same green.
 
 **What reads our comments (`R18`) — hands off, or handle deliberately.** This

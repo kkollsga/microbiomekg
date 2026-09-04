@@ -106,7 +106,7 @@ items are enumerated in `docs/design/release-readiness.md`; none is done.
 
 | file | what it carries |
 |---|---|
-| `microbiomekg/preps/prep_<src>.py` | raw → flat CSV in `data/csv/`, plus `DEPENDS_ON` and `RAW_INPUTS` |
+| `microbiomekg/preps/prep_<src>.py` | `run(raw, store, …)`: raw files → tables in the build's store, plus `DEPENDS_ON` and `RAW_INPUTS` |
 | `microbiomekg/blueprints/<src>.json` | the node types and junction edges it writes rows into |
 | `microbiomekg/ontology/<src>.py` | its audit rules and evidence mapping |
 | `tests/test_<src>.py` | its fixture-backed tests |
@@ -122,11 +122,12 @@ half-loaded rather than rejected, and its test file is the thing that notices.
 - **`DEPENDS_ON` places a prep in the build**, not alphabetical order.
   `microbiomekg/pipeline.py` topologically sorts with cycle detection. Name order once
   loaded `IS_DRUG` with zero edges (`docs/model.md` §8).
-- **Exit code 3 (`MISSING_INPUT`) means "my raw input is absent"** — a skip
-  with a reason, never an error and never a half-load. A dependent of a skipped
-  source is itself a skip with a reason. A skipped source is dropped from the
-  *load* blueprint and the ontology, because a node type loaded empty gives its
-  audit rules a 0/0 denominator — a gate that cannot fail (`R1`).
+- **`MissingInput` means "my raw input is absent"** — a prep's `run()` raises
+  it naming the file, and the build catches it as a skip with a reason, never
+  an error and never a half-load. A dependent of a skipped source is itself a
+  skip with a reason. A skipped source is dropped from the *load* blueprint
+  and the ontology, because a node type loaded empty gives its audit rules a
+  0/0 denominator — a gate that cannot fail (`R1`).
 - **Fragments merge, they never override.** Declaring the same thing twice is
   how a source says "I write rows into this table too"; declaring more is
   additive; declaring the same key with a **different** value raises
@@ -136,8 +137,10 @@ half-loaded rather than rejected, and its test file is the thing that notices.
 - **The checked-in `blueprint.json` is always composed from the whole fragment
   set**, never from the sources one machine happens to have. It is a tracked
   artifact with a drift gate (`tests/test_fragments.py`, and
-  `scripts/build_blueprint.py --check` in `make gate`). A partial build writes
-  its own `blueprint.load.json` beside the CSVs instead.
+  `scripts/build_blueprint.py --check` in `make gate`). The build never
+  writes it: the copy it loads names every table in the store as a `files:`
+  entry of format `frame`, lives in a temporary directory only because the
+  engine reads a blueprint by path, and is gone when the load is.
 
 ## The contract, and the gate that keeps the prose true
 
@@ -185,9 +188,9 @@ extend the scanner, extend that test in the same change (`R1`).
    same fact, absent in exactly the same rows, so the normalisation is
    reversible. Forty reports on one pair stay forty reports, dissent included.
 5. **Nothing is dropped silently.** A name that will not resolve, a row that
-   will not map, a record that fails a check — each goes to a ledger CSV
-   (`data/csv/unresolved_taxa.csv` and its siblings) with the reason. "Dropped"
-   is a number this graph can report.
+   will not map, a record that fails a check — each goes to a ledger table
+   (`unresolved_taxa` and its siblings, on the build result's `store`) with
+   the reason. "Dropped" is a number this graph can report.
 6. **Measured negatives are first-class.** The 61,127 "tested and nothing
    happened" edges are the population no comparable resource ships; a change
    that folds them into their positive relationship destroys the thing worth
@@ -229,7 +232,7 @@ operator expected is never silent.
 ## `data/raw/` is operator-owned
 
 **The data lives outside the library tree**, in the sibling
-`../MicrobiomeKG-Data/` (`raw/`, `csv/`, `graph/`); `data` and `graph` in this
+`../MicrobiomeKG-Data/` (`raw/`, `graph/`); `data` and `graph` in this
 checkout are symlinks to it, so every path below and every default still
 resolves, and `microbiomekg build --data ../MicrobiomeKG-Data` is the same
 build without the links. 7.3 GB of third-party raw input, gitignored, **never
@@ -283,7 +286,6 @@ pointing it at a bounded tier — **in the same change** — is not allowed.
 | path | size | bound | owner |
 |---|---|---|---|
 | `data/raw/` → `../MicrobiomeKG-Data/raw/` | 7.3 GB | **none — never pruned automatically** | the operator; `make check-data-bounds` reports only |
-| `data/csv/` | ~264 MB | regenerated per build; `microbiomekg/pipeline.py` empties it first | the build |
 | `graph/*.kgl` → `../MicrobiomeKG-Data/graph/` | 47 MB (213 MB with `--with-vectors`) | one file, overwritten per build | the build |
 | `bench/results/` | small, **tracked** | the longitudinal record — never deleted; heavy capture output goes to the scratch dir `bench/README.md` names | `make check-data-bounds` warns past 5 MB |
 | `.venv/`, `.pytest_cache/`, `.ruff_cache/`, `__pycache__/` | 112 MB + caches | regenerable | `make prune-dev` |
@@ -301,8 +303,8 @@ bound checked only at milestones is not a bound (`R4` corollary).
 
 - **Understand before changing.** Reproduce with evidence before fixing; probe
   real behaviour with a scratch script rather than trusting your mental model.
-  For a loader that means prepping one source against its fixture and reading
-  the CSV, not reasoning about the CSV.
+  For a loader that means running one prep against its fixture into a store
+  and reading the table back, not reasoning about the table.
 - **Is it ours or the engine's?** A wrong graph can come from our mapping *or*
   from a kglite bug. Isolate which before fixing — an engine bug is a `notify`
   to kglite (`../../Rust/KGLite/inbox/`), not a workaround this repo pretends

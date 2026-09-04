@@ -693,7 +693,7 @@ NCBI id — 474 of them `Unclassified gut microbiota` and 311 `Unidentified gut
 microbes`, which is why only 16 of the 404 curated *non*-metabolism statements
 survive; 8 records carry a `Microbe_Change` with no direction this model can
 write; 15 of the 56 diseases reach no MONDO term and keep `MASI:DIS<n>`. All of
-it is in `data/csv/unresolved_masi.csv` and the `UnresolvedTaxon` tombstones.
+it is in the `unresolved_masi` table on the build result and the `UnresolvedTaxon` tombstones.
 
 ## 15. Maier 2018 — the drug screen, and the source that actually closed D8
 
@@ -773,7 +773,7 @@ lands on its parent — `Estradiol Valerate` reaches CHEMBL1511 by name and
 CHEMBL135 (estradiol) by ATC. That is ChEMBL's own documented parent gap showing
 through (a salt no mechanism row names keeps its own id, `docs/model.md`
 §ChEMBL), not a defect here; the verbatim-first rule decides it and
-`data/csv/unresolved_maier2018.csv` names both candidates, so the count is read
+the `unresolved_maier2018` table on the build result names both candidates, so the count is read
 rather than trusted.
 
 **The organism column is the second-cleanest of any source here, and its two

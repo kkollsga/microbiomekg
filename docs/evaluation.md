@@ -296,7 +296,7 @@ entry point at all. `scripts/serve.py` starts an MCP server over stdio;
 no tabular export, no `.tsv` dump of the association table. A bioinformatician
 who wants the evidence-annotated taxon–disease table has to either write kglite
 Python or run an LLM. The one artefact that is human-shaped —
-`data/csv/taxon_condition.csv`, 112,966 rows with all fourteen contract fields —
+the `taxon_condition` table on the build result, 112,966 rows with all fourteen contract fields —
 is a build intermediate that nothing in the README points at as a product.
 
 This is worth stating plainly because it is the difference between the two
