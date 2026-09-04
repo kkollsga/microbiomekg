@@ -90,11 +90,21 @@ def run_prep(script: Path, *args: str, expect: int = 0) -> subprocess.CompletedP
     raw = opts.pop("raw", out)
     store = Frames()
     pipeline.ingest_csv(store, out)
+    from microbiomekg.rawdata import MissingInput
+
     buffer = io.StringIO()
+    code, stderr = 0, ""
     with contextlib.redirect_stdout(buffer):
-        module.run(raw, store, **opts)
-    pipeline.export_csv(store, out)
-    return subprocess.CompletedProcess([str(script), *args], 0, buffer.getvalue(), "")
+        try:
+            module.run(raw, store, **opts)
+        except MissingInput as absent:
+            code, stderr = pipeline.MISSING_INPUT, str(absent)
+    assert code == expect, f"{script.name} exited {code}, expected {expect}:\n{stderr}"
+    if code == 0:
+        pipeline.export_csv(store, out)
+    return subprocess.CompletedProcess(
+        [str(script), *args], code, buffer.getvalue(), stderr
+    )
 
 
 def load_from_csv_dir(csv_dir: Path, sources: list[str]):

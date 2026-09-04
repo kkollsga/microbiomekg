@@ -52,16 +52,14 @@ a selected metabolite reaches no edge and is counted into
 
 from __future__ import annotations
 
-import argparse
-import csv
 import re
-import sys
 from collections import Counter
 from pathlib import Path
 
 from microbiomekg import ontology as ont
 from microbiomekg.ontology import kegg as kg
-from microbiomekg.tables import Writer
+from microbiomekg.rawdata import MissingInput
+from microbiomekg.tables import Frames
 
 SOURCE = kg.SOURCE
 
@@ -121,71 +119,62 @@ def strip_prefix(value: str) -> str:
     return value.split(":", 1)[1] if ":" in value else value
 
 
-def metabolite_index(path: Path) -> tuple[dict[str, str], int]:
+def metabolite_index(rows: list[dict[str, str]]) -> tuple[dict[str, str], int]:
     """Upper-cased KEGG compound id -> ``metabolite_id``.
 
     Upper-cased because HMDB carries exactly one lowercase `kegg_id`, `c0338`,
     where every other value is `C…`. Case-folding the key is the difference
     between that metabolite joining and it silently not.
     """
-    if not path.is_file():
+    if not rows:
         return {}, 0
     index: dict[str, str] = {}
     rows_read = 0
-    with path.open(encoding="utf-8", newline="") as fh:
-        for row in csv.DictReader(fh):
-            rows_read += 1
-            kegg = (row.get("kegg_id") or "").strip().upper()
-            if kegg:
-                index.setdefault(kegg, row["metabolite_id"])
+    for row in rows:
+        rows_read += 1
+        kegg = (row.get("kegg_id") or "").strip().upper()
+        if kegg:
+            index.setdefault(kegg, row["metabolite_id"])
     return index, rows_read
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--kegg",
-        type=Path,
-        default=None,
-        help="Directory holding the KEGG TSVs (default: <raw>/kegg).",
-    )
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--with-kegg",
-        action="store_true",
-        help="Required. Without it this source loads nothing: KEGG's licence "
-        "forbids redistributing a graph that carries it.",
-    )
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    kegg: Path | None = None,
+    opted_in: bool = False,
+) -> dict[str, int]:
+    """KEGG's tables into ``store``; returns each table's row count.
 
-    if not args.with_kegg:
-        print(
+    Licence-gated: without ``opted_in`` it raises :class:`MissingInput` saying
+    so, and leaves the build by the same door an absent file does. ``kegg``
+    defaults to ``raw/kegg/``. Reads HMDB's ``metabolite`` table off the store.
+    """
+
+    if not opted_in:
+        raise MissingInput(
             f"{SOURCE} is licence-gated and was not asked for: pass {kg.BUILD_FLAG} "
             f"to include it. KEGG is not a public database and a graph carrying it "
-            f"cannot be published (docs/sources.md section 7).",
-            file=sys.stderr,
+            f"cannot be published (docs/sources.md section 7)."
         )
-        return 3
 
-    src = args.kegg or (args.raw / SOURCE)
+    src = kegg or (raw / SOURCE)
     needed = ("list_pathway.tsv", "link_compound_pathway.tsv", "list_compound.tsv")
     missing = [n for n in needed if not (src / n).is_file()]
     if missing:
-        print(f"no {', '.join(missing)} under {src}", file=sys.stderr)
-        return 3
+        raise MissingInput(f"no {', '.join(missing)} under {src}")
 
     licence = ont.SOURCE_LICENCE.get(SOURCE, "")
-    out = args.out
-    pathways = Writer(
-        out / "pathway.csv",
+    pathways = store.table(
+        "pathway",
         PATHWAY_FIELDS,
         key="pathway_id",
         merge=True,
         owner=("pathway_source", SOURCE),
     )
-    links = Writer(
-        out / "metabolite_pathway.csv",
+    links = store.table(
+        "metabolite_pathway",
         ["metabolite_id", "pathway_id", *LINK_FIELDS],
         dedupe_full=True,
         merge=True,
@@ -193,8 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     # Aggregated per compound, not per link row — see prep_reactome.py: the
     # same fact restated once per map is a large file and a worse ledger.
-    ledger = Writer(
-        out / "unresolved_pathway_links.csv",
+    ledger = store.table(
+        "unresolved_pathway_links",
         ["source_id", "pathway_id", "reason", "rows", "primary_source"],
         key="source_id",
         merge=True,
@@ -223,11 +212,11 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
 
-    metabolites, metabolite_rows = metabolite_index(out / "metabolite.csv")
+    metabolites, metabolite_rows = metabolite_index(store.rows("metabolite"))
     if not metabolite_rows:
         print(
-            f"no metabolite.csv under {out}: pathway nodes load, but no "
-            f"IN_PATHWAY edge can be joined"
+            "no metabolite table in the store: pathway nodes load, but no "
+            "IN_PATHWAY edge can be joined"
         )
     # Two different facts, kept apart. A `C` id absent from the compound list
     # is one KEGG has withdrawn since HMDB 5.0 (2021) — 27 in the real data, the
@@ -298,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         counters["in_pathway"] += 1
 
     tables = (pathways, links, ledger)
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     print(
         f"\nread {counters['pathway_rows']:,} reference maps, "
@@ -340,14 +329,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  every row carries source_licence={licence!r}")
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

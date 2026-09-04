@@ -70,17 +70,15 @@ D-/L- enantiomer pair, and joining them would fold two compounds into one node.
 
 from __future__ import annotations
 
-import argparse
 import csv
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 from microbiomekg.ontology import mimedb as mm
 from microbiomekg.ontology import njc19 as nj
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
-from microbiomekg.tables import Writer, as_list, from_list
+from microbiomekg.tables import Frames, as_list, from_list
 
 SOURCE = mm.SOURCE
 
@@ -156,7 +154,7 @@ def cell(row: dict[str, str], key: str) -> str:
 
 
 def load_metabolite_index(
-    path: Path,
+    rows: list[dict[str, str]],
 ) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
     """``(accession, casefolded name, InChIKey) -> metabolite_id``, three indexes.
 
@@ -173,38 +171,37 @@ def load_metabolite_index(
     accessions: dict[str, str] = {}
     names: dict[str, str] = {}
     keys: dict[str, str] = {}
-    if not path.is_file():
+    if not rows:
         return accessions, names, keys
-    with path.open(encoding="utf-8", newline="") as fh:
-        for row in csv.DictReader(fh):
-            key = row.get("metabolite_id") or ""
-            # This source's own rows from a previous run are not "a node that
-            # already holds the compound": `Writer(owner=...)` is about to drop
-            # and rewrite them, so counting them here makes a second run load
-            # nothing and report every record as a duplicate of itself. That is
-            # the re-run failure `microbiomekg.tables` documents, reached
-            # through the index instead of the writer.
-            if not key or (row.get("source") or "") == SOURCE:
-                continue
-            for accession in (
-                row.get("hmdb_id") or "",
-                *from_list(row.get("secondary_accessions")),
-            ):
-                normalised = mm.normalise_hmdb_id(accession)
-                if normalised:
-                    accessions.setdefault(normalised, key)
-            name = (row.get("name") or "").strip().casefold()
-            if name:
-                names.setdefault(name, key)
-            # The full InChIKey, never its first block. Block 1 is the molecular
-            # skeleton and block 2 is stereochemistry, isotopes and protonation,
-            # so a skeleton match folds D- onto L- and an acid onto its own
-            # conjugate base — the identity merge the contested-accession rule
-            # already refuses. The full key is an exact structural identity and
-            # joins 1,232 MiMeDB records to a node HMDB wrote.
-            inchikey = (row.get("inchikey") or "").strip()
-            if inchikey:
-                keys.setdefault(inchikey, key)
+    for row in rows:
+        key = row.get("metabolite_id") or ""
+        # This source's own rows from a previous run are not "a node that
+        # already holds the compound": `Writer(owner=...)` is about to drop
+        # and rewrite them, so counting them here makes a second run load
+        # nothing and report every record as a duplicate of itself. That is
+        # the re-run failure `microbiomekg.tables` documents, reached
+        # through the index instead of the writer.
+        if not key or (row.get("source") or "") == SOURCE:
+            continue
+        for accession in (
+            row.get("hmdb_id") or "",
+            *from_list(row.get("secondary_accessions")),
+        ):
+            normalised = mm.normalise_hmdb_id(accession)
+            if normalised:
+                accessions.setdefault(normalised, key)
+        name = (row.get("name") or "").strip().casefold()
+        if name:
+            names.setdefault(name, key)
+        # The full InChIKey, never its first block. Block 1 is the molecular
+        # skeleton and block 2 is stereochemistry, isotopes and protonation,
+        # so a skeleton match folds D- onto L- and an acid onto its own
+        # conjugate base — the identity merge the contested-accession rule
+        # already refuses. The full key is an exact structural identity and
+        # joins 1,232 MiMeDB records to a node HMDB wrote.
+        inchikey = (row.get("inchikey") or "").strip()
+        if inchikey:
+            keys.setdefault(inchikey, key)
     return accessions, names, keys
 
 
@@ -308,67 +305,49 @@ def microbe_report(
     return rows, with_taxid, statuses, activity, release
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--metabolites",
-        type=Path,
-        default=None,
-        help="MiMeDB metabolites CSV (default: the newest release present, "
-        "<raw>/mimedb/v2/mimedb_metabolites_v2.csv falling back to "
-        "<raw>/mimedb/mimedb_metabolites_v1.csv).",
-    )
-    ap.add_argument(
-        "--microbes",
-        type=Path,
-        default=None,
-        help="MiMeDB microbes CSV (default: from the same release directory "
-        "as --metabolites). Reported on, never loaded: no published "
-        "release carries a link between the two tables.",
-    )
-    ap.add_argument(
-        "--njc19",
-        type=Path,
-        default=None,
-        help="NJC19's Online-only Table 5 xlsx (default: "
-        "<raw>/njc19/41597_2020_516_MOESM1_ESM.xlsx). Absent means the "
-        "njc19-compound selection rule selects nothing.",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    metabolites: Path | None = None,
+    microbes: Path | None = None,
+    njc19: Path | None = None,
+    taxdump: Path | None = None,
+) -> dict[str, int]:
+    """MiMeDB's tables into ``store``; returns each table's row count.
 
-    default_metabolites, default_microbes = default_inputs(args.raw)
-    metabolites_csv = args.metabolites or default_metabolites
+    v2.0 under ``raw/mimedb/v2/`` first, the v1.0 files beside it as the
+    documented fallback. Reads HMDB's ``metabolite`` table off the store and
+    NJC19's raw spreadsheet for a selection rule. Raises :class:`MissingInput`
+    when the metabolites dump or the taxdump is not there.
+    """
+
+    default_metabolites, default_microbes = default_inputs(raw)
+    metabolites_csv = metabolites or default_metabolites
     if not metabolites_csv.is_file():
         # Exit 3, not 2: "this source's raw file is not on this machine" is a
         # different fact from "this script was called wrong". mimedb.org is
         # behind an interactive Cloudflare challenge, so an absent file is the
         # expected state of a fresh clone — and the message names the four files
         # an operator has to place, because no script can fetch them.
-        print(
+        raise MissingInput(
             f"no MiMeDB metabolites dump at {metabolites_csv}\n"
             f"  place mimedb_metabolites_v2.csv and mimedb_microbes_v2.csv "
             f"(with their .xml siblings) from https://mimedb.org/downloads into "
-            f"{args.raw / SOURCE / 'v2'}/ — see data/raw/mimedb/v2/PROVENANCE.md",
-            file=sys.stderr,
+            f"{raw / SOURCE / 'v2'}/ — see data/raw/mimedb/v2/PROVENANCE.md"
         )
-        return 3
-    microbes_csv = args.microbes or default_microbes
-    njc19_xlsx = args.njc19 or (args.raw / "njc19" / "41597_2020_516_MOESM1_ESM.xlsx")
+    microbes_csv = microbes or default_microbes
+    njc19_xlsx = njc19 or (raw / "njc19" / "41597_2020_516_MOESM1_ESM.xlsx")
 
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
-
-    out = args.out
+        raise MissingInput(str(e)) from e
     accessions, existing_names, existing_keys = load_metabolite_index(
-        out / "metabolite.csv"
+        store.rows("metabolite")
     )
     print(
-        f"metabolite.csv: {len(accessions):,} HMDB accessions, "
+        f"metabolite table: {len(accessions):,} HMDB accessions, "
         f"{len(existing_names):,} names and {len(existing_keys):,} InChIKeys "
         f"already have a node"
     )
@@ -404,15 +383,15 @@ def main(argv: list[str] | None = None) -> int:
             claimants[normalised].append(cell(row, "mime_id"))
     contested = {a for a, ids in claimants.items() if len(ids) > 1}
 
-    metabolites = Writer(
-        out / "metabolite.csv",
+    metabolites = store.table(
+        "metabolite",
         METABOLITE_FIELDS,
         key="metabolite_id",
         merge=True,
         owner=("source", SOURCE),
     )
-    ledger = Writer(
-        out / "unresolved_mimedb.csv",
+    ledger = store.table(
+        "unresolved_mimedb",
         LEDGER_FIELDS,
         merge=True,
         owner=("source", SOURCE),
@@ -548,7 +527,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     tables = (metabolites, ledger)
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     print(f"\nmetabolites: {len(records):,} records read from MiMeDB {release}")
     print(
@@ -597,14 +576,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
             + ", ".join(f"{name} +{n:,}" for name, n in shared.items())
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    return counts

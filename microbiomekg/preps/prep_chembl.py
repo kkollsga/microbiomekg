@@ -53,8 +53,6 @@ rule auditing nothing. Run standalone against a directory that has no
 
 from __future__ import annotations
 
-import argparse
-import csv as csvmod
 import json
 import sys
 from collections import Counter, OrderedDict, defaultdict
@@ -63,9 +61,9 @@ from typing import Any, Iterable, Iterator, Mapping
 
 from microbiomekg import ontology as ont
 from microbiomekg.ontology import chembl as chem
-from microbiomekg.rawdata import find_taxdump, missing_input
+from microbiomekg.rawdata import MissingInput, find_taxdump
 from microbiomekg.reconcile import TaxonomyIndex
-from microbiomekg.tables import Writer, as_list
+from microbiomekg.tables import Frames, Table, as_list
 
 SOURCE = chem.SOURCE
 
@@ -256,29 +254,22 @@ MECHANISM_FIELDS = [
 LEDGER_FIELDS = ["kind", "record_id", "subject", "detail", "reason", "source"]
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", type=Path, default=Path("data/raw"))
-    ap.add_argument(
-        "--chembl",
-        type=Path,
-        default=None,
-        help=f"Directory holding {MECHANISM_FILE}, {MOLECULE_FILE} and "
-        f"{TARGET_FILE} (default: <raw>/chembl).",
-    )
-    ap.add_argument("--taxdump", type=Path, default=None)
-    ap.add_argument("--out", type=Path, default=Path("data/csv"))
-    ap.add_argument(
-        "--interventions",
-        type=Path,
-        default=None,
-        help="gutMDisorder's intervention table, read to link Intervention "
-        "nodes to Drug nodes (default: <out>/intervention.csv).",
-    )
-    ap.add_argument("--rank-ceiling", default="species")
-    args = ap.parse_args(argv)
+def run(
+    raw: Path,
+    store: Frames,
+    *,
+    chembl: Path | None = None,
+    taxdump: Path | None = None,
+    rank_ceiling: str = "species",
+) -> dict[str, int]:
+    """ChEMBL's tables into ``store``; returns each table's row count.
 
-    raw = args.chembl or (args.raw / SOURCE)
+    ``chembl`` defaults to ``raw/chembl/``. Reads gutMDisorder's
+    ``intervention`` table off the store for ``IS_DRUG``. Raises
+    :class:`MissingInput` when a ChEMBL file or the taxdump is not there.
+    """
+
+    raw = chembl or (raw / SOURCE)
     missing = [
         n
         for n in (MECHANISM_FILE, MOLECULE_FILE, TARGET_FILE)
@@ -289,12 +280,11 @@ def main(argv: list[str] | None = None) -> int:
         # different fact from "this script was called wrong", and
         # scripts/build.py acts on the difference by skipping the source and
         # leaving it out of the blueprint rather than declaring an empty one.
-        print(f"no {', '.join(missing)} under {raw}", file=sys.stderr)
-        return 3
+        raise MissingInput(f"no {', '.join(missing)} under {raw}")
     try:
-        taxdump = args.taxdump or find_taxdump(args.raw)
+        taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
-        return missing_input(e)
+        raise MissingInput(str(e)) from e
 
     print(f"reading {raw}/{{mechanism,molecule_max_phase4,target}}.jsonl", flush=True)
     mechanisms = list(read_jsonl(raw / MECHANISM_FILE))
@@ -311,15 +301,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
     print(f"  {len(idx.parent):,} taxa, {len(idx.names):,} name keys", flush=True)
-
-    out = args.out
-    drugs = Writer(out / "drug.csv", DRUG_FIELDS, key="drug_id")
-    protein_targets = Writer(out / "protein_target.csv", TARGET_FIELDS, key="target_id")
-    mechanism_edges = Writer(
-        out / "drug_target.csv", ["drug_id", "target_id", *MECHANISM_FIELDS]
+    drugs = store.table("drug", DRUG_FIELDS, key="drug_id")
+    protein_targets = store.table("protein_target", TARGET_FIELDS, key="target_id")
+    mechanism_edges = store.table(
+        "drug_target", ["drug_id", "target_id", *MECHANISM_FIELDS]
     )
-    organism_edges = Writer(
-        out / "protein_target_taxon.csv",
+    organism_edges = store.table(
+        "protein_target_taxon",
         [
             "target_id",
             "tax_id",
@@ -331,8 +319,8 @@ def main(argv: list[str] | None = None) -> int:
         ],
         dedupe_full=True,
     )
-    drug_links = Writer(
-        out / "intervention_drug.csv",
+    drug_links = store.table(
+        "intervention_drug",
         [
             "intervention_id",
             "drug_id",
@@ -344,9 +332,9 @@ def main(argv: list[str] | None = None) -> int:
         ],
         key="intervention_id",
     )
-    ledger = Writer(out / "unresolved_chembl.csv", LEDGER_FIELDS)
-    cited = Writer(
-        out / "cited_taxa.csv",
+    ledger = store.table("unresolved_chembl", LEDGER_FIELDS)
+    cited = store.table(
+        "cited_taxa",
         ["tax_id", "source", "n_signatures"],
         key=("tax_id", "source"),
         merge=True,
@@ -456,7 +444,7 @@ def main(argv: list[str] | None = None) -> int:
                 }
             )
             continue
-        resolution = idx.resolve(tax_id=int(raw_tax), rank_ceiling=args.rank_ceiling)
+        resolution = idx.resolve(tax_id=int(raw_tax), rank_ceiling=rank_ceiling)
         if resolution.tax_id is None:
             # Never written through: a junction row whose endpoint is missing
             # vivifies a stub Taxon whose only name is its own id, and every
@@ -558,9 +546,8 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     # -------------------------------------------------- interventions -> drugs
-    interventions_path = args.interventions or (out / "intervention.csv")
     linked, considered = link_interventions(
-        interventions_path, molecules, parents, drug_links, ledger, counters
+        store.rows("intervention"), molecules, parents, drug_links, ledger, counters
     )
 
     for tax_id, n in sorted(taxa_seen.items()):
@@ -575,7 +562,7 @@ def main(argv: list[str] | None = None) -> int:
         ledger,
         cited,
     )
-    counts = {w.path.name: w.flush() for w in tables}
+    counts = {w.name: store.put(w) for w in tables}
 
     print(
         f"\nread {counters['mechanism_rows']:,} mechanism rows over "
@@ -609,7 +596,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, n in counts.items():
         print(f"  {name:34s} {n:>9,}")
-    shared = {w.path.name: w.merged_in for w in tables if w.merged_in}
+    shared = {w.name: w.merged_in for w in tables if w.merged_in}
     if shared:
         print(
             "  merged into tables another source had written: "
@@ -619,7 +606,7 @@ def main(argv: list[str] | None = None) -> int:
     # release number, and a build log is where an operator sees what the graph
     # they just made is bound by.
     print(f"  attribution ({chem.LICENCE}): {chem.ATTRIBUTION}")
-    return 0
+    return counts
 
 
 def name_index(
@@ -647,11 +634,11 @@ def name_index(
 
 
 def link_interventions(
-    path: Path,
+    rows: list[dict[str, str]],
     molecules: Mapping[str, Mapping[str, Any]],
     parents: Mapping[str, str],
-    drug_links: Writer,
-    ledger: Writer,
+    drug_links: Table,
+    ledger: Table,
     counters: Counter,
 ) -> tuple[int, int]:
     """Link ``Intervention`` nodes to ``Drug`` nodes by exact name.
@@ -666,19 +653,17 @@ def link_interventions(
     a comma-multivalued cell names two drugs, and accepting either would invent
     an intervention gutMDisorder never curated.
     """
-    if not path.is_file():
+    if not rows:
         print(
-            f"\nno intervention table at {path} — no Intervention nodes to link "
-            f"(gutMDisorder has not written it; scripts/build.py orders the "
-            f"preps so that it has, so this is a standalone run)",
+            "\nno intervention table in the store — no Intervention nodes to link "
+            "(gutMDisorder has not written it; the build orders the "
+            "preps so that it has, so this is a standalone run)",
             file=sys.stderr,
             flush=True,
         )
         return 0, 0
 
     index = name_index(molecules, parents)
-    with path.open(encoding="utf-8", newline="") as fh:
-        rows = list(csvmod.DictReader(fh))
     linked = 0
     for row in rows:
         label = (row.get("label") or "").strip()
@@ -726,7 +711,3 @@ def link_interventions(
             }
         )
     return linked, len(rows)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
