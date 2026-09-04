@@ -326,12 +326,12 @@ def run(
         )
 
     index = DrugIndex.from_rows(store.rows("drug"), exclude_source=SOURCE)
-    print(f"drug.csv: {len(index.names):,} names this source may join to")
+    print(f"drug table: {len(index.names):,} names this source may join to")
     measured = screen_pairs(store)
     print(
-        f"primary screens on disk: {len(measured):,} measured (taxon, drug) pairs"
+        f"primary screens in the store: {len(measured):,} measured (taxon, drug) pairs"
         if measured
-        else "no primary screen tables on disk: the overlap is unmeasured, not zero"
+        else "no primary screen tables in the store: the overlap is unmeasured, not zero"
     )
 
     print(f"loading taxdump from {taxdump} ...", flush=True)

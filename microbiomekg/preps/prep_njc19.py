@@ -228,7 +228,7 @@ def run(
     except FileNotFoundError as e:
         raise MissingInput(str(e)) from e
     names = load_metabolite_names(store.rows("metabolite"))
-    print(f"metabolite.csv: {len(names):,} names already have a node")
+    print(f"metabolite table: {len(names):,} names already have a node")
 
     rows = read_table(xlsx)
     print(f"read {len(rows):,} association rows from {xlsx}")

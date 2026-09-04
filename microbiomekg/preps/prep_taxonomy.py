@@ -164,7 +164,7 @@ def select_scope(
     if scope == "cited":
         if not cited:
             raise SystemExit(
-                "--scope cited needs a cited_taxa table in the store; run a source prep first"
+                'scope="cited" needs a cited_taxa table in the store; run a source prep first'
             )
         seeds = set(cited)
     else:  # microbial
@@ -277,31 +277,30 @@ def run(
 
     taxa = store.table("taxon", FIELDS, key="tax_id")
     n_truncated = n_placeholder = 0
-    if True:
-        for tid in sorted(keep):
-            parent = idx.parent.get(tid, tid)
-            lin = lineage.get(tid, [""] * 9)
-            syn = synonyms.get(tid, [])
-            if len(syn) > SYNONYM_CAP:
-                n_truncated += 1
-            name = idx.scientific_name.get(tid, lin[0] or str(tid))
-            placeholder = is_placeholder_name(name)
-            n_placeholder += placeholder
-            row = {
-                "tax_id": tid,
-                "scientific_name": name,
-                "rank": idx.rank.get(tid, ""),
-                "placeholder": "true" if placeholder else "false",
-                # root(1) is its own parent in nodes.dmp; a self-edge would make
-                # -[:HAS_PARENT*1..]-> non-terminating on any walk that reaches it.
-                "parent_tax_id": "" if parent == tid or parent not in keep else parent,
-                "synonyms": as_list(syn[:SYNONYM_CAP]),
-                "synonyms_text": " | ".join(syn[:SYNONYM_CAP]),
-                "synonym_count": len(syn),
-            }
-            row.update(zip(LINEAGE_COLUMNS[1:], lin[1:]))
-            row.update(probiotics.get(tid, dict.fromkeys(PROBIOTIC_COLUMNS, "")))
-            taxa.add({k: str(v) for k, v in row.items()})
+    for tid in sorted(keep):
+        parent = idx.parent.get(tid, tid)
+        lin = lineage.get(tid, [""] * 9)
+        syn = synonyms.get(tid, [])
+        if len(syn) > SYNONYM_CAP:
+            n_truncated += 1
+        name = idx.scientific_name.get(tid, lin[0] or str(tid))
+        placeholder = is_placeholder_name(name)
+        n_placeholder += placeholder
+        row = {
+            "tax_id": tid,
+            "scientific_name": name,
+            "rank": idx.rank.get(tid, ""),
+            "placeholder": "true" if placeholder else "false",
+            # root(1) is its own parent in nodes.dmp; a self-edge would make
+            # -[:HAS_PARENT*1..]-> non-terminating on any walk that reaches it.
+            "parent_tax_id": "" if parent == tid or parent not in keep else parent,
+            "synonyms": as_list(syn[:SYNONYM_CAP]),
+            "synonyms_text": " | ".join(syn[:SYNONYM_CAP]),
+            "synonym_count": len(syn),
+        }
+        row.update(zip(LINEAGE_COLUMNS[1:], lin[1:]))
+        row.update(probiotics.get(tid, dict.fromkeys(PROBIOTIC_COLUMNS, "")))
+        taxa.add({k: str(v) for k, v in row.items()})
     n = store.put(taxa)
 
     print(

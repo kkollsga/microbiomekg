@@ -413,7 +413,7 @@ def run(
         contested
     )
     print(
-        f"drug.csv: {len(index.names):,} ChEMBL pref_names, "
+        f"drug table: {len(index.names):,} ChEMBL pref_names, "
         f"{len(index.atc):,} level-5 ATC codes claimed by exactly one ChEMBL "
         f"node and one library entry"
     )

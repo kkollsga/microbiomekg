@@ -66,7 +66,6 @@ library in *E. coli* rather than in the 76 strains these edges come from
 
 from __future__ import annotations
 
-import argparse
 import re
 from collections import Counter, OrderedDict
 from pathlib import Path
@@ -549,7 +548,7 @@ def run(
     )
 
     index = DrugIndex.from_rows(store.rows("drug"), exclude_source=SOURCE)
-    print(f"drug.csv: {len(index.names):,} names this screen may join to")
+    print(f"drug table: {len(index.names):,} names this screen may join to")
 
     print(f"loading taxdump from {taxdump} ...", flush=True)
     idx = TaxonomyIndex.from_taxdump(taxdump)
@@ -1006,15 +1005,6 @@ def run(
             + ", ".join(f"{name_} +{n:,}" for name_, n in shared.items())
         )
     return counts
-
-
-def _triple(value: str) -> tuple[int, int, int]:
-    """``"271,76,176"`` -> ``(271, 76, 176)``."""
-    parts = [p.strip() for p in str(value).split(",")]
-    if len(parts) != 3 or not all(p.isdigit() for p in parts):
-        raise argparse.ArgumentTypeError(f"{value!r} is not DRUGS,STRAINS,METABOLISED")
-    a, b, c = (int(p) for p in parts)
-    return a, b, c
 
 
 def _num(value: float | None) -> str:

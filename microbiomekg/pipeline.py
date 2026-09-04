@@ -61,6 +61,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from microbiomekg.fragments import FRAGMENTS_DIR, compose
+from microbiomekg.ontology.kegg import BUILD_FLAG as KEGG_BUILD_FLAG
 from microbiomekg.rawdata import MissingInput
 from microbiomekg.tables import Frames, declared_types
 
@@ -131,7 +132,7 @@ VECTOR_INDEXES: tuple[tuple[str, str, int], ...] = (
 #: it is explicitly not a public database, so a graph carrying its content
 #: cannot be published (docs/sources.md, "Redistribution"). The operator opts
 #: in; the build never decides for them.
-LICENCE_GATED: dict[str, str] = {"kegg": "--with-kegg"}
+LICENCE_GATED: dict[str, str] = {"kegg": KEGG_BUILD_FLAG}
 
 
 def opted_into(source: str, args: argparse.Namespace) -> bool:
