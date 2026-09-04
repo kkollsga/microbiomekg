@@ -13,6 +13,7 @@ So the rule is asserted here, in both of its uses.
 from __future__ import annotations
 
 import json
+import warnings
 import subprocess
 import sys
 from pathlib import Path
@@ -290,9 +291,14 @@ def _load_report(blueprint: dict, root: Path, tmp_path: Path, capfd) -> str:
     path = tmp_path / "blueprint.json"
     path.write_text(json.dumps(document))
     capfd.readouterr()
-    kglite.from_blueprint(path, verbose=True, save=False)
+    # Since kglite 0.16.23 a blueprint warning is a Python ``UserWarning``
+    # rather than a line on stderr, so the report is both: what the extension
+    # still writes to the descriptors, and every warning it raised.
+    with warnings.catch_warnings(record=True) as raised:
+        warnings.simplefilter("always")
+        kglite.from_blueprint(path, verbose=True, save=False)
     out, err = capfd.readouterr()
-    return out + err
+    return out + err + "".join(f"warning: {w.message}\n" for w in raised)
 
 
 def test_no_fragment_declares_a_key_the_loader_does_not_read(tmp_path, capfd):
