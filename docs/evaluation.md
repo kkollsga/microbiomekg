@@ -477,7 +477,7 @@ question the graph answers.
 |---|---|---|---|
 | D5/D13 enzyme + reaction | MiMeDB v2.0 reaction table | not bulk-downloadable; the two published dumps are MySQL tables with **zero** cross-references between them | production claims carry no enzyme and no pathway of their own |
 | D8/D18 drug↔taxon aggregate | MASI interaction tables | documented `unrecoverable`, **and that was wrong — see the caveat below** | the two primary screens closed both directions first, and measure where MASI curates |
-| D14 healthy baselines | GMrepo / `bugphyzz` | not fetched | "is this taxon just generic dysbiosis?" is answered by signature *breadth* only, a proxy for the r = −0.84 prevalence relationship |
+| D14 healthy baselines | GMrepo / `bugphyzz` | not fetched | "is this taxon just generic dysbiosis?" is answered by signature *breadth* only, a proxy for the r = −0.84 prevalence relationship — **validated 2026-09-04**: nine of D14's top ten genera are in Duvallet 2017's published non-specific set (`docs/benchmarks.md` G7) |
 | D12 nomenclature | LPSN | not fetched | NCBI's name is reported as if uncontested; *Lacticaseibacillus rhamnosus* is taxonomically suspended at LPSN and the graph cannot say so |
 | D13 gene layer | gutSMASH | not fetched | taxon→pathway is genome-inferred in every available case |
 | associations | Disbiome | host does not complete a TCP connection; never archived | one fewer independent curation to cross-check against |
@@ -762,7 +762,10 @@ That is a real thing, and it is smaller than "a microbiome knowledge graph".
    proxy, and the published relationship it approximates (r = −0.84 between a
    genus's healthy prevalence and how often it is reported increased) is what
    makes the ranked outputs of W1, W2 and W3 interpretable rather than
-   suggestive.
+   suggestive. **2026-09-04:** the breadth proxy was scored against Duvallet
+   2017's meta-analysis and reproduced it (nine of the top ten,
+   `docs/benchmarks.md` G7), so the proxy is validated and GMrepo stays at
+   this priority — the prevalence denominator is still the thing it would add.
 4. **~~Settle the MASI question and act on it.~~ Settled 2026-09-03.**
    `aiddlab.com` was behind an expired certificate rather than gone, all eight
    files answer 200, and the operator fetched them through a browser rather

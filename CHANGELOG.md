@@ -12,6 +12,11 @@ changes and formatting do not get entries. Nothing has been released yet:
 ## [Unreleased]
 
 ### Added
+- **G7, the breadth proxy against a published meta-analysis.** D14's
+  signature-breadth ranking scored against Duvallet et al. 2017's non-specific
+  genus set: nine of the top ten at genus rank, claim-gated in
+  `docs/benchmarks.md`. The reference set is fetched by
+  `microbiomekg fetch --only duvallet2017` and cut to a checked-in table.
 - **Source to graph, with nothing on disk in between.** Every prep is a
   function, `run(raw, store, ...)`, that puts its tables into one in-memory
   store; the build composes a blueprint whose `files:` section declares each

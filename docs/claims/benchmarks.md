@@ -119,3 +119,23 @@ what the other side published, not what this graph measures.
             sum(CASE WHEN n = 2 AND b AND m THEN pairs ELSE 0 END) AS c4,
             3 AS c5
      == 424, 244, 119, 84, 3 -->
+
+## G7 — The breadth proxy against a published meta-analysis
+
+<!-- claim external: 28, 10, 2, 24, 20, 7, 51 — Duvallet et al. 2017's own figures: 28 datasets across ten diseases; a genus counts when significant in at least two diseases; 24 health-, 20 disease-, 7 both-associated genera in supplementary file S3, 51 labelled rows -->
+
+<!-- claim external: 5, 6, 1 — the stop rule's threshold (five of the top ten), D14's documented top six in docs/usecases-and-pitfalls.md, and the one miss; thresholds and pointers, not graph measurements -->
+
+<!-- claim: MATCH (t:Taxon)-[:REPORTED_BY]->(s:Signature)
+     WHERE t.placeholder = false AND t.rank = 'genus'
+     WITH t.title AS genus, count(s) AS n
+     ORDER BY n DESC LIMIT 10
+     RETURN sum(CASE WHEN genus IN ['Varibaculum', 'Bifidobacterium', 'Collinsella', 'Bacteroides', 'Barnesiella', 'Porphyromonas', 'Prevotella', 'Alistipes', 'Staphylococcus', 'Enterococcus', 'Lactobacillus', 'Leuconostoc', 'Weissella', 'Streptococcus', 'Anaerococcus', 'Finegoldia', 'Parvimonas', 'Peptoniphilus', 'Anaerovorax', 'Mogibacterium', 'Murdochiella', 'Anaerostipes', 'Blautia', 'Clostridium_XlVb', 'Coprococcus', 'Howardella', 'Lachnospiracea_incertae_sedis', 'Roseburia', 'Clostridium_XI', 'Peptostreptococcus', 'Anaerofilum', 'Clostridium_IV', 'Ethanoligenens', 'Faecalibacterium', 'Flavonifractor', 'Gemmiger', 'Oscillibacter', 'Pseudoflavonifractor', 'Ruminococcus', 'Sporobacter', 'Catenibacterium', 'Clostridium_XVIII', 'Coprobacillus', 'Turicibacter', 'Phascolarctobacterium', 'Veillonella', 'Fusobacterium', 'Campylobacter', 'Escherichia/Shigella', 'Pyramidobacter', 'Akkermansia'] THEN 1 ELSE 0 END) AS overlap
+     == 9 -->
+
+<!-- claim: MATCH (t:Taxon)-[:REPORTED_BY]->(s:Signature)
+     WHERE t.placeholder = false AND t.rank = 'genus'
+     WITH t.title AS genus, count(s) AS n
+     ORDER BY n DESC LIMIT 20
+     RETURN sum(CASE WHEN genus IN ['Varibaculum', 'Bifidobacterium', 'Collinsella', 'Bacteroides', 'Barnesiella', 'Porphyromonas', 'Prevotella', 'Alistipes', 'Staphylococcus', 'Enterococcus', 'Lactobacillus', 'Leuconostoc', 'Weissella', 'Streptococcus', 'Anaerococcus', 'Finegoldia', 'Parvimonas', 'Peptoniphilus', 'Anaerovorax', 'Mogibacterium', 'Murdochiella', 'Anaerostipes', 'Blautia', 'Clostridium_XlVb', 'Coprococcus', 'Howardella', 'Lachnospiracea_incertae_sedis', 'Roseburia', 'Clostridium_XI', 'Peptostreptococcus', 'Anaerofilum', 'Clostridium_IV', 'Ethanoligenens', 'Faecalibacterium', 'Flavonifractor', 'Gemmiger', 'Oscillibacter', 'Pseudoflavonifractor', 'Ruminococcus', 'Sporobacter', 'Catenibacterium', 'Clostridium_XVIII', 'Coprobacillus', 'Turicibacter', 'Phascolarctobacterium', 'Veillonella', 'Fusobacterium', 'Campylobacter', 'Escherichia/Shigella', 'Pyramidobacter', 'Akkermansia'] THEN 1 ELSE 0 END) AS overlap
+     == 14 -->

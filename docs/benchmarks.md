@@ -143,3 +143,40 @@ Of the 871 pairs seen by more than one source, 424 are BugSigDB × gutMDisorder,
 least flattering number the graph can publish about itself and the one no
 comparator publishes at all: the query reports the disagreement and nothing
 here resolves it.
+
+## G7 — The breadth proxy against a published meta-analysis
+
+D14 asks "is this taxon a generic dysbiosis marker?" and answers it by
+*signature breadth* — how many BugSigDB signatures report the taxon — because
+the healthy-cohort prevalence that would answer it directly is not in the
+graph. Duvallet et al. 2017 answered the same question from 28 case-control
+datasets across ten diseases: a genus significant in the same direction in at
+least two diseases is part of the "non-specific" response. Their supplementary
+file S3 names that set (`tests/fixtures/duvallet2017_genera.tsv`, cut by
+`tests/fixtures/make_duvallet2017_reference.py`), and the benchmark asks how
+many of D14's top-ranked genera are in it.
+
+| | |
+|---|---:|
+| genera in Duvallet's non-specific set (24 health, 20 disease, 7 both) | 51 |
+| D14's top ten genera by signature breadth, in that set | **9** |
+| D14's top twenty, in that set | **14** |
+
+```cypher
+MATCH (t:Taxon)-[:REPORTED_BY]->(s:Signature)
+WHERE t.placeholder = false AND t.rank = 'genus'
+WITH t.title AS genus, count(s) AS n
+ORDER BY n DESC LIMIT 10
+RETURN sum(CASE WHEN genus IN [<the 51 genera>] THEN 1 ELSE 0 END) AS overlap
+```
+
+The ranking is restricted to `rank = 'genus'` because the reference is a genus
+list: D14's documented top six interleaves two families (*Lachnospiraceae*,
+*Oscillospiraceae*), which are neither hits nor misses here. The one miss in
+the top ten is *Clostridium*: the reference uses RDP's cluster names
+(`Clostridium_XlVb`, `Clostridium_IV`, …) and has no plain *Clostridium*, so
+it is counted as a miss rather than mapped. The stop rule was written before
+the number: `overlap@10` of five or more validates the proxy; fewer moves
+GMrepo's healthy baselines to the top of the source backlog. Nine validates
+it — the breadth of one curation reproduces a cross-study meta-analysis — and
+the healthy-prevalence half of D14 stays a separate, still-open item.

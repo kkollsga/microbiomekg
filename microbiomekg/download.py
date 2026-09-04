@@ -1290,6 +1290,35 @@ def fetch_mondo(args) -> None:
     download("mondo", MONDO_URL, "mondo.obo", timeout=600, force=args.force)
 
 
+# ---------------------------------------------------------------------------
+# Scored against, never loaded: reference sets for docs/benchmarks.md. Each is
+# a fetcher in SOURCES with no prep and no FETCHES entry — nothing in the graph
+# comes from them, and `status` does not report them.
+# ---------------------------------------------------------------------------
+
+DUVALLET2017_URL = (
+    "https://raw.githubusercontent.com/cduvallet/microbiomeHD/master/final/"
+    "supp-files/file-S3.nonspecific_genera.txt"
+)
+
+
+def fetch_duvallet2017(args) -> None:
+    """Duvallet et al. 2017 (Nat Commun 8:1784, CC BY 4.0), supplementary file
+    S3: the genera significant in the same direction in at least two diseases
+    — the published "non-specific response" that docs/benchmarks.md G7 scores
+    D14's breadth ranking against. The paper's supplementary file, served from
+    the authors' MicrobiomeHD repository; the Zenodo raw-data record behind it
+    is CC BY-NC and is not fetched."""
+    log("Duvallet 2017 (reference set, not loaded)")
+    download(
+        "duvallet2017",
+        DUVALLET2017_URL,
+        "file-S3.nonspecific_genera.txt",
+        force=args.force,
+        expect_prefix=b"\toverall",
+    )
+
+
 #: prep source → the fetcher that fills its ``RAW_INPUTS``. Two screens share
 #: one bundle and the taxonomy prep reads NCBI's dump, so this is not identity.
 FETCHES: dict[str, str] = {
@@ -1362,6 +1391,7 @@ SOURCES = {
     "masi": fetch_masi,
     "drug_screens": fetch_drug_screens,
     "mondo": fetch_mondo,
+    "duvallet2017": fetch_duvallet2017,
     "pubmed": note_pubmed,
 }
 

@@ -547,7 +547,10 @@ non-specific set. **What it demonstrates:** that a breadth proxy computed from
 one curation reproduces a published cross-study meta-analysis — which is
 exactly the claim `docs/evaluation.md` §4.1 says is currently a *proxy* for the
 missing GMrepo prevalence data. If it reproduces, the proxy is validated; if it
-does not, GMrepo moves up the backlog with evidence.
+does not, GMrepo moves up the backlog with evidence. **Ran 2026-09-04
+(`docs/benchmarks.md` G7): nine of D14's top ten genera are in the set, at
+genus rank, with *Clostridium* the one miss (RDP cluster names). The proxy is
+validated; GMrepo keeps its place.**
 
 *(The brief also names Tierney et al. 2022 for cross-study consistency. The web
 search budget was exhausted before that citation could be verified in this
@@ -724,7 +727,7 @@ diseases.
 | G4 | **BugSigDB loader-fidelity benchmark** | Run §D.2.7 against the source paper's own stated counts for the loaded dump; red if they disagree | nothing | S |
 | G5 | **Cross-source direction-agreement benchmark** | Run §D.2.5; publish agreement rate beside the 8,238 conflicts and 84.2% single-cohort figures | nothing | S |
 | G6 | **External coverage benchmark: HMDAD + Peryton** | Fetch both, record licences (HMDAD unstated → use the `*-unstated` token convention), score coverage / evidence histogram / direction contradictions per §D.2.3–4. **Score against them; do not load them** | `scripts/fetch.py`; the reconciliation path used by `REPORTED_BY` | M |
-| G7 | **Duvallet 2017 validation of the dysbiosis-breadth proxy** | Fetch the CC BY 4.0 supplementary, score D14's ranking by overlap@10 per §D.2.6; the result decides whether GMrepo (evaluation §7 item 3) moves up | one download | M |
+| G7 | **Duvallet 2017 validation of the dysbiosis-breadth proxy** — shipped 2026-09-04 as `docs/benchmarks.md` G7 (nine of ten; proxy validated) | Fetch the CC BY 4.0 supplementary, score D14's ranking by overlap@10 per §D.2.6; the result decides whether GMrepo (evaluation §7 item 3) moves up | one download | M |
 | G8 | **A documented human read surface, shaped by their endpoint catalogue** | `docs/evaluation.md` §7 item 2 already scopes it (CLI + licence-tagged CSV export); use `/docs/api/rest-endpoints`' 13 groups as the verb list, and §C.3's four bolded rows as the documentation differentiator | `docs/design/library-pipeline.md`, `docs/design/release-readiness.md` | M |
 
 **Runners-up, deliberately not filed** — each is already covered elsewhere or

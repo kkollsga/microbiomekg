@@ -29,6 +29,7 @@ kglite = pytest.importorskip("kglite")
 
 ROOT = Path(__file__).resolve().parents[1]
 GRAPH = ROOT / "graph" / "microbiomekg.kgl"
+FIXTURES = ROOT / "tests" / "fixtures"
 #: What the build put in: written beside the graph by the build itself.
 CENSUS = GRAPH.with_suffix(".build.json")
 BLUEPRINT = ROOT / "blueprint.json"
@@ -440,6 +441,37 @@ def test_d14_the_named_non_specific_genera_are_reproduced(graph):
         )
     }
     assert got == D14_TOP_TAXA
+
+
+def test_d14_breadth_reproduces_duvallet_2017s_non_specific_set(graph):
+    """docs/benchmarks.md G7. The reference is the paper's supplementary
+    file S3 cut to its 51 labelled genera; the ranking is restricted to genus
+    rank because the reference is a genus list. Clostridium is the one miss
+    in the top ten — RDP splits it into cluster names — and is left a miss."""
+    ref = {}
+    for line in (FIXTURES / "duvallet2017_genera.tsv").read_text().splitlines()[1:]:
+        genus, overall = line.split("\t")
+        ref[genus] = overall
+    assert len(ref) == 51
+    assert {o: list(ref.values()).count(o) for o in ("health", "disease", "mixed")} == {
+        "health": 24,
+        "disease": 20,
+        "mixed": 7,
+    }
+    top = [
+        row["genus"]
+        for row in rows(
+            graph,
+            """
+            MATCH (t:Taxon)-[:REPORTED_BY]->(s:Signature)
+            WHERE t.placeholder = false AND t.rank = 'genus'
+            WITH t.title AS genus, count(s) AS n
+            RETURN genus ORDER BY n DESC LIMIT 10
+            """,
+        )
+    ]
+    misses = [g for g in top if g not in ref]
+    assert misses == ["Clostridium"]
 
 
 # --------------------------------------------------------------------------

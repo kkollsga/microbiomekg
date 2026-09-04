@@ -918,6 +918,20 @@ Those five sit on `DOES_NOT_METABOLISE` edges where they are visible rather than
 being dropped or moved. `docs/model.md` records why a node type would not earn
 its place and what would change that.
 
+## 17. Reference sets — scored against, never loaded
+
+Files `microbiomekg fetch` can pull that no prep reads: nothing in the graph
+comes from them, `status` does not report them, and their only use is a row in
+`docs/benchmarks.md`. Each has a fetcher in `download.SOURCES` and no
+`FETCHES` entry, the shape `disbiome` established.
+
+- **Duvallet 2017** (`--only duvallet2017`) — Duvallet et al., *Nat Commun*
+  8:1784 (2017), CC BY 4.0; supplementary file S3, the genera significant in
+  the same direction in at least two diseases. 14,911 bytes from the authors'
+  MicrobiomeHD repository into `data/raw/duvallet2017/`; provenance beside it.
+  Cut to `tests/fixtures/duvallet2017_genera.tsv` by
+  `tests/fixtures/make_duvallet2017_reference.py`; scored in G7.
+
 ## How `scripts/fetch.py` behaves
 
 - **Browser session by default.** Every request — not only retries — carries the
