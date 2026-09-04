@@ -1,0 +1,379 @@
+{
+  "meta": {
+    "captured": "2026-09-04 14:08:27+0200",
+    "source_set": "backlog-sweep",
+    "machine": "Mac16,10",
+    "cpu": "Apple M4",
+    "memory_gb": 16.0,
+    "os": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.14.3",
+    "kglite": {
+      "version": "0.16.23",
+      "wheel_tag": "cp310-abi3-macosx_11_0_arm64",
+      "path": "/Volumes/EksternalHome/Koding/Python/MicrobiomeKG/.venv/lib/python3.14/site-packages/kglite"
+    },
+    "git_head": "0c1432c docs: the CARD model count and the ChEMBL PubMed-URL count, as measured",
+    "git_dirty_paths": 0,
+    "loadavg_start": [
+      9.240234375,
+      9.94970703125,
+      9.6572265625
+    ],
+    "note": "Backlog-sweep cost gate (fix/backlog-sweep P1-P4): mondo.obo declared and required, MalformedInput replacing SystemExit in the workbook preps, the legacy csv key gone. Nothing touched the embedder or HNSW. --with-vectors for like-for-like with the 2026-09-03/04 captures; load average recorded, control cells price the machine. The vector-lane retake verdict is read only from a capture started under load < 3.0 (dev-docs/plans/backlog-sweep.md P5).",
+    "query_graph": {
+      "path": "/Volumes/EksternalHome/Koding/Python/MicrobiomeKG/graph/microbiomekg.kgl",
+      "bytes": 49444978,
+      "mtime": "2026-09-04 10:28:24",
+      "load_seconds": 1.2941122909833211,
+      "nodes": 934206,
+      "edges": 1324684,
+      "primary_sources": [
+        "bugsigdb",
+        "card",
+        "chembl",
+        "gutmdisorder",
+        "hmdb",
+        "maier2018",
+        "masi",
+        "njc19",
+        "reactome",
+        "zimmermann2019"
+      ]
+    },
+    "loadavg_end": [
+      29.1181640625,
+      16.81201171875,
+      12.4501953125
+    ],
+    "harness_seconds": 381.3739283750183
+  },
+  "sections": {
+    "build": {
+      "returncode": 0,
+      "sources_loaded": "bugsigdb, card, gutmdisorder, chembl, hmdb, maier2018, zimmermann2019, masi, mimedb, njc19, reactome",
+      "wall_seconds": 378.349497874995,
+      "segments": [
+        {
+          "segment": "startup",
+          "start_s": 0.0,
+          "seconds": 0.16639429199858569
+        },
+        {
+          "segment": "prep_bugsigdb",
+          "start_s": 0.16639429199858569,
+          "seconds": 9.16090908300248
+        },
+        {
+          "segment": "prep_card",
+          "start_s": 9.327303375001065,
+          "seconds": 7.586618917004671
+        },
+        {
+          "segment": "prep_gutmdisorder",
+          "start_s": 16.913922292005736,
+          "seconds": 9.480204749997938
+        },
+        {
+          "segment": "prep_chembl",
+          "start_s": 26.394127042003674,
+          "seconds": 7.498086999985389
+        },
+        {
+          "segment": "prep_hmdb",
+          "start_s": 33.892214041989064,
+          "seconds": 82.56923858300433
+        },
+        {
+          "segment": "prep_kegg",
+          "start_s": 116.4614526249934,
+          "seconds": 0.0018725419940892607
+        },
+        {
+          "segment": "prep_maier2018",
+          "start_s": 116.46332516698749,
+          "seconds": 8.241288624994922
+        },
+        {
+          "segment": "prep_zimmermann2019",
+          "start_s": 124.70461379198241,
+          "seconds": 65.88861558301141
+        },
+        {
+          "segment": "prep_masi",
+          "start_s": 190.59322937499383,
+          "seconds": 9.641448167007184
+        },
+        {
+          "segment": "prep_mimedb",
+          "start_s": 200.234677542001,
+          "seconds": 7.906709292001324
+        },
+        {
+          "segment": "prep_njc19",
+          "start_s": 208.14138683400233,
+          "seconds": 7.2791161659988575
+        },
+        {
+          "segment": "prep_reactome",
+          "start_s": 215.4205030000012,
+          "seconds": 11.911644541978603
+        },
+        {
+          "segment": "prep_taxonomy",
+          "start_s": 227.3321475419798,
+          "seconds": 16.599200917000417
+        },
+        {
+          "segment": "blueprint",
+          "start_s": 243.9313484589802,
+          "seconds": 6.717654875013977
+        },
+        {
+          "segment": "from_blueprint",
+          "start_s": 250.6490033339942,
+          "seconds": 6.4205614579841495
+        },
+        {
+          "segment": "bm25_indexes",
+          "start_s": 257.06956479197834,
+          "seconds": 0.288930833019549
+        },
+        {
+          "segment": "vector_indexes",
+          "start_s": 257.3584956249979,
+          "seconds": 116.0815862089803
+        },
+        {
+          "segment": "report",
+          "start_s": 373.4400818339782,
+          "seconds": 3.6627869160147384
+        },
+        {
+          "segment": "save",
+          "start_s": 377.1028687499929,
+          "seconds": 1.2466291250020731
+        }
+      ],
+      "peak_rss_root_mb": 6226.671875,
+      "peak_rss_tree_mb": 6226.671875,
+      "peak_rss_by_segment_mb": {
+        "startup": 9.828125,
+        "prep_bugsigdb": 3038.5,
+        "prep_card": 3163.875,
+        "prep_gutmdisorder": 3279.390625,
+        "prep_chembl": 3373.640625,
+        "prep_hmdb": 3304.5,
+        "prep_maier2018": 3154.328125,
+        "prep_zimmermann2019": 4721.140625,
+        "prep_masi": 3736.890625,
+        "prep_mimedb": 3774.859375,
+        "prep_njc19": 3710.890625,
+        "prep_reactome": 2581.203125,
+        "prep_taxonomy": 4974.296875,
+        "blueprint": 5046.6875,
+        "from_blueprint": 6226.671875,
+        "bm25_indexes": 5820.578125,
+        "vector_indexes": 5811.84375,
+        "report": 2855.8125,
+        "save": 4273.78125
+      },
+      "peak_rss_root_by_segment_mb": {
+        "startup": 9.828125,
+        "prep_bugsigdb": 3038.5,
+        "prep_card": 3163.875,
+        "prep_gutmdisorder": 3279.390625,
+        "prep_chembl": 3373.640625,
+        "prep_hmdb": 3304.5,
+        "prep_maier2018": 3154.328125,
+        "prep_zimmermann2019": 4721.140625,
+        "prep_masi": 3736.890625,
+        "prep_mimedb": 3774.859375,
+        "prep_njc19": 3710.890625,
+        "prep_reactome": 2581.203125,
+        "prep_taxonomy": 4974.296875,
+        "blueprint": 5046.6875,
+        "from_blueprint": 6226.671875,
+        "bm25_indexes": 5820.578125,
+        "vector_indexes": 5811.84375,
+        "report": 2855.8125,
+        "save": 4273.78125
+      },
+      "getrusage_children_peak_mb": 6623.084544,
+      "getrusage_children_peak_before_mb": 8.749056,
+      "graph": "/Volumes/EksternalHome/coding-cache/microbiomekg-bench/build.kgl",
+      "graph_bytes": 214033939,
+      "tables": {
+        "total_rows": 1394681,
+        "files": 57,
+        "per_file": {
+          "bodysite": 237,
+          "card_model_disagreements": 84,
+          "cited_taxa": 11071,
+          "disease": 826,
+          "drug": 6408,
+          "drug_class": 50,
+          "drug_target": 6984,
+          "drug_taxon_inhibited": 5592,
+          "drug_taxon_no_effect": 42233,
+          "exposure": 43,
+          "intervention": 222,
+          "intervention_drug": 15,
+          "metabolite": 9056,
+          "metabolite_pathway": 36130,
+          "paper": 2528,
+          "pathway": 23604,
+          "pathway_pathway": 23717,
+          "phenotype": 62,
+          "protein_target": 1518,
+          "protein_target_taxon": 1493,
+          "resistance_gene": 6451,
+          "resistance_gene_drug_class": 13691,
+          "resistance_gene_mechanism": 6513,
+          "resistance_mechanism": 8,
+          "signature": 14846,
+          "signature_bodysite": 15376,
+          "signature_condition": 13959,
+          "study": 2641,
+          "substance": 1350,
+          "taxon": 864132,
+          "taxon_condition": 112966,
+          "taxon_drug_metabolised": 2575,
+          "taxon_drug_not_metabolised": 17479,
+          "taxon_intervention": 1380,
+          "taxon_metabolite": 3418,
+          "taxon_metabolite_absent": 894,
+          "taxon_metabolite_consumed": 4784,
+          "taxon_metabolite_degraded": 387,
+          "taxon_probiotic": 540,
+          "taxon_resistance_gene": 6415,
+          "taxon_signature": 114726,
+          "taxon_substance_abundance": 7579,
+          "taxon_substance_abundance_unchanged": 505,
+          "taxon_substance_metabolised": 3356,
+          "taxon_substance_not_metabolised": 16,
+          "unresolved_associations": 515,
+          "unresolved_chembl": 809,
+          "unresolved_conditions": 1091,
+          "unresolved_exchange": 397,
+          "unresolved_maier2018": 138,
+          "unresolved_masi": 95,
+          "unresolved_mimedb": 1289,
+          "unresolved_pathway_links": 2146,
+          "unresolved_production": 92,
+          "unresolved_taxa": 224,
+          "unresolved_taxon_signature": 16,
+          "unresolved_zimmermann2019": 9
+        }
+      },
+      "log": "/Volumes/EksternalHome/coding-cache/microbiomekg-bench/build.log"
+    },
+    "control": {
+      "floor": {
+        "name": "noise_floor",
+        "n": 200,
+        "unit": "s",
+        "rows": 1,
+        "note": "cheapest possible cypher round trip: dispatch + materialisation",
+        "statistic": "min",
+        "statistic_reason": "repeatable cell; min is the best-case rate",
+        "value": 9.170034900307655e-07,
+        "min": 9.170034900307655e-07,
+        "median": 1.0409858077764511e-06,
+        "mean": 1.0275394015479833e-06,
+        "p95": 1.0840012691915035e-06,
+        "max": 1.2500095181167126e-06,
+        "stdev": 4.2933670692732337e-08,
+        "max_over_median": 1.2007940058152538,
+        "rare_branch": false,
+        "heavy_tailed": false
+      },
+      "cells": [
+        {
+          "name": "ctrl_unwind_200k",
+          "n": 20,
+          "unit": "s",
+          "rows": 1,
+          "note": "pure executor: touches no node, edge or index",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.010935833997791633,
+          "min": 0.010935833997791633,
+          "median": 0.011006250002537854,
+          "mean": 0.011088802151789423,
+          "p95": 0.011559208011021838,
+          "max": 0.011700290982844308,
+          "stdev": 0.00021028832235998673,
+          "max_over_median": 1.063058805691895,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 10572.910716282711,
+          "passes_2x_floor": true
+        },
+        {
+          "name": "ctrl_unwind_20k",
+          "n": 100,
+          "unit": "s",
+          "rows": 1,
+          "note": "pure executor: touches no node, edge or index",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.0009934999980032444,
+          "min": 0.0009934999980032444,
+          "median": 0.0010024579969467595,
+          "mean": 0.0010032699897419661,
+          "p95": 0.001012458000332117,
+          "max": 0.0010139999794773757,
+          "stdev": 4.567269668698339e-06,
+          "max_over_median": 1.0115136819355726,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 962.9891103779916,
+          "passes_2x_floor": true
+        },
+        {
+          "name": "ctrl_unwind_case_20k",
+          "n": 100,
+          "unit": "s",
+          "rows": 1,
+          "note": "pure executor: touches no node, edge or index",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.0016659160028211772,
+          "min": 0.0016659160028211772,
+          "median": 0.001677875014138408,
+          "mean": 0.0016792566413641908,
+          "p95": 0.0016944580129347742,
+          "max": 0.001701540983049199,
+          "stdev": 8.253449407367181e-06,
+          "max_over_median": 1.0141047269381644,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 1611.813534444196,
+          "passes_2x_floor": true
+        },
+        {
+          "name": "ctrl_sha256_16mib",
+          "n": 100,
+          "unit": "s",
+          "rows": null,
+          "note": "not kglite at all \u2014 the CPU/thermal cross-check",
+          "statistic": "min",
+          "statistic_reason": "repeatable cell; min is the best-case rate",
+          "value": 0.0055288749863393605,
+          "min": 0.0055288749863393605,
+          "median": 0.005532437498914078,
+          "mean": 0.005532696678710636,
+          "p95": 0.0055372090137097985,
+          "max": 0.00553958400269039,
+          "stdev": 2.3534084803353688e-06,
+          "max_over_median": 1.0012917459578559,
+          "rare_branch": false,
+          "heavy_tailed": false,
+          "over_floor": 5314.613760903601,
+          "passes_2x_floor": true
+        }
+      ],
+      "contract_holds": true
+    }
+  }
+}
