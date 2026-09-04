@@ -220,9 +220,8 @@ def run(
 
     xlsx = xlsx or (raw / SOURCE / "41597_2020_516_MOESM1_ESM.xlsx")
     if not xlsx.is_file():
-        # Exit 3, not 2 — "this source's raw file is not on this machine" rather
-        # than "this script was called wrong", so an absent file leaves the build
-        # without failing it.
+        # "This source's raw file is not on this machine" is a skip the build
+        # reports, never a defect.
         raise MissingInput(f"no NJC19 supplementary xlsx at {xlsx}")
     try:
         taxdump = taxdump or find_taxdump(raw)

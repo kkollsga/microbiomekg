@@ -284,9 +284,8 @@ def run(
     tables = tables or (raw / RAW_SUBDIR)
     missing_files = [n for n in WORKBOOKS.values() if not (tables / n).is_file()]
     if missing_files:
-        # Exit 3, not 2 — "this source's raw files are not on this machine"
-        # rather than "this script was called wrong", so an absent download
-        # leaves the build without failing it.
+        # "This source's raw file is not on this machine" is a skip the build
+        # reports, never a defect.
         raise MissingInput(
             f"no MASI workbooks at {tables}: missing {', '.join(missing_files)}"
         )

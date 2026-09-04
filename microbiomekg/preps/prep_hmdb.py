@@ -326,10 +326,9 @@ def run(
 
     xml = xml or (raw / SOURCE / "hmdb_metabolites.xml")
     if not xml.is_file():
-        # Exit 3, not 2: "this source's raw file is not on this machine" is a
-        # different fact from "this script was called wrong". HMDB is fetched by
-        # hand — hmdb.ca answers every non-browser client with a Cloudflare 403
-        # — so an absent file is the expected state of a fresh clone.
+        # "This source's raw files are not on this machine" is a skip the build
+        # reports, never a defect: the source leaves the blueprint rather than
+        # declaring node types with nothing behind them.
         raise MissingInput(f"no hmdb_metabolites.xml at {xml}")
     try:
         taxdump = taxdump or find_taxdump(raw)

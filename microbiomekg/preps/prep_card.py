@@ -257,10 +257,9 @@ def run(
         p for p in (models_path, index_path, pmid_path, obo_path) if not p.is_file()
     ]
     if missing:
-        # Exit 3, not 2: "this source's raw files are not on this machine" is a
-        # different fact from "this script was called wrong", and
-        # scripts/build.py acts on the difference by skipping the source and
-        # leaving it out of the blueprint rather than declaring an empty one.
+        # "This source's raw files are not on this machine" is a skip the build
+        # reports, never a defect: the source leaves the blueprint rather than
+        # declaring node types with nothing behind them.
         raise MissingInput(f"missing {', '.join(str(p) for p in missing)}")
     try:
         taxdump = taxdump or find_taxdump(raw)

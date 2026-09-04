@@ -515,9 +515,8 @@ def run(
     tables = tables or (raw / RAW_SUBDIR)
     workbook = tables / WORKBOOK
     if not workbook.is_file():
-        # Exit 3, not 2 — "this source's raw file is not on this machine" rather
-        # than "this script was called wrong", so an absent workbook leaves the
-        # build without failing it.
+        # "This source's raw file is not on this machine" is a skip the build
+        # reports, never a defect.
         raise MissingInput(f"no Zimmermann 2019 workbook at {workbook}")
     try:
         taxdump = taxdump or find_taxdump(raw)

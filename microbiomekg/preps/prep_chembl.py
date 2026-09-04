@@ -269,29 +269,33 @@ def run(
     :class:`MissingInput` when a ChEMBL file or the taxdump is not there.
     """
 
-    raw = chembl or (raw / SOURCE)
+    chembl_dir = chembl or (raw / SOURCE)
     missing = [
         n
         for n in (MECHANISM_FILE, MOLECULE_FILE, TARGET_FILE)
-        if not (raw / n).is_file()
+        if not (chembl_dir / n).is_file()
     ]
     if missing:
-        # Exit 3, not 2: "this source's raw files are not on this machine" is a
-        # different fact from "this script was called wrong", and
-        # scripts/build.py acts on the difference by skipping the source and
-        # leaving it out of the blueprint rather than declaring an empty one.
-        raise MissingInput(f"no {', '.join(missing)} under {raw}")
+        # "This source's raw files are not on this machine" is a skip the build
+        # reports, never a defect: the source leaves the blueprint rather than
+        # declaring node types with nothing behind them.
+        raise MissingInput(f"no {', '.join(missing)} under {chembl_dir}")
     try:
         taxdump = taxdump or find_taxdump(raw)
     except FileNotFoundError as e:
         raise MissingInput(str(e)) from e
 
-    print(f"reading {raw}/{{mechanism,molecule_max_phase4,target}}.jsonl", flush=True)
-    mechanisms = list(read_jsonl(raw / MECHANISM_FILE))
+    print(
+        f"reading {chembl_dir}/{{mechanism,molecule_max_phase4,target}}.jsonl",
+        flush=True,
+    )
+    mechanisms = list(read_jsonl(chembl_dir / MECHANISM_FILE))
     molecules = {
-        text(m["molecule_chembl_id"]): m for m in read_jsonl(raw / MOLECULE_FILE)
+        text(m["molecule_chembl_id"]): m for m in read_jsonl(chembl_dir / MOLECULE_FILE)
     }
-    targets = {text(t["target_chembl_id"]): t for t in read_jsonl(raw / TARGET_FILE)}
+    targets = {
+        text(t["target_chembl_id"]): t for t in read_jsonl(chembl_dir / TARGET_FILE)
+    }
     print(
         f"  {len(mechanisms):,} mechanism rows, {len(molecules):,} approved "
         f"molecules, {len(targets):,} targets",

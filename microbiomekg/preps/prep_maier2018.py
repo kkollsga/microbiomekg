@@ -379,9 +379,8 @@ def run(
     paths = {n: tables / filename for n, (filename, _sheet) in WORKBOOKS.items()}
     missing = sorted(p.name for p in paths.values() if not p.is_file())
     if missing:
-        # Exit 3, not 2 — "this source's raw files are not on this machine"
-        # rather than "this script was called wrong", so an absent bundle leaves
-        # the build without failing it.
+        # "This source's raw files are not on this machine" is a skip the build
+        # reports, never a defect.
         raise MissingInput(
             f"no Maier 2018 supplementary tables under {tables} "
             f"(missing {', '.join(missing)})"

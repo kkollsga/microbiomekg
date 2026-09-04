@@ -778,3 +778,29 @@ def test_the_audit_has_no_vacuous_rule_for_this_build(graph):
 def test_the_prep_reports_what_it_did_not_load(prep_output):
     for phrase in ("not loaded:", "mechanism rows", "evidence levels:"):
         assert phrase in prep_output
+
+
+def test_the_prep_finds_the_taxdump_under_the_raw_root_not_under_its_own_directory(
+    tmp_path,
+):
+    """A build hands every prep the raw root and nothing else. The conversion
+    to ``run()`` once rebound that root to ``raw/chembl`` before the taxdump
+    lookup, so a full build skipped ChEMBL with "no nodes.dmp under
+    …/raw/chembl" — and every table downstream of the drug index moved with
+    it. Laid out as the build lays it out, with no override, the prep must
+    load."""
+    from microbiomekg.preps import prep_chembl
+    from microbiomekg.tables import Frames
+
+    raw = tmp_path / "raw"
+    (raw / "chembl").mkdir(parents=True)
+    for f in FIXTURE.iterdir():
+        if f.is_file():
+            (raw / "chembl" / f.name).write_bytes(f.read_bytes())
+    (raw / "ncbi_taxonomy").mkdir()
+    for f in TAXDUMP_MINI.iterdir():
+        (raw / "ncbi_taxonomy" / f.name).write_bytes(f.read_bytes())
+    store = Frames()
+    counts = prep_chembl.run(raw, store)
+    assert counts.get("drug"), counts
+    assert "drug" in store and store.rows("drug")

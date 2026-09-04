@@ -325,11 +325,8 @@ def run(
     default_metabolites, default_microbes = default_inputs(raw)
     metabolites_csv = metabolites or default_metabolites
     if not metabolites_csv.is_file():
-        # Exit 3, not 2: "this source's raw file is not on this machine" is a
-        # different fact from "this script was called wrong". mimedb.org is
-        # behind an interactive Cloudflare challenge, so an absent file is the
-        # expected state of a fresh clone — and the message names the four files
-        # an operator has to place, because no script can fetch them.
+        # "This source's raw file is not on this machine" is a skip the build
+        # reports, never a defect.
         raise MissingInput(
             f"no MiMeDB metabolites dump at {metabolites_csv}\n"
             f"  place mimedb_metabolites_v2.csv and mimedb_microbes_v2.csv "

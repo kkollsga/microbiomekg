@@ -232,10 +232,9 @@ def run(
     books = workbooks or (raw / SOURCE)
     missing = [w for w in HOST_SPECIES if not (books / f"{w}.xlsx").is_file()]
     if missing:
-        # Exit 3, not 2: "this source's raw files are not on this machine" is a
-        # different fact from "this script was called wrong", and
-        # scripts/build.py acts on the difference by skipping the source and
-        # leaving it out of the blueprint rather than declaring an empty one.
+        # "This source's raw files are not on this machine" is a skip the build
+        # reports, never a defect: the source leaves the blueprint rather than
+        # declaring node types with nothing behind them.
         raise MissingInput(
             f"no {', '.join(w + '.xlsx' for w in missing)} under {books}"
         )
