@@ -125,11 +125,11 @@ def test_typed_infers_integer_ids_and_parses_declared_lists():
     assert df["name"].tolist() == ["root", "x", "y"]
 
 
-def test_declared_types_reads_both_spellings():
+def test_declared_types_merges_node_and_junction_specs():
     bp = {
         "nodes": {
             "T": {
-                "csv": "taxon.csv",
+                "file": "taxon",
                 "properties": {"rank": "string", "synonyms": "list"},
                 "connections": {
                     "junction_edges": {

@@ -37,6 +37,9 @@ changes and formatting do not get entries. Nothing has been released yet:
   also claim-gated.
 
 ### Changed
+- **A blueprint fragment names its input with `file` only.** The pre-0.16.23
+  `csv` spelling, which the build and `declared_types` still accepted and
+  rewrote, is no longer read; no fragment used it.
 - **`mondo.obo` is a declared input.** The three preps that key conditions on
   MONDO list `mondo/mondo.obo` in `RAW_INPUTS`, `status` reports it, `fetch`
   pulls it (`--only mondo`, and with BugSigDB and gutMDisorder), and an absent

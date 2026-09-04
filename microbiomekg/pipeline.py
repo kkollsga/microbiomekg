@@ -283,11 +283,9 @@ def run_prep(
 
 
 def input_name(spec: dict) -> str | None:
-    """The store table a spec reads: its ``file``, or its ``csv``'s stem."""
+    """The store table a spec reads: its ``file``."""
     if isinstance(spec.get("file"), str):
         return spec["file"]
-    if isinstance(spec.get("csv"), str):
-        return Path(spec["csv"]).stem
     return None
 
 
@@ -407,8 +405,6 @@ def load_blueprint(blueprint: dict, store: Frames, ontology: Path) -> dict:
         if isinstance(value, dict):
             name = input_name(value)
             if name is not None:
-                value.pop("csv", None)
-                value["file"] = name
                 files[name] = {"format": "frame"}
             for v in value.values():
                 rewrite(v)

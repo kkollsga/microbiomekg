@@ -2302,7 +2302,7 @@ goes unchecked while its presence is still required.
    copy and `--skip-prep` exist only to bridge that gap. **Asked of kglite on
    2026-09-03**: a `files:` section declaring each input's format once
    (delimited with knobs, xlsx, json, jsonl, xml, obo), specs referencing it by
-   name with `"csv"` kept as shorthand, and `from_blueprint(frames={...})` so a
+   name, and `from_blueprint(frames={...})` so a
    source that needs Python reconciliation between the file and the graph
    hands over a DataFrame instead of a file. **Closed by kglite 0.16.23
    (2026-09-04)** for the `files:` section, `frames=`, `delimited` and

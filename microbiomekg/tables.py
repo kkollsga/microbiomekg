@@ -279,9 +279,8 @@ def _parse_list(cell: Any) -> list | None:
 def declared_types(blueprint: Mapping[str, Any]) -> dict[str, dict[str, str]]:
     """``{table: {column: type}}`` for every input a blueprint's specs read.
 
-    Walks node specs and junction entries; a spec names its input by ``file``
-    (the store's table name) or, in the older spelling, by ``csv`` (whose stem
-    is the table name). Node ``properties`` and junction ``property_types``
+    Walks node specs and junction entries; a spec names its input by ``file``,
+    the store's table name. Node ``properties`` and junction ``property_types``
     are the type maps; both are merged per table, since two specs reading one
     table declare the same column the same way.
     """
@@ -290,8 +289,6 @@ def declared_types(blueprint: Mapping[str, Any]) -> dict[str, dict[str, str]]:
     def walk(spec: Any) -> None:
         if isinstance(spec, dict):
             name = spec.get("file")
-            if name is None and isinstance(spec.get("csv"), str):
-                name = spec["csv"].rsplit("/", 1)[-1].removesuffix(".csv")
             if isinstance(name, str):
                 for key in ("properties", "property_types"):
                     types = spec.get(key)

@@ -39,17 +39,15 @@ def test_two_fragments_may_declare_the_same_thing():
         [
             (
                 "a.json",
-                {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}},
+                {"nodes": {"Disease": {"file": "disease", "pk": "condition_id"}}},
             ),
             (
                 "b.json",
-                {"nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}},
+                {"nodes": {"Disease": {"file": "disease", "pk": "condition_id"}}},
             ),
         ]
     )
-    assert merged == {
-        "nodes": {"Disease": {"csv": "disease.csv", "pk": "condition_id"}}
-    }
+    assert merged == {"nodes": {"Disease": {"file": "disease", "pk": "condition_id"}}}
 
 
 def test_a_fragment_may_add_to_a_node_another_fragment_owns():
@@ -59,7 +57,7 @@ def test_a_fragment_may_add_to_a_node_another_fragment_owns():
                 "core.json",
                 {
                     "nodes": {
-                        "Taxon": {"csv": "taxon.csv", "properties": {"rank": "string"}}
+                        "Taxon": {"file": "taxon", "properties": {"rank": "string"}}
                     }
                 },
             ),
@@ -70,7 +68,7 @@ def test_a_fragment_may_add_to_a_node_another_fragment_owns():
         ]
     )
     assert merged["nodes"]["Taxon"] == {
-        "csv": "taxon.csv",
+        "file": "taxon",
         "properties": {"rank": "string", "placeholder": "bool"},
     }
 
@@ -79,12 +77,12 @@ def test_a_contradiction_is_an_error_naming_both_fragments():
     with pytest.raises(FragmentConflict) as excinfo:
         merge_fragments(
             [
-                ("core.json", {"nodes": {"Disease": {"csv": "disease.csv"}}}),
-                ("rogue.json", {"nodes": {"Disease": {"csv": "my_diseases.csv"}}}),
+                ("core.json", {"nodes": {"Disease": {"file": "disease"}}}),
+                ("rogue.json", {"nodes": {"Disease": {"file": "my_diseases"}}}),
             ]
         )
     message = str(excinfo.value)
-    assert "nodes.Disease.csv" in message
+    assert "nodes.Disease.file" in message
     assert "core.json" in message and "rogue.json" in message
 
 
@@ -112,7 +110,7 @@ def test_two_junction_edges_under_one_node_are_both_kept():
                         "Taxon": {
                             "connections": {
                                 "junction_edges": {
-                                    "ASSOCIATED_WITH": {"csv": "taxon_condition.csv"}
+                                    "ASSOCIATED_WITH": {"file": "taxon_condition"}
                                 }
                             }
                         }
@@ -127,7 +125,7 @@ def test_two_junction_edges_under_one_node_are_both_kept():
                             "connections": {
                                 "junction_edges": {
                                     "ABUNDANCE_CHANGED_BY": {
-                                        "csv": "taxon_intervention.csv"
+                                        "file": "taxon_intervention"
                                     }
                                 }
                             }
@@ -157,9 +155,7 @@ def test_the_same_relationship_backed_by_two_csvs_is_an_error():
                             "Taxon": {
                                 "connections": {
                                     "junction_edges": {
-                                        "ASSOCIATED_WITH": {
-                                            "csv": "taxon_condition.csv"
-                                        }
+                                        "ASSOCIATED_WITH": {"file": "taxon_condition"}
                                     }
                                 }
                             }
@@ -174,7 +170,7 @@ def test_the_same_relationship_backed_by_two_csvs_is_an_error():
                                 "connections": {
                                     "junction_edges": {
                                         "ASSOCIATED_WITH": {
-                                            "csv": "gutmdisorder_disease.csv"
+                                            "file": "gutmdisorder_disease"
                                         }
                                     }
                                 }
