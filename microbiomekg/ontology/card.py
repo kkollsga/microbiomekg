@@ -25,9 +25,10 @@ Hetionet's per-edge licence field exists for.
 **The taxon on a model is the reference sequence's organism.** Not the
 resistant isolate: model 2 (``CblA-1``) is described as "found in *Bacteroides
 uniformis*" and carries taxid 663108, ``mixed culture bacterium
-AX_gF3SD01_15``. 132 models carry taxid 2 (Bacteria) and nothing else, and 17
-carry a plasmid, a transposon or ``synthetic construct`` — which is not an
-organism at all. The edge says so in three properties rather than in prose:
+AX_gF3SD01_15``. 132 models carry taxid 2 (Bacteria) and nothing else, and 18
+carry one of 17 taxids that are a plasmid, a transposon, ``synthetic
+construct`` or a metagenome — not an organism at all (``sediment metagenome``
+backs two models). The edge says so in three properties rather than in prose:
 ``sequence_derived``, ``taxon_scope`` and :func:`taxon_specificity`.
 
 **Only two of the twelve evidence levels can be reached from this source**, and

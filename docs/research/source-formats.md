@@ -548,9 +548,9 @@ CAS 393, PDB 47 — that is the join from an antibiotic ARO term to the
 6. `PMID.tsv` splitting yields **21 empty atoms** (trailing/leading `;`), and
    the `DOI`/`ISBN` columns contain values that themselves begin with a
    semicolon (`;10.1007/BF03298293`, `;978-92-4-008241-0`). Strip after split.
-7. One PubMed reference in the whole CARD/ChEMBL set is a URL rather than an
-   id; see §6 pitfall 4 — the same class of defect appears here as `PMID`
-   cells that are empty strings after split.
+7. Two PubMed references in the whole CARD/ChEMBL set are a URL rather than
+   an id (both ChEMBL's; see §6 pitfall 4) — the same class of defect appears
+   here as `PMID` cells that are empty strings after split.
 
 ### Extraction table
 
@@ -886,14 +886,19 @@ metabolite–protein edges from HMDB (§2, 863,759 rows, 100 % UniProt) join her
    `action_type`.** They are real curated mechanisms (`mechanism_of_action` is
    100 % filled) with no protein endpoint — load them as
    `Drug.mechanism_of_action` text, not as a dangling edge.
-4. **One `ref_type: PubMed` entry carries a URL in `ref_id`**
-   (`https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4804253/`). Validate
-   `ref_id` against `\d+` before writing `PMID:<id>`; the rest are clean.
+4. **Two `ref_type: PubMed` entries carry a URL in `ref_id`** (`mec_id`
+   9195 and 9450, both `https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4804253/`
+   of 8,289 PubMed references). Validate `ref_id` against `\d+` before
+   writing `PMID:<id>`; the rest are clean. The loader ledgers each as
+   `malformed_reference`.
 5. **`parent_molecule_chembl_id` differs from `molecule_chembl_id` on 1,626
    rows** (salt vs free base). Edges keyed on `molecule_chembl_id` will
    duplicate the same drug under several salt forms — 38 `(molecule, target,
    action_type)` triples already repeat, up to 5×. Key `Drug` on the *parent*
-   and keep the salt id as `source_record_id`.
+   and keep the salt id on the edge. The loader keeps it as
+   `reported_molecule_chembl_id`; `source_record_id` is the mechanism record's
+   own `mec_id`, the provenance-of-record field every source fills the same
+   way.
 6. `molecule_structures.molfile` is a multi-kilobyte embedded MOL block on
    3,417 records — it is 60 % of the 12.8 MB file and nothing in the model uses
    it. Drop it at parse time.

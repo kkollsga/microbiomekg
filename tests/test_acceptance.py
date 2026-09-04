@@ -906,6 +906,10 @@ D7 = {
     "carriage_edges": 6415,
     "confers_edges": 13691,
     "taxa_carrying": 539,
+    # The not-an-organism edges are 18 models over 17 taxids: `sediment
+    # metagenome` backs two. The module docstring once said "17 models".
+    "not_an_organism_models": 18,
+    "not_an_organism_taxids": 17,
     # E. coli, the taxon D7's own Cypher names.
     "ecoli_rows": 1535,
     "ecoli_determinants": 646,
@@ -1001,6 +1005,14 @@ def test_d7_the_taxon_edge_does_not_claim_the_organism_is_resistant(graph):
     assert by_scope["above-species"] == D7["above_species"]
     assert by_scope["not-an-organism"] == D7["not_an_organism"]
     assert sum(by_scope.values()) == D7["carriage_edges"]
+    split = one(
+        graph,
+        "MATCH (t:Taxon)-[r:CARRIES_RESISTANCE_GENE]->(g:ResistanceGene) "
+        "WHERE r.taxon_specificity = 'not-an-organism' "
+        "RETURN count(DISTINCT g.id) AS models, count(DISTINCT t.id) AS taxids",
+    )
+    assert split["models"] == D7["not_an_organism_models"]
+    assert split["taxids"] == D7["not_an_organism_taxids"]
     bacteria = one(
         graph,
         "MATCH (t:Taxon {id: 2})-[r:CARRIES_RESISTANCE_GENE]->() "
