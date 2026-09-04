@@ -12,6 +12,11 @@ changes and formatting do not get entries. Nothing has been released yet:
 ## [Unreleased]
 
 ### Added
+- **Source to graph, with nothing on disk in between.** Every prep is a
+  function, `run(raw, store, ...)`, that puts its tables into one in-memory
+  store; the build composes a blueprint whose `files:` section declares each
+  table as a frame and loads it with kglite 0.16.23's `frames=`. The
+  `BuildResult` carries the store, ledgers included.
 - **The package surface.** `import microbiomekg` gives `status(data_dir)`,
   `fetch(data_dir)` and `build(data_dir)` over one data directory; `build`
   returns a `BuildResult` holding the kglite graph and a `BuildReport`. The
@@ -32,6 +37,11 @@ changes and formatting do not get entries. Nothing has been released yet:
   also claim-gated.
 
 ### Changed
+- `--csv` and `--skip-prep` are gone from the build: there is no CSV
+  directory to point at or reuse, and `microbiomekg build --data D` reads
+  `D/raw/` only. A prep's absent input is a `MissingInput` exception the
+  build reports as the skip, not an exit code.
+- kglite ≥ 0.16.23 is required.
 - The preps, blueprint fragments, MCP manifest and skills, and the build,
   fetch and serve modules moved into the package (`microbiomekg/preps/`,
   `microbiomekg/blueprints/`, `microbiomekg/mcp/`, `pipeline.py`,

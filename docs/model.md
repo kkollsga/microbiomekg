@@ -2246,12 +2246,16 @@ goes unchecked while its presence is still required.
    *Enterobacteriaceae bacterium HGPR34* at cosine **0.428** while *Citrobacter
    freundii* sat unfound at **0.808**, one catastrophic miss in five fixtures.
    `ef_search = 512` fixes it (all five agree with an exact scan, 1-2 ms
-   against the exact scan's 21 ms) and `scripts/build.py` pins it, with
-   `tests/test_semantic_lookup.py::test_the_index_agrees_with_an_exact_scan`
+   against the exact scan's 21 ms) and `microbiomekg/pipeline.py` pins it,
+   with `tests/test_semantic_lookup.py::test_the_index_agrees_with_an_exact_scan`
    as the gate. Two things would have made this a tuning question rather than a
    wrong-answer question: `vector_search(exact=True)` has **no Cypher
    equivalent**, so a query cannot ask for the exact scan it is fast enough to
-   afford; and nothing in the result says the index served it.
+   afford; and nothing in the result says the index served it. **kglite
+   0.16.23 fixed a separate recall loss** in the multi-core HNSW build (one-way
+   edges stranding vectors no query could reach, depending on core count); an
+   index already on disk keeps its format but was built by the old path — a
+   `--with-vectors` graph built before 2026-09-04 should be rebuilt once.
 10. **`embed_texts()` cannot be scoped to a selection.** It embeds every node
    of a type, so "embed only the 7,910 taxa carrying an association edge"
    is not expressible — the fallback is `add_embeddings()` with an explicit id
