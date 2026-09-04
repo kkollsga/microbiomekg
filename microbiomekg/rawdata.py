@@ -10,23 +10,9 @@ failing later on a missing column.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-__all__ = [
-    "MISSING_INPUT",
-    "MissingInput",
-    "find_taxdump",
-    "find_bugsigdb_dump",
-    "missing_input",
-]
-
-#: The exit code a prep uses for "my raw input is not on this machine".
-#: Distinct from a real failure so ``build.py`` can go on without that source
-#: rather than either dying or silently loading nothing — and distinct from
-#: argparse's 2, which means "this script was called wrong" and which the build
-#: correctly treats as fatal.
-MISSING_INPUT = 3
+__all__ = ["MissingInput", "find_taxdump", "find_bugsigdb_dump"]
 
 _TAXDUMP_DIRS = ("ncbi_taxonomy", "ncbi", "taxdump", "new_taxdump")
 _DUMP_NAMES = ("full_dump_main.csv", "full_dump.csv")
@@ -71,20 +57,6 @@ class MissingInput(FileNotFoundError):
     """A prep's raw input is not on this machine.
 
     Raised by a prep's ``run()`` and caught by the build, which skips the
-    source and prints the message — the same fact the exit code
-    :data:`MISSING_INPUT` carried between processes, now that a prep is a
-    function. The message says what was looked for and, for a browser-only
-    origin, where to get it.
+    source and prints the message. The message says what was looked for and,
+    for a browser-only origin, where to get it.
     """
-
-
-def missing_input(exc: Exception) -> int:
-    """Report an absent raw input and return :data:`MISSING_INPUT`.
-
-    The one door every prep leaves by when a file is not there: the message on
-    stderr says what was looked for, and the code says "skip me", never "you
-    called me wrong". Routing this through ``ArgumentParser.error`` instead
-    took the whole build down on a fresh clone, because that exits 2.
-    """
-    print(str(exc), file=sys.stderr)
-    return MISSING_INPUT

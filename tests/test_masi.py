@@ -21,12 +21,11 @@ join across all four:
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 import pytest
 
-from prep_support import load_from_csv_dir, run_prep
+from prep_support import append_rows, load_graph_for, rows_of, run_prep
 
 from conftest import MONDO_MINI, TAXDUMP_MINI
 
@@ -196,7 +195,7 @@ def built(tmp_path_factory):
     )
 
     sources = [SOURCE, "chembl", "maier2018", "zimmermann2019"]
-    return load_from_csv_dir(csv_dir, sources), csv_dir, prep.stdout
+    return load_graph_for(csv_dir, sources), csv_dir, prep.stdout
 
 
 @pytest.fixture(scope="module")
@@ -225,8 +224,7 @@ def one(graph, query):
 
 
 def table(csv_dir, name):
-    with (csv_dir / name).open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+    return rows_of(csv_dir, name)
 
 
 def ledger(csv_dir, kind):
@@ -785,8 +783,8 @@ def test_the_probiotic_columns_are_written_even_with_no_masi_table(tmp_path):
     machine, and a MASI-less build would fail to load."""
     out = tmp_path / "csv"
     out.mkdir()
-    (out / "cited_taxa.csv").write_text(
-        "tax_id,source,n_signatures\n818,test,1\n", encoding="utf-8"
+    append_rows(
+        out, "cited_taxa", [{"tax_id": "818", "source": "test", "n_signatures": "1"}]
     )
     run_prep(
         PREPS_DIR / "prep_taxonomy.py",

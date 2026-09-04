@@ -176,7 +176,7 @@ def load_metabolite_index(
     for row in rows:
         key = row.get("metabolite_id") or ""
         # This source's own rows from a previous run are not "a node that
-        # already holds the compound": `Writer(owner=...)` is about to drop
+        # already holds the compound": `Table(owner=...)` is about to drop
         # and rewrite them, so counting them here makes a second run load
         # nothing and report every record as a duplicate of itself. That is
         # the re-run failure `microbiomekg.tables` documents, reached
@@ -452,7 +452,7 @@ def run(
                     "metabolite_id": held,
                     "reason": f"{held} already holds this compound: a second node would "
                     f"split the pathway and production edges that point at it, "
-                    f"and Writer's first-row-per-key rule would discard these "
+                    f"and Table's first-row-per-key rule would discard these "
                     f"properties anyway",
                     "source": SOURCE,
                 }

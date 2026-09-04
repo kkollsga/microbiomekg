@@ -23,8 +23,6 @@ from __future__ import annotations
 
 import importlib
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -456,44 +454,19 @@ assert PREPS, "the prep glob found nothing — this parametrisation would be vac
 
 @pytest.mark.parametrize("prep", PREPS, ids=[p.stem for p in PREPS])
 def test_every_prep_reports_an_absent_input_as_a_skip(tmp_path, prep):
-    """The one channel the build reads as "skip this source": a converted prep
-    raises ``MissingInput`` naming what it wanted; a prep not yet converted
-    exits 3 (argparse's 2 would be read as fatal) and says so on stderr."""
+    """The one channel the build reads as "skip this source": the prep raises
+    ``MissingInput`` naming what it wanted."""
     from microbiomekg.rawdata import MissingInput
 
     raw = tmp_path / "raw"
     raw.mkdir()
     name = prep.stem.removeprefix("prep_")
     module = importlib.import_module(f"microbiomekg.preps.{prep.stem}")
-    if hasattr(module, "run"):
-        with pytest.raises(MissingInput) as absent:
-            module.run(
-                raw, Frames(), **pipeline.prep_options(name, "microbial", frozenset())
-            )
-        assert str(absent.value).strip(), (
-            f"{prep.name} said nothing about what it wanted"
+    with pytest.raises(MissingInput) as absent:
+        module.run(
+            raw, Frames(), **pipeline.prep_options(name, "microbial", frozenset())
         )
-        return
-    proc = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            f"microbiomekg.preps.{prep.stem}",
-            "--raw",
-            str(raw),
-            "--out",
-            str(tmp_path / "csv"),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == pipeline.MISSING_INPUT, (
-        f"{prep.name} exited {proc.returncode}, not {pipeline.MISSING_INPUT}:\n"
-        f"{proc.stderr}"
-    )
-    assert proc.stderr.strip(), f"{prep.name} said nothing about what it wanted"
-    assert "usage:" not in proc.stderr, f"{prep.name} refused through argparse"
+    assert str(absent.value).strip(), f"{prep.name} said nothing about what it wanted"
 
 
 def test_a_prep_with_its_own_file_but_no_taxdump_is_a_skip(tmp_path):

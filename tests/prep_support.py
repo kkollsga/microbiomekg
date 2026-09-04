@@ -1,12 +1,13 @@
-"""Run a prep the way a source test used to — script path plus argv — whether
-or not it has been converted to ``run(raw, store, ...)``.
+"""Run a prep the way a source test has always spelled it — script path plus
+argv — against a store the test holds by key.
 
-Transitional, for the tests of the preps not yet converted: their fixtures
-run BugSigDB and the taxonomy first so the shared tables exist, and those two
-are functions now. A converted prep runs in process against a store mirrored
-from the CSV directory the fixture works in, and the store is exported back;
-an unconverted one runs as the subprocess it always was. Deleted with the
-last conversion.
+A source test's fixture runs two or three preps in order and then loads what
+they produced; it names the run by a temporary directory and reads tables
+back by name. Nothing is written there any more: the directory is the *key*
+of a :class:`~microbiomekg.tables.Frames` store kept here, :func:`run_prep`
+parses the argv into ``run()`` keywords and runs the prep into that store,
+:func:`rows_of` reads a table back off it, and :func:`load_graph_for` loads
+it the way the build does.
 """
 
 from __future__ import annotations
@@ -15,12 +16,13 @@ import contextlib
 import importlib
 import io
 import subprocess
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from microbiomekg import pipeline
+from microbiomekg.rawdata import MissingInput
+from microbiomekg.tables import Frames, Table
 
-#: argv option -> ``run()`` keyword, for the converted preps.
+#: argv option -> ``run()`` keyword.
 OPTIONS = {
     "--raw": "raw",
     "--dump": "dump",
@@ -36,7 +38,6 @@ OPTIONS = {
     "--xml": "xml",
     "--reactome": "reactome",
     "--chembl": "chembl",
-    "--interventions": "interventions",
     "--kegg": "kegg",
     "--tables": "tables",
     "--metabolites": "metabolites",
@@ -48,26 +49,23 @@ OPTIONS = {
 #: Flags that take no value.
 SWITCHES = {"--with-kegg": ("opted_in", True)}
 
+_STORES: dict[str, Frames] = {}
+
+
+def store_for(key: Path | str) -> Frames:
+    """The store a fixture works in, by the key it names it with."""
+    return _STORES.setdefault(str(key), Frames())
+
 
 def run_prep(script: Path, *args: str, expect: int = 0) -> subprocess.CompletedProcess:
+    """Run ``script``'s prep with ``args`` into the store ``--out`` names.
+
+    Returns a ``CompletedProcess``-shaped record — return code 0, or 3 with
+    the message on ``stderr`` when the prep raised ``MissingInput`` — so a
+    test written against the subprocess it used to be reads the same fields.
+    """
     script = Path(script)
     module = importlib.import_module(f"microbiomekg.preps.{script.stem}")
-    if not hasattr(module, "run"):
-        proc = subprocess.run(
-            [sys.executable, str(script), *args],
-            capture_output=True,
-            text=True,
-            cwd=ROOT,
-        )
-        assert proc.returncode == expect, (
-            f"{script.name} exited {proc.returncode}, expected {expect}:\n"
-            f"{proc.stdout}\n{proc.stderr}"
-        )
-        return proc
-
-    from microbiomekg import pipeline
-    from microbiomekg.tables import Frames
-
     opts: dict = {}
     it = iter(args)
     for flag in it:
@@ -85,36 +83,49 @@ def run_prep(script: Path, *args: str, expect: int = 0) -> subprocess.CompletedP
             opts[key] = value
         else:
             opts[key] = Path(value)
-    out = opts.pop("out")
+    store = store_for(opts.pop("out"))
     opts.pop("cited_from", None)  # the store's cited_taxa table is what it reads
-    raw = opts.pop("raw", out)
-    store = Frames()
-    pipeline.ingest_csv(store, out)
-    from microbiomekg.rawdata import MissingInput
-
+    raw = opts.pop("raw", Path("."))
     buffer = io.StringIO()
     code, stderr = 0, ""
     with contextlib.redirect_stdout(buffer):
         try:
             module.run(raw, store, **opts)
         except MissingInput as absent:
-            code, stderr = pipeline.MISSING_INPUT, str(absent)
+            code, stderr = 3, str(absent)
     assert code == expect, f"{script.name} exited {code}, expected {expect}:\n{stderr}"
-    if code == 0:
-        pipeline.export_csv(store, out)
     return subprocess.CompletedProcess(
         [str(script), *args], code, buffer.getvalue(), stderr
     )
 
 
-def load_from_csv_dir(csv_dir: Path, sources: list[str]):
-    """The graph for the CSVs a fixture's preps wrote, loaded through the
-    store the way the build loads — the fragments declare frames, so a
-    directory is read into a store first. Transitional, like :func:`run_prep`."""
-    from microbiomekg import pipeline
-    from microbiomekg.tables import Frames
+def rows_of(key: Path | str, name: str) -> list[dict[str, str]]:
+    """The rows of table ``name`` (``x`` or ``x.csv``) in the store ``key``
+    names; empty when no prep wrote it."""
+    return store_for(key).rows(name.removesuffix(".csv"))
 
-    store = Frames()
-    pipeline.ingest_csv(store, csv_dir)
-    graph, _ = pipeline.load_graph(store, list(sources), verbose=False)
+
+def append_rows(key: Path | str, name: str, extra: list[dict[str, str]]) -> None:
+    """Add ``extra`` rows to table ``name`` in the store — what a test does
+    between two preps to plant a row the next prep must see."""
+    store = store_for(key)
+    name = name.removesuffix(".csv")
+    existing = store.tables.get(name)
+    fields = (
+        list(existing.fields)
+        if existing
+        else list(dict.fromkeys(k for r in extra for k in r))
+    )
+    table = Table(name, fields)
+    for row in existing.rows if existing else []:
+        table.add(row)
+    for row in extra:
+        table.add({f: row.get(f, "") for f in fields})
+    store.put(table)
+
+
+def load_graph_for(key: Path | str, sources: list[str]):
+    """The graph for what the fixture's preps put in its store, loaded the way
+    the build loads: the spine plus ``sources``."""
+    graph, _ = pipeline.load_graph(store_for(key), list(sources), verbose=False)
     return graph

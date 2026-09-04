@@ -24,12 +24,11 @@ graph that looks right.
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 import pytest
 
-from prep_support import load_from_csv_dir, run_prep
+from prep_support import load_graph_for, rows_of, run_prep
 
 from conftest import TAXDUMP_MINI
 
@@ -111,7 +110,7 @@ def prep_sources(csv_dir: Path, with_kegg: bool) -> str:
 
 
 def load(csv_dir: Path, sources: list[str]):
-    return load_from_csv_dir(csv_dir, sources)
+    return load_graph_for(csv_dir, sources)
 
 
 @pytest.fixture(scope="module")
@@ -143,11 +142,7 @@ def one(graph, query):
 
 
 def table(csv_dir, name):
-    path = csv_dir / name
-    if not path.is_file():
-        return []
-    with path.open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+    return rows_of(csv_dir, name)
 
 
 # --------------------------------------------------------------------------

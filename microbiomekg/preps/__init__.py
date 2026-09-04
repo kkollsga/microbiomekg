@@ -1,8 +1,8 @@
-"""One prep per source: raw files in ``data/raw/<src>/`` → flat CSVs.
+"""One prep per source: raw files in ``data/raw/<src>/`` → tables in the store.
 
 A prep is discovered by glob, never listed; ``DEPENDS_ON`` places it in the
-build (:func:`microbiomekg.pipeline.order_preps`), and an absent raw input leaves
-by :func:`microbiomekg.rawdata.missing_input` — exit 3, the one code the build
-reads as "skip this source". Run one directly with
-``python -m microbiomekg.preps.prep_<src> --raw data/raw --out data/csv``.
+build (:func:`microbiomekg.pipeline.order_preps`), and an absent raw input is a
+:class:`microbiomekg.rawdata.MissingInput` the build catches and reports as the
+skip. A prep is a function: ``run(raw, store, ...)`` puts its tables into a
+:class:`microbiomekg.tables.Frames` store and returns their row counts.
 """

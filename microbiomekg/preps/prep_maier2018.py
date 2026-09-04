@@ -349,7 +349,7 @@ def contested_atc_codes(drug_rows: dict[str, dict]) -> dict[str, list[str]]:
     it is a wrong one: it attributes the R-enantiomer's measurement to the
     molecule ChEMBL keys as propranolol. So a contested code is **not a join
     key for either entry**, which is the same rule
-    :meth:`microbiomekg.drugs.DrugIndex.from_csv` already applies from the other
+    :meth:`microbiomekg.drugs.DrugIndex.from_rows` already applies from the other
     side to a code two ChEMBL nodes claim. The entries fall through to the
     salt-strip route or are minted on their catalogue number, and each dropped code is a ledger row.
     """

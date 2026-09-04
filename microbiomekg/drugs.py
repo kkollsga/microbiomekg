@@ -28,9 +28,7 @@ run after in its ``DEPENDS_ON``, and this index sees their rows.
 
 from __future__ import annotations
 
-import csv
 import re
-from pathlib import Path
 
 from .tables import from_list
 
@@ -162,21 +160,11 @@ class DrugIndex:
             source_of,
         )
 
-    @classmethod
-    def from_csv(cls, path: Path, *, exclude_source: str) -> "DrugIndex":
-        """:meth:`from_rows` over a ``drug.csv``; a missing file is empty."""
-        if not path.is_file():
-            return cls({}, {}, {})
-        with path.open(encoding="utf-8", newline="") as fh:
-            return cls.from_rows(
-                list(csv.DictReader(fh)), exclude_source=exclude_source
-            )
-
     def without_atc(self, codes: object) -> "DrugIndex":
         """The same index with ``codes`` removed from the ATC lookup.
 
         A source drops a code its *own* catalogue gives to two entries — the
-        uniqueness rule of :meth:`from_csv` applied from the other side. The
+        uniqueness rule of :meth:`from_rows` applied from the other side. The
         names lookup is untouched, so a dropped code falls through to the next
         route rather than losing the compound.
         """

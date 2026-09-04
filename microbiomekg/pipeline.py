@@ -51,11 +51,8 @@ from __future__ import annotations
 
 import argparse
 import ast
-import csv
 import importlib
 import json
-import os
-import subprocess
 import sys
 import tempfile
 import time
@@ -64,8 +61,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 from microbiomekg.fragments import FRAGMENTS_DIR, compose
-from microbiomekg.rawdata import MISSING_INPUT, MissingInput
-from microbiomekg.tables import Frames, Table, declared_types
+from microbiomekg.rawdata import MissingInput
+from microbiomekg.tables import Frames, declared_types
 
 #: The preps ship inside the package; one module per source.
 PREPS_DIR = Path(__file__).resolve().parent / "preps"
@@ -253,19 +250,10 @@ def prep_options(source: str, scope: str, gates: frozenset[str]) -> dict:
 def run_prep(
     source: str, raw: Path, store: Frames, *, scope: str, gates: frozenset[str]
 ) -> bool:
-    """Run one source's prep into ``store``; ``False`` when it was skipped.
-
-    A converted prep is a function call. A prep not yet converted still runs
-    as a subprocess writing CSVs (:func:`run_prep_via_csv`), and its tables
-    are read into the store afterwards — the transitional path, deleted with
-    the last conversion.
-    """
+    """Run one source's prep into ``store``; ``False`` when it was skipped."""
     print(f"\n=== prep_{source}", flush=True)
-    module = prep_module(source)
-    if not hasattr(module, "run"):
-        return run_prep_via_csv(source, raw, store, scope=scope, gates=gates)
     try:
-        module.run(raw, store, **prep_options(source, scope, gates))
+        prep_module(source).run(raw, store, **prep_options(source, scope, gates))
     except MissingInput as absent:
         print(str(absent), file=sys.stderr)
         print(
@@ -273,65 +261,6 @@ def run_prep(
         )
         return False
     return True
-
-
-def run_prep_via_csv(
-    source: str, raw: Path, store: Frames, *, scope: str, gates: frozenset[str]
-) -> bool:
-    """Transitional: a prep that still writes CSVs runs as a subprocess against
-    a scratch directory mirroring the store, and what it wrote is read back.
-
-    The mirror is written before the run because such a prep reads other
-    preps' tables from its ``--out`` directory, and read back whole after it
-    because it may have merged into any of them.
-    """
-    with tempfile.TemporaryDirectory(prefix=f"microbiomekg-{source}-") as scratch:
-        csv_dir = Path(scratch)
-        export_csv(store, csv_dir)
-        args = ["--raw", str(raw), "--out", str(csv_dir)]
-        if source == "taxonomy":
-            args += ["--scope", scope, "--cited-from", str(csv_dir / "cited_taxa.csv")]
-        if source in gates:
-            args.append(LICENCE_GATED[source])
-        env = dict(os.environ)
-        env["PYTHONPATH"] = os.pathsep.join(
-            [str(PREPS_DIR.parent.parent)]
-            + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
-        )
-        proc = subprocess.run(
-            [sys.executable, "-m", f"microbiomekg.preps.prep_{source}", *args], env=env
-        )
-        if proc.returncode == MISSING_INPUT:
-            print(
-                f"    ... {source}: raw input absent or not opted into, "
-                f"skipping this source"
-            )
-            return False
-        if proc.returncode != 0:
-            raise SystemExit(f"prep_{source} failed with exit code {proc.returncode}")
-        ingest_csv(store, csv_dir)
-    return True
-
-
-def export_csv(store: Frames, csv_dir: Path) -> None:
-    """Transitional: every table in ``store`` as a CSV in ``csv_dir``."""
-    for name, table in store.tables.items():
-        with (csv_dir / f"{name}.csv").open("w", newline="", encoding="utf-8") as fh:
-            w = csv.DictWriter(fh, fieldnames=table.fields, extrasaction="ignore")
-            w.writeheader()
-            w.writerows(table.rows)
-
-
-def ingest_csv(store: Frames, csv_dir: Path) -> None:
-    """Transitional: every CSV in ``csv_dir`` replaces the store's table."""
-    for path in sorted(csv_dir.glob("*.csv")):
-        with path.open(encoding="utf-8", newline="") as fh:
-            reader = csv.DictReader(fh)
-            table = Table(path.stem, list(reader.fieldnames or ()))
-            table.rows = [
-                {f: (row.get(f) or "") for f in table.fields} for row in reader
-            ]
-        store.put(table)
 
 
 # ---------------------------------------------------------------------------

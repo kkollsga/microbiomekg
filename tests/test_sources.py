@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import importlib
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -78,7 +76,7 @@ def test_a_source_with_every_file_is_present_and_a_replaced_file_is_stale(tmp_pa
 @pytest.mark.parametrize("name", SOURCES)
 def test_withholding_a_declared_input_makes_the_prep_refuse_by_name(tmp_path, name):
     """The declaration is the check: with every declared file present except
-    the first, the prep must exit 3 and name what it wanted. A file declared
+    the first, the prep must refuse and name what it wanted. A file declared
     but not needed would let the prep run on into the empty files and die
     some other way; a file needed but not declared would be complained about
     instead of the one withheld."""
@@ -90,30 +88,10 @@ def test_withholding_a_declared_input_makes_the_prep_refuse_by_name(tmp_path, na
         (raw / rel).write_bytes(b"")
     (raw / withheld).parent.mkdir(parents=True, exist_ok=True)
     module = importlib.import_module(f"microbiomekg.preps.prep_{name}")
-    if hasattr(module, "run"):
-        from microbiomekg.rawdata import MissingInput
-        from microbiomekg.tables import Frames
+    from microbiomekg.rawdata import MissingInput
+    from microbiomekg.tables import Frames
 
-        opts = pipeline.prep_options(name, "microbial", frozenset(LICENCE_GATED))
-        with pytest.raises(MissingInput) as absent:
-            module.run(raw, Frames(), **opts)
-        assert Path(withheld).name in str(absent.value), (name, withheld, absent.value)
-        return
-    gate = [LICENCE_GATED[name]] if name in LICENCE_GATED else []
-    proc = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            f"microbiomekg.preps.prep_{name}",
-            "--raw",
-            str(raw),
-            "--out",
-            str(tmp_path / "csv"),
-            *gate,
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
-    assert proc.returncode == 3, f"{name}: exit {proc.returncode}\n{proc.stderr}"
-    assert Path(withheld).name in proc.stderr, (name, withheld, proc.stderr)
+    opts = pipeline.prep_options(name, "microbial", frozenset(LICENCE_GATED))
+    with pytest.raises(MissingInput) as absent:
+        module.run(raw, Frames(), **opts)
+    assert Path(withheld).name in str(absent.value), (name, withheld, absent.value)

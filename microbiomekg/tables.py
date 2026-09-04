@@ -32,7 +32,7 @@ from typing import Any, Iterable, Mapping
 
 import pandas as pd
 
-__all__ = ["Frames", "Table", "Writer", "as_list", "declared_types", "from_list"]
+__all__ = ["Frames", "Table", "as_list", "declared_types", "from_list"]
 
 
 def as_list(values: Iterable[object]) -> str:
@@ -307,49 +307,3 @@ def declared_types(blueprint: Mapping[str, Any]) -> dict[str, dict[str, str]]:
 
     walk(blueprint.get("nodes", {}))
     return out
-
-
-class Writer(Table):
-    """A :class:`Table` that reads a CSV in and writes one out — the shape
-    every prep used until the preps returned frames.
-
-    Transitional: it exists so a prep not yet converted keeps building while
-    the others are, and it is deleted with the last conversion. ``merge``
-    reads the file back (union header, existing rows first, ``owner`` rows
-    dropped) exactly as :meth:`Table.absorb` does for a stored table.
-    """
-
-    def __init__(
-        self,
-        path,
-        fields: list[str],
-        key: str | tuple[str, ...] | None = None,
-        dedupe_full: bool = False,
-        merge: bool = False,
-        sum_fields: tuple[str, ...] = (),
-        owner: tuple[str, str] | None = None,
-    ):
-        from pathlib import Path
-
-        self.path = Path(path)
-        super().__init__(self.path.stem, fields, key, dedupe_full, sum_fields, owner)
-        if merge and self.path.is_file():
-            import csv
-
-            with self.path.open(encoding="utf-8", newline="") as fh:
-                reader = csv.DictReader(fh)
-                existing = Table(self.name, list(reader.fieldnames or ()))
-                existing.rows = [
-                    {f: (row.get(f) or "") for f in existing.fields} for row in reader
-                ]
-            self.absorb(existing)
-
-    def flush(self) -> int:
-        import csv
-
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", newline="", encoding="utf-8") as fh:
-            w = csv.DictWriter(fh, fieldnames=self.fields, extrasaction="ignore")
-            w.writeheader()
-            w.writerows(self.rows)
-        return len(self.rows)

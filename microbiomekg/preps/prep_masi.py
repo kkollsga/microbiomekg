@@ -390,7 +390,7 @@ def run(
     #: tax_id -> the probiotic annotation, **merged rather than first-wins**.
     #: 806 microbe rows collapse onto 540 taxa, so several MASI organisms land
     #: on one node — *Escherichia coli* Nissle 1917 promotes onto the same 562
-    #: as plain *Escherichia coli*. `Writer`'s first-row-per-key rule would then
+    #: as plain *Escherichia coli*. `Table`'s first-row-per-key rule would then
     #: let whichever row came first decide, and it silently dropped 5 of the 46
     #: probiotic claims that way. A claim beats a non-claim: `probiotic` is true
     #: if *any* MASI row for the taxon says so, and `probiotic_reported_name`

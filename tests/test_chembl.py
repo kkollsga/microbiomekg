@@ -31,12 +31,11 @@ two published screens instead.
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 import pytest
 
-from prep_support import load_from_csv_dir, run_prep
+from prep_support import append_rows, load_graph_for, rows_of, run_prep
 
 from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
 
@@ -173,7 +172,7 @@ def built(tmp_path_factory):
         "--out",
         str(csv_dir),
     )
-    _append_interventions(csv_dir / "intervention.csv", EXTRA_INTERVENTIONS)
+    append_rows(csv_dir, "intervention", EXTRA_INTERVENTIONS)
 
     prep = run(
         PREP,
@@ -197,20 +196,8 @@ def built(tmp_path_factory):
     )
 
     sources = ["bugsigdb", "gutmdisorder", SOURCE]
-    graph = load_from_csv_dir(csv_dir, sources)
+    graph = load_graph_for(csv_dir, sources)
     return graph, csv_dir, prep.stdout
-
-
-def _append_interventions(path: Path, extra: list[dict[str, str]]) -> None:
-    with path.open(encoding="utf-8", newline="") as fh:
-        reader = csv.DictReader(fh)
-        fields = list(reader.fieldnames or ())
-        rows = list(reader)
-    rows.extend({f: row.get(f, "") for f in fields} for row in extra)
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 @pytest.fixture(scope="module")
@@ -239,8 +226,7 @@ def one(graph, query):
 
 
 def table(csv_dir, name):
-    with (csv_dir / name).open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+    return rows_of(csv_dir, name)
 
 
 def ledger(csv_dir, kind=None):

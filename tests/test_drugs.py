@@ -11,7 +11,6 @@ identifiers are join keys at all.
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 from microbiomekg.drugs import DrugIndex, atc_level5, join_drug, strip_salt
@@ -19,18 +18,15 @@ from microbiomekg.drugs import DrugIndex, atc_level5, join_drug, strip_salt
 DRUG_FIELDS = ["drug_id", "pref_name", "atc_codes", "source"]
 
 
-def write_drug_csv(path: Path, rows: list[dict]) -> Path:
-    with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=DRUG_FIELDS)
-        writer.writeheader()
-        writer.writerows(rows)
-    return path
+def write_drug_csv(path: Path, rows: list[dict]) -> list[dict[str, str]]:
+    """The rows as the drug table holds them: every field, empty when unset."""
+    return [{f: str(r.get(f, "")) for f in DRUG_FIELDS} for r in rows]
 
 
 def test_an_absent_drug_csv_is_an_empty_index_not_an_error(tmp_path):
     """A prep run before the source it depends on must mint rather than crash —
     a build that lost one source's raw files still has to produce the others."""
-    index = DrugIndex.from_csv(tmp_path / "nothing.csv", exclude_source="maier2018")
+    index = DrugIndex.from_rows([], exclude_source="maier2018")
     assert index.names == {} and index.atc == {} and index.source_of == {}
     assert join_drug([("name", "Vancomycin", "name")], index) == ("", "minted", [])
 
@@ -58,9 +54,9 @@ def test_the_index_skips_the_rows_this_source_wrote_on_a_previous_run(tmp_path):
             },
         ],
     )
-    own = DrugIndex.from_csv(path, exclude_source="maier2018")
+    own = DrugIndex.from_rows(path, exclude_source="maier2018")
     assert "fictitine hydrochloride" not in own.names
-    other = DrugIndex.from_csv(path, exclude_source="zimmermann2019")
+    other = DrugIndex.from_rows(path, exclude_source="zimmermann2019")
     assert other.names["fictitine hydrochloride"] == "PRESTWICK:Prestw-9999"
     # And the source that wrote the row it landed on is readable, which is how a
     # later screen counts the compounds that only have a node because an earlier
@@ -89,7 +85,7 @@ def test_an_atc_code_two_nodes_claim_is_a_join_key_for_neither(tmp_path):
             },
         ],
     )
-    index = DrugIndex.from_csv(path, exclude_source="maier2018")
+    index = DrugIndex.from_rows(path, exclude_source="maier2018")
     assert "C07AA05" not in index.atc
     assert index.atc["N02BE01"] == "CHEMBL:B"
     # A *name* collision cannot arise — `drug.csv` is keyed on `drug_id` and the
@@ -112,7 +108,7 @@ def test_without_atc_applies_the_same_uniqueness_rule_from_the_other_side(tmp_pa
             },
         ],
     )
-    index = DrugIndex.from_csv(path, exclude_source="maier2018")
+    index = DrugIndex.from_rows(path, exclude_source="maier2018")
     assert index.atc["C07AA05"] == "CHEMBL:A"
     narrowed = index.without_atc({"C07AA05"})
     assert narrowed.atc == {}
@@ -136,7 +132,7 @@ def test_a_name_is_matched_casefolded_and_an_atc_code_upper_cased(tmp_path):
             },
         ],
     )
-    index = DrugIndex.from_csv(path, exclude_source="x")
+    index = DrugIndex.from_rows(path, exclude_source="x")
     assert index.lookup("name", "  Vancomycin ") == "CHEMBL:A"
     assert index.lookup("atc", "j01xa01") == "CHEMBL:A"
     assert index.lookup("name", "vancomycin hydrochloride") is None

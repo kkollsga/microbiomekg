@@ -8,7 +8,6 @@ a clear ImportError on the module under test rather than on its own scaffolding.
 from __future__ import annotations
 
 import csv
-import os
 from pathlib import Path
 
 import pytest
@@ -54,15 +53,6 @@ def taxdump_dir() -> Path:
 @pytest.fixture(scope="session")
 def bugsigdb_rows() -> list[dict[str, str]]:
     return read_bugsigdb()
-
-
-# The preps and the build shims are run as subprocesses by path, and they import
-# `microbiomekg` the way an installed package would — so a checkout has to put
-# the package's parent on the child's path. Done once here, for every test.
-os.environ["PYTHONPATH"] = os.pathsep.join(
-    [str(Path(__file__).resolve().parents[1])]
-    + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])
-)
 
 
 @pytest.fixture(scope="session")

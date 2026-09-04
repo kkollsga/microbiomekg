@@ -24,12 +24,11 @@ that records it is
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 import pytest
 
-from prep_support import load_from_csv_dir, run_prep
+from prep_support import load_graph_for, rows_of, run_prep
 
 from conftest import TAXDUMP_MINI
 
@@ -133,7 +132,7 @@ def built(tmp_path_factory):
     )
 
     sources = [SOURCE, "reactome"]
-    return load_from_csv_dir(csv_dir, sources), csv_dir, prep.stdout
+    return load_graph_for(csv_dir, sources), csv_dir, prep.stdout
 
 
 @pytest.fixture(scope="module")
@@ -162,8 +161,7 @@ def one(graph, query):
 
 
 def table(csv_dir, name):
-    with (csv_dir / name).open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+    return rows_of(csv_dir, name)
 
 
 # --------------------------------------------------------------------------

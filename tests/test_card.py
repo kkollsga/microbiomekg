@@ -31,12 +31,11 @@ The second half is what the *third source* is for: BugSigDB and CARD both name
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 
 import pytest
 
-from prep_support import load_from_csv_dir, run_prep
+from prep_support import load_graph_for, rows_of, run_prep
 
 from conftest import BUGSIGDB_MINI, MONDO_MINI, TAXDUMP_MINI
 
@@ -195,7 +194,7 @@ def built(tmp_path_factory, taxdump):
         str(csv_dir / "cited_taxa.csv"),
     )
 
-    graph = load_from_csv_dir(csv_dir, ["bugsigdb", SOURCE])
+    graph = load_graph_for(csv_dir, ["bugsigdb", SOURCE])
     return graph, csv_dir, prep.stdout
 
 
@@ -225,8 +224,7 @@ def one(graph, query):
 
 
 def table(csv_dir, name):
-    with (csv_dir / name).open(encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+    return rows_of(csv_dir, name)
 
 
 # --------------------------------------------------------------------------
