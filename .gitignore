@@ -26,3 +26,8 @@ __pycache__/
 # bound and owner. `make check-dev-docs` enforces the size bound.
 /dev-docs/
 /inbox/
+
+# Agent skill trees are local working state for this checkout, not part of the
+# public repository. The local `make gate` still verifies the adapter mirror.
+.claude/skills/
+.agents/skills/

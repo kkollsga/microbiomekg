@@ -57,8 +57,11 @@ jobs:
       # steps by name rather than weakening the gate: a gate that skips when
       # its input is missing is the thing R10 forbids, and `claims` runs in the
       # `tests` job's self-skip accounting instead.
-      - name: Adapters, bounds, lint, blueprint composition
-        run: make check-adapters check-dev-docs check-data-bounds lint fragments
+      # `check-adapters` stays local: the skill trees it mirrors are gitignored
+      # (local working state, not published), so CI has no authority tree to
+      # compare and the check would refuse rather than skip (R1/R10).
+      - name: Bounds, lint, blueprint composition
+        run: make check-dev-docs check-data-bounds lint fragments
 
   tests:
     name: pytest (py${{ matrix.python }}, graph-backed suites skipped)
