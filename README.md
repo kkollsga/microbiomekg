@@ -151,5 +151,30 @@ a *misspelt* organism name and nothing else, while costing +82.6 s of build,
 (the `2026-09-03` capture, `bench/results/`). A default build says in its report
 that the lane was skipped and which flag turns it on.
 
-The conventions an agent works under are `CLAUDE.md`. The code is MIT; the
-sources keep their own licences, on every edge.
+The conventions an agent works under are `CLAUDE.md`, and `CONTRIBUTING.md` is
+the short version for a contributor.
+
+## Licence
+
+**The code is MIT** (`LICENSE`). That covers this repository — the preps, the
+blueprint fragments, the ontology modules, the build and the MCP surface — and
+nothing else.
+
+**The data is not ours to relicense, and none of it ships here.** No raw input
+and no built graph is distributed: a build reads sources the operator fetched
+under each source's own terms, and every edge carries the `source_licence` it
+came with. In a default build that is `CC-BY-4.0`, `CC0-1.0`,
+`CC-BY-SA-3.0`, `CARD-noncommercial`, `HMDB-noncommercial`, `unknown`, and an
+`-unstated` token on the sources whose papers state no redistribution terms —
+so a query can select exactly the cut it is allowed to pass on. It is a real
+constraint: 80,118 edges carry an `-unstated` token, against 68,752 that are
+CC0.
+
+Per-source terms are in `docs/sources.md` ("Redistribution: what blocks
+shipping a built graph"); what that leaves a redistributable cut looking like
+is measured in `docs/evaluation.md`. KEGG is behind `--with-kegg` for exactly
+this reason.
+
+If you use this pipeline in published work, `CITATION.cff` has the citation —
+and cite the sources you actually loaded, which `docs/sources.md` lists with
+their papers.

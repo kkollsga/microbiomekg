@@ -57,3 +57,10 @@ come from.
 ## Building and testing
 
 <!-- claim external: 82.6, 46.7, 212.7, 1.03, 2.41, 1.2, 3.7, 2 — the 2026-09-03 bench capture (bench/results/2026-09-03-ten-sources.md §1, §3, §4); a cost measured by the harness, not a graph quantity; "two flags" is a count of CLI flags -->
+
+## Licence
+
+<!-- claim: MATCH ()-[r]->() WHERE r.source_licence ENDS WITH '-unstated'
+     WITH count(r) AS unstated
+     MATCH ()-[s]->() WHERE s.source_licence = 'CC0-1.0'
+     RETURN unstated, count(s) AS cc0 == 80118, 68752 -->

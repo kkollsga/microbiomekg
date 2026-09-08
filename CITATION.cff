@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: "MicrobiomeKG: a microbiome knowledge graph pipeline with an auditable evidence model"
+message: >-
+  If you use this software, please cite it as below — and cite the sources you
+  actually loaded, which docs/sources.md lists with their papers and licences.
+type: software
+authors:
+  - family-names: "Kollsgård"
+    given-names: "Kristian de Figueiredo"
+repository-code: "https://github.com/kkollsga/microbiomekg"
+url: "https://github.com/kkollsga/microbiomekg"
+license: MIT
+version: 0.1.0
+abstract: >-
+  A pipeline that builds a microbiome knowledge graph on kglite from curated
+  public sources over NCBI taxonomy. Its point is the evidence model rather
+  than the size: every association edge carries its provenance set — primary
+  source, source record id, source licence, study design, assay, both group
+  sizes and the citing paper — nothing is stored as a score, direction is
+  recorded per study and never aggregated, and measured negatives ("somebody
+  looked and found nothing") are first-class edges rather than absent rows.
+  Names that will not resolve go to a ledger with the reason, so "dropped" is
+  a number the graph can report. The software is MIT-licensed; no data and no
+  built graph is distributed, and each edge carries the licence of the source
+  it came from.
+keywords:
+  - microbiome
+  - knowledge graph
+  - evidence
+  - provenance
+  - cypher
+  - kglite
+  - bioinformatics
+  - NCBI taxonomy
