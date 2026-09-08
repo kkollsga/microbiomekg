@@ -18,7 +18,7 @@ from pathlib import Path
 
 from microbiomekg import download, pipeline, serve
 from microbiomekg.sources import missing_fetchers, status
-from microbiomekg.preparation import prepare
+from microbiomekg.preparation import prepare, validate_max_age_days
 
 __all__ = ["main"]
 
@@ -31,10 +31,28 @@ def _split_data(argv: list[str]) -> tuple[Path, list[str]]:
     return known.data, rest
 
 
-def print_status(data_dir: Path, *, create: bool = False) -> int:
+def print_status(
+    data_dir: Path, *, create: bool = False, max_age_days: float = 30
+) -> int:
     """Print the same guidance as the Python data-loading path."""
-    prepare(data_dir, create=create)
+    prepare(data_dir, create=create, max_age_days=max_age_days)
     return 0
+
+
+def _age_threshold(value: str) -> float:
+    try:
+        return validate_max_age_days(float(value))
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def _age_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--max-age-days",
+        type=_age_threshold,
+        default=30,
+        help="show download details above this local file age (default: 30 days)",
+    )
 
 
 def _fetch(data: Path, rest: list[str]) -> int:
@@ -45,6 +63,7 @@ def _fetch(data: Path, rest: list[str]) -> int:
         action="store_true",
         help="fetch missing required inputs; optional sources need --only",
     )
+    _age_option(ap)
     args = ap.parse_args(["--raw", str(data / "raw"), *rest])
     selected = missing_fetchers(status(data), args.only) if args.missing else args.only
     failures = []
@@ -52,7 +71,7 @@ def _fetch(data: Path, rest: list[str]) -> int:
         failures = download.run(
             args.raw, only=selected, force=args.force, chembl_sqlite=args.chembl_sqlite
         )
-    print_status(data)
+    print_status(data, max_age_days=args.max_age_days)
     return int(bool(failures))
 
 
@@ -74,8 +93,9 @@ def main(argv: list[str] | None = None) -> int:
         status_parser.add_argument(
             "--create", action="store_true", help="create the raw input directories"
         )
+        _age_option(status_parser)
         opts = status_parser.parse_args(rest)
-        return print_status(data, create=opts.create)
+        return print_status(data, create=opts.create, max_age_days=opts.max_age_days)
     if args.verb == "fetch":
         return _fetch(data, rest)
     return pipeline.main(["--raw", str(data / "raw"), *rest])

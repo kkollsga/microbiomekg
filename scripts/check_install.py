@@ -77,14 +77,14 @@ def main() -> int:
             env=env,
         ).stdout
         assert (data / "raw" / "ncbi_taxonomy").is_dir()
-        assert "--missing" in out and "hmdb_metabolites.xml" in out, out
+        assert "Available" in out and "hmdb_metabolites.xml" in out, out
         print("  prepare: input layout and missing-file guidance available in wheel")
 
         cli = venv / (
             "Scripts/microbiomekg.exe" if os.name == "nt" else "bin/microbiomekg"
         )
         out = run([str(cli), "status", "--data", "data"], cwd=scratch, env=env).stdout
-        assert "taxonomy" in out and "manual" in out and "absent" in out, out
+        assert "taxonomy" in out and "Available" in out and "Expected file:" in out, out
         print("  microbiomekg status: ok")
         out = run(
             [str(cli), "build", "--data", "data", "--no-save"], cwd=scratch, env=env

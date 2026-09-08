@@ -13,8 +13,9 @@ changes and formatting do not get entries. Nothing has been released yet:
 
 ### Added
 - **Guidance in the data-loading path.** `prepare(data_dir)` creates the input
-  layout and prints file status, size, local age, download URLs and exact
-  destinations. `status` and the CLI fetch report share the same guidance;
+  layout and prints a dataset table with availability, total size and oldest
+  local file age. Missing files and files above `max_age_days` (30 by default;
+  CLI `--max-age-days`) get download URLs and expected filenames. `status` and the CLI fetch report share the same guidance;
   `status --create` creates the layout from the shell. Python `status` remains
   a silent evaluator with per-file metadata on `SourceStatus.files`.
 - **Fetch missing inputs.** `fetch(data_dir, missing=True)` and `fetch --missing`

@@ -23,7 +23,7 @@ CI and PyPI halves wait on `release-readiness.md` §1.
 One directory is the entire input. The library scales the build to what is in it.
 
 ```
-microbiomekg status --data ./data --create  # create directories; report every required file
+microbiomekg status --data ./data --create  # create directories; show availability, size and age
 microbiomekg fetch  --data ./data --missing # run fetchers needed by missing default inputs; report again
 microbiomekg build  --data ./data            # build from whatever is present; report what was skipped
 ```
@@ -77,6 +77,10 @@ Rules that make it a contract rather than a convention:
    operator on a fresh clone runs `status` and gets a to-do list: which
    automatic fetches to run, which files to download by hand and where to put
    them, which sources are optional and why.
+   The report is a dataset table (availability, total size, oldest local file
+   age). Missing inputs and inputs older than `max_age_days` (30 by default;
+   CLI `--max-age-days`) get a URL and expected filename beneath the table.
+   This threshold changes presentation only, not automatic fetch selection.
    `prepare` is the guided Python presentation of that same status, while CLI
    `status --create` provides the normal shell path.
 7. **The graph's provenance is in the graph.** Every association edge already
