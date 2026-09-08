@@ -93,7 +93,7 @@ same commit.
 
 **Estate rules that are Rust-shaped do not apply here, and saying so is
 cheaper than re-deriving it every time:** the five-place workspace version
-lockstep (there is one version, in `pyproject.toml`, and it is a placeholder);
+lockstep (there is one version, in `pyproject.toml`);
 `cargo` target-dir pruning and free-space gates (nothing here compiles);
 cbindgen header drift and the C-ABI additive-only rule (there is no C ABI);
 debug-vs-release extension profiles (there is no extension — the kglite wheel
@@ -101,8 +101,8 @@ is always a release build, which `bench/bench.py` asserts); `cargo
 semver-checks`. When the release regime from the estate playbook is adapted
 here it is the **Python-package** version — wheel + sdist, trusted publishing
 on a tag, artifact-set verification, and a clean-venv `pip`/`uv` install of the
-*published* artifact — not the multi-crate lockstep. The seven pre-release
-items are enumerated in `docs/design/release-readiness.md`; none is done.
+*published* artifact — not the multi-crate lockstep. The release mechanism and
+its verification checklist live in `docs/design/release-readiness.md`.
 
 ## The fragment framework — a source is four files, discovered not listed
 
@@ -386,13 +386,11 @@ Commit format: `type: short description` (`feat`, `fix`, `docs`, `refactor`,
   one per phase, run `make gate` immediately before each, and let every
   required check go green before merging. The `phased-plan` skill carries the
   loop.
-- **Nothing is published yet.** No PyPI package and no tag; the remote and CI
-  exist. The code is MIT (`LICENSE`); `pyproject.toml`'s `version = "0.1.0"`
-  is a placeholder and stays one until the first tag. What still has to land is
-  `docs/design/release-readiness.md` §4 (PyPI trusted publishing — the workflow
-  is written, the pending publisher is the user's step) and §5's hosting half
-  (the project on readthedocs.org); the `release` skill is a **stub** pointing
-  there.
+- **The first release is 0.1.0.** The code is MIT (`LICENSE`), the trusted
+  publisher and Read the Docs project are configured, and
+  `docs/design/release-readiness.md` records the release checks. The `release`
+  skill stays a stub until the first tag has published and the artifacts have
+  been verified from PyPI.
 - **`CHANGELOG.md` is Keep-a-Changelog with `[Unreleased]` on top.** A
   user-visible change lands there in the commit that makes it; a release
   promotes the section into a version block. Internal refactors, test-only
@@ -446,8 +444,9 @@ The skills (`.claude/skills/`):
   (`../../Rust/KGLite/inbox/`).
 - **`clean-comments`** — coordinator-run comment cleanup over a measured scope
   (`R17`/`R18`), with the reader enumeration this repo's tooling needs.
-- **`release`** — a **stub**. This repo publishes nothing; the skill says so
-  and points at `docs/design/library-pipeline.md`'s prerequisites.
+- **`release`** — a **stub until 0.1.0 is verified from PyPI**. Its current
+  instructions preserve the pre-publication guard; rewrite it after the first
+  wheel and sdist have published and passed the clean-install verification.
 
 **Skill mandates:** demand `phased-plan` for any large feature or refactor (not
 plain plan mode); file backlog via `add-todo`; process the inbox via

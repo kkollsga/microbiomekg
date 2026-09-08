@@ -1,8 +1,8 @@
 # The package: pure Python on the kglite wheel. The licence covers the code
 # only — no data and no built graph ships, because 26% of evidence-bearing
-# edges have no redistribution permission (docs/evaluation.md §4). Nothing is
-# published yet: the version is a placeholder until the first tag runs
-# .github/workflows/publish.yml (docs/design/release-readiness.md §4).
+# edges have no redistribution permission (docs/evaluation.md §4). The
+# release workflow checks that a v* tag matches this version before it
+# publishes (docs/design/release-readiness.md §4).
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
@@ -60,9 +60,7 @@ docs = [
 [project.scripts]
 microbiomekg = "microbiomekg.cli:main"
 
-# Documentation points at the slug this repo intends — RTD suffixes a slug that
-# is already taken, so the key is corrected against the project's real URL once
-# it is created (docs/design/release-readiness.md §5).
+# Documentation points at the configured Read the Docs project.
 [project.urls]
 Homepage = "https://github.com/kkollsga/microbiomekg"
 Repository = "https://github.com/kkollsga/microbiomekg"

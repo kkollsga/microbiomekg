@@ -6,6 +6,12 @@ design, direction, sample sizes and citing paper, and the measured negatives —
 "tested and nothing happened" — are kept as their own relationships rather than
 folded away.
 
+Install the package from PyPI:
+
+```bash
+python -m pip install microbiomekg
+```
+
 Prepare, fetch and build over one data directory:
 
 ```python
@@ -17,10 +23,10 @@ result = mkg.build(data)          # build from what is present; no file saved by
 ```
 
 ```bash
-.venv/bin/microbiomekg status --data ./my-data --create
-.venv/bin/microbiomekg fetch  --data ./my-data --missing
-.venv/bin/microbiomekg build  --data ./my-data
-.venv/bin/microbiomekg serve --graph graph/microbiomekg.kgl  # the MCP server, read-only
+microbiomekg status --data ./my-data --create
+microbiomekg fetch  --data ./my-data --missing
+microbiomekg build  --data ./my-data
+microbiomekg serve --graph graph/microbiomekg.kgl  # the MCP server, read-only
 ```
 
 No data and no built graph ships: 26% of evidence-bearing edges have no

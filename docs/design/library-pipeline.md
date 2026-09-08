@@ -1,7 +1,7 @@
 # MicrobiomeKG as a library: the data-directory contract
 
-Status: the packaging half shipped 2026-09-03 (items 1–3 below); the remote,
-CI and PyPI halves wait on `release-readiness.md` §1.
+Status: the packaging, remote and CI work is complete; release status and
+verification live in `release-readiness.md`.
 
 ## The decision already made
 
@@ -125,9 +125,8 @@ Rules that make it a contract rather than a convention:
    directory. CI has no graph, so the graph-backed suites self-skip there and
    the local gate keeps them.
 6. ~~Name check on PyPI (`microbiomekg`)~~ — 404 on 2026-09-03, unclaimed.
-   `.github/workflows/publish.yml` is written; the pending publisher on
-   pypi.org is the repository owner's step, and the first tag is a separate
-   release request.
+   `.github/workflows/publish.yml` is written and the trusted publisher was
+   configured on 2026-09-09; the first tag is a separate release request.
 
 ## Open questions (decide at planning time, not now)
 

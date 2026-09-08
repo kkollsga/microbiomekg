@@ -1,9 +1,9 @@
 # Release readiness — what stands between this tree and a published package
 
-Status: §1, §2, §3, §6, §7 and §5's local half are **done** — the remote
-exists, CI is green, and the publish workflow is written. What is left is §4's
-**pending publisher on pypi.org** and §5's **project on readthedocs.org**, both
-of them acts only the repository owner can perform. Companion to
+Status: the release machinery is ready. The remote and CI are live, the PyPI
+trusted publisher is configured, and the Read the Docs project serves the
+documentation at `microbiomekg.readthedocs.io`. Publication and its
+post-release verification remain. Companion to
 [library-pipeline.md](library-pipeline.md), which is the *design* — this is the
 *checklist*. Tracked here rather than in `dev-docs/` because `dev-docs/` is
 gitignored and unbacked, and `dev-docs/todos.md` carries one lean backlink per
@@ -140,12 +140,10 @@ there, then both `bdist_wheel` and `sdist` asserted present on the release).
 It declares **no** `environment:`. `tests/test_packaging.py` holds it to that
 shape, because otherwise its first execution would be the release itself.
 
-**What remains is the user's:** create the **pending publisher** at
-<https://pypi.org/manage/account/publishing/> — project `microbiomekg`, owner
-`kkollsga`, repository `microbiomekg`, workflow filename `publish.yml`,
-environment name **empty** (it must match the workflow, which declares none).
-The name answered 404 on 2026-09-03; re-check on the day, since nothing
-reserves it.
+**Configured 2026-09-09:** the repository owner created the pending publisher
+for project `microbiomekg`, owner `kkollsga`, repository `microbiomekg`,
+workflow filename `publish.yml`, with the environment name empty to match the
+workflow. The project still answered 404 before the first publication.
 
 **Done when:** a tag publishes a wheel + sdist, the artifact set is verified,
 and a clean-venv install of the published package runs `microbiomekg status`.
@@ -168,14 +166,13 @@ for the reference being worth anything.
 like KGLite's: a warning is a broken cross-reference or a docstring that no
 longer parses, and a docs job that tolerates warnings tolerates rot.
 
-**Local half done 2026-09-03:** `docs/conf.py` (furo, myst-parser,
+**Done 2026-09-09:** `docs/conf.py` (furo, myst-parser,
 sphinx-autoapi over `microbiomekg/`, copybutton), `docs/index.md` with the
 five guides, the design notes and the research pages, `docs/requirements.txt`,
 `.readthedocs.yaml`, and `make docs` = `sphinx-build -W --keep-going`, green.
-CI runs the `docs` job on every push and PR. What remains is the project on
-readthedocs.org: the owner connects the repository there and reports the real
-slug — `.readthedocs.yaml` and `pyproject.toml`'s `Documentation` URL both
-assume `microbiomekg`, and RTD suffixes a slug that is already taken.
+CI runs the `docs` job on every push and PR. The repository owner connected
+the project at
+`https://microbiomekg.readthedocs.io`; the confirmed slug is `microbiomekg`.
 
 **Done when:** the build is green under `-W` in CI and the site serves the
 guides plus a generated reference.
@@ -198,7 +195,8 @@ measured negatives, then Install → Python → Cypher → MCP → adding a sour
 layout → building. Every number in it is executed by the claim gate
 (`docs/claims/README.md`, via `DOC_UNITS` in `tests/skill_claims.py`), so the
 README cannot drift from the graph. The one sentence that stays untrue until
-§4 lands is `pip install microbiomekg`, and it says so inline.
+the first release is `pip install microbiomekg`; the release preparation
+changes that sentence to the published install path.
 
 **Done when:** a reader who is not an agent can install it, build it, and ask
 it a question from the README alone.

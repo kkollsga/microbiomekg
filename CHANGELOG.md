@@ -6,10 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 User-visible changes land under `[Unreleased]` as they happen; a release
 promotes that section into a version block. Internal refactors, test-only
-changes and formatting do not get entries. Nothing has been released yet:
-`0.1.0` in `pyproject.toml` is a placeholder until the first tag.
+changes and formatting do not get entries.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-09-09
 
 ### Added
 - **Guidance in the data-loading path.** `prepare(data_dir)` creates the input
@@ -22,13 +23,12 @@ changes and formatting do not get entries. Nothing has been released yet:
   select fetchers for missing required inputs, deduplicating shared sources
   and excluding optional KEGG unless explicitly selected with `only` / `--only`.
   Selected fetchers retain their existing cache and update behavior.
-- **PyPI publishing, prepared.** `[project.urls]` (homepage, repository, docs,
+- **PyPI publishing.** `[project.urls]` (homepage, repository, docs,
   changelog, issues) so the PyPI page links somewhere, and
   `.github/workflows/publish.yml`: trusted publishing on a `v*` tag, a wheel
   **and** an sdist with the artifact set asserted before and after the upload,
   and a verification job that installs the *published* wheel into a clean venv
-  outside any checkout and runs the CLI there. Nothing is published yet — the
-  pending publisher on pypi.org is the repository owner's step.
+  outside any checkout and runs the CLI there.
 - **`CITATION.cff` and `CONTRIBUTING.md`**, and a **Licence** section in the
   README: the code is MIT and covers only this repository; no data and no built
   graph is distributed; every edge carries the `source_licence` it came with,

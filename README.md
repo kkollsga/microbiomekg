@@ -21,16 +21,15 @@ No data and no built graph ships. What ships is the pipeline: one directory
 is the entire input, a source is discovered rather than listed, and a source
 whose raw files are absent is skipped loudly, never silently.
 
-## Get the data and build
+## Install, get the data and build
 
-MicrobiomeKG is not on PyPI yet. From a checkout, install it into the local
-virtual environment, then use one data directory throughout:
+Install MicrobiomeKG from PyPI, then use one data directory throughout:
 
 ```bash
-make venv
-.venv/bin/microbiomekg status --data ./my-data --create
-.venv/bin/microbiomekg fetch  --data ./my-data --missing
-.venv/bin/microbiomekg build  --data ./my-data
+python -m pip install microbiomekg
+microbiomekg status --data ./my-data --create
+microbiomekg fetch  --data ./my-data --missing
+microbiomekg build  --data ./my-data
 ```
 
 `status --create` creates the required raw-input directories and shows a table
