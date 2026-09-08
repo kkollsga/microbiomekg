@@ -1,9 +1,8 @@
 # The package: pure Python on the kglite wheel. The licence covers the code
 # only — no data and no built graph ships, because 26% of evidence-bearing
 # edges have no redistribution permission (docs/evaluation.md §4). Nothing is
-# published yet: the version is a placeholder until the release train reaches
-# PyPI (docs/design/release-readiness.md §4), and there are no project URLs
-# because there is no remote to point at (§1).
+# published yet: the version is a placeholder until the first tag runs
+# .github/workflows/publish.yml (docs/design/release-readiness.md §4).
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
@@ -61,12 +60,30 @@ docs = [
 [project.scripts]
 microbiomekg = "microbiomekg.cli:main"
 
+# Documentation points at the slug this repo intends — RTD suffixes a slug that
+# is already taken, so the key is corrected against the project's real URL once
+# it is created (docs/design/release-readiness.md §5).
+[project.urls]
+Homepage = "https://github.com/kkollsga/microbiomekg"
+Repository = "https://github.com/kkollsga/microbiomekg"
+Documentation = "https://microbiomekg.readthedocs.io"
+Changelog = "https://github.com/kkollsga/microbiomekg/blob/main/CHANGELOG.md"
+Issues = "https://github.com/kkollsga/microbiomekg/issues"
+
 # The blueprint fragments and the MCP manifest + skills are data inside the
 # package directory; hatchling ships everything under it that git tracks, so
 # adding a source's fragment is adding a file, never editing this.
 [tool.hatch.build.targets.wheel]
 packages = ["microbiomekg"]
 
+# `blueprint.json` is the composed artifact the fragment-drift gate reads at
+# the repo root (tests/test_fragments.py, tests/test_build.py,
+# tests/test_acceptance.py), so it ships in the sdist and the gate runs from an
+# unpacked one. It is deliberately NOT packaged data in the wheel: the build
+# composes the blueprint from microbiomekg/blueprints/*.json at run time and
+# never reads this copy. The sdist is a source distribution — enough to build
+# the package and run the composition gate — not a development checkout: the
+# adapter mirror (CLAUDE.md, .claude/, .agents/, Makefile) stays out of it.
 [tool.hatch.build.targets.sdist]
 include = [
     "microbiomekg/**",
@@ -74,7 +91,9 @@ include = [
     "tests/**",
     "docs/**",
     ".readthedocs.yaml",
+    "blueprint.json",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "pyproject.toml",
 ]

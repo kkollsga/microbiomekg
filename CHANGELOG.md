@@ -12,6 +12,17 @@ changes and formatting do not get entries. Nothing has been released yet:
 ## [Unreleased]
 
 ### Added
+- **PyPI publishing, prepared.** `[project.urls]` (homepage, repository, docs,
+  changelog, issues) so the PyPI page links somewhere, and
+  `.github/workflows/publish.yml`: trusted publishing on a `v*` tag, a wheel
+  **and** an sdist with the artifact set asserted before and after the upload,
+  and a verification job that installs the *published* wheel into a clean venv
+  outside any checkout and runs the CLI there. Nothing is published yet — the
+  pending publisher on pypi.org is the repository owner's step.
+- **The sdist carries `blueprint.json` and `CHANGELOG.md`.** The composed
+  blueprint is what the fragment-drift gate reads at the repo root, so it was
+  missing from the one distribution that ships the tests; the gate now runs
+  from an unpacked sdist.
 - **G6, coverage of two external curations.** `microbiomekg.coverage` reads
   HMDAD and Peryton, reconciles them the way the preps do, and reports how
   many of their (taxon, disease) pairs the graph asserts, with the evidence
