@@ -1,0 +1,136 @@
+# Publish to PyPI — trusted publishing, on a `v*` tag and nothing else.
+#
+# The trigger is a TAG push, never a branch push: a branch push must never be
+# able to upload, and `on: push: tags` is the only thing here that fires.
+# There is no `environment:` key, so the PyPI pending publisher must be
+# created with its environment name left EMPTY — the two must agree or the
+# upload is rejected (docs/design/release-readiness.md §4).
+#
+# Three jobs, because the interesting failure is not "did the build work":
+#
+#   * `build` builds a wheel AND an sdist and then ASSERTS both exist. An
+#     upload step with no fail-on-empty check can upload nothing from a green
+#     build (R9), so the artifact set is asserted before anything leaves the
+#     runner and again after it lands.
+#   * `publish` holds the only `id-token: write` in the file — the OIDC token
+#     the trusted publisher exchanges. It does nothing but upload.
+#   * `verify` proves the PUBLISHED artifact, not the built one: a clean venv
+#     OUTSIDE any checkout (there is none on that runner), installing
+#     `microbiomekg==<tag>` from PyPI, and running the import and the CLI verb
+#     there. Verify the artifact SET, not the version (R9): a version query
+#     answers "did something publish", never "did everything publish".
+#
+# No job carries `continue-on-error`; a tolerated step here would mean a
+# release that reports success without having published (R1).
+
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build the wheel and the sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install the build frontend
+        run: python -m pip install --upgrade build
+      - name: Build
+        run: python -m build --outdir dist
+      # `ls` on an empty glob exits non-zero, but only with pipefail set does a
+      # pipeline report it — and the counts are asserted rather than eyeballed.
+      - name: Assert the artifact set
+        run: |
+          set -euo pipefail
+          ls -l dist
+          test "$(ls dist/*.whl | wc -l)" -eq 1
+          test "$(ls dist/*.tar.gz | wc -l)" -eq 1
+      # The tag is the version's only source of truth here; a tag that does not
+      # match the built metadata would publish a version nobody asked for.
+      - name: Assert the tag matches the built version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          whl=$(ls dist/*.whl)
+          case "$(basename "$whl")" in
+            microbiomekg-"$tag"-*) echo "tag $tag matches $whl" ;;
+            *) echo "tag $tag does not match $whl"; exit 1 ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: upload to PyPI (trusted publishing)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  verify:
+    name: install the published artifact in a clean venv
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # Deliberately no checkout: there is nothing here that could shadow the
+      # installed package, which is the whole point of the job.
+      - name: Install from PyPI and run the verbs
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          python -m venv /tmp/verify
+          # PyPI's index can lag the upload by a minute; retry rather than
+          # reporting a red release for a green publish. `if` keeps a failed
+          # attempt from tripping `set -e`, and the loop ends red if every
+          # attempt failed rather than falling through to the assertions.
+          installed=0
+          for i in 1 2 3 4 5 6; do
+            if /tmp/verify/bin/pip install "microbiomekg==${tag}"; then
+              installed=1
+              break
+            fi
+            echo "attempt $i: not on the index yet"
+            sleep 20
+          done
+          test "$installed" -eq 1
+          mkdir -p /tmp/emptydata
+          cd /tmp
+          /tmp/verify/bin/python -c "import microbiomekg as m; assert m.__version__ == '${tag}', m.__version__; print(m.__version__)"
+          /tmp/verify/bin/microbiomekg status --data /tmp/emptydata
+      # The artifact SET, not the version: both files must be on the release,
+      # and a wheel-only publish is the failure this asserts against.
+      - name: Assert both artifacts are on PyPI
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          python - "$tag" <<'PY'
+          import json, sys, urllib.request
+          tag = sys.argv[1]
+          url = f"https://pypi.org/pypi/microbiomekg/{tag}/json"
+          files = json.load(urllib.request.urlopen(url))["urls"]
+          kinds = {f["packagetype"] for f in files}
+          print(sorted(f["filename"] for f in files))
+          missing = {"bdist_wheel", "sdist"} - kinds
+          if missing:
+              raise SystemExit(f"{tag} is missing {sorted(missing)} on PyPI")
+          PY
