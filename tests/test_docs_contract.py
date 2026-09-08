@@ -75,7 +75,9 @@ def test_the_prose_scan_covers_the_files_a_session_reads():
     # has them (a developer machine) the scan must cover them too, and when it
     # does not (CI) their absence is the expected state, not a vacuous scan.
     if (ROOT / ".claude" / "skills").is_dir():
-        assert ".claude/skills/release/SKILL.md" in names, "the skill tree is present but not scanned"
+        assert ".claude/skills/release/SKILL.md" in names, (
+            "the skill tree is present but not scanned"
+        )
 
 
 # --------------------------------------------------------------------------
