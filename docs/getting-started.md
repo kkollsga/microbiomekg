@@ -22,11 +22,19 @@ The normal shell flow is:
 .venv/bin/microbiomekg build --data ./my-data
 ```
 
-The first command creates the raw-input parent directories and prints a report
-for every source and required file. The report includes whether the file is
-absent, present, stale or manual; present files include their size and age.
-Missing files include the exact URL and destination. Directory creation is the
-only write performed by `status --create`; plain `status` is read-only.
+The first command creates the raw-input parent directories and shows a table
+with one row per dataset: availability, file size and age. For a dataset with
+several inputs, size is their total size on disk and age is the oldest local
+file. Availability is `yes`, `no`, or `partial` with the present/required count.
+Only missing files and files older than the threshold get a URL and expected
+filename below the table. Shared inputs appear once in those details.
+
+The default threshold is 30 days. Adjust it with
+`status --data ./my-data --max-age-days 90`, or
+`mkg.prepare(data, max_age_days=90)` in Python. CLI and Python `fetch` accept the
+same report option. The threshold controls the report only; `fetch --missing`
+still selects missing inputs, not old ones. Directory creation is the only
+write performed by `status --create`; plain `status` is read-only.
 
 `fetch --missing` runs the automatic fetchers needed for currently missing
 default inputs, deduplicating inputs shared by sources. It prints the report
@@ -58,14 +66,14 @@ result = mkg.build(data)
 graph = result.graph
 ```
 
-`prepare` creates the input directories, prints the same per-source and
-per-file guidance, and returns a `dict[str, SourceStatus]`. It never downloads.
+`prepare` creates the input directories, prints the same dataset table and conditional download details, and returns a `dict[str, SourceStatus]`. It never downloads.
 Use `mkg.prepare(data, create=False)` for a report without directory creation,
 or `mkg.status(data)` for the silent, read-only status objects. Each
 `SourceStatus.files` tuple contains `InputFile` records with local metadata and
 acquisition details.
 
-Age means time since a file's local modification time. `stale` means its size
+Age means time since a file's local modification time, not its upstream release
+date. `stale` means its size
 does not match the size recorded by the fetch manifest. Status does not check
 for a newer upstream release or verify a digest, and `present` means the file
 exists rather than that its contents are valid; `build` performs content

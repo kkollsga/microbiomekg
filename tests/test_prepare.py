@@ -17,7 +17,7 @@ def test_prepare_creates_layout_returns_status_and_remains_callable(tmp_path, ca
             assert (data / "raw" / rel).parent.is_dir()
             assert not (data / "raw" / rel).exists()
     report = capsys.readouterr().out
-    assert str(data) in report and "--missing" in report
+    assert str(data) in report and "Available" in report
     assert "hmdb_metabolites.xml" in report and "https://hmdb.ca/" in report
     assert "(optional, --with-kegg)" in report
     assert mkg.prepare(data).keys() == table.keys()
@@ -48,7 +48,7 @@ def test_report_names_size_changed_file_and_distinguishes_recorded_metadata(
     report = capsys.readouterr().out
     assert "stale" in report and "3 B" in report
     assert "local file age" in report and "size differs" in report
-    assert "bugsigdb/full_dump_main.csv" in report
+    assert "bugsigdb/full_dump_main.csv" not in report
 
 
 def test_missing_fetch_selects_required_sources_and_reports_remaining(
@@ -136,17 +136,6 @@ def test_cli_fetch_preserves_failure_exit_and_still_reports(
     assert "hmdb_metabolites.xml" in capsys.readouterr().out
 
 
-def test_report_commands_round_trip_paths_with_spaces_and_quotes(tmp_path, capsys):
-    data = tmp_path / "user's data"
-    mkg.prepare(data)
-    lines = capsys.readouterr().out.splitlines()
-    commands = [s.strip() for s in lines if " --data " in s and "URL:" not in s]
-    assert commands
-    for command in commands:
-        args = shlex.split(command)
-        assert args[args.index("--data") + 1] == str(data)
-
-
 @pytest.mark.parametrize(
     "args", [["status", "--typo"], ["fetch", "--missing", "--typo"]]
 )
@@ -166,22 +155,65 @@ def test_hmdb_guidance_saves_archive_then_extracts_xml(tmp_path, capsys):
     assert f"    Download in a browser; save as: {xml}" not in lines
 
 
-def test_guidance_commands_run_without_an_activated_environment(
-    tmp_path, monkeypatch, capsys
+def test_status_table_only_details_missing_or_over_age_files(
+    tmp_path, capsys, monkeypatch
 ):
-    import os
-    import subprocess
+    from dataclasses import replace
+    from microbiomekg import preparation
 
-    monkeypatch.setenv("PATH", "")
-    mkg.prepare(tmp_path)
-    commands = [
-        line.strip()
-        for line in capsys.readouterr().out.splitlines()
-        if " status --data " in line
-    ]
-    assert len(commands) == 1
-    proc = subprocess.run(
-        shlex.split(commands[0]), env=os.environ.copy(), capture_output=True, text=True
+    table = sources.status(tmp_path)
+    table = {
+        name: replace(
+            st,
+            state="present",
+            missing=(),
+            files=tuple(
+                replace(f, state="present", size_bytes=10, age_seconds=86400)
+                for f in st.files
+            ),
+        )
+        for name, st in table.items()
+    }
+    card = table["card"]
+    table["card"] = replace(
+        card, files=(replace(card.files[0], age_seconds=31 * 86400), *card.files[1:])
     )
-    assert proc.returncode == 0, proc.stderr
-    assert "hmdb_metabolites.xml" in proc.stdout
+    monkeypatch.setattr(preparation, "status", lambda data: table)
+    mkg.prepare(tmp_path, create=False, max_age_days=30)
+    report = capsys.readouterr().out
+    assert all(column in report for column in ("Dataset", "Available", "Size", "Age"))
+    assert "31 d" in report and "40 B" in report
+    assert "card/card-data/card.json" in report
+    assert "card/card-data/aro_index.tsv" not in report
+    assert "bugsigdb/full_dump_main.csv" not in report
+    assert report.count("URL:") == 1
+    mkg.prepare(tmp_path, create=False, max_age_days=31)
+    assert "URL:" not in capsys.readouterr().out
+
+
+def test_cli_age_threshold_controls_report(tmp_path, capsys):
+    import os
+    import time
+
+    p = tmp_path / "raw/bugsigdb/full_dump_main.csv"
+    p.parent.mkdir(parents=True)
+    p.write_text("input")
+    old = time.time() - 10 * 86400
+    os.utime(p, (old, old))
+    assert cli.main(["status", "--data", str(tmp_path), "--max-age-days", "5"]) == 0
+    assert "bugsigdb/full_dump_main.csv" in capsys.readouterr().out
+    assert cli.main(["status", "--data", str(tmp_path), "--max-age-days", "20"]) == 0
+    assert "bugsigdb/full_dump_main.csv" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("age", [-1, float("nan"), float("inf")])
+def test_bad_age_threshold_refuses_before_creating_or_fetching(
+    tmp_path, monkeypatch, age
+):
+    data = tmp_path / "new"
+    monkeypatch.setattr(download, "run", lambda *a, **k: pytest.fail("fetched"))
+    with pytest.raises(ValueError, match="finite.*non-negative"):
+        mkg.prepare(data, max_age_days=age)
+    assert not data.exists()
+    with pytest.raises(ValueError, match="finite.*non-negative"):
+        api.fetch(data, max_age_days=age)

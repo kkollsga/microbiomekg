@@ -33,9 +33,10 @@ make venv
 .venv/bin/microbiomekg build  --data ./my-data
 ```
 
-`status --create` creates the required raw-input directories and reports every
-file's state, size and local age, with its URL and exact destination. It does
-not download anything. `fetch --missing` selects the automatic fetchers needed
+`status --create` creates the required raw-input directories and shows a table
+of dataset availability, size and age. Missing files and files older than the
+configurable age threshold get a download URL and expected filename below the
+table. It does not download anything. `fetch --missing` selects the automatic fetchers needed
 for missing default inputs, then prints the same report so remaining manual
 work stays visible. A build can use a partial data directory and names every
 source it skipped. See the [getting-started guide](docs/getting-started.md) for

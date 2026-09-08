@@ -20,7 +20,7 @@ from pathlib import Path
 from microbiomekg import download as _fetch
 from microbiomekg import pipeline as _build
 from microbiomekg.sources import InputFile, SourceStatus, missing_fetchers, status
-from microbiomekg.preparation import prepare
+from microbiomekg.preparation import prepare, validate_max_age_days
 
 __all__ = [
     "BuildResult",
@@ -42,6 +42,7 @@ def fetch(
     force: bool = False,
     chembl_sqlite: bool = False,
     missing: bool = False,
+    max_age_days: float = 30,
 ) -> dict[str, SourceStatus]:
     """Fetch every automatic source into ``<data_dir>/raw/``, then report.
 
@@ -53,15 +54,17 @@ def fetch(
     inputs, excluding optional sources unless named in ``only``. Selected
     fetchers may check or update other files according to their cache policy.
     Browser-only files remain in the returned status for manual completion.
+    ``max_age_days`` sets the final report threshold; it does not select downloads.
     """
+    validate_max_age_days(max_age_days)
     if missing:
         only = missing_fetchers(status(data_dir), only)
         if not only:
-            return prepare(data_dir, create=False)
+            return prepare(data_dir, create=False, max_age_days=max_age_days)
     _fetch.run(
         Path(data_dir) / "raw", only=only, force=force, chembl_sqlite=chembl_sqlite
     )
-    return prepare(data_dir, create=False)
+    return prepare(data_dir, create=False, max_age_days=max_age_days)
 
 
 def build(

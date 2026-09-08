@@ -86,7 +86,10 @@ def test_the_cli_status_lists_every_source_with_its_fix(tmp_path, capsys):
     assert cli.main(["status", "--data", str(tmp_path)]) == 0
     out = capsys.readouterr().out
     for name, st in api.status(tmp_path).items():
-        assert name in out and st.state in out
+        row = next(
+            line.split() for line in out.splitlines() if line.split()[:1] == [name]
+        )
+        assert row[1:] == ["no", "—", "—"]
         for file in st.files:
             assert file.url in out
             assert str(tmp_path / "raw" / file.relative_path) in out
