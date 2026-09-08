@@ -1,15 +1,18 @@
 # Release readiness — what stands between this tree and a published package
 
-Status: §3, §6, §7 and the local halves of §2 and §5 done 2026-09-03 on
-`feat/release-train`; §1, §4 and the hosted halves wait on the remote. Companion to
+Status: §1, §2, §3, §6, §7 and §5's local half are **done** — the remote
+exists, CI is green, and the publish workflow is written. What is left is §4's
+**pending publisher on pypi.org** and §5's **project on readthedocs.org**, both
+of them acts only the repository owner can perform. Companion to
 [library-pipeline.md](library-pipeline.md), which is the *design* — this is the
 *checklist*. Tracked here rather than in `dev-docs/` because `dev-docs/` is
 gitignored and unbacked, and `dev-docs/todos.md` carries one lean backlink per
 item into this file.
 
-Nothing here is authorization to do any of it. Creating a remote, pushing to
-one, and publishing are irreversible outward-facing acts that need the user's
-approval in the turn they happen (`R6`).
+Nothing here is authorization to do what is left. Tagging and publishing are
+irreversible outward-facing acts that need the user's approval in the turn they
+happen (`R6`); pushing a branch and opening a PR against the repo's own remote
+became routine flow when §1 landed.
 
 The order matters: each item's "done" depends on the one above it.
 
@@ -21,16 +24,18 @@ The order matters: each item's "done" depends on the one above it.
 creates it** — an agent does not create a repository, and does not push to one
 it did not see the user ask for.
 
-Once it exists: push the full history (it is clean, one branch), and set the
-branch-protection expectation the siblings use — `main` protected, work lands
-through a PR, CI required to pass. Note that the estate's normal flow is
-"branch → draft PR → phases as commits", which this repo has been running
-without a PR because there was nowhere to open one; the `phased-plan` skill
-gets its PR half back in the same change.
+**Done 2026-09-08.** `github.com/kkollsga/microbiomekg` exists, the local
+default branch was renamed `master` → `main` before the first push (CI triggers
+on `main` only, so pushing `master` would have run nothing and looked quiet
+rather than red), and the full history is pushed. `phased-plan` has its PR half
+back: branch → `gh pr create --draft` → phases as commits → batched pushes with
+`make gate` before each → required checks green → merge and delete the branch.
 
-**Done when:** `git remote -v` names it, `main` is pushed, and `phased-plan`
-has been updated to open the draft PR again (it currently says, correctly, that
-there is nowhere to open one).
+**Still the owner's, not an agent's:** branch protection on `main` — require a
+PR and require the seven check names CI reports (`gate (ruff, adapters, bounds,
+blueprint)`, `pytest (py3.11–3.14, graph-backed suites skipped)` ×4, `sphinx -W
+(the guides and the generated reference)`, `build against an empty data
+directory`) — plus the repository description and topics.
 
 ## 2. CI
 
@@ -44,21 +49,19 @@ demands: `scripts/build.py` against an **empty** data directory, which must
 
 Two things the workflow must not paper over:
 
-- **The graph-backed suites self-skip in CI.** Measured 2026-09-03: with no
-  `graph/microbiomekg.kgl`, the suite is *976 passed, 259 skipped* against
-  *1216 passed, 15 skipped* locally. Those 259 are the acceptance goldens, the
-  documented queries and the claim gate — the repo's most valuable tests. **A
-  skip is not a pass** (`R10`), so CI prints the skip count and the job says in
-  its name what it does not cover, until item 3's `status`-driven smoke build
-  gives CI a graph to assert against.
+- **The graph-backed suites self-skip in CI.** Measured on the first run
+  (`a53ac8e`, py3.12): with no `graph/microbiomekg.kgl`, the suite is *1,013
+  passed, 409 skipped* against *1,407 passed, 15 skipped* locally. Those 409
+  are the acceptance goldens, the documented queries and the claim gate — the
+  repo's most valuable tests. **A skip is not a pass** (`R10`), so CI prints
+  the skip count and the job says in its name what it does not cover, until
+  item 3's `status`-driven smoke build gives CI a graph to assert against.
 - **The 120 s per-test ceiling** (`pytest-timeout`, `pyproject.toml`) is the
   hang detector, not a budget. A test that hits it in CI is a FAILED test; the
   ceiling is never raised to make a job green.
 
-`.github/workflows/ci.yml` is **written already** — the `gate` and `tests` jobs
-— and is this item's deliverable-in-waiting: correct on the day a remote
-exists, inert until then, and said to be inert in `CLAUDE.md` so no session
-reports a CI result there is no CI for.
+`.github/workflows/ci.yml` carries four jobs — `gate`, `tests`, `docs` and
+`smoke` — and runs on every push to `main` and every PR against it.
 
 **The empty-directory smoke build is in it** (the `smoke` job), and the
 build it asserts on behaves as rule 2 wants since 2026-09-03: an empty
@@ -71,8 +74,14 @@ that blocked this — every prep routed a missing taxdump through argparse, exit
 is the one door, and `tests/test_build_pipeline.py` holds all eleven preps and
 both build shapes to it, offline.
 
-**Done when:** a push runs the matrix green, the smoke job is one of them, and
-the skip accounting is visible in the summary. Everything but the push is done.
+**Done 2026-09-08.** The first push to `main` (`a53ac8e`) ran all seven jobs
+green in 51 s: the gate's data-free steps, the four-version matrix, `make docs`
+under `-W`, and the smoke build. The skip accounting is in the summary and the
+measurement moved with the suite — py3.12 reported **1,013 passed, 409 skipped**
+of 1,422 collected, against **1,407 passed, 15 skipped** locally. Those 409 are
+the acceptance goldens, the documented queries and the claim gate; they run
+only where a graph exists, which is why `make gate` stays the whole net for
+them.
 
 ## 3. Package surface
 
@@ -121,6 +130,23 @@ The **`release` skill stays a stub until this lands.** When it is un-stubbed,
 write it from the siblings' flows rather than from memory: their preconditions,
 artifact-set verification and one-bump-per-push rule (`R5`) were paid for.
 
+**The workflow is written** — `.github/workflows/publish.yml`, gated on
+`push: tags: ['v*']` and nothing else, three jobs: `build` (wheel + sdist, with
+both asserted present and the tag asserted to match the built version),
+`publish` (the only `id-token: write` in the file, doing nothing but the
+upload), and `verify` (no checkout, a clean venv, `pip install
+microbiomekg==<tag>` from the index, the import and `microbiomekg status` run
+there, then both `bdist_wheel` and `sdist` asserted present on the release).
+It declares **no** `environment:`. `tests/test_packaging.py` holds it to that
+shape, because otherwise its first execution would be the release itself.
+
+**What remains is the user's:** create the **pending publisher** at
+<https://pypi.org/manage/account/publishing/> — project `microbiomekg`, owner
+`kkollsga`, repository `microbiomekg`, workflow filename `publish.yml`,
+environment name **empty** (it must match the workflow, which declares none).
+The name answered 404 on 2026-09-03; re-check on the day, since nothing
+reserves it.
+
 **Done when:** a tag publishes a wheel + sdist, the artifact set is verified,
 and a clean-venv install of the published package runs `microbiomekg status`.
 
@@ -146,8 +172,10 @@ longer parses, and a docs job that tolerates warnings tolerates rot.
 sphinx-autoapi over `microbiomekg/`, copybutton), `docs/index.md` with the
 five guides, the design notes and the research pages, `docs/requirements.txt`,
 `.readthedocs.yaml`, and `make docs` = `sphinx-build -W --keep-going`, green.
-The inert CI has a `docs` job. What remains is the project on
-readthedocs.org, which needs the remote.
+CI runs the `docs` job on every push and PR. What remains is the project on
+readthedocs.org: the owner connects the repository there and reports the real
+slug — `.readthedocs.yaml` and `pyproject.toml`'s `Documentation` URL both
+assume `microbiomekg`, and RTD suffixes a slug that is already taken.
 
 **Done when:** the build is green under `-W` in CI and the site serves the
 guides plus a generated reference.

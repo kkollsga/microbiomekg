@@ -96,12 +96,16 @@ Rules that make it a contract rather than a convention:
    then MCP) — the evaluation's own verdict was "a dataset worth having,
    packaged as an agent product", which is the critique the project set out to
    answer.
-5. A GitHub repository and CI. The tree has never been verified off this
-   machine; the 1,216-test suite plus a `status`-driven smoke build against an
-   empty data directory (which must succeed and report every source as absent)
-   is the CI shape.
-6. ~~Name check on PyPI (`microbiomekg`)~~ — 404 on 2026-09-03, unclaimed. Then
-   release through the same flow as the other siblings.
+5. ~~A GitHub repository and CI~~ **Done 2026-09-08**:
+   `github.com/kkollsga/microbiomekg`, with `.github/workflows/ci.yml` running
+   the gate's data-free steps, the full suite on Python 3.11–3.14, `make docs`
+   under `-W`, and the `status`-driven smoke build against an empty data
+   directory. CI has no graph, so the graph-backed suites self-skip there and
+   the local gate keeps them.
+6. ~~Name check on PyPI (`microbiomekg`)~~ — 404 on 2026-09-03, unclaimed.
+   `.github/workflows/publish.yml` is written; the pending publisher on
+   pypi.org is the repository owner's step, and the first tag is a separate
+   release request.
 
 ## Open questions (decide at planning time, not now)
 

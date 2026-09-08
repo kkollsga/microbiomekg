@@ -1,11 +1,4 @@
-# CI — written, correct, and NOT RUNNING.
-#
-# This repo has no git remote and no GitHub project (docs/design/
-# release-readiness.md item 1). Nothing executes this file; it exists so the
-# day a remote is created, CI is a push away rather than a design exercise.
-# CLAUDE.md says the same thing where a session reads it, because the failure
-# mode of scaffolding early is a future session reading a workflow as evidence
-# that a gate ran.
+# CI — live since 2026-09-08 (first green run on a53ac8e).
 #
 # What it covers, and what it deliberately does not:
 #
@@ -15,10 +8,10 @@
 #     NOT have a built graph: graph/microbiomekg.kgl is gitignored, 47 MB, and
 #     derived from 7.5 GB of raw input, three sources of which are browser-only
 #     downloads. The graph-backed suites therefore SELF-SKIP, and a skip is not
-#     a pass (RULES.md R10) — measured 2026-09-03, no graph: 976 passed, 259
-#     skipped, against 1216 passed / 15 skipped locally. The skip accounting is
-#     printed, and the job name says what it does not cover, until item 3's
-#     `status`-driven build gives CI a graph of its own.
+#     a pass (RULES.md R10) — measured on the first run (a53ac8e, py3.12):
+#     1013 passed, 409 skipped, against 1407 passed / 15 skipped locally. The
+#     skip accounting is printed, and the job name says what it does not
+#     cover, until item 3's `status`-driven build gives CI a graph of its own.
 #   * `smoke` is docs/design/library-pipeline.md rule 2: a build against an
 #     EMPTY data directory must SUCCEED, name every source as skipped, and
 #     write no graph. That is the fresh-clone state, and the job proves

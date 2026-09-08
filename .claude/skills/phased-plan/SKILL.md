@@ -1,6 +1,6 @@
 ---
 name: phased-plan
-description: Run a large feature or refactor as a gated, phased project. Starts with a doctrine sync and an investigation phase (read-only agents mapping scale and impacted paths) — NOT standard plan mode — then builds a custom gated phased plan on a local branch and executes each phase autonomously (code → gate → targeted tests → commit) until done. There is no remote and no CI, so the plan doc and the local gate carry what a PR and CI would.
+description: Run a large feature or refactor as a gated, phased project. Starts with a doctrine sync and an investigation phase (read-only agents mapping scale and impacted paths) — NOT standard plan mode — then builds a custom gated phased plan on a branch and executes each phase autonomously (code → gate → targeted tests → commit) until done, behind a draft PR whose required checks must be green before it merges.
 ---
 
 # Phased plan
@@ -26,25 +26,33 @@ is only the phased-plan-relevant subset:
   `graph/`: that is what `scripts/serve.py` serves and what
   `tests/test_acceptance.py` asserts its goldens against.
 
-## No remote, no CI — what carries their weight
+## The branch → draft PR loop, and what CI does not cover
 
-This repo has no GitHub project (`docs/design/library-pipeline.md` item 5).
-There is no PR to hold the checklist and no CI to catch what a local gate
-skips. Two consequences the plan must respect:
+The remote is `github.com/kkollsga/microbiomekg` and
+`.github/workflows/ci.yml` runs on every push to `main` and every PR against
+it. The estate's normal flow applies here again:
 
-- **The plan doc is the checklist.** Tick phases in
-  `dev-docs/plans/<slug>.md`; it is the only progress surface there is.
-- **The local gate is the only gate.** `make gate` plus the targeted suites is
-  not a relevance filter ahead of CI here — it is the whole net. Run the
+- **Branch → `gh pr create --draft` → phases as commits → mark ready → merge
+  when every required check is green**, then delete the branch on both sides.
+  The PR body holds the phase checklist; `dev-docs/plans/<slug>.md` keeps the
+  detail that does not belong in a public description.
+- **Batch the pushes.** A push costs a full matrix run, so push at natural
+  checkpoints — every two or three phases, or before stepping away — not
+  reflexively after each commit. Run **`make gate` immediately before each
+  push**; a red there costs seconds locally and a full round trip in CI.
+- **CI is not a superset of the local gate.** It has no built graph, so the
+  acceptance goldens, the documented queries and the claim gate self-skip
+  there. Those run **only** here — a green PR says nothing about them. Run the
   **full** `make test` at the plan's completion, over the union of everything
-  the phases touched, and say in the report that you did. Never report a CI
-  result; there is none (`R10`: green and not-attempted must not render
-  identically).
+  the phases touched, and say in the report that you did, alongside the CI
+  conclusion you actually read (`R2`: read `.conclusion` per job, never the
+  run's summary line).
+- **A skip is not a pass** (`R10`). Quote CI's skip accounting rather than its
+  pass count when the plan touched anything the graph-backed suites cover.
 
-`.github/workflows/ci.yml` exists and is written to be correct on the day a
-remote does, but nothing runs it. Creating a remote or pushing to one is an
-irreversible, outward-facing act and needs the user's in-the-moment approval
-(`R6`); it is never part of executing a plan.
+Pushing to the remote is a normal part of executing an approved plan; **tagging
+and publishing are not** — those are outward-facing acts needing the user's
+in-the-moment approval for that act (`R6`).
 
 ## Doctrine sync — first action of the run, before Phase −1
 
@@ -135,15 +143,17 @@ this plan — **only with the user's go-ahead.** If they decline, proceed.
   never in a status report. "Tests are running" and "the commit is ready" are
   not endings.
 
-## Phase 2 — Local branch
+## Phase 2 — Branch and draft PR
 
 - Create a branch: `feat/<slug>`, `refactor/<slug>`, `fix/<slug>`. Never work a
   large project directly on `main`.
-- There is no push and no PR. The plan doc holds the checklist.
+- Open a **draft PR** against `main` once the first phase is pushed, with the
+  phase list as its checklist. Tick a phase there and in
+  `dev-docs/plans/<slug>.md`.
 - **Before the first phase commit, run the full `make test` once** and record
   the number. A long-lived branch that only ever ran targeted suites discovers
-  its blockers all at once at the end; here there is no CI to discover them for
-  you.
+  its blockers all at once at the end, and CI cannot discover the graph-backed
+  ones for you at all.
 
 ## Phase 3 — Execute each phase (the autonomous loop)
 
@@ -244,10 +254,14 @@ Under 400 tokens; link the plan doc for detail.
 - **`todos.md` changes**: retired, and carried-over items added.
 - **Plan deviations** and why.
 
-## Phase 5 — Ship
+## Phase 5 — Land, and stop short of shipping
 
-There is nothing to ship. This repo publishes no package and has no remote; the
-`release` skill is a stub that says so and points at
-`docs/design/release-readiness.md`, the seven ordered prerequisites. If the
-user asks to publish, that is a new plan — and every outward-facing step in it,
-creating the remote included, needs its own in-the-moment approval (`R6`).
+A plan lands by merging its PR: every required check green, the PR marked
+ready, `gh pr merge --rebase --delete-branch`, and the local `main`
+fast-forwarded onto the merge commit.
+
+**Landing is not shipping.** Nothing here is published — no tag, no PyPI
+package — and the `release` skill is a stub that says what remains
+(`docs/design/release-readiness.md` §4 and §5's hosting half). If the user asks
+to publish, that is a new plan, and every outward-facing step in it needs its
+own in-the-moment approval (`R6`).
