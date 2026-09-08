@@ -6,19 +6,21 @@ design, direction, sample sizes and citing paper, and the measured negatives —
 "tested and nothing happened" — are kept as their own relationships rather than
 folded away.
 
-Three verbs over one data directory, from Python or the shell:
+Prepare, fetch and build over one data directory:
 
 ```python
 import microbiomekg as mkg
-mkg.status("./data")      # per source: absent / present / stale / manual, with the fix
-mkg.fetch("./data")       # fills what it can; the browser-only steps come back as data
-mkg.build("./data")       # builds from what is present; .graph is a kglite graph
+data = "./my-data"
+mkg.prepare(data)                 # create input directories and print what each file needs
+mkg.fetch(data, missing=True)     # fetch missing automatic inputs, then report again
+result = mkg.build(data)          # build from what is present; no file saved by default
 ```
 
 ```bash
-microbiomekg status --data ./data
-microbiomekg build  --data ./data
-microbiomekg serve  --graph graph/microbiomekg.kgl     # the MCP server, read-only
+.venv/bin/microbiomekg status --data ./my-data --create
+.venv/bin/microbiomekg fetch  --data ./my-data --missing
+.venv/bin/microbiomekg build  --data ./my-data
+.venv/bin/microbiomekg serve --graph graph/microbiomekg.kgl  # the MCP server, read-only
 ```
 
 No data and no built graph ships: 26% of evidence-bearing edges have no
@@ -28,6 +30,7 @@ redistribution permission, so what ships is the pipeline.
 :maxdepth: 2
 :caption: Guides
 
+getting-started
 usecases-and-pitfalls
 queries-by-task
 model

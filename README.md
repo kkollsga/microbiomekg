@@ -21,27 +21,35 @@ No data and no built graph ships. What ships is the pipeline: one directory
 is the entire input, a source is discovered rather than listed, and a source
 whose raw files are absent is skipped loudly, never silently.
 
-## Install
+## Get the data and build
+
+MicrobiomeKG is not on PyPI yet. From a checkout, install it into the local
+virtual environment, then use one data directory throughout:
 
 ```bash
-pip install microbiomekg           # not yet on PyPI — from a checkout: make venv
-microbiomekg status --data ./data  # the to-do list a fresh clone gets
-microbiomekg fetch  --data ./data  # fills what it can; prints the browser-only steps
-microbiomekg build  --data ./data  # builds from what is present; reports the rest
+make venv
+.venv/bin/microbiomekg status --data ./my-data --create
+.venv/bin/microbiomekg fetch  --data ./my-data --missing
+.venv/bin/microbiomekg build  --data ./my-data
 ```
 
-Three origins are browser-only downloads — HMDB and MiMeDB sit behind
-Cloudflare, MASI behind an expired certificate — and `status` says exactly
-which file, from which page, into which directory. A build with fewer sources
-than you expected is never silent: the report names every skipped source.
+`status --create` creates the required raw-input directories and reports every
+file's state, size and local age, with its URL and exact destination. It does
+not download anything. `fetch --missing` selects the automatic fetchers needed
+for missing default inputs, then prints the same report so remaining manual
+work stays visible. A build can use a partial data directory and names every
+source it skipped. See the [getting-started guide](docs/getting-started.md) for
+the browser-only inputs and Python equivalent.
 
 ## Python
 
 ```python
 import microbiomekg as mkg
 
-mkg.status("./data")                     # {source: SourceStatus(state, missing, how_to_get, licence)}
-result = mkg.build("./data")             # a BuildResult; result.graph is a kglite graph
+data = "./my-data"
+mkg.prepare(data)                         # create directories and print the input report
+mkg.fetch(data, missing=True)             # fetch missing automatic inputs; report again
+result = mkg.build(data)                  # build from what is present; does not save by default
 g = result.graph
 
 g.cypher("""
