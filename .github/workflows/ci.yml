@@ -12,6 +12,10 @@
 #     1013 passed, 409 skipped, against 1407 passed / 15 skipped locally. The
 #     skip accounting is printed, and the job name says what it does not
 #     cover, until item 3's `status`-driven build gives CI a graph of its own.
+#     Two more self-skips are expected here: the agent skill trees are
+#     gitignored local working state, so tests/test_agent_adapters.py's two
+#     tree-reading tests skip in CI with that reason (the mirror self-test
+#     still runs).
 #   * `smoke` is docs/design/library-pipeline.md rule 2: a build against an
 #     EMPTY data directory must SUCCEED, name every source as skipped, and
 #     write no graph. That is the fresh-clone state, and the job proves
