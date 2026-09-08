@@ -25,9 +25,11 @@ import argparse
 import hashlib
 import json
 import re
+import shlex
 import sys
 import tarfile
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -378,9 +380,15 @@ def extract_zip_members(
 # ------------------------------------------------------------------- sources
 
 
+#: The taxdump the five ``.dmp`` files are extracted out of. A module constant
+#: because :data:`ORIGINS` names the same URL and a second literal would drift.
+NCBI_TAXDUMP_BASE = "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/"
+NCBI_TAXDUMP_URL = NCBI_TAXDUMP_BASE + "new_taxdump.tar.gz"
+
+
 def fetch_ncbi(args) -> None:
     log("NCBI Taxonomy")
-    base = "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/"
+    base = NCBI_TAXDUMP_BASE
     # The .md5 sidecar is ALWAYS refetched, never cached. It is 53 bytes whatever
     # it contains, so "present at its full size" cannot detect that NCBI has
     # regenerated the dump — and a stale sidecar checked against a fresh tarball
@@ -450,19 +458,20 @@ def fetch_ncbi(args) -> None:
             log(f"  {verb} {name} ({p.stat().st_size:,} B)")
 
 
+#: v1.3.1 has no release assets; the versioned export is the file at the tag.
+#: The prep reads the ``main`` export, which is what :data:`ORIGINS` names.
+BUGSIGDB_TAGGED = (
+    "https://raw.githubusercontent.com/waldronlab/BugSigDBExports/v1.3.1/full_dump.csv"
+)
+BUGSIGDB_MAIN = (
+    "https://raw.githubusercontent.com/waldronlab/BugSigDBExports/main/full_dump.csv"
+)
+
+
 def fetch_bugsigdb(args) -> None:
     log("BugSigDB")
-    # v1.3.1 has no release assets; the versioned export is the file at the tag.
-    tagged = (
-        "https://raw.githubusercontent.com/waldronlab/BugSigDBExports/"
-        "v1.3.1/full_dump.csv"
-    )
-    main = (
-        "https://raw.githubusercontent.com/waldronlab/BugSigDBExports/"
-        "main/full_dump.csv"
-    )
-    download("bugsigdb", tagged, "full_dump_v1.3.1.csv", force=args.force)
-    download("bugsigdb", main, "full_dump_main.csv", force=args.force)
+    download("bugsigdb", BUGSIGDB_TAGGED, "full_dump_v1.3.1.csv", force=args.force)
+    download("bugsigdb", BUGSIGDB_MAIN, "full_dump_main.csv", force=args.force)
     fetch_mondo(args)
 
 
@@ -556,9 +565,14 @@ def fetch_disbiome(args) -> None:
             )
 
 
+#: The zip the operator downloads by hand; the prep reads the XML unpacked
+#: from it, so :data:`ORIGINS` points that file at this URL.
+HMDB_ZIP_URL = "https://hmdb.ca/system/downloads/current/hmdb_metabolites.zip"
+
+
 def fetch_hmdb(args) -> None:
     log("HMDB")
-    url = "https://hmdb.ca/system/downloads/current/hmdb_metabolites.zip"
+    url = HMDB_ZIP_URL
 
     # hmdb.ca is behind an interactive Cloudflare challenge, so the operator
     # downloads this by hand. Honour whatever they dropped in — either the zip
@@ -606,12 +620,18 @@ def fetch_hmdb(args) -> None:
     record_problem("hmdb", "hmdb_metabolites.zip", url, "manual", detail)
 
 
+#: The two archives, and the directory each is extracted into — the directory
+#: name is what a declared input's first path segment after ``card/`` is, so
+#: :data:`ORIGINS` maps a file back to the archive it came out of.
+CARD_ARCHIVES = (
+    ("https://card.mcmaster.ca/latest/data", "card-data.tar.bz2"),
+    ("https://card.mcmaster.ca/latest/ontology", "card-ontology.tar.bz2"),
+)
+
+
 def fetch_card(args) -> None:
     log("CARD")
-    for url, name in (
-        ("https://card.mcmaster.ca/latest/data", "card-data.tar.bz2"),
-        ("https://card.mcmaster.ca/latest/ontology", "card-ontology.tar.bz2"),
-    ):
+    for url, name in CARD_ARCHIVES:
         arc = download("card", url, name, timeout=300, force=args.force)
         if not arc:
             continue
@@ -638,19 +658,23 @@ def fetch_card(args) -> None:
                 log(f"  {verb} {p.relative_to(RAW / 'card')} ({p.stat().st_size:,} B)")
 
 
+REACTOME_BASE = "https://reactome.org/download/current/"
+REACTOME_FILES = (
+    "ReactomePathways.txt",
+    "ReactomePathwaysRelation.txt",
+    "ChEBI2Reactome.txt",
+    "ChEBI2Reactome_All_Levels.txt",
+    "NCBI2Reactome.txt",
+)
+
+
 def fetch_reactome(args) -> None:
     log("Reactome")
-    base = "https://reactome.org/download/current/"
-    for name in (
-        "ReactomePathways.txt",
-        "ReactomePathwaysRelation.txt",
-        "ChEBI2Reactome.txt",
-        "ChEBI2Reactome_All_Levels.txt",
-        "NCBI2Reactome.txt",
-    ):
-        download("reactome", base + name, name, timeout=300, force=args.force)
+    for name in REACTOME_FILES:
+        download("reactome", REACTOME_BASE + name, name, timeout=300, force=args.force)
 
 
+KEGG_BASE = "https://rest.kegg.jp"
 KEGG_ENDPOINTS = [
     ("/list/pathway", "list_pathway.tsv"),
     ("/list/pathway/hsa", "list_pathway_hsa.tsv"),
@@ -667,7 +691,7 @@ KEGG_ENDPOINTS = [
 
 def fetch_kegg(args) -> None:
     log("KEGG (sequential, 1 s between calls)")
-    base = "https://rest.kegg.jp"
+    base = KEGG_BASE
     for i, (path, name) in enumerate(KEGG_ENDPOINTS):
         dest = RAW / "kegg" / name
         if dest.exists() and dest.stat().st_size and not args.force:
@@ -691,6 +715,22 @@ def fetch_kegg(args) -> None:
 
 CHEMBL_API = "https://www.ebi.ac.uk/chembl/api/data"
 CHEMBL_DELAY = 0.25  # <= 5 req/s, well under it
+
+#: The three endpoints the JSONL files are paged out of, as the manifest and
+#: :data:`ORIGINS` name them. ``molecule`` carries its field list because that
+#: is what makes the 44 MB subset rather than the whole compound table, and
+#: ``target`` is filtered to the ids the mechanisms reference, so its URL is
+#: the shape of the request rather than one fetchable link.
+CHEMBL_MOLECULE_FIELDS = (
+    "molecule_chembl_id,pref_name,max_phase,first_approval,molecule_type,"
+    "withdrawn_flag,therapeutic_flag,oral,parenteral,topical,"
+    "atc_classifications,molecule_properties,molecule_structures"
+)
+CHEMBL_MECHANISM_URL = f"{CHEMBL_API}/mechanism.json"
+CHEMBL_MOLECULE_URL = (
+    f"{CHEMBL_API}/molecule.json?max_phase=4&only={CHEMBL_MOLECULE_FIELDS}"
+)
+CHEMBL_TARGET_URL = f"{CHEMBL_API}/target.json?target_chembl_id__in=..."
 
 
 def chembl_get(path: str, params: dict) -> dict:
@@ -744,19 +784,15 @@ def fetch_chembl(args) -> None:
     mech = out / "mechanism.jsonl"
     if mech.exists() and not args.force:
         log(f"  cached chembl/mechanism.jsonl ({mech.stat().st_size:,} B)")
-        record_file("chembl", mech, f"{CHEMBL_API}/mechanism.json", "cached")
+        record_file("chembl", mech, CHEMBL_MECHANISM_URL, "cached")
     else:
         n = chembl_page_all("mechanism.json", "mechanisms", {"limit": 1000}, mech)
         log(f"  fetched chembl/mechanism.jsonl ({n:,} rows, {mech.stat().st_size:,} B)")
-        record_file("chembl", mech, f"{CHEMBL_API}/mechanism.json", "fetched", rows=n)
+        record_file("chembl", mech, CHEMBL_MECHANISM_URL, "fetched", rows=n)
 
     mol = out / "molecule_max_phase4.jsonl"
-    mol_only = (
-        "molecule_chembl_id,pref_name,max_phase,first_approval,molecule_type,"
-        "withdrawn_flag,therapeutic_flag,oral,parenteral,topical,"
-        "atc_classifications,molecule_properties,molecule_structures"
-    )
-    mol_url = f"{CHEMBL_API}/molecule.json?max_phase=4&only={mol_only}"
+    mol_only = CHEMBL_MOLECULE_FIELDS
+    mol_url = CHEMBL_MOLECULE_URL
     if mol.exists() and not args.force:
         log(f"  cached chembl/molecule_max_phase4.jsonl ({mol.stat().st_size:,} B)")
         record_file("chembl", mol, mol_url, "cached")
@@ -772,7 +808,7 @@ def fetch_chembl(args) -> None:
 
     # Targets: only the ones mechanisms actually reference.
     tgt = out / "target.jsonl"
-    tgt_url = f"{CHEMBL_API}/target.json?target_chembl_id__in=..."
+    tgt_url = CHEMBL_TARGET_URL
     if tgt.exists() and not args.force:
         log(f"  cached chembl/target.jsonl ({tgt.stat().st_size:,} B)")
         record_file("chembl", tgt, tgt_url, "cached")
@@ -1070,6 +1106,8 @@ NJC19_PMCID = "PMC7320173"
 NJC19_SUPP_ZIP = (
     f"https://www.ebi.ac.uk/europepmc/webservices/rest/{NJC19_PMCID}/supplementaryFiles"
 )
+#: Supplementary Table 1, extracted from the zip above: the file the prep reads.
+NJC19_TABLE = "41597_2020_516_MOESM1_ESM.xlsx"
 NJC19_DRYAD_DOI = "10.5061/dryad.dr7sqv9v8"
 NJC19_DRYAD_FILES = [
     ("NJC19_network_data_and_code.zip", 342682),
@@ -1220,6 +1258,11 @@ def fetch_masi(args) -> None:
 # because Europe PMC has no supplementary package for PMC6597290 and the PMC
 # article's own /bin/ path is behind a reCAPTCHA interstitial.
 MAIER_PMCID = "PMC6108420"
+#: The four supplementary tables the prep reads out of the zip, ``%d`` being
+#: the table number. Extracted by name from the archive, never downloaded one
+#: by one, which is why ``ORIGINS`` points all four at the archive's URL.
+MAIER_TABLE = "NIHMS76168-supplement-Supplementary_table_%d.xlsx"
+ZIMMERMANN_TABLE = "41586_2019_1291_MOESM1_ESM.xlsx"
 MAIER_SUPP_ZIP = (
     f"https://www.ebi.ac.uk/europepmc/webservices/rest/{MAIER_PMCID}/supplementaryFiles"
 )
@@ -1255,7 +1298,7 @@ def fetch_drug_screens(args) -> None:
     download(
         "drug_screens",
         ZIMMERMANN_SUPP,
-        "zimmermann2019/41586_2019_1291_MOESM1_ESM.xlsx",
+        f"zimmermann2019/{ZIMMERMANN_TABLE}",
         timeout=600,
         force=args.force,
     )
@@ -1379,7 +1422,7 @@ MANUAL: dict[str, str] = {
     "hmdb": (
         "hmdb.ca sits behind an interactive Cloudflare challenge that no header "
         "set can satisfy. Download hmdb_metabolites.zip by hand from "
-        "https://hmdb.ca/downloads, and unzip it (or place the zip) in "
+        "https://hmdb.ca/downloads, and unzip it in "
         "data/raw/hmdb/."
     ),
     "mimedb": (
@@ -1404,11 +1447,116 @@ MANUAL: dict[str, str] = {
 }
 
 
+@dataclass(frozen=True)
+class Origin:
+    """Where one raw file comes from, as data rather than as fetcher control flow.
+
+    ``url`` is the address the bytes are at — the archive a file is extracted
+    out of, or the page an operator opens when no client can reach it.
+    ``fetcher`` is the :data:`SOURCES` key that fills it, or ``None`` when the
+    file is browser-only: that is the *per file* answer, which is finer than
+    the per-source one. MASI is the case that needs it — three of its four
+    tables were never archived and one was, so ``fetch --only masi`` genuinely
+    fills ``substanceInfo`` and genuinely cannot fill the other three.
+    """
+
+    url: str
+    fetcher: str | None
+
+    @property
+    def manual(self) -> bool:
+        """No client can fetch this; the operator downloads it by hand."""
+        return self.fetcher is None
+
+
+def _origins() -> dict[str, Origin]:
+    """Build :data:`ORIGINS` from the constants the fetchers themselves use.
+
+    Every URL here is the module constant the fetcher passes to
+    :func:`download`, never a second copy of the same address, so a moved
+    origin moves in one place. ``tests/test_sources.py`` asserts the map
+    covers every prep's ``RAW_INPUTS`` and nothing else.
+    """
+    out: dict[str, Origin] = {}
+
+    for name in ("nodes", "names", "rankedlineage", "merged", "delnodes"):
+        out[f"ncbi_taxonomy/{name}.dmp"] = Origin(NCBI_TAXDUMP_URL, "ncbi")
+    out["bugsigdb/full_dump_main.csv"] = Origin(BUGSIGDB_MAIN, "bugsigdb")
+    out["mondo/mondo.obo"] = Origin(MONDO_URL, "mondo")
+    for url, archive in CARD_ARCHIVES:
+        for rel in (
+            ("aro.obo",)
+            if "ontology" in archive
+            else ("card.json", "aro_index.tsv", "PMID.tsv")
+        ):
+            out[f"card/{archive.removesuffix('.tar.bz2')}/{rel}"] = Origin(url, "card")
+    for name in REACTOME_FILES[:3]:
+        out[f"reactome/{name}"] = Origin(REACTOME_BASE + name, "reactome")
+    for path, name in KEGG_ENDPOINTS:
+        if name not in {
+            "list_pathway.tsv",
+            "link_compound_pathway.tsv",
+            "list_compound.tsv",
+        }:
+            continue
+        out[f"kegg/{name}"] = Origin(KEGG_BASE + path, "kegg")
+    out["chembl/mechanism.jsonl"] = Origin(CHEMBL_MECHANISM_URL, "chembl")
+    out["chembl/molecule_max_phase4.jsonl"] = Origin(CHEMBL_MOLECULE_URL, "chembl")
+    out["chembl/target.jsonl"] = Origin(CHEMBL_TARGET_URL, "chembl")
+    for name, wayback in GUTMDISORDER_WAYBACK:
+        out[f"gutmdisorder/{name}"] = Origin(wayback, "gutmdisorder")
+    # The prep reads the XML unpacked from the zip the operator downloads.
+    out["hmdb/hmdb_metabolites.xml"] = Origin(HMDB_ZIP_URL, None)
+    for name in MIMEDB_V2_FILES:
+        if not name.endswith(".csv"):
+            continue
+        out[f"mimedb/{MIMEDB_V2_DIR}/{name}"] = Origin(MIMEDB_V2_PAGE, None)
+    for name, ts in MASI_WAYBACK:
+        if name.endswith(".xlsx"):
+            out[f"masi/{name}"] = Origin(
+                wayback_url(ts, MASI_ORIGIN.replace("https://", "http://") + name),
+                "masi",
+            )
+    for name in MASI_UNARCHIVED:
+        if not name.endswith(".xlsx"):
+            continue
+        out[f"masi/{name}"] = Origin(MASI_ORIGIN + name, None)
+    out[f"njc19/{NJC19_TABLE}"] = Origin(NJC19_SUPP_ZIP, "njc19")
+    for n in (1, 2, 3, 4):
+        out[f"drug_screens/maier2018/{MAIER_TABLE % n}"] = Origin(
+            MAIER_SUPP_ZIP, "drug_screens"
+        )
+    out[f"drug_screens/zimmermann2019/{ZIMMERMANN_TABLE}"] = Origin(
+        ZIMMERMANN_SUPP, "drug_screens"
+    )
+    return out
+
+
+#: Raw-relative path -> where its bytes come from. The third table ``status``
+#: joins, and the one that lets a report name the **file** an operator is
+#: missing and the URL that has it, on a machine that has never fetched
+#: anything: the manifest carries the same facts but only for files already
+#: downloaded once.
+ORIGINS: dict[str, Origin] = _origins()
+
+
+def origin_of(rel: str) -> Origin | None:
+    """Where the raw-relative file ``rel`` comes from, or ``None`` if unknown."""
+    return ORIGINS.get(rel)
+
+
 def how_to_get(source: str, data_dir: str | Path = "data") -> str:
     """The fix for an absent source, as one line an operator can act on."""
     if source in MANUAL:
-        return MANUAL[source]
-    return f"microbiomekg fetch --data {data_dir} --only {FETCHES[source]}"
+        return (
+            MANUAL[source]
+            .replace("data/raw/", f"{Path(data_dir) / 'raw'}/")
+            .replace(
+                "microbiomekg fetch --only mondo",
+                f"microbiomekg fetch --data {shlex.quote(str(data_dir))} --only mondo",
+            )
+        )
+    return f"microbiomekg fetch --data {shlex.quote(str(data_dir))} --only {FETCHES[source]}"
 
 
 SOURCES = {
@@ -1465,7 +1613,8 @@ def run(
     return failures
 
 
-def main(argv: list[str] | None = None) -> int:
+def argument_parser() -> argparse.ArgumentParser:
+    """Shared fetch options for the standalone downloader and package CLI."""
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -1486,9 +1635,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="re-download even when a complete file is present",
     )
-    args = ap.parse_args(argv)
-    run(args.raw, only=args.only, force=args.force, chembl_sqlite=args.chembl_sqlite)
-    return 0
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = argument_parser().parse_args(argv)
+    failures = run(
+        args.raw, only=args.only, force=args.force, chembl_sqlite=args.chembl_sqlite
+    )
+    return int(bool(failures))
 
 
 if __name__ == "__main__":

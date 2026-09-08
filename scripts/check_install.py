@@ -46,7 +46,6 @@ def main() -> int:
         run([uv, "pip", "install", "--python", str(py), str(wheels[0])])
 
         data = scratch / "data"
-        data.mkdir()
         # cwd is the scratch dir: nothing of the checkout is importable there.
         env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
         got = run(
@@ -65,6 +64,21 @@ def main() -> int:
         assert int(count) >= 13, count
         assert "'present'" not in states, states
         print(f"  import microbiomekg {version}: {count} sources, none present")
+
+        out = run(
+            [
+                str(py),
+                "-c",
+                "import microbiomekg as m; "
+                "s = m.prepare('data'); assert s['taxonomy'].files; "
+                "assert callable(m.prepare)",
+            ],
+            cwd=scratch,
+            env=env,
+        ).stdout
+        assert (data / "raw" / "ncbi_taxonomy").is_dir()
+        assert "--missing" in out and "hmdb_metabolites.xml" in out, out
+        print("  prepare: input layout and missing-file guidance available in wheel")
 
         cli = venv / (
             "Scripts/microbiomekg.exe" if os.name == "nt" else "bin/microbiomekg"

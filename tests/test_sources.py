@@ -107,3 +107,85 @@ def test_withholding_a_declared_input_makes_the_prep_refuse_by_name(
     with pytest.raises(MissingInput) as absent:
         module.run(raw, Frames(), **opts)
     assert Path(withheld).name in str(absent.value), (name, withheld, absent.value)
+
+
+def test_origins_cover_exactly_the_declared_files():
+    declared = {rel for _, rel in WITHHELD}
+    assert set(download.ORIGINS) == declared
+    for rel, origin in download.ORIGINS.items():
+        assert origin.url.startswith(("https://", "http://")), rel
+        assert origin.manual or origin.fetcher in download.SOURCES, rel
+
+
+def test_file_status_reports_metadata_without_reading_contents(tmp_path, monkeypatch):
+    import os
+    import time
+
+    raw = tmp_path / "raw"
+    path = raw / "bugsigdb/full_dump_main.csv"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"12345")
+    modified = time.time() - 172800
+    os.utime(path, (modified, modified))
+    (raw / "manifest.json").write_text(
+        json.dumps(
+            {"bugsigdb/full_dump_main.csv": {"bytes": 5, "sha256": "recorded-digest"}}
+        )
+    )
+    monkeypatch.setattr(
+        download, "sha256_of", lambda p: pytest.fail("status hashed data")
+    )
+    st = sources.status(tmp_path)["bugsigdb"]
+    present, missing = st.files
+    assert present.relative_path == "bugsigdb/full_dump_main.csv"
+    assert present.state == "present" and present.size_bytes == 5
+    assert present.modified_at.timestamp() == pytest.approx(modified)
+    assert 172799 <= present.age_seconds <= 172802
+    assert present.sha256 == "recorded-digest"
+    assert present.url == download.BUGSIGDB_MAIN
+    assert missing.relative_path == "mondo/mondo.obo"
+    assert missing.state == "absent" and missing.size_bytes is None
+    assert missing.modified_at is None and missing.age_seconds is None
+    assert missing.fetcher == "mondo"
+    assert st.size_bytes == 5
+    path.write_bytes(b"changed size")
+    assert sources.status(tmp_path)["bugsigdb"].files[0].state == "stale"
+
+
+def test_masi_missing_only_automatic_inputs_is_not_manual(tmp_path):
+    raw = tmp_path / "raw"
+    for rel in sources.declared_inputs(PREPS_DIR / "prep_masi.py"):
+        if download.origin_of(rel).manual:
+            (raw / rel).parent.mkdir(parents=True, exist_ok=True)
+            (raw / rel).write_bytes(b"manual input")
+    assert sources.status(tmp_path)["masi"].state == "absent"
+
+
+@pytest.mark.parametrize("manifest", ["[]", "null", '{"mondo/mondo.obo": 1}', "{bad"])
+def test_malformed_manifest_does_not_hide_disk_status(tmp_path, manifest):
+    raw = tmp_path / "raw"
+    path = raw / "mondo/mondo.obo"
+    path.parent.mkdir(parents=True)
+    path.write_text("content")
+    (raw / "manifest.json").write_text(manifest)
+    st = sources.status(tmp_path)["bugsigdb"]
+    assert st.files[1].state == "present"
+
+
+def test_how_to_get_uses_the_selected_directory_and_quotes_shell_paths(tmp_path):
+    import shlex
+
+    data = tmp_path / "my data's folder"
+    command = download.how_to_get("card", data)
+    assert shlex.split(command) == [
+        "microbiomekg",
+        "fetch",
+        "--data",
+        str(data),
+        "--only",
+        "card",
+    ]
+    for source in BROWSER_ONLY:
+        instructions = download.how_to_get(source, data)
+        assert "data/raw/" not in instructions
+        assert str(data / "raw") in instructions
