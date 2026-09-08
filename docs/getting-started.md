@@ -1,25 +1,22 @@
 # Getting started
 
-MicrobiomeKG is currently installed from a checkout; it has not been published
-to PyPI. Create the repository's virtual environment, then choose one directory for
-the raw inputs:
+Install MicrobiomeKG from PyPI, then choose one directory for the raw inputs:
 
 ```bash
-make venv
+python -m pip install microbiomekg
 ```
 
-You can either prefix commands with `.venv/bin/`, as below, or activate the
-environment before using plain `python` and `microbiomekg` commands.
+Use a virtual environment if you want to isolate it from other Python packages.
 
 ## Prepare, fetch, build
 
 The normal shell flow is:
 
 ```bash
-.venv/bin/microbiomekg status --data ./my-data --create
-.venv/bin/microbiomekg fetch --data ./my-data --missing
-.venv/bin/microbiomekg status --data ./my-data
-.venv/bin/microbiomekg build --data ./my-data
+microbiomekg status --data ./my-data --create
+microbiomekg fetch --data ./my-data --missing
+microbiomekg status --data ./my-data
+microbiomekg build --data ./my-data
 ```
 
 The first command creates the raw-input parent directories and shows a table
