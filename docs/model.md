@@ -212,7 +212,7 @@ a rule that stops it being duplication:**
   node would make the whole premise of this project unauditable.
 
 > **A column the blueprint does not declare still reaches the graph** — the
-> loader carries every CSV column it is not told to `skip`. So "the property
+> loader carries every column of the table it is not told to `skip`. So "the property
 > answers a query" is not evidence that anything guarantees it: an undeclared
 > column has no declared type, is invisible to the ontology's `property_types`
 > check, and rests on the loader staying generous. Every property a query in
@@ -274,7 +274,7 @@ per taxon (BugSigDB does not).
 **One relation, one relationship name, over a union range.** `ASSOCIATED_WITH`
 runs from a `Taxon` to a `Condition` — the abstract class `Disease`, `Phenotype`
 and `Exposure` are `is_a`, the way `ReportedTaxon` works on the domain side.
-The blueprint expresses it directly: `taxon_condition` is one junction CSV,
+The blueprint expresses it directly: `taxon_condition` is one junction table,
 the entry's `target` is the list of the three types, and `target_type_column`
 names the `condition_type` column that routes each row (kglite 0.16.22). The
 routing column is *not* an edge property; the target node's own type is what a
@@ -647,7 +647,7 @@ while the consumer count is. 96 metabolites now carry both halves.
 
 **`PRODUCES` is one relationship with two authors.** NJC19's export events go
 into `taxon_metabolite`, the file HMDB wrote, because a blueprint junction
-entry names one relationship, one CSV and one target type (§8) — so a second
+entry names one relationship, one junction table and one target type (§8) — so a second
 source's production claim is a *row*, not a second relationship
 (`microbiomekg.tables`). `primary_source` is what tells them apart and it is on
 every edge. The one thing that had to change to allow it: **`hmdb_status` left
@@ -1753,9 +1753,12 @@ values, an exact match is better), any numeric or CURIE field.
 hit the cap at microbial scope), so `'Bacillus coli' IN t.synonyms` and
 `UNWIND t.synonyms` are queries rather than a Python re-parse. The BM25 lane
 reads `Taxon.synonyms_text`, the same names joined with `" | "`, because
-`build_text_index` refuses a list-valued property — *"BM25 indexes text: a
-numeric or list-valued property is not indexable"*. `prep_taxonomy.py` writes
-both from one list in one place, so they cannot disagree; §8 records the gap.
+`build_text_index` **refused** a list-valued property until kglite 0.17.0 —
+*"BM25 indexes text: a numeric or list-valued property is not indexable"*. It
+indexes a native list as one document now, so the twin is an optimisation the
+shipped graph still carries rather than a requirement (§8 item 1).
+`prep_taxonomy.py` writes both from one list in one place, so they cannot
+disagree.
 **A synonym lookup should say which rank it wants.** BM25 scores a short
 document higher, and a strain's synonym string repeats its species binomial in
 fewer words, so `text_bm25(t, 'synonyms_text', 'Lactobacillus reuteri')` returns
@@ -2077,7 +2080,7 @@ fragments. A merger that let the last writer win would turn a real
 disagreement about which CSV backs `Disease` into a silently different graph.
 Shared *rows* work the same way: a second source's taxon–disease association is
 a row in `taxon_condition`, not a second relationship, because a junction
-entry names one relationship and one CSV. That is what
+entry names one relationship and one junction table. That is what
 `Frames.table(…, merge=True, owner=…)` is for. The *target type* is
 no longer part of that constraint — the entry names a list of them and a
 routing column (item 5 below) — which is why the three condition tables are now
@@ -2090,11 +2093,11 @@ re-decided *per chunk* whether the connection type was new: the first chunk
 registered it and every later chunk merged by endpoints, so `taxon_condition`
 — 112,966 rows of deliberately parallel edges — lost every repeat of a pair the
 first chunk had seen, with no warning and no error. kglite 0.16.22 decides the
-regime once per CSV and holds it, so the chunk size bounds peak RAM without
+regime once per junction table and holds it, so the chunk size bounds peak RAM without
 changing the graph. Measured both ways on the eleven-source build: at the
 default chunk size 0.16.22 loads **934,206 nodes and 1,324,684 edges**, the
 same totals the override produced on 0.16.21, and every junction relationship's
-edge count equals its CSV's logical row count.
+edge count equals its table's logical row count.
 
 Two tests hold it there rather than the constant.
 `tests/test_loader_contracts.py` runs ten parallel edges through a *three-row*
@@ -2143,14 +2146,14 @@ shipped graph was built with.
    list. `microbiomekg.tables.as_list` writes them and 61 declarations across
    the eleven fragments read them, so `'Bacillus coli' IN t.synonyms`,
    `UNWIND m.selection_rule` and `'maier2018' IN r.duplicates_primary_source`
-   are queries rather than a Python re-parse. Two residues, both recorded
-   because they are the next engine asks rather than choices made here:
-   `build_text_index` refuses a list-valued property, so `Taxon.synonyms` is
-   accompanied by a joined `Taxon.synonyms_text` that carries the BM25 lane;
-   and the *ontology*'s `property_types` grammar still accepts only
-   `string`/`integer`/`float`/`boolean`/`date`/`datetime`/`timestamp`/`point`/`any`,
-   so a list property is declared `any` there and its shape is unchecked while
-   its presence still is.
+   are queries rather than a Python re-parse. It left two residues, **both
+   closed by kglite 0.17.0** and neither adopted here yet: `build_text_index`
+   refused a list-valued property, so `Taxon.synonyms` is accompanied by a
+   joined `Taxon.synonyms_text` that carries the BM25 lane — an optimisation
+   now rather than a requirement; and the *ontology*'s `property_types` grammar
+   had no list type, so `Taxon.synonyms` is declared `any` in the shipped graph
+   and its shape goes unchecked while its presence does not. Declaring it
+   `list` and dropping the twin is a modelling change, not a docs fix.
 2. **FK edges cannot carry properties** — only junction edges can. **Closed by
    kglite 0.16.22**: an `fk_edges` entry now reads `properties`,
    `property_types` and `rename`, the same three keys a junction edge reads.
@@ -2315,7 +2318,7 @@ shipped graph was built with.
    top, headerless TSV, Excel sheets with wide matrices to unpivot, a dict of
    JSON records, JSON Lines, a 6 GB XML that must be streamed, and OBO. The
    265 MB `data/csv/` directory, `microbiomekg/tables.py`, the load-blueprint
-   copy and `--skip-prep` exist only to bridge that gap. **Asked of kglite on
+   copy and `--skip-prep` existed only to bridge that gap. **Asked of kglite on
    2026-09-03**: a `files:` section declaring each input's format once
    (delimited with knobs, xlsx, json, jsonl, xml, obo), specs referencing it by
    name, and `from_blueprint(frames={...})` so a
@@ -2330,7 +2333,7 @@ shipped graph was built with.
    stay the route for a future source that needs neither.
 
 One more loader behaviour, recorded because it is the opposite of the usual
-trap: **an undeclared CSV column is still loaded.** Every column a node spec
+trap: **an undeclared column is still loaded.** Every column a node spec
 does not `skip` reaches the graph as a property, whether or not
 `properties` names it. So a query answering is not proof that the property is
 part of the contract — an undeclared column carries no declared type, is

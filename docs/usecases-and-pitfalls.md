@@ -965,7 +965,8 @@ removed with no warning and no error, which is why the build raised the chunk
 size above the row count.
 
 That test pinned the *bug* rather than xfailing it, and kglite 0.16.22 turned
-it red: the chunk regime is now decided once per CSV, so the chunk size bounds
+it red: the chunk regime is now decided once per junction table, so the chunk
+size bounds
 peak RAM without changing the graph. It is asserted as a fix now — `guard`
 below — and this repo's floor is `kglite>=0.17.1`.
 
@@ -2179,7 +2180,7 @@ exclusion` (BugSigDB column 24) was genuinely never extracted — that half was
 right, and it is the widest of the three columns: **6,485 of 14,846
 signatures** carry an exclusion window. The other half was not: `matched_on`
 and `confounders` were *not* returning null. The blueprint declared neither,
-but kglite's loader carries every CSV column a node spec does not `skip`, so
+but kglite's loader carries every column a node spec does not `skip`, so
 both reached the graph anyway — 2,304 and 1,958 signatures respectively,
 measured. That is a weaker guarantee than it looks (an undeclared column has no
 declared type and no `property_types` check), so the fix was still three column
