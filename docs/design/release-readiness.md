@@ -1,9 +1,15 @@
 # Release readiness — what stands between this tree and a published package
 
-Status: the release machinery is ready. The remote and CI are live, the PyPI
-trusted publisher is configured, and the Read the Docs project serves the
-documentation at `microbiomekg.readthedocs.io`. Publication and its
-post-release verification remain. Companion to
+Status: **0.1.0 published and verified 2026-09-09.** The
+[GitHub release](https://github.com/kkollsga/microbiomekg/releases/tag/v0.1.0)
+points at the release commit, and all three jobs in the
+[publish workflow](https://github.com/kkollsga/microbiomekg/actions/runs/34287869780)
+succeeded. PyPI serves the expected wheel and sdist with verified hashes; an
+independent clean install reported version 0.1.0 and passed the CLI status
+table, `prepare`, and empty-build checks. Read the Docs `stable` and `latest`
+builds 34460335 and 34460318 succeeded at
+`05e4a055ffe4d8eab17da1b459d603ddbbb3207e`, and the stable guide serves HTTP
+200. Companion to
 [library-pipeline.md](library-pipeline.md), which is the *design* — this is the
 *checklist*. Tracked here rather than in `dev-docs/` because `dev-docs/` is
 gitignored and unbacked, and `dev-docs/todos.md` carries one lean backlink per
@@ -126,9 +132,9 @@ tag exists on both sides at the same commit, and install the published artifact
 into a clean venv (`uv pip install microbiomekg==<v>`) outside the repo root,
 so the local package cannot shadow it.
 
-The **`release` skill stays a stub until this lands.** When it is un-stubbed,
-write it from the siblings' flows rather than from memory: their preconditions,
-artifact-set verification and one-bump-per-push rule (`R5`) were paid for.
+The **`release` skill became the active procedure after 0.1.0 was verified**,
+using the siblings' preconditions, artifact-set verification and
+one-bump-per-push rule (`R5`).
 
 **The workflow is written** — `.github/workflows/publish.yml`, gated on
 `push: tags: ['v*']` and nothing else, three jobs: `build` (wheel + sdist, with

@@ -386,11 +386,9 @@ Commit format: `type: short description` (`feat`, `fix`, `docs`, `refactor`,
   one per phase, run `make gate` immediately before each, and let every
   required check go green before merging. The `phased-plan` skill carries the
   loop.
-- **The first release is 0.1.0.** The code is MIT (`LICENSE`), the trusted
-  publisher and Read the Docs project are configured, and
-  `docs/design/release-readiness.md` records the release checks. The `release`
-  skill stays a stub until the first tag has published and the artifacts have
-  been verified from PyPI.
+- **The first release is 0.1.0.** The code is MIT (`LICENSE`), and
+  `docs/design/release-readiness.md` records its verified GitHub, PyPI and Read
+  the Docs results. The `release` skill is the active publishing procedure.
 - **`CHANGELOG.md` is Keep-a-Changelog with `[Unreleased]` on top.** A
   user-visible change lands there in the commit that makes it; a release
   promotes the section into a version block. Internal refactors, test-only
@@ -444,9 +442,8 @@ The skills (`.agents/skills/`):
   (`../../Rust/KGLite/inbox/`).
 - **`clean-comments`** — coordinator-run comment cleanup over a measured scope
   (`R17`/`R18`), with the reader enumeration this repo's tooling needs.
-- **`release`** — a **stub until 0.1.0 is verified from PyPI**. Its current
-  instructions preserve the pre-publication guard; rewrite it after the first
-  wheel and sdist have published and passed the clean-install verification.
+- **`release`** — publish a Python release from a `v*` tag, verify the wheel
+  and sdist on PyPI with a clean install, then perform release-scoped cleanup.
 
 **Skill mandates:** demand `phased-plan` for any large feature or refactor (not
 plain plan mode); file backlog via `add-todo`; process the inbox via
