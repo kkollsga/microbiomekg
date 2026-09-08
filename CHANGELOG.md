@@ -48,6 +48,14 @@ changes and formatting do not get entries. Nothing has been released yet:
   also claim-gated.
 
 ### Changed
+- **The kglite floor is `>=0.17.1`.** The graph rebuilds table-for-table
+  identical on it (56 tables, 864,132 taxa, 112,966 `taxon_condition` rows),
+  and the full suite — the acceptance goldens, the documented queries and the
+  claim gate against a 0.17.1-built graph — is unchanged. 0.17.0 also closes
+  two more `docs/model.md` §8 engine asks: a Cypher query can force the exact
+  vector scan with `{exact: true}` and read which lane served it from the
+  result's retrieval diagnostics, and the ontology audits *node* properties
+  as well as edge ones.
 - **A blueprint fragment names its input with `file` only.** The pre-0.16.23
   `csv` spelling, which the build and `declared_types` still accepted and
   rewrote, is no longer read; no fragment used it.

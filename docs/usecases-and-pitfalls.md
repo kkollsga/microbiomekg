@@ -967,7 +967,7 @@ size above the row count.
 That test pinned the *bug* rather than xfailing it, and kglite 0.16.22 turned
 it red: the chunk regime is now decided once per CSV, so the chunk size bounds
 peak RAM without changing the graph. It is asserted as a fix now — `guard`
-below — and this repo's floor is `kglite>=0.16.22`.
+below — and this repo's floor is `kglite>=0.17.1`.
 
 Guard: `tests/test_loader_contracts.py::test_junction_loader_keeps_parallel_edges`,
 `::test_junction_loader_keeps_parallel_edges_across_a_chunk_boundary` (ten rows

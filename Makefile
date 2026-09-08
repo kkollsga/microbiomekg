@@ -24,7 +24,7 @@ RUFF   := $(VENV)/bin/ruff
 # Everything the gate itself needs, plus the engine. One list, so a tool added
 # to a gate is installed by `make venv` in the same change and the gate cannot
 # no-op for whoever has not installed it by hand.
-DEV_DEPS := pytest pytest-timeout ruff build sphinx furo myst-parser sphinx-autoapi sphinx-copybutton "kglite>=0.16.23" pandas openpyxl requests
+DEV_DEPS := pytest pytest-timeout ruff build sphinx furo myst-parser sphinx-autoapi sphinx-copybutton "kglite>=0.17.1" pandas openpyxl requests
 # Every Python path ruff owns. Referenced by check and format alike so the two
 # cannot drift apart and silently stop covering a directory.
 PY_PATHS := microbiomekg scripts tests bench
