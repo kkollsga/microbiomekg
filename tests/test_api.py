@@ -87,7 +87,9 @@ def test_the_cli_status_lists_every_source_with_its_fix(tmp_path, capsys):
     out = capsys.readouterr().out
     for name, st in api.status(tmp_path).items():
         assert name in out and st.state in out
-        assert st.how_to_get.split()[0] in out
+        for file in st.files:
+            assert file.url in out
+            assert str(tmp_path / "raw" / file.relative_path) in out
     assert "(optional, --with-kegg)" in out
 
 

@@ -12,6 +12,15 @@ changes and formatting do not get entries. Nothing has been released yet:
 ## [Unreleased]
 
 ### Added
+- **Guidance in the data-loading path.** `prepare(data_dir)` creates the input
+  layout and prints file status, size, local age, download URLs and exact
+  destinations. `status` and the CLI fetch report share the same guidance;
+  `status --create` creates the layout from the shell. Python `status` remains
+  a silent evaluator with per-file metadata on `SourceStatus.files`.
+- **Fetch missing inputs.** `fetch(data_dir, missing=True)` and `fetch --missing`
+  select fetchers for missing required inputs, deduplicating shared sources
+  and excluding optional KEGG unless explicitly selected with `only` / `--only`.
+  Selected fetchers retain their existing cache and update behavior.
 - **PyPI publishing, prepared.** `[project.urls]` (homepage, repository, docs,
   changelog, issues) so the PyPI page links somewhere, and
   `.github/workflows/publish.yml`: trusted publishing on a `v*` tag, a wheel
@@ -103,6 +112,11 @@ changes and formatting do not get entries. Nothing has been released yet:
   MCP prose.
 
 ### Fixed
+- Data guidance uses the chosen data directory, quotes shell paths, and
+  distinguishes missing automatic inputs within a partly manual source.
+  Malformed manifest shapes no longer prevent status inspection. The fetch
+  CLI now exits unsuccessfully when a fetcher raises, while still displaying
+  the remaining input status.
 - **A malformed raw file skips its source instead of ending the build.** The
   workbook preps (Maier 2018, Zimmermann 2019, NJC19) raised `SystemExit`
   when a sheet or header row was not where the paper put it, or when a rule
