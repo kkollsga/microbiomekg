@@ -22,9 +22,9 @@ G6 points at (`<date>-external-coverage.json`, written by
 `python -m microbiomekg.coverage --out`) — not a timing, but a longitudinal
 number with the same never-deleted lifetime.
 
-**scratch directory outside the repo** —
-`/Volumes/EksternalHome/coding-cache/microbiomekg-bench`, `--scratch` to move
-it. It never writes `graph/microbiomekg.kgl`: the shipped graph
+**scratch directory outside the repo** — `../MicrobiomeKG-bench`, a sibling of
+the checkout so it stays on the same volume as the shipped build;
+`MICROBIOMEKG_BENCH_SCRATCH` moves it per machine and `--scratch` per run. It never writes `graph/microbiomekg.kgl`: the shipped graph
 is what `scripts/serve.py` serves and what `tests/test_acceptance.py` asserts
 its goldens against, and a benchmark that could invalidate either is a
 liability. The scratch holds ~1.7 GB (a 240 MB CSV set, and one `.kgl` per

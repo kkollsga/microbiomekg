@@ -19,6 +19,11 @@ changes and formatting do not get entries. Nothing has been released yet:
   and a verification job that installs the *published* wheel into a clean venv
   outside any checkout and runs the CLI there. Nothing is published yet — the
   pending publisher on pypi.org is the repository owner's step.
+- **`CITATION.cff` and `CONTRIBUTING.md`**, and a **Licence** section in the
+  README: the code is MIT and covers only this repository; no data and no built
+  graph is distributed; every edge carries the `source_licence` it came with,
+  and 80,118 of them carry an `-unstated` token against 68,752 that are CC0.
+  Per-source terms stay in `docs/sources.md`.
 - **The sdist carries `blueprint.json` and `CHANGELOG.md`.** The composed
   blueprint is what the fragment-drift gate reads at the repo root, so it was
   missing from the one distribution that ships the tests; the gate now runs
@@ -59,6 +64,11 @@ changes and formatting do not get entries. Nothing has been released yet:
   also claim-gated.
 
 ### Changed
+- **The benchmark harness's scratch directory defaults to a sibling of the
+  checkout** (`../MicrobiomeKG-bench`) instead of one machine's absolute path.
+  `MICROBIOMEKG_BENCH_SCRATCH` moves it per machine, `--scratch` per run.
+- **`docs/sources.md` reads in numeric order** — the MONDO section (11) sat
+  after 17.
 - **The kglite floor is `>=0.17.1`.** The graph rebuilds table-for-table
   identical on it (56 tables, 864,132 taxa, 112,966 `taxon_condition` rows),
   and the full suite — the acceptance goldens, the documented queries and the

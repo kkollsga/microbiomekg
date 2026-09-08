@@ -94,6 +94,8 @@ include = [
     "blueprint.json",
     "README.md",
     "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "CITATION.cff",
     "LICENSE",
     "pyproject.toml",
 ]

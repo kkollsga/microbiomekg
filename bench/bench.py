@@ -86,11 +86,15 @@ RESULTS = Path(__file__).resolve().parent / "results"
 #: repo and outside ``graph/``**: a capture must not clobber the shipped
 #: ``graph/microbiomekg.kgl`` that ``scripts/serve.py`` serves and
 #: ``tests/test_acceptance.py`` asserts against, and a 450 MB build artifact
-#: has no business accumulating in a git tree. It is on the same volume as the
-#: repo on purpose — the shipped build writes there, and an internal-disk
-#: scratch would measure a different device. Remove it with ``rm -rf``; nothing
-#: else owns it.
-SCRATCH = Path("/Volumes/EksternalHome/coding-cache/microbiomekg-bench")
+#: has no business accumulating in a git tree. The default is a sibling of the
+#: checkout, which keeps it on the **same volume** as the repo — that is the
+#: measurement-relevant part, since a scratch on a different device measures a
+#: different device. ``MICROBIOMEKG_BENCH_SCRATCH`` moves it for a machine
+#: whose repo volume is not where the shipped build writes, and ``--scratch``
+#: moves it for one run. Remove it with ``rm -rf``; nothing else owns it.
+SCRATCH = Path(
+    os.environ.get("MICROBIOMEKG_BENCH_SCRATCH", ROOT.parent / "MicrobiomeKG-bench")
+)
 
 #: kglite's blueprint junction loader deduplicates parallel edges from the
 #: second chunk onward, and this graph's parallel edges are its independent
