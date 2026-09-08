@@ -31,8 +31,8 @@ changes and formatting do not get entries. Nothing has been released yet:
 - **The package surface.** `import microbiomekg` gives `status(data_dir)`,
   `fetch(data_dir)` and `build(data_dir)` over one data directory; `build`
   returns a `BuildResult` holding the kglite graph and a `BuildReport`. The
-  `microbiomekg` console script runs the same verbs plus `serve`, each taking
-  `--data`. The package is a wheel: `make check-install` builds it and proves
+  `microbiomekg` console script runs the same three verbs over `--data`, plus
+  `serve` over `--graph`. The package is a wheel: `make check-install` builds it and proves
   it in a clean venv.
 - **`SourceStatus`.** Every prep declares `RAW_INPUTS`, and `status` reports
   each source as `absent`, `present`, `stale` or `manual`, with the missing

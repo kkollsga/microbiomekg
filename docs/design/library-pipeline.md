@@ -91,7 +91,7 @@ Rules that make it a contract rather than a convention:
    missing, how_to_get, licence, gated_by)`; the manual-source text lives in
    `fetch.MANUAL` and the fetchers print the same strings.
 3. ~~A console entry point~~ **Done 2026-09-03**: `microbiomekg fetch | status |
-   build | serve`, each taking `--data`.
+   build`, each taking `--data`, and `microbiomekg serve` over `--graph`.
 4. The README rewritten for a **human reader first** (Python API, then Cypher,
    then MCP) — the evaluation's own verdict was "a dataset worth having,
    packaged as an agent product", which is the critique the project set out to

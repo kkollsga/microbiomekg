@@ -110,7 +110,7 @@ edits a shared file:
 
 | file | what it carries |
 |---|---|
-| `microbiomekg/preps/prep_<src>.py` | raw → flat CSV, plus `DEPENDS_ON` and `RAW_INPUTS` |
+| `microbiomekg/preps/prep_<src>.py` | `run(raw, store, …)`: raw files → tables in the build's store, plus `DEPENDS_ON` and `RAW_INPUTS` |
 | `microbiomekg/blueprints/<src>.json` | the node types and junction edges it writes rows into |
 | `microbiomekg/ontology/<src>.py` | its audit rules, evidence mapping and licence |
 | `tests/test_<src>.py` | its fixture-backed tests, against a real cut of the source |

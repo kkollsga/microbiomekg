@@ -38,8 +38,8 @@ make prune-dev            # bounded caches and scratch tiers, per R4
 
 Targets resolve `.venv/bin/…` themselves — no activation. `make venv` installs
 the package editable, so `.venv/bin/microbiomekg` (`fetch` / `status` /
-`build` / `serve`, each over `--data`) and `import microbiomekg` work from the
-checkout; `microbiomekg/api.py` is the Python form of the same three verbs.
+`build` over `--data`, and `serve` over `--graph`) and `import microbiomekg`
+work from the checkout; `microbiomekg/api.py` is the Python form of the same three verbs.
 There is **no build step for the code**: `make build` builds the *graph*, takes minutes and 7.5 GB
 of operator-owned raw input, and is never part of a gate.
 
