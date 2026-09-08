@@ -1,5 +1,8 @@
-# Read the Docs configuration file — the file only; the project on
-# readthedocs.org is created when a remote exists (docs/design/release-readiness.md §5).
+# Read the Docs configuration file. The remote exists; what remains is the
+# project on readthedocs.org, which the repo's owner connects
+# (docs/design/release-readiness.md §5). The intended slug is `microbiomekg`,
+# so the docs URL is https://microbiomekg.readthedocs.io — RTD suffixes a slug
+# that is taken, so the real one is confirmed after the project is created.
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html
 
 version: 2

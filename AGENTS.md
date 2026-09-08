@@ -61,12 +61,16 @@ program's completion over the union of its phases, not after each one.
 the fix printed, and the tool is in `DEV_DEPS` so it is actually there. A gate
 that can skip is a gate that has never run.
 
-**There is no CI.** This repo has no remote and no GitHub project yet.
-`.github/workflows/ci.yml` is written and correct but **inert — a file on disk,
-not a live gate**; nothing runs it until a remote exists
-(`docs/design/library-pipeline.md` item 5). Until then the local gate is the
-*only* gate, which is why it must be able to fail and must never be skipped.
-Do not report a CI result; there is none.
+**CI is live** at `github.com/kkollsga/microbiomekg` and runs
+`.github/workflows/ci.yml` on every push to `main` and every PR against it:
+the gate's data-free steps, the full suite on Python 3.11–3.14, `make docs`
+under `-W`, and the empty-directory smoke build. First green run 2026-09-08 on
+`a53ac8e`. **It is not a superset of the local gate**: CI has no built graph,
+so the acceptance goldens, the documented queries and the claim gate self-skip
+there — 1,013 passed and 409 skipped on py3.12 against 1,407 passed and 15
+skipped locally. A skip is not a pass (`R10`), which is why the truth gates run
+here and the local gate must still be able to fail. Report a CI result only
+from a run you read (`.conclusion` per job, `R2`).
 
 ## Pure Python — and what that excludes
 
@@ -377,14 +381,18 @@ Commit format: `type: short description` (`feat`, `fix`, `docs`, `refactor`,
 `git status --porcelain` back after staging.
 
 - **Never work a large project directly on `main`** — branch (`feat/…`,
-  `refactor/…`, `fix/…`), one commit per bisectable phase. There is no remote,
-  so there is no PR and no CI to track: the branch is local, and the
-  `phased-plan` skill says what replaces the PR checklist.
-- **Nothing here is published.** No PyPI package, no remote, no tag. The code
-  is MIT (`LICENSE`); `pyproject.toml`'s `version = "0.1.0"` is a placeholder
-  and stays one until the first tag. What still has to land is
-  `docs/design/release-readiness.md` §1, §2, §4 and the hosting half of §5; the
-  `release` skill is a **stub** pointing there.
+  `refactor/…`, `fix/…`), one commit per bisectable phase, then a **draft PR**
+  that carries the phase checklist. Batch the pushes at checkpoints rather than
+  one per phase, run `make gate` immediately before each, and let every
+  required check go green before merging. The `phased-plan` skill carries the
+  loop.
+- **Nothing is published yet.** No PyPI package and no tag; the remote and CI
+  exist. The code is MIT (`LICENSE`); `pyproject.toml`'s `version = "0.1.0"`
+  is a placeholder and stays one until the first tag. What still has to land is
+  `docs/design/release-readiness.md` §4 (PyPI trusted publishing — the workflow
+  is written, the pending publisher is the user's step) and §5's hosting half
+  (the project on readthedocs.org); the `release` skill is a **stub** pointing
+  there.
 - **`CHANGELOG.md` is Keep-a-Changelog with `[Unreleased]` on top.** A
   user-visible change lands there in the commit that makes it; a release
   promotes the section into a version block. Internal refactors, test-only
@@ -427,8 +435,8 @@ The skills (`.agents/skills/`):
 - **`add-todo`** — capture work into `dev-docs/todos.md` + a `plans/` detail
   doc. The single authority on todo-entry shape.
 - **`phased-plan`** — run a large change as gated phases: doctrine sync →
-  investigate → plan → local branch → autonomous test/commit loop. No PR or CI
-  ceremony, because there is no remote.
+  investigate → plan → branch → autonomous test/commit loop → draft PR → CI
+  green → merge.
 - **`dev-docs-cleanup`** — purge the time-boxed tiers, tidy `todos.md`,
   soft-delete stale docs to `bin/`, resync the adapters.
 - **`read-inbox`** — triage `inbox/unread/` into durable detail + lean

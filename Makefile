@@ -1,10 +1,12 @@
 # MicrobiomeKG — the local gate
 #
-# There is no CI (no remote yet — docs/design/library-pipeline.md item 5), so
-# `make gate` is not a relevance filter ahead of a matrix: it is the whole net.
-# It must therefore be fast enough to run before every commit, and it must be
-# able to fail. Every target below either does its check or errors with the fix
-# printed; none of them skips with a notice.
+# CI runs these same steps on every push and PR, but CI has no built graph, so
+# the two truth gates (`claims`) self-skip there and run *only* here. `make
+# gate` is therefore not a relevance filter ahead of the matrix — for the
+# repo's most valuable tests it is the whole net. It must be fast enough to run
+# before every commit, and it must be able to fail. Every target below either
+# does its check or errors with the fix printed; none of them skips with a
+# notice.
 #
 #   make gate     the pre-commit gate (~30 s): adapters, accumulation bounds,
 #                 ruff, blueprint composition, the two truth gates
@@ -200,7 +202,7 @@ check-install:
 
 ## The docs, under -W: a warning is a broken cross-reference or a docstring
 ## that no longer parses. Not in `make gate` (tens of seconds); run at a
-## program's completion, and it is the inert CI's `docs` job.
+## program's completion, and CI runs it as the `docs` job.
 docs:
 	$(PY) -m sphinx -W --keep-going -b html docs docs/_build/html
 

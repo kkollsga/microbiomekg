@@ -1,71 +1,69 @@
 ---
 name: release
-description: STUB — this repo publishes nothing. There is no remote, no package on PyPI, no tag and no CI. Invoking this skill reports that and points at the prerequisites in docs/design/library-pipeline.md; it must not bump a version, create a remote, push, or upload anything.
+description: STUB — this repo has published nothing yet. The remote and CI exist and the publish workflow is written, but no tag has been pushed, no wheel is on PyPI and the ReadTheDocs project does not exist. Invoking this skill reports exactly what is missing and who can do it; it must not bump a version, tag, push a tag, or upload anything.
 ---
 
-# release — not yet, and here is what is missing
+# release — not yet, and here is precisely what is left
 
-**This repo has nothing to release, and this skill ships no procedure.** Say so
-and stop. Do not bump `pyproject.toml`'s version, do not create a git remote,
-do not push, do not tag, do not upload to PyPI, do not create a GitHub project.
-Each of those is an irreversible outward-facing act needing the user's
-in-the-moment approval for *that* act (`R6`), and none of them is authorized by
-invoking this skill.
+**This repo has released nothing, and this skill ships no procedure.** Say what
+is missing, name who can do it, and stop. Do not bump `pyproject.toml`'s
+version, do not tag, do not push a tag, do not upload to PyPI. Each is an
+irreversible outward-facing act needing the user's in-the-moment approval for
+*that* act (`R6`), and none of them is authorized by invoking this skill.
 
-## Why there is nothing to release
+## What is done
 
-- **No published package.** The wheel builds and installs (`make
-  check-install`), but `version = "0.1.0"` is a placeholder and nothing is
-  on PyPI under `microbiomekg` — the name answered 404 on 2026-09-03.
-- **No remote.** The git history is local-only. There is no CI:
-  `.github/workflows/ci.yml` is written so it is correct the day a remote
-  exists, but nothing runs it.
-- **No data ships either, and that is a decision, not a gap.** 26% of
-  evidence-bearing edges have no redistribution permission
-  (`docs/evaluation.md` §4), and the clean CC0 cut drops the drug and
-  resistance layers. What would ship is **the pipeline**, never the graph.
+- **The remote** — `github.com/kkollsga/microbiomekg`, `main` pushed
+  (release-readiness §1).
+- **CI** — `.github/workflows/ci.yml` runs on every push to `main` and every
+  PR: the gate's data-free steps, the full suite on Python 3.11–3.14, `make
+  docs` under `-W`, and the empty-directory smoke build. First green run
+  2026-09-08. The graph-backed suites self-skip there and a skip is not a pass
+  (§2).
+- **The package surface** — `microbiomekg/api.py`, `SourceStatus`, the console
+  script, hatchling metadata with project URLs, MIT `LICENSE`, and `make
+  check-install`: wheel + sdist built, installed into a clean venv outside the
+  repo root, the three verbs run there (§3).
+- **The publish workflow** — `.github/workflows/publish.yml`: trusted
+  publishing on a `v*` tag, wheel **and** sdist, a fail-on-empty artifact
+  assertion, and a verification job that installs the *published* wheel in a
+  clean venv outside the checkout (§4's mechanism).
+- **README, CHANGELOG and the versioning rule** (§6, §7), and the Sphinx build
+  under `-W` locally and in CI (§5's local half).
 
-## The prerequisites, in order
+## What is missing — two items, both the user's
 
-**`docs/design/release-readiness.md` is the checklist** — seven ordered items,
-each with its scope and what "done" means, none of them done. Read it rather
-than this summary, and read `docs/design/library-pipeline.md` beside it for the
-design the packaging items implement.
+1. **The PyPI pending publisher** (§4). Nothing an agent can do: at
+   <https://pypi.org/manage/account/publishing/>, project `microbiomekg`,
+   owner `kkollsga`, repository `microbiomekg`, workflow filename
+   `publish.yml`, environment name **empty** — the workflow declares none, and
+   the two must agree or the upload is rejected. The name answered 404 on
+   2026-09-03; re-check on the day, since nothing reserves it.
+2. **The ReadTheDocs project** (§5's hosting half). The user connects the repo
+   on readthedocs.org and reports the real slug: `.readthedocs.yaml` and
+   `pyproject.toml` both assume `microbiomekg`, and RTD suffixes a slug that is
+   already taken.
 
-1. **GitHub repository** — the user creates the remote; an agent does not.
-2. **CI** — `make gate` plus the full suite on Python 3.11–3.14, and a
-   `scripts/build.py` smoke against an **empty** data directory that must
-   succeed and report every source as absent. `.github/workflows/ci.yml` is
-   written and inert until then. CI skips the 259 graph-backed tests, and a
-   skip is not a pass.
-3. **Package surface** — done 2026-09-03: `microbiomekg/api.py`, `SourceStatus`,
-   the `microbiomekg` console script, hatchling metadata, MIT `LICENSE`, and
-   `make check-install`. The PyPI name answered 404 that day — unclaimed, not
-   reserved.
-4. **PyPI publishing** — trusted publishing on a `v*` tag, wheel + sdist,
-   artifact-set verification (`R9`), a clean-venv install of the *published*
-   artifact. **This skill is un-stubbed only when this item lands.**
-5. **ReadTheDocs** — Sphinx matching KGLite's stack, the four `docs/*.md` as
-   guides, the reference generated from docstrings, the build a CI gate
-   under `-W`.
-6. **README, human-first** — Python API → Cypher → MCP.
-7. **CHANGELOG + versioning rule** — done 2026-09-03: `CHANGELOG.md` with
-   `[Unreleased]`, the rule in `AGENTS.md`.
-
-Three questions in the design doc are open and are planning-time decisions, not
-release steps: whether `build` on an empty directory produces the NCBI-only
-taxonomy graph or refuses; whether the MCP manifest and skills ship in the
-package; and whether the `.kgl` build stamp belongs upstream in kglite.
+Everything else — the tag, the first `[0.1.0]` block, the release commit — is
+work this repo can do the day item 1 lands, and needs its own approval.
 
 ## What to do when someone invokes this
 
-Report the above in a few lines, name the first missing prerequisite, and offer
-to run **`phased-plan`** on the library-packaging work — which is where that
-list belongs. `dev-docs/todos.md` already carries the seven items as lean
-backlinks into `docs/design/release-readiness.md`, in order.
+Report the two items above, name which of them blocks a first publish (item 1),
+and offer to run **`phased-plan`** if the request is really "prepare the
+release" rather than "publish now". `dev-docs/todos.md` carries the same two as
+lean backlinks into `docs/design/release-readiness.md`.
 
-**Rewrite this skill only when the repo actually publishes something**, and
-then write it from the sibling flows (`../../Rust/KGLite/.claude/skills/release`,
-`../../Rust/kglite-datasets/.claude/skills/release`) rather than from memory —
-their preconditions, artifact-set verification (`R9`) and one-bump-per-push
-rule (`R5`) are the parts that matter, and they were paid for.
+**Rewrite this skill only once the repo has actually published something** —
+after a `v*` tag has produced a wheel *and* an sdist on PyPI and the
+verification job has installed it. Write it then from the sibling flows
+(`../../Rust/KGLite/.claude/skills/release`,
+`../../Rust/kglite-datasets/.claude/skills/release`) rather than from memory:
+their preconditions, artifact-set-not-version verification (`R9`) and
+one-bump-per-push rule (`R5`) were paid for.
+
+Three questions in `docs/design/library-pipeline.md` stay planning-time
+decisions rather than release steps: whether `build` on an empty directory
+produces the NCBI-only taxonomy graph or refuses (decided — it refuses to write
+one), whether the MCP manifest and skills ship in the package (they do), and
+whether the `.kgl` build stamp belongs upstream in kglite.
