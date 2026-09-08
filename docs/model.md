@@ -2107,31 +2107,36 @@ rows, and it needs no re-measuring when a source lands.
 Twelve things the blueprint, the ontology or the query surface could not
 express. **These go to the engine, not into a workaround this repo pretends is
 a design** — and that is now a claim with a track record rather than a policy:
-**kglite 0.16.22 was cut for this list, and closed eight of the twelve.**
+**kglite 0.16.22 was cut for this list and closed eight of the twelve; kglite
+0.17.0 closed item 9 and item 4's remaining half, leaving three.**
 
 | item | status |
 |---|---|
 | 1. no list property from CSV | **closed** — `"list"` column type |
 | 2. FK edges cannot carry properties | **closed** — `fk_edges` reads `properties` (nothing here needed to move) |
 | 3. no secondary labels | **closed** — `labels` on a node spec; `Condition` is stamped, `ReportedTaxon` deliberately is not |
-| 4. audit reports per edge, not per property | **half closed** — `{by: 'property'}`; *node*-property rules still do not exist |
+| 4. audit reports per edge, not per property | **closed** — `{by: 'property'}` (0.16.22), node `required_properties` / `property_types` and `entity_kind` (0.17.0) |
 | 5. one relationship cannot span a union range | **closed** — `target` list + `target_type_column` |
 | 6. ontology cannot say "at least one of these" | **stands**, and no longer bites — (5) removed the case |
 | 7. `[:A\|B]` is a syntax error inside `EXISTS { }` | **closed** — fixed, verified here |
 | 8. `text_bm25()` on an unindexed property fails silently in one shape | **closed** — both shapes raise |
-| 9. an HNSW index changes the answer and Cypher cannot opt out | **stands** |
+| 9. an HNSW index changes the answer and Cypher cannot opt out | **closed** — `{exact: true}` and retrieval diagnostics (0.17.0) |
 | 10. `embed_texts()` cannot be scoped to a selection | **stands** |
 | 11. `score_fuse()` has no per-lane normalisation | **stands** |
 | 12. a missing skills pack booted silently | **closed** — boot error, and `--selftest` counts skills |
 
 Two more that this migration found and that are *not* in the list above,
-because they are the residue of closing item 1 rather than anything this repo
-worked around before: **`build_text_index` refuses a list-valued property**, so
-`Taxon.synonyms` needs the joined `Taxon.synonyms_text` twin beside it; and the
-**ontology's `property_types` grammar has no list type** — it accepts
-`string`/`integer`/`float`/`boolean`/`date`/`datetime`/`timestamp`/`point`/`any`
-and nothing else — so a list property is declared `any` there and its shape
-goes unchecked while its presence is still required.
+because they were the residue of closing item 1 rather than anything this repo
+worked around before, are **both closed by kglite 0.17.0** and verified here on
+a scratch graph: `build_text_index` indexes a list-valued property as one
+document (`{'indexed': 2, 'skipped': 0, 'terms': 3}` over a two-node fixture,
+and the `text_bm25` query answers), so `Taxon.synonyms` no longer *needs* the
+joined `Taxon.synonyms_text` twin; and the ontology's `property_types` grammar
+accepts `list` and `array` beside
+`string`/`integer`/`float`/`boolean`/`date`/`datetime`/`timestamp`/`point`/`any`,
+so a list property's shape can be declared rather than widened to `any`.
+Neither is adopted here yet — the twin and the `any` declarations are what the
+shipped graph was built with.
 
 1. **No list property from CSV.** **Closed by kglite 0.16.22**, which added
    the `"list"` / `"array"` column type: a cell holding a JSON array loads as a
@@ -2176,9 +2181,14 @@ goes unchecked while its presence is still required.
    original note worried about is still real — when `Metabolite` and `Drug`
    grow their own association edges, `Associatable` is a second union over
    `Taxon` — and `labels` is now the answer to it.
-4. **The ontology audits edge properties only.** There is still no
-   `required_properties` for *node* properties, which is the single fact that
-   decided §1's edge-vs-node split, and that half of this item **stands**.
+4. **The ontology audited edge properties only.** **Closed by kglite
+   0.17.0** and verified here on a scratch graph: a node class takes
+   `required_properties` and `property_types` with their own `enforcement`,
+   `ontology_audit()` reports the rule with `entity_kind: 'node'`, and
+   `node_property_violation()` yields the failing class, check and property
+   list. That absence is the single fact that decided §1's edge-vs-node split,
+   so the split is now a choice this repo can revisit rather than one the engine
+   imposed — nothing here has moved, and the shipped graph audits edges only.
    The other half — "reports per edge, not per property, so a fourteen-field
    contract yields one percentage" — is **closed by kglite 0.16.22**:
    `CALL ontology_audit({by: 'property'})` fans a `required_properties` rule
@@ -2240,8 +2250,9 @@ goes unchecked while its presence is still required.
    stays as it is — it checks `has_text_index()` directly rather than trusting
    the engine to complain, which is a better test than the one the fix would
    allow, and it costs nothing to keep.
-9. **An HNSW vector index changes the answer, and Cypher gives no way to opt
-   out.** `ORDER BY text_score(…) DESC LIMIT n` is pushed into the vector index
+9. **An HNSW vector index changes the answer, and Cypher gave no way to opt
+   out.** **Closed by kglite 0.17.0**; the history is kept because the pin it
+   produced is still in the build. `ORDER BY text_score(…) DESC LIMIT n` is pushed into the vector index
    when one exists, so an approximate result arrives as an ordinary result set.
    On §6b's character-n-gram vectors — the "unclustered high-dimensional"
    corpus kglite's semantic-search guide warns recall degrades on — the default
@@ -2252,9 +2263,14 @@ goes unchecked while its presence is still required.
    against the exact scan's 21 ms) and `microbiomekg/pipeline.py` pins it,
    with `tests/test_semantic_lookup.py::test_the_index_agrees_with_an_exact_scan`
    as the gate. Two things would have made this a tuning question rather than a
-   wrong-answer question: `vector_search(exact=True)` has **no Cypher
-   equivalent**, so a query cannot ask for the exact scan it is fast enough to
-   afford; and nothing in the result says the index served it. **kglite
+   wrong-answer question, and **kglite 0.17.0 closed both**, verified here on a
+   scratch graph: a final `{exact: true}` options map on `text_score()` /
+   `vector_score()` forces the exact scan, and a result's `diagnostics` carries
+   a `retrieval` entry naming `requested_policy`, `actual_mode`,
+   `fallback_reason` and `store` — `actual_mode: 'hnsw'` when the index served
+   it, `'exact'` with `fallback_reason: 'forced_exact'` when the map did. The
+   `ef_search = 512` pin stays: it is what makes the *build's* index accurate,
+   and a query too large to afford the exact scan still reads it. **kglite
    0.16.23 fixed a separate recall loss** in the multi-core HNSW build (one-way
    edges stranding vectors no query could reach, depending on core count); an
    index already on disk keeps its format but was built by the old path — a

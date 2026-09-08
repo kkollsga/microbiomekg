@@ -313,7 +313,7 @@ bound checked only at milestones is not a bound (`R4` corollary).
   from a kglite bug. Isolate which before fixing — an engine bug is a `notify`
   to kglite (`../../Rust/KGLite/inbox/`), not a workaround this repo pretends
   is a design. `docs/model.md` §8 is the running list; kglite 0.16.22 was cut
-  for it and closed eight of twelve items.
+  for it and closed eight of twelve items, and 0.17.0 closed two more.
 - **Offload, don't print.** Long output (dumps, graph inspections, triage
   write-ups) goes to `dev-docs/temp/` and you report the path.
 - **Keep responses tight** (~400 tokens); link a file for detail.
