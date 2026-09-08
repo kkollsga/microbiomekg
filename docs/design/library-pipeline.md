@@ -23,19 +23,35 @@ CI and PyPI halves wait on `release-readiness.md` §1.
 One directory is the entire input. The library scales the build to what is in it.
 
 ```
-microbiomekg fetch  --data ./data      # fills what it can; prints the manual steps for the rest
-microbiomekg status --data ./data      # per source: absent / present / stale, with the fix for each
-microbiomekg build  --data ./data      # builds from whatever is present; reports what was skipped
+microbiomekg status --data ./data --create  # create directories; report every required file
+microbiomekg fetch  --data ./data --missing # run fetchers needed by missing default inputs; report again
+microbiomekg build  --data ./data            # build from whatever is present; report what was skipped
 ```
 
-and the same three as Python:
+and the Python convenience path:
 
 ```python
 import microbiomekg as mkg
-mkg.fetch("./data")                    # returns a status; never raises on a manual source
-mkg.status("./data")                   # -> {source: SourceStatus(state, path, how_to_get)}
-g = mkg.build("./data", with_kegg=False, with_vectors=False)   # -> kglite.KnowledgeGraph
+mkg.prepare("./data")                  # create directories, print report, return {source: SourceStatus}
+mkg.fetch("./data", missing=True)      # fetch missing automatic inputs, then print and return status
+result = mkg.build("./data", with_kegg=False, with_vectors=False)
 ```
+
+`status` is the silent, read-only evaluator behind both reports. Each
+`SourceStatus.files` entry is an `InputFile` carrying the local state, size,
+modification time and age together with its URL and fetcher. `prepare` adds
+directory creation and presentation; it never downloads. Age is time since the
+local modification time, and `stale` means that a local size differs from the
+fetch manifest. Neither is an upstream release or digest check. `present`
+means only that a path exists; the build validates its contents.
+
+Missing-only fetch selects fetchers, not individual network operations. A
+selected source's existing fetcher may check or update its other files, and
+fetchers shared by several sources run once. It excludes the licence-gated
+KEGG input unless the caller explicitly selects `only=["kegg"]` (or uses
+`--only kegg`). Bare `fetch` keeps its existing full-fetch behaviour, including
+references and KEGG. When every default input is complete, missing-only fetch
+runs no fetcher and simply reports the current state.
 
 Rules that make it a contract rather than a convention:
 
@@ -61,6 +77,8 @@ Rules that make it a contract rather than a convention:
    operator on a fresh clone runs `status` and gets a to-do list: which
    automatic fetches to run, which files to download by hand and where to put
    them, which sources are optional and why.
+   `prepare` is the guided Python presentation of that same status, while CLI
+   `status --create` provides the normal shell path.
 7. **The graph's provenance is in the graph.** Every association edge already
    carries `primary_source`, `source_record_id`, `source_licence`. `build`
    additionally stamps the graph with the source set and raw-file digests it
@@ -75,7 +93,7 @@ Rules that make it a contract rather than a convention:
 | Dependency order | `DEPENDS_ON` in each prep, topologically sorted with cycle detection |
 | Licence / cost flags | `--with-kegg`, `--with-vectors` |
 | Manual-source detection | `fetch.py`'s `manual-present` status (HMDB, MiMeDB v2, MASI) |
-| `status` as data | `microbiomekg.sources.status(data_dir)` → `{source: SourceStatus(state, path, inputs, missing, how_to_get, licence, gated_by)}`; each prep declares `RAW_INPUTS`, `fetch.FETCHES`/`fetch.MANUAL` say how to get them |
+| Guided status as data | `microbiomekg.sources.status(data_dir)` → `{source: SourceStatus(..., files: tuple[InputFile, ...])}` is silent and read-only; `prepare(create=True)` and CLI `status --create` create directories and render it; each prep declares `RAW_INPUTS`, and fetch metadata says how to get them |
 | Per-source provenance | `data/raw/<src>/PROVENANCE.md` (gitignored) + `docs/sources.md` (tracked) |
 | Truth gates | `tests/test_skill_claims.py`, `tests/test_documented_queries.py`, the junction rows-to-edges pin |
 | Source to graph | every prep returns frames into `microbiomekg.tables.Frames`; the load is `from_blueprint(frames=)` (kglite 0.16.23); no intermediate on disk |

@@ -33,10 +33,6 @@ come from.
 
 <!-- claim external: 40 — "forty reports on one pair" is the D2 fixture, claimed under Python below -->
 
-## Install
-
-<!-- claim external: 3 — HMDB, MiMeDB and MASI are the browser-only origins, a fact about the sources' hosts (docs/sources.md), not the graph -->
-
 ## Python
 
 <!-- claim: MATCH (t:Taxon {id: 851})-[r:ASSOCIATED_WITH]->(d:Disease {id: 'MONDO:0005575'})

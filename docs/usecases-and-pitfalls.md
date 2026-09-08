@@ -6,6 +6,9 @@ must have a test that fails when the loader gets it wrong. The ontology and
 build scripts are not final until this document has been reviewed and the
 tests written from it pass on the final graph.
 
+To prepare a data directory and build the graph before running these queries,
+start with the [getting-started guide](getting-started.md).
+
 Structure:
 
 - **Part A — Observed user needs.** What the target user actually said they
