@@ -15,6 +15,8 @@ pass locally and fail conformance.
 from __future__ import annotations
 
 import subprocess
+
+import pytest
 import sys
 from pathlib import Path
 
@@ -23,7 +25,18 @@ SYNC = ROOT / "scripts" / "sync_agent_adapters.py"
 CLAUDE_SKILLS = ROOT / ".claude" / "skills"
 AGENTS_SKILLS = ROOT / ".agents" / "skills"
 
+#: The skill trees are gitignored local working state (they never ship in
+#: the public repository), so a checkout without them — CI — has no
+#: authority tree to compare. The tests that read the trees self-skip with
+#: this reason and are accounted in ci.yml, the same way the graph-backed
+#: suites are; the self-test below builds its own fixture and always runs.
+NO_SKILL_TREES = pytest.mark.skipif(
+    not CLAUDE_SKILLS.is_dir(),
+    reason="skill trees are gitignored local working state; not present in this checkout",
+)
 
+
+@NO_SKILL_TREES
 def test_the_adapters_match_the_authority():
     proc = subprocess.run(
         [sys.executable, str(SYNC), "--check"],
@@ -59,6 +72,7 @@ def test_the_mirror_gate_can_fail():
     assert proc.returncode == 0, f"{proc.stdout}{proc.stderr}"
 
 
+@NO_SKILL_TREES
 def test_conform_sees_two_equivalent_skill_trees():
     """What ``doctrine/rules/conform.py`` checks, checked here.
 

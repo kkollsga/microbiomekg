@@ -69,9 +69,13 @@ def test_the_prose_scan_covers_the_files_a_session_reads():
         "CHANGELOG.md",
         "docs/model.md",
         "docs/design/release-readiness.md",
-        ".claude/skills/release/SKILL.md",
     ):
         assert required in names, f"{required} is not in the prose scan"
+    # The skill trees are gitignored local working state; when this checkout
+    # has them (a developer machine) the scan must cover them too, and when it
+    # does not (CI) their absence is the expected state, not a vacuous scan.
+    if (ROOT / ".claude" / "skills").is_dir():
+        assert ".claude/skills/release/SKILL.md" in names, "the skill tree is present but not scanned"
 
 
 # --------------------------------------------------------------------------
