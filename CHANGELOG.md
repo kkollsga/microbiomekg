@@ -10,6 +10,15 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-11
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.1 to 0.17.3. The newer engine adds
+  scoped read subqueries and Cypher 25 clause spellings and corrects correlated
+  `EXISTS` and aggregate paths. Existing `.kgl` graphs remain readable; this
+  package's graph model and data inputs are unchanged.
+
 ## [0.1.0] - 2026-09-09
 
 ### Added

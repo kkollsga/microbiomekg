@@ -10,7 +10,7 @@ authors:
 repository-code: "https://github.com/kkollsga/microbiomekg"
 url: "https://github.com/kkollsga/microbiomekg"
 license: MIT
-version: 0.1.0
+version: 0.1.1
 abstract: >-
   A pipeline that builds a microbiome knowledge graph on kglite from curated
   public sources over NCBI taxonomy. Its point is the evidence model rather

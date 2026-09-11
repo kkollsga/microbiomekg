@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "microbiomekg"
-version = "0.1.0"
+version = "0.1.1"
 description = "A microbiome knowledge graph on kglite, with the evidence model as the point."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,7 +38,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-    "kglite>=0.17.1",
+    "kglite>=0.17.3",
     "pandas>=2.0",
     "openpyxl>=3.1",
     "requests>=2.31",

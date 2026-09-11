@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +32,9 @@ def main() -> int:
     if not uv:
         print("ERROR: uv is not on PATH; the clean venv needs it", file=sys.stderr)
         return 1
+    expected_version = tomllib.loads(
+        (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["version"]
     with tempfile.TemporaryDirectory(prefix="microbiomekg-install-") as tmp:
         scratch = Path(tmp)
         dist = scratch / "dist"
@@ -60,7 +64,7 @@ def main() -> int:
             env=env,
         ).stdout
         version, count, states = got.strip().splitlines()
-        assert version == "0.1.0", version
+        assert version == expected_version, (version, expected_version)
         assert int(count) >= 13, count
         assert "'present'" not in states, states
         print(f"  import microbiomekg {version}: {count} sources, none present")
