@@ -10,6 +10,8 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-13
+
 ### Changed
 
 - Raise the KGLite runtime floor from 0.17.3 to 0.17.4. The newer engine bounds
