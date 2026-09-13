@@ -363,10 +363,17 @@ fresh build.
 
 - Handshake `instructions` (1,515 chars) arrive and carry the three evidence
   rules with their numbers.
-- `tools/list` exposes seven tools. **All seven repo skills are injected into
+- `tools/list` exposes eight tools. **All seven repo skills are injected into
   `cypher_query`** (`amr`, `drugs`, `evidence_audit`, `metabolites_pathways`,
   `reconciliation`, `signature_enrichment`, `taxon_disease_evidence`), plus
   kglite's own `cypher_query` skill — 60,832 characters of description.
+- **Large query results are bounded without hiding their coverage.** The
+  response advertises the collision-safe expansion tool and session-local
+  result id, retains the completed result, and reports executed rows alongside
+  query and executor limits. A Cypher `LIMIT`, an executor row limit, and the
+  presentation byte budget are separate: expansion can recover omitted
+  presentation from the retained result, but cannot recover rows the query or
+  executor never produced.
 - **Gating works.** kglite's bundled `code_graph_analysis`, `code_graph_views`
   and `read_code_source` skills are all absent, because they are gated on
   `Function`/`Class` node types this graph does not have. That is the check that
