@@ -26,6 +26,8 @@ import os
 import re
 import subprocess
 import sys
+import threading
+from collections import deque
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +78,13 @@ class MCPClient:
             cwd=str(cwd),
             env=env,
         )
+        self._stderr_tail: deque[str] = deque(maxlen=200)
+        self._stderr_thread = threading.Thread(
+            target=self._drain_stderr,
+            name="kglite-mcp-stderr",
+            daemon=True,
+        )
+        self._stderr_thread.start()
         self._next_id = 0
         self.server_info: dict = {}
         self.instructions: str = ""
@@ -104,9 +113,17 @@ class MCPClient:
                 self._proc.wait(timeout=10)
             except subprocess.TimeoutExpired:  # pragma: no cover - a wedged child
                 self._proc.kill()
+                self._proc.wait()
+        self._stderr_thread.join(timeout=1)
         for stream in (self._proc.stdin, self._proc.stdout, self._proc.stderr):
             if stream is not None:
                 stream.close()
+
+    def _drain_stderr(self) -> None:
+        """Keep verbose server diagnostics from filling its stderr pipe."""
+        assert self._proc.stderr is not None
+        for line in self._proc.stderr:
+            self._stderr_tail.append(line.rstrip())
 
     def _send(self, message: dict) -> None:
         assert self._proc.stdin is not None
@@ -131,10 +148,9 @@ class MCPClient:
         while True:
             line = self._proc.stdout.readline()
             if not line:
-                stderr = self._proc.stderr.read() if self._proc.stderr else ""
                 raise RuntimeError(
                     f"server closed stdout before answering {method!r}. stderr tail:\n"
-                    + "\n".join(stderr.strip().splitlines()[-15:])
+                    + "\n".join(list(self._stderr_tail)[-15:])
                 )
             message = json.loads(line)
             # Server-initiated notifications carry no id; skip them rather than
@@ -148,6 +164,10 @@ class MCPClient:
     def tools(self) -> dict[str, dict]:
         return {tool["name"]: tool for tool in self.request("tools/list")["tools"]}
 
+    def call_result(self, name: str, arguments: dict) -> dict:
+        """Call a tool and return its complete MCP result."""
+        return self.request("tools/call", {"name": name, "arguments": arguments})
+
     def call(self, name: str, arguments: dict) -> str:
         """Call a tool, returning its concatenated text content.
 
@@ -155,7 +175,7 @@ class MCPClient:
         asserting a successful query, and a tool error arriving as an ordinary
         string is how a broken query passes as an answer.
         """
-        result = self.request("tools/call", {"name": name, "arguments": arguments})
+        result = self.call_result(name, arguments)
         text = "\n".join(
             block.get("text", "")
             for block in result.get("content", [])

@@ -18,6 +18,7 @@ server handshake that hangs is a FAILED test, never a raised timeout.
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -95,6 +96,18 @@ def cell(text: str, column: str) -> str:
     return value[1:-1] if len(value) >= 2 and value[0] == value[-1] == '"' else value
 
 
+def response_values(value):
+    """Yield scalar values present anywhere in a bounded response preview."""
+    if isinstance(value, dict):
+        for nested in value.values():
+            yield from response_values(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from response_values(nested)
+    else:
+        yield value
+
+
 def test_tools_list_carries_every_skill_on_cypher_query(client):
     tools = client.tools()
     description = tools["cypher_query"]["description"]
@@ -124,6 +137,66 @@ def test_gating_keeps_the_code_graph_skills_off_this_graph(client):
     # And the gate is not simply refusing everything: our own skills are gated
     # on node types this graph *does* have, and they got through.
     assert "<!-- mcp-skill:amr -->" in description
+
+
+def test_large_result_is_bounded_and_expandable_without_a_second_query(
+    client, monkeypatch
+):
+    """The response budget is presentation, not a hidden query row limit."""
+    tools = client.tools()
+    query_tool = tools["cypher_query"]
+    response_schema = query_tool["inputSchema"]["properties"]["_response"]
+    minimum = response_schema["properties"]["max_bytes"]["minimum"]
+
+    tool_calls = []
+    request = client.request
+
+    def recorded_request(method, params=None):
+        if method == "tools/call":
+            tool_calls.append(params["name"])
+        return request(method, params)
+
+    monkeypatch.setattr(client, "request", recorded_request)
+    result = client.call_result(
+        "cypher_query",
+        {
+            "query": (
+                "UNWIND range(1, 1000) AS i "
+                "RETURN 'bounded-response-row-' + toString(i) AS value"
+            ),
+            "_response": {"max_bytes": minimum},
+        },
+    )
+    serialized = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    assert len(serialized) <= minimum
+
+    envelope = json.loads(result["content"][0]["text"])["response_budget"]
+    coverage = next(
+        field["value"]["query_and_executor"]
+        for field in envelope["domain_guidance"]["fields"]
+        if field["location"] == "/coverage"
+    )
+    assert coverage == {
+        "database_population": "unknown",
+        "engine_row_limit": None,
+        "executed_rows": 1000,
+        "literal_limit_status": "no_literal_limit",
+        "query_literal_limits": [],
+        "rows_before_engine_limit": None,
+    }
+
+    selected = envelope["next"]["selected_value"]
+    selected_path = "/rows/37/0"
+    selected_value = "bounded-response-row-38"
+    assert envelope["original_bytes"] > minimum
+    assert selected_value not in set(response_values(envelope["preview"]))
+    arguments = dict(selected["arguments"])
+    arguments.update(path=selected_path, offset=0, response={"mode": "full"})
+    expanded = client.call_result(selected["name"], arguments)
+    assert json.loads(expanded["content"][0]["text"]) == selected_value
+    assert tool_calls == ["cypher_query", selected["name"]]
 
 
 def test_d2_through_the_protocol(client):

@@ -109,7 +109,10 @@ microbiomekg serve               # kglite's MCP server on stdio, read-only
 The manifest and the skills ship inside the package. One skill per use-case
 family, injected into the tool descriptions an agent reads, so the evidence
 rules travel with the tool; the prose in them is held to the graph by the
-same claim gate that holds this README.
+same claim gate that holds this README. Large results use KGLite's bounded
+agent response: follow the expansion action returned with the response to read
+retained rows or diagnostics. A response budget only changes presentation;
+query `LIMIT` and executor limits still bound which rows were executed.
 
 ## Adding a source
 

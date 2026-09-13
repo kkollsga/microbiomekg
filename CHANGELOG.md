@@ -10,6 +10,14 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.3 to 0.17.4. The newer engine bounds
+  agent-facing MCP and CLI responses, rejects every missing query parameter
+  before execution, and keeps schema diagnostics and failed writes coherent.
+  Existing `.kgl` graphs remain readable; this package's graph model and data
+  inputs are unchanged.
+
 ## [0.1.1] - 2026-09-11
 
 ### Changed
