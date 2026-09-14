@@ -10,6 +10,15 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.4 to 0.17.5. The newer engine
+  resolves relative MCP workspace sandbox paths from the manifest directory and
+  stops its workspace watcher replacing a built graph when a source file is
+  only read. `microbiomekg serve` declares no workspace sources, so this is a
+  floor move rather than a behaviour change here; existing `.kgl` graphs remain
+  readable and this package's graph model and data inputs are unchanged.
+
 ## [0.1.2] - 2026-09-13
 
 ### Changed
