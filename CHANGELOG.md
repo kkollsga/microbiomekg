@@ -10,6 +10,20 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.5 to 0.17.7. The newer engine lets a
+  graph carry its own querying methodology — skills and named read-only Cypher
+  recipes stored under hidden system labels — and lets a binary embedding the
+  MCP server register a producer layer of the same; it also delivers MCP skills
+  lazily, so a tool description now carries a skill's routing rather than its
+  whole body, and it revives the bundled code-graph skills that were dead in
+  every workspace deployment. MicrobiomeKG carries none of those records and
+  embeds no server, so the move is a floor raise rather than a behaviour change
+  here: `microbiomekg serve` still layers this package's seven skills over the
+  bundled set from the manifest. Existing `.kgl` graphs remain readable and this
+  package's graph model and data inputs are unchanged.
+
 ## [0.1.3] - 2026-09-14
 
 ### Changed
