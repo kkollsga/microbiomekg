@@ -10,6 +10,25 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.7 to 0.17.9. The two releases build
+  out the Obsidian vault format — a markdown directory read as a graph, its
+  `structure:` profile deriving sections, chunks, callouts, lists and tables as
+  nodes, an exporter that writes a graph back out as a vault, and
+  `kglite-mcp-server --vault` to serve one. MicrobiomeKG reads no vault and
+  calls nothing under `kglite.okf`, so the vault dialect changes — including
+  `okf.validate` now defaulting to `dialect="obsidian"` — reach nothing here and
+  the move is a floor raise: the graph model, the blueprint load path and the
+  data inputs are unchanged, and existing `.kgl` graphs remain readable.
+- `microbiomekg serve` now surfaces thirteen skills where it surfaced twelve:
+  0.17.8 adds the bundled `fetch_images` tool and its skill, registered because
+  the server binds a source root (it delivers no image from this graph, which
+  has no `Image` nodes). The same upgrade trims the bundled skill bodies, so the
+  session's resolved skill total falls from 119,250 bytes over 19 skills to
+  102,314 over 16 — still above kglite's 65,536-byte soft budget, by 36,778
+  bytes rather than 53,714.
+
 ## [0.1.4] - 2026-09-16
 
 ### Changed
