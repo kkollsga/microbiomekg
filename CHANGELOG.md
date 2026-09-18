@@ -10,6 +10,32 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.9 to 0.17.10. It is a pure fix
+  release for the Cypher executor, with no public API change, and it corrects
+  two classes of silently wrong answer. First, a non-aggregating `WITH` is a
+  scope barrier again: a node, edge or path variable its projection does not
+  carry is now unbound, so a later clause naming it matches afresh instead of
+  anchoring on the stale binding — and `CREATE`, `MERGE`, `SET` and `FOREACH`
+  after such a `WITH` act on the rows they name rather than on nothing.
+  Second, `*` beside another projection item now expands instead of being
+  projected as a column literally named `*`, so `WITH *, expr AS x` keeps the
+  names in scope, `WITH *, count(*)` groups per row-scope rather than by a
+  constant, `WITH DISTINCT *, k` stops collapsing every row into one, and
+  `MATCH p = (a)-->(b) RETURN *` lists `p`.
+- **No answer in this repo changes.** No query anywhere in the tracked tree
+  writes `RETURN *` or `WITH *` — the second fix reaches nothing here — and
+  every `WITH` in the preps, the ontology, the seven MCP skills, the twenty
+  documented acceptance queries and the test suite either aggregates (the case
+  that was always correct) or carries forward every name a later clause uses.
+  Verified against the published 0.17.10 wheel: the full suite is byte-identical
+  to the 0.17.9 run taken immediately before the upgrade (1,450 passed, 15
+  governed vector-lane skips), and `microbiomekg serve --selftest` hydrates the
+  same 934,206-node graph over the same 10 tools and 13 skills, with the same
+  102,314-byte resolved skill total. No golden, no documented query and no
+  recipe answer moved, so nothing here was pinning the old wrong result.
+
 ## [0.1.5] - 2026-09-18
 
 ### Changed
