@@ -971,7 +971,7 @@ That test pinned the *bug* rather than xfailing it, and kglite 0.16.22 turned
 it red: the chunk regime is now decided once per junction table, so the chunk
 size bounds
 peak RAM without changing the graph. It is asserted as a fix now — `guard`
-below — and this repo's floor is `kglite>=0.17.10`.
+below — and this repo's floor is `kglite>=0.18.0`.
 
 Guard: `tests/test_loader_contracts.py::test_junction_loader_keeps_parallel_edges`,
 `::test_junction_loader_keeps_parallel_edges_across_a_chunk_boundary` (ten rows
@@ -1178,7 +1178,7 @@ Concrete leaks in this data:
   the stated status: `bsdb:adv-deleted/1/1` (tax 1009, `deleted`),
   `bsdb:adv-ambig/1/1` (`Bacteroides corrodens`, `ambiguous`, candidates
   539 and 827), `bsdb:adv-unknown/1/1` (tax 999999999, `unresolved`).
-- kglite's own quiet drops: `add_nodes` / `add_connections` return
+- kglite's own quiet drops: `add_nodes` / `add_relationships` return
   `nodes_skipped` / `has_errors` and emit `UserWarning`s (target node not
   found, null FK, type mismatch) rather than raising. A blueprint build that
   does not read them reports success while dropping edges.

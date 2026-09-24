@@ -1846,8 +1846,9 @@ It withholds `text_score()`, and withholds it **loudly**: on a graph with no
 vector store the call raises rather than scoring zero —
 
 ```
-Cypher execution error: vector_score(): no embedding 'scientific_name_emb'
-found for node type 'Taxon'
+Cypher execution error: text_score(): no embedding for property
+'scientific_name' on node type 'Taxon'. Embed it first with
+embed_texts('Taxon', 'scientific_name').
 ```
 
 — which takes the whole query down, including a hybrid

@@ -10,6 +10,31 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.17.10 to 0.18.0, taking in 0.17.11,
+  0.17.12 and 0.18.0. 0.18.0 brings relationship embedding stores to parity
+  with node stores and renames the loader vocabulary to relationships
+  (`add_relationships`, with `add_connections` kept as a pointer). None of
+  its behaviour changes reaches this graph's answers: no query here uses an
+  open-ended `shortestPath` bound, writes `SET n.type`, reads `r.type` as a
+  property, or calls `embeddings()` on a store that may be missing.
+- The one visible difference is the error a default (no `--with-vectors`)
+  build raises for `text_score()`. It now names the function and the property:
+  `text_score(): no embedding for property 'scientific_name' on node type
+  'Taxon'`, where it used to say `vector_score(): no embedding
+  'scientific_name_emb'`. The query still fails loudly instead of scoring
+  zero. `docs/model.md` §6b quotes the new text, and the pitfalls guide names
+  `add_relationships` as the loader whose quiet drops must be read.
+- Checked against the published 0.18.0 wheel. The full suite matches the
+  0.17.10 run taken just before the upgrade (1,450 passed, 15 governed
+  vector-lane skips, the same tests skipped). A fresh default build of the
+  full data set writes a census identical to the previous one apart from its
+  timestamp and engine version, with the same node count for each of the 18
+  labels and the same edge count for each of the 29 relationship types, and
+  the graph-backed suites pass against that rebuilt graph as well.
+  `microbiomekg serve --selftest` serves the same 10 tools and 13 skills.
+
 ## [0.1.6] - 2026-09-19
 
 ### Changed

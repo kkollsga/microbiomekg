@@ -855,8 +855,8 @@ def build(
             )
     else:
         # Named in the report rather than merely absent from it: on the graph a
-        # default build produces, `text_score()` *raises* — "vector_score(): no
-        # embedding 'scientific_name_emb' found for node type 'Taxon'" — so a
+        # default build produces, `text_score()` *raises* — "text_score(): no
+        # embedding for property 'scientific_name' on node type 'Taxon'" — so a
         # consumer who did not know the lane was skipped meets a failed query
         # rather than a missing feature. The costs are the 2026-09-03 capture's
         # (bench/results/2026-09-03-ten-sources.md §3, §4).
