@@ -10,6 +10,17 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the KGLite runtime floor from 0.18.0 to 0.19.1, taking in 0.18.1,
+  0.19.0 and 0.19.1. None of the new surface (valid-time declarations, lossless
+  `export_csv`, `export_rdf`, the `text`/`timestamp`/`map`/`point` blueprint
+  column types) is used here. One
+  behaviour difference: a declared-`int` foreign key now matches a text id
+  instead of creating stub nodes, so an untyped id column no longer doubles a
+  type; the all-digit integer typing in `Frames.typed` is kept so ids stay
+  integers.
+
 ## [0.1.7] - 2026-09-25
 
 ### Changed

@@ -2,10 +2,12 @@
 the typing step that hands them to the loader as frames.
 
 The 2026-09-04 whole-graph comparison found exactly two ways a frame differs
-from the CSV the loader used to read: a string id column splits the id space
-(every Taxon doubled), and a declared list column arrives as text (the
-absent / ``[]`` / list distinction collapses). Both are asserted here, the
-second end to end through ``from_blueprint(frames=)``.
+from the CSV the loader used to read: a string id column met a declared-int
+foreign key (kglite before 0.19 split the id space and doubled every Taxon;
+0.19.1 matches the two, so only the id's type is pinned here), and a declared
+list column arrives as text (the absent / ``[]`` / list distinction
+collapses). The second is asserted end to end through
+``from_blueprint(frames=)``.
 """
 
 from __future__ import annotations
@@ -176,8 +178,9 @@ def test_the_three_way_distinction_survives_the_frame_path(tmp_path):
 
 
 def test_an_untyped_id_column_splits_the_id_space(tmp_path):
-    """Why the digit rule exists: hand the same rows over with the id as text
-    and the declared-int foreign key misses every node."""
+    """The digit rule keeps ids integer: kglite before 0.19 missed every
+    declared-int foreign key onto a text id and doubled the nodes; 0.19.1 links
+    them, and the typed path still loads the same two nodes and one edge."""
     rows = pd.DataFrame(
         {"id": ["1", "2"], "parent": pd.array([None, 1], dtype="Int64")}
     )
@@ -195,7 +198,8 @@ def test_an_untyped_id_column_splits_the_id_space(tmp_path):
     }
     (tmp_path / "bp.json").write_text(json.dumps(bp))
     g = kglite.from_blueprint(tmp_path / "bp.json", frames={"t": rows}, save=False)
-    assert list(g.cypher("MATCH (n:T) RETURN count(*) AS n"))[0]["n"] > 2
+    assert list(g.cypher("MATCH (n:T) RETURN count(*) AS n"))[0]["n"] == 2
+    assert list(g.cypher("MATCH (:T)-[r]->(:T) RETURN count(r) AS n"))[0]["n"] == 1
     store = Frames()
     t = store.table("t", ["id", "parent"], key="id")
     t.add({"id": "1", "parent": ""})

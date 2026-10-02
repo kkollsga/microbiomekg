@@ -234,8 +234,9 @@ class Frames:
 
         - an **all-digit column is an integer column**, null where the cell
           was empty — declared ``int`` or not, because ids are rarely declared
-          and a string id misses every declared-``int`` foreign key pointing
-          at it (every ``Taxon`` and ``Paper`` doubled, with null properties);
+          and the CSV reader typed them as integers (kglite before 0.19 also
+          missed every declared-``int`` foreign key onto a string id, doubling
+          every ``Taxon`` and ``Paper``; 0.19.1 links them);
         - a **declared ``list`` column is the list itself**, ``None`` where
           the cell was empty and ``[]`` where it was ``[]`` — the frame path
           wraps text as a one-element list rather than parsing it.
