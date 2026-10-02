@@ -10,16 +10,20 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-10-03
+
 ### Changed
 
 - Raise the KGLite runtime floor from 0.18.0 to 0.19.1, taking in 0.18.1,
-  0.19.0 and 0.19.1. None of the new surface (valid-time declarations, lossless
-  `export_csv`, `export_rdf`, the `text`/`timestamp`/`map`/`point` blueprint
-  column types) is used here. One
-  behaviour difference: a declared-`int` foreign key now matches a text id
-  instead of creating stub nodes, so an untyped id column no longer doubles a
-  type; the all-digit integer typing in `Frames.typed` is kept so ids stay
-  integers.
+  0.19.0 and 0.19.1. None of the new surface (valid-time declarations,
+  lossless `export_csv`, `export_rdf`, the `text`/`timestamp`/`map`/`point`
+  blueprint column types) is used here. One behaviour difference is KGLite
+  0.19.0's fix that an id column referring to a string-keyed node type is read
+  as text: a declared-`int` foreign key now matches a text id instead of
+  creating stub nodes, so an untyped id column no longer doubles a type (the
+  earlier test pinned that bug); the all-digit integer typing in
+  `Frames.typed` is kept so ids stay integers. Rebuilt with 0.19.1, the graph
+  has the same 934,206 nodes and 1,324,684 relationships as the 0.17.1 build.
 
 ## [0.1.7] - 2026-09-25
 
