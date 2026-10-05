@@ -10,6 +10,20 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-10-05
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.19.1 to 0.19.3, taking in 0.19.2 and
+  0.19.3. None of the changes reaches this graph's answers: the blueprint
+  declares no valid-time, no `parent_fk` sub-nodes and no timeseries (so the
+  valid-today default, the `OF_<PARENT>` edge naming and the parent-edge fixes
+  do not apply; `OF_ORGANISM` is a declared junction edge and keeps its name),
+  no query uses `degree()` or `shortest_path_length()`, and none does date
+  arithmetic with months or `ts_at`. The build pipeline already reads the
+  grouped build warnings. The test suite passes unchanged (1,450 passed, 15
+  skipped) and the existing graph loads without a data advisory.
+
 ## [0.1.8] - 2026-10-03
 
 ### Changed
