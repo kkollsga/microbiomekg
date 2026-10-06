@@ -10,6 +10,20 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-10-06
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.19.3 to 0.19.4. None of its breaking
+  changes reaches this graph's answers: every node type in the blueprint
+  fragments declares its title field (so the `title`-column and
+  `unique_id_field='title'` changes do not apply), nothing here runs `CREATE`
+  or `MERGE`, `update()`, `add_properties()` or `store_as=`, `create_index`,
+  `CALL outline` or the MCP server's workspace mode. Rebuilt with 0.19.4, the
+  graph has the same node and relationship counts and the same titles per
+  node type as the 0.19.1 build. The test suite passes unchanged (1,450
+  passed, 15 skipped).
+
 ## [0.1.9] - 2026-10-05
 
 ### Changed
