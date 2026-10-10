@@ -10,6 +10,23 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-10-10
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.19.4 to 0.19.6, taking in 0.19.5 and
+  0.19.6. The one change that reaches this repo is that 0.19.6 enforces a
+  declared ontology's `warn` and `error` rules at write time. A full build
+  from the local raw inputs loads without a refusal and produces the same
+  graph as the 0.19.4 build (934,206 nodes, 1,324,684 edges); the `warn`
+  findings it reports (`required_properties` gaps on `ASSOCIATED_WITH`,
+  `CONFERS_RESISTANCE_TO`, `CARRIES_RESISTANCE_GENE`, `VIA_MECHANISM` and
+  `ABUNDANCE_CHANGED_BY`, and a few `required` links) are the audit's
+  existing findings. The ontology test fixture now declares at `warn`,
+  because 0.19.6 refuses an `error` declaration over data that already breaks
+  it. Nothing here catches the renamed error classes or compares `.code`. The
+  test suite passes (1,450 passed, 15 skipped).
+
 ## [0.1.10] - 2026-10-06
 
 ### Changed
