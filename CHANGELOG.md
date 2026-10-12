@@ -10,6 +10,21 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-10-12
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.19.6 to 0.20.0. Graphs written by
+  0.20.0 (`.kgl` v8) cannot be opened by KGLite 0.19.x, so rebuild
+  `graph/microbiomekg.kgl` with 0.20.0 before serving it with the new floor.
+  A 0.19.x-built graph still opens under 0.20.0. The loader's `on_invalid`
+  now defaults to `"error"`, but the build loads through blueprints and
+  junction tables with no null or unstorable ids, so it is unaffected. A full
+  build from the local raw inputs loads without a refusal and produces the
+  same graph as the 0.19.6 build (934,206 nodes, 1,324,684 edges). Nothing
+  here uses `datetime()`, date columns or `open_session`. The test suite
+  passes (1,450 passed, 15 skipped).
+
 ## [0.1.11] - 2026-10-10
 
 ### Changed
