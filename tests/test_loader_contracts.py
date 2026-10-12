@@ -122,12 +122,20 @@ def test_junction_loader_keeps_edge_properties_across_a_chunk_boundary(
 
 
 def test_integer_ids_survive_a_nan_in_the_column():
-    """C16: a pandas NaN makes the id column float64 — the NaN row is skipped."""
+    """C16: a pandas NaN makes the id column float64 — loaded rows keep int ids.
+
+    kglite 0.20.0 defaults `on_invalid` to "error", so the NaN row raises and
+    writes nothing; `on_invalid="warn"` loads the rest and reports the skip.
+    """
     df = pd.DataFrame({"tax_id": [562, 1496, float("nan")], "name": ["a", "b", "c"]})
     assert df["tax_id"].dtype == "float64"
+    strict = kglite.KnowledgeGraph()
+    with pytest.raises(kglite.ArgumentError, match="on_invalid='error'"):
+        strict.add_nodes(df, "Taxon", "tax_id", "name")
+    assert list(strict.cypher("MATCH (t:Taxon) RETURN t")) == [], "error writes nothing"
     graph = kglite.KnowledgeGraph()
     with pytest.warns(UserWarning):
-        report = graph.add_nodes(df, "Taxon", "tax_id", "name")
+        report = graph.add_nodes(df, "Taxon", "tax_id", "name", on_invalid="warn")
     assert report["nodes_created"] == 2
     assert report["nodes_skipped"] == 1, (
         "the NaN row is dropped; a loader that ignores nodes_skipped never learns"
