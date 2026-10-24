@@ -10,6 +10,24 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-10-24
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.20.0 to 0.21.1. A graph this build
+  saves becomes `.kgl` v9 once it holds a column of 256 KB or more, 65,536
+  nodes or more, or 262,144 relationships or more, which the full graph does.
+  KGLite releases before 0.21.0 cannot open a v9 file and the file is larger
+  than the v8 one, so rebuild `graph/microbiomekg.kgl` with 0.21.1 only where
+  every reader is on 0.21.1 or later; the floor guarantees that for installs of
+  this package. The checked-in graph (v8) still opens under 0.21.1. The build
+  saves with the default layout. The test suite passes against 0.21.1
+  (1,450 passed, 15 skipped), including the `CALL db.indexes()` probe in
+  `tests/test_mcp_skills.py`, and also with `kglite.WriteBudgetWarning` and
+  `kglite.MappedFallbackWarning` raised as errors. The package loads graphs
+  with the storage mode the file recorded (memory), so the new write budget,
+  which applies to a `mapped` load that writes, does not apply here.
+
 ## [0.1.12] - 2026-10-12
 
 ### Changed
