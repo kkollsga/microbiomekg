@@ -261,8 +261,15 @@ def test_define_ontology_is_accepted_by_kglite(declared_graph):
     """A malformed document raises ValueError; a stale one returns warnings."""
     warnings = declared_graph.define_ontology(_observed(ONTOLOGY))
     # A `warn` rule also reports the fixture's property-less edges (0.19.6);
-    # a stale declaration is any warning that is not such a data finding.
-    stale = [w for w in warnings if "violation" not in w]
+    # kglite 0.21.2 also warns per declared edge property that no stored edge
+    # carries ("is carried by no stored ... edge"); the fixture stores few
+    # properties, so that is a fixture finding too. A stale declaration is any
+    # warning that is neither.
+    stale = [
+        w
+        for w in warnings
+        if "violation" not in w and "is carried by no stored" not in w
+    ]
     assert stale == [], f"define_ontology returned warnings: {stale}"
 
 

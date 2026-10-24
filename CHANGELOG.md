@@ -10,6 +10,16 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-10-24
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.21.1 to 0.21.2. The suite passes
+  against 0.21.2 and `serve.py --selftest` passes on the full graph: 13 skills
+  served with layers named (`[pack]`, `[bundled]`), none skipped, the largest
+  pack skill (`drugs.md`, 14,687 bytes) under the 16,384-byte hard limit. The
+  graph is unchanged and the build keeps the default save layout.
+
 ## [0.1.13] - 2026-10-24
 
 ### Changed

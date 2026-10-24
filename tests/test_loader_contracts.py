@@ -56,7 +56,11 @@ def parallel_edge_blueprint(tmp_path):
                             "target": "B",
                             "target_fk": "b_id",
                             "properties": ["pmid"],
-                            "property_types": {"pmid": "int"},
+                            "property_types": {
+                                "pmid": "int",
+                                "a_id": "int",
+                                "b_id": "int",
+                            },
                         }
                     }
                 },

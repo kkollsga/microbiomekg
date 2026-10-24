@@ -2121,13 +2121,16 @@ a design** — and that is now a claim with a track record rather than a policy:
 | 3. no secondary labels | **closed** — `labels` on a node spec; `Condition` is stamped, `ReportedTaxon` deliberately is not |
 | 4. audit reports per edge, not per property | **closed** — `{by: 'property'}` (0.16.22), node `required_properties` / `property_types` and `entity_kind` (0.17.0) |
 | 5. one relationship cannot span a union range | **closed** — `target` list + `target_type_column` |
-| 6. ontology cannot say "at least one of these" | **stands**, and no longer bites — (5) removed the case |
+| 6. ontology cannot say "at least one of these" | **stands**, and no longer bites — (5) removed the case; kglite's 2026-10-24 ontology assessment classed it as not needed (union `range` + `required` covers it), so it is not filed |
 | 7. `[:A\|B]` is a syntax error inside `EXISTS { }` | **closed** — fixed, verified here |
 | 8. `text_bm25()` on an unindexed property fails silently in one shape | **closed** — both shapes raise |
 | 9. an HNSW index changes the answer and Cypher cannot opt out | **closed** — `{exact: true}` and retrieval diagnostics (0.17.0) |
 | 10. `embed_texts()` cannot be scoped to a selection | **stands** |
 | 11. `score_fuse()` has no per-lane normalisation | **stands** |
 | 12. a missing skills pack booted silently | **closed** — boot error, and `--selftest` counts skills |
+
+Recorded, not adopted: kglite 0.21.2 added ontology `distinct`, `property_values`,
+`by_source` and label-based `exempt`. Adopting any of them is its own plan.
 
 Two more that this migration found and that are *not* in the list above,
 because they were the residue of closing item 1 rather than anything this repo
@@ -2225,7 +2228,8 @@ shipped graph was built with.
    `required: true` is per relationship, and `exempt` covers only
    `required_properties` and `property_types` (`EXEMPTABLE_CHECKS`), so there
    is no way to declare that a node must have an `A` **or** a `B`. **This stands
-   as an engine limitation and no longer bites here**, because (5) removed the
+   as an engine limitation, is not filed in kglite's backlog (its 2026-10-24
+   ontology assessment classed it as not needed), and no longer bites here**, because (5) removed the
    case that needed it: `IN_CONDITION.required` is one rule over the union, so
    it counts signatures naming no condition *of any kind* — 1,206 of 14,846
    (8.1%) — which is the metric §4 wanted. It read 2,292 (15.4%) as
