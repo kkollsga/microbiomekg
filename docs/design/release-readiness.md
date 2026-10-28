@@ -39,14 +39,14 @@ back: branch → `gh pr create --draft` → phases as commits → batched pushes
 
 **Still the owner's, not an agent's:** branch protection on `main` — require a
 PR and require the seven check names CI reports (`gate (ruff, adapters, bounds,
-blueprint)`, `pytest (py3.11–3.14, graph-backed suites skipped)` ×4, `sphinx -W
+blueprint)`, `pytest (py3.12–3.15, graph-backed suites skipped)` ×4, `sphinx -W
 (the guides and the generated reference)`, `build against an empty data
 directory`) — plus the repository description and topics.
 
 ## 2. CI
 
 **Scope.** GitHub Actions running `make gate` and the **full** pytest suite on
-a Python matrix — **3.11 to 3.14** (`requires-python = ">=3.11"`, and the local
+a Python matrix — **3.12 to 3.15** (`requires-python = ">=3.12"`, and the local
 venv is 3.14, so the top of the range is the one actually in use and the bottom
 is the one nothing has ever run). Plus the smoke build the design doc's rule 2
 demands: `scripts/build.py` against an **empty** data directory, which must

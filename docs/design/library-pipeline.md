@@ -120,7 +120,7 @@ Rules that make it a contract rather than a convention:
    answer.
 5. ~~A GitHub repository and CI~~ **Done 2026-09-08**:
    `github.com/kkollsga/microbiomekg`, with `.github/workflows/ci.yml` running
-   the gate's data-free steps, the full suite on Python 3.11–3.14, `make docs`
+   the gate's data-free steps, the full suite on Python 3.12–3.15, `make docs`
    under `-W`, and the `status`-driven smoke build against an empty data
    directory. CI has no graph, so the graph-backed suites self-skip there and
    the local gate keeps them.

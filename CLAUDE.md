@@ -63,7 +63,7 @@ that can skip is a gate that has never run.
 
 **CI is live** at `github.com/kkollsga/microbiomekg` and runs
 `.github/workflows/ci.yml` on every push to `main` and every PR against it:
-the gate's data-free steps, the full suite on Python 3.11–3.14, `make docs`
+the gate's data-free steps, the full suite on Python 3.12–3.15, `make docs`
 under `-W`, and the empty-directory smoke build. First green run 2026-09-08 on
 `a53ac8e`. **It is not a superset of the local gate**: CI has no built graph,
 so the acceptance goldens, the documented queries and the claim gate self-skip

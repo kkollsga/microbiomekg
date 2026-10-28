@@ -11,7 +11,7 @@ about prose, so the short version is worth reading before you open a PR.
    Format: `type: short description` (`feat`, `fix`, `docs`, `refactor`,
    `test`, `chore`).
 3. **Open a draft PR** and let CI run: the gate, the full suite on Python
-   3.11–3.14, `sphinx -W`, and a build against an empty data directory.
+   3.12–3.15, `sphinx -W`, and a build against an empty data directory.
 4. **Mark it ready** when every required check is green.
 
 ## The gate
