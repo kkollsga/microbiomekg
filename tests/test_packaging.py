@@ -62,8 +62,8 @@ def root_files_the_tests_read() -> set[str]:
 
 def test_the_sdist_carries_every_root_file_the_tests_read():
     include = metadata()["tool"]["hatch"]["build"]["targets"]["sdist"]["include"]
-    # Development-only roots the sdist deliberately omits: the adapter mirror
-    # is a checkout concern, not a source-distribution one (see the comment in
+    # Development-only roots the sdist deliberately omits: the agent files
+    # are a checkout concern, not a source-distribution one (see the comment in
     # pyproject.toml), and its tests are the only readers.
     development_only = {"Makefile"}
     missing = root_files_the_tests_read() - set(include) - development_only

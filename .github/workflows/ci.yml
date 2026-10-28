@@ -12,10 +12,10 @@
 #     1013 passed, 409 skipped, against 1407 passed / 15 skipped locally. The
 #     skip accounting is printed, and the job name says what it does not
 #     cover, until item 3's `status`-driven build gives CI a graph of its own.
-#     Two more self-skips are expected here: the agent skill trees are
-#     gitignored local working state, so tests/test_agent_adapters.py's two
-#     tree-reading tests skip in CI with that reason (the mirror self-test
-#     still runs).
+#     One more self-skip is expected here: the agent skill folders are
+#     gitignored local working state, so tests/test_agent_layout.py's
+#     symlink test skips in CI with that reason (the layout self-test still
+#     runs).
 #   * `smoke` is docs/design/library-pipeline.md rule 2: a build against an
 #     EMPTY data directory must SUCCEED, name every source as skipped, and
 #     write no graph. That is the fresh-clone state, and the job proves
@@ -61,9 +61,9 @@ jobs:
       # steps by name rather than weakening the gate: a gate that skips when
       # its input is missing is the thing R10 forbids, and `claims` runs in the
       # `tests` job's self-skip accounting instead.
-      # `check-adapters` stays local: the skill trees it mirrors are gitignored
-      # (local working state, not published), so CI has no authority tree to
-      # compare and the check would refuse rather than skip (R1/R10).
+      # `check-layout` stays local: the skills folders it inspects are gitignored
+      # (local working state, not published), so CI has no symlink to verify
+      # and the check would refuse rather than skip (R1/R10).
       - name: Bounds, lint, blueprint composition
         run: make check-dev-docs check-data-bounds lint fragments
 

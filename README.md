@@ -162,7 +162,7 @@ a *misspelt* organism name and nothing else, while costing +82.6 s of build,
 (the `2026-09-03` capture, `bench/results/`). A default build says in its report
 that the lane was skipped and which flag turns it on.
 
-The conventions an agent works under are `CLAUDE.md`, and `CONTRIBUTING.md` is
+The conventions an agent works under are `AGENTS.md`, and `CONTRIBUTING.md` is
 the short version for a contributor.
 
 ## Licence

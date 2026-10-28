@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCES = sources.discover()
 assert SOURCES, "no preps discovered — every assertion below would be vacuous"
 
-#: Browser-only origins (CLAUDE.md, "data/raw is operator-owned").
+#: Browser-only origins (AGENTS.md, "data/raw is operator-owned").
 BROWSER_ONLY = {"hmdb", "mimedb", "masi"}
 
 

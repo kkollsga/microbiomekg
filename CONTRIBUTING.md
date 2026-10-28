@@ -18,7 +18,7 @@ about prose, so the short version is worth reading before you open a PR.
 
 ```bash
 make venv    # provision .venv and install the package editable
-make gate    # ruff, adapter mirror, accumulation bounds, blueprint composition,
+make gate    # ruff, agent layout, accumulation bounds, blueprint composition,
              # and the two truth gates (~30 s)
 make test    # the full suite
 make docs    # sphinx -W
@@ -75,7 +75,7 @@ has read is `not_provided` rather than a plausible default — the point is that
 the gap stays countable.
 
 `docs/model.md` is the graph model, `docs/usecases-and-pitfalls.md` is the user
-contract, and `CLAUDE.md` is the full set of conventions this repository works
+contract, and `AGENTS.md` is the full set of conventions this repository works
 under.
 
 ## Licence

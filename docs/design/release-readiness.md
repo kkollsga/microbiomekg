@@ -221,4 +221,4 @@ a breaking change is not a reason to stop and ask (`R6`, last paragraph) — it
 is a reason to write the break into the entry.
 
 **Done 2026-09-03:** `CHANGELOG.md` with `[Unreleased]` carrying the release
-train's user-visible changes, and the rule in `CLAUDE.md` *Commits & releases*.
+train's user-visible changes, and the rule in `AGENTS.md` *Commits & releases*.

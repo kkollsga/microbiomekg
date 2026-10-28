@@ -8,7 +8,7 @@
 # does its check or errors with the fix printed; none of them skips with a
 # notice.
 #
-#   make gate     the pre-commit gate (~30 s): adapters, accumulation bounds,
+#   make gate     the pre-commit gate (~30 s): agent layout, accumulation bounds,
 #                 ruff, blueprint composition, the two truth gates
 #   make test     the full suite
 #   make build    build the graph (minutes; needs data/raw)
@@ -34,28 +34,21 @@ PY_PATHS := microbiomekg scripts tests bench
 GRAPH := graph/microbiomekg.kgl
 
 .PHONY: gate lint ruff-check ruff-fix fragments claims test build serve venv \
-        check-adapters sync-adapters check-dev-docs check-data-bounds \
+        check-layout check-dev-docs check-data-bounds \
         prune-dev check-graph check-install docs
 
 ## The gate. Order is cheapest-first so a trivial failure costs a second.
-gate: check-adapters check-dev-docs check-data-bounds lint fragments claims
+gate: check-layout check-dev-docs check-data-bounds lint fragments claims
 	@echo ""
 	@echo "=================================================="
 	@echo " gate: ALL STEPS PASSED"
 	@echo "=================================================="
 
-## R7 — the two harness adapters are equivalent to what the authority implies.
-## The check regenerates into memory and diffs against disk, so a hand-edited
-## adapter, a missing file and an orphan file are all failures.
-check-adapters:
-	@echo "== [1/6] agent adapters (R7) =="
-	$(PY) scripts/sync_agent_adapters.py --check
-
-## Regenerate AGENTS.md + .agents/skills/ from CLAUDE.md + .claude/skills/.
-## Never edit an adapter by hand — merge the improvement into the authority and
-## run this (RULES.md R7, and dev-docs-cleanup §6).
-sync-adapters:
-	$(PY) scripts/sync_agent_adapters.py
+## R7 — AGENTS.md is the only instructions file and .claude/skills is a symlink
+## to .agents/skills. Nothing is regenerated, so there is no sync target.
+check-layout:
+	@echo "== [1/6] agent layout (R7) =="
+	$(PY) scripts/check_agent_layout.py
 
 ## R4 — the gitignored working folder has a bound with an owner. Unlike the
 ## caches this NEVER deletes: which tier a file belongs in, and whether it is
@@ -116,7 +109,7 @@ check-data-bounds:
 	done; \
 	if [ "$$fail" = 1 ]; then \
 		echo "  -> a build rewrites graph/; anything else in it is an"; \
-		echo "     accumulation nobody owns. Reclaim it, or give it a tier (CLAUDE.md R4 table)."; \
+		echo "     accumulation nobody owns. Reclaim it, or give it a tier (AGENTS.md R4 table)."; \
 		exit 1; \
 	fi
 

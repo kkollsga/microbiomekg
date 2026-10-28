@@ -48,7 +48,7 @@ come from.
 
 ## Adding a source
 
-<!-- claim external: 4 — the four-file source shape is a repo convention (CLAUDE.md), not a graph quantity -->
+<!-- claim external: 4 — the four-file source shape is a repo convention (AGENTS.md), not a graph quantity -->
 
 ## Building and testing
 

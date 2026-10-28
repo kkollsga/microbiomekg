@@ -22,14 +22,12 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "docs" / "model.md"
 
-#: The tracked prose a human or an agent reads before running anything. The
-#: adapters (``AGENTS.md``, ``.agents/``) are generated from the first two, and
-#: are scanned anyway: a stale adapter is what a session actually reads.
+#: The prose a human or an agent reads before running anything: the tracked
+#: markdown plus the local skills folder (``.claude/skills`` is a symlink to it).
 PROSE_GLOBS = (
     "*.md",
     "docs/*.md",
     "docs/**/*.md",
-    ".claude/skills/**/*.md",
     ".agents/**/*.md",
 )
 
@@ -63,7 +61,6 @@ def test_the_prose_scan_covers_the_files_a_session_reads():
     """A scan that stops finding files passes vacuously (R1)."""
     names = {p.relative_to(ROOT).as_posix() for p in prose_files()}
     for required in (
-        "CLAUDE.md",
         "AGENTS.md",
         "README.md",
         "CHANGELOG.md",
@@ -74,8 +71,8 @@ def test_the_prose_scan_covers_the_files_a_session_reads():
     # The skill trees are gitignored local working state; when this checkout
     # has them (a developer machine) the scan must cover them too, and when it
     # does not (CI) their absence is the expected state, not a vacuous scan.
-    if (ROOT / ".claude" / "skills").is_dir():
-        assert ".claude/skills/release/SKILL.md" in names, (
+    if (ROOT / ".agents" / "skills").is_dir():
+        assert ".agents/skills/release/SKILL.md" in names, (
             "the skill tree is present but not scanned"
         )
 

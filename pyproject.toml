@@ -81,7 +81,7 @@ packages = ["microbiomekg"]
 # composes the blueprint from microbiomekg/blueprints/*.json at run time and
 # never reads this copy. The sdist is a source distribution — enough to build
 # the package and run the composition gate — not a development checkout: the
-# adapter mirror (CLAUDE.md, .claude/, .agents/, Makefile) stays out of it.
+# agent files (AGENTS.md, .claude/, .agents/, Makefile) stays out of it.
 [tool.hatch.build.targets.sdist]
 include = [
     "microbiomekg/**",

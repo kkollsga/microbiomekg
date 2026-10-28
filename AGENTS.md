@@ -1,12 +1,9 @@
-# MicrobiomeKG — Codex Conventions
+# MicrobiomeKG — Agent Conventions
 
-**Authority:** `CLAUDE.md` + `.claude/skills/` are the authority this repo's
-agent instructions are regenerated from; `AGENTS.md` and `.agents/skills/` are
-generated adapters (identical modulo the `CLAUDE.md` → `AGENTS.md`
-substitution, which the Authority block itself is exempt from). Edit the
-authority and regenerate in the same action — never edit an adapter.
-`make check-adapters` proves the pair equivalent, and `make sync-adapters`
-regenerates them.
+**Authority:** `AGENTS.md` is this repo's agent instructions; there is no
+`CLAUDE.md` (Claude Code loads `AGENTS.md` in its place). `.agents/skills/`
+holds the skills; `.claude/skills` is a symlink to it so Claude Code finds
+them. `make check-layout` proves the layout.
 
 An eleven-source microbiome knowledge graph on [kglite](../../Rust/KGLite),
 **100% Python** — no Rust crate, no compiled extension of our own. kglite does
@@ -30,7 +27,7 @@ of that layer this repo last synced against is `dev-docs/.doctrine-synced`.
 make venv                 # provision .venv (pytest, pytest-timeout, ruff, build, kglite) + the package, editable
 make check-install        # wheel + sdist → clean venv outside the repo → the three verbs run
 make docs                 # sphinx -W: the guides + the generated reference (tens of seconds)
-make gate                 # the fast gate — adapters, bounds, ruff, blueprint, claim gate (~30 s)
+make gate                 # the fast gate — skills layout, bounds, ruff, blueprint, claim gate (~30 s)
 make test                 # the full suite: .venv/bin/python -m pytest -q
 make build                # .venv/bin/python scripts/build.py  (ARGS='--with-kegg' to add flags)
 make prune-dev            # bounded caches and scratch tiers, per R4
@@ -43,7 +40,7 @@ work from the checkout; `microbiomekg/api.py` is the Python form of the same thr
 There is **no build step for the code**: `make build` builds the *graph*, takes minutes and 7.5 GB
 of operator-owned raw input, and is never part of a gate.
 
-`make gate` is the pre-commit ceiling: it runs the adapter mirror, the
+`make gate` is the pre-commit ceiling: it runs the skills-layout check, the
 accumulation bounds, ruff (check + format), `scripts/build_blueprint.py
 --check`, and the two truth gates (`tests/test_skill_claims.py`,
 `tests/test_documented_queries.py`). It compiles nothing and rebuilds no graph.
@@ -434,7 +431,7 @@ The skills (`.agents/skills/`):
   investigate → plan → branch → autonomous test/commit loop → draft PR → CI
   green → merge.
 - **`dev-docs-cleanup`** — purge the time-boxed tiers, tidy `todos.md`,
-  soft-delete stale docs to `bin/`, resync the adapters.
+  soft-delete stale docs to `bin/`.
 - **`read-inbox`** — triage `inbox/unread/` into durable detail + lean
   backlinks; route items to the party who can act.
 - **`notify`** — send a note to another project's inbox. Workspace root is

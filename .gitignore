@@ -22,12 +22,13 @@ __pycache__/
 
 # The local working system: plans, scratch, the todo index (dev-docs/) and the
 # cross-project channel (inbox/). Local state, never committed — each folder's
-# own README.md is its layout map, and CLAUDE.md's R4 table names every tier's
+# own README.md is its layout map, and AGENTS.md's R4 table names every tier's
 # bound and owner. `make check-dev-docs` enforces the size bound.
 /dev-docs/
 /inbox/
 
 # Agent skill trees are local working state for this checkout, not part of the
-# public repository. The local `make gate` still verifies the adapter mirror.
-.claude/skills/
+# public repository. `.agents/skills/` is the real folder and `.claude/skills`
+# a symlink to it; `make check-layout` verifies that locally.
+.claude/skills
 .agents/skills/
