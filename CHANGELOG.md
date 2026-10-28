@@ -10,6 +10,25 @@ changes and formatting do not get entries.
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-10-29
+
+### Breaking
+
+- Require Python 3.12 or newer (`requires-python = ">=3.12"`). Python 3.10 and
+  3.11 are dropped, because the KGLite floor below publishes no wheel for them.
+  Anyone on 3.11 or older stays on MicrobiomeKG 0.1.14 with KGLite 0.21.2. CI
+  now tests Python 3.12 to 3.15.
+
+### Changed
+
+- Raise the KGLite runtime floor from 0.21.2 to 0.21.4. The suite passes
+  against 0.21.4 on Python 3.12 and 3.15 (1,450 passed, 15 skipped on 3.12),
+  and `serve.py --selftest` passes on the full graph, including the new
+  `stateless` lines: the MCP server answers clients on protocol 2026-07-28
+  that never send `initialize`. The graph is unchanged.
+- Move the docs extra to `sphinx>=9.1.1` and the GitHub Actions to their
+  latest major versions.
+
 ## [0.1.14] - 2026-10-24
 
 ### Changed
