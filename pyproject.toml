@@ -38,7 +38,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-    "kglite>=0.21.2",
+    "kglite>=0.21.3",
     "pandas>=2.0",
     "openpyxl>=3.1",
     "requests>=2.31",
