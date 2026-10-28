@@ -50,8 +50,8 @@ jobs:
     name: gate (ruff, adapters, bounds, blueprint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Provision the venv
@@ -75,8 +75,8 @@ jobs:
       matrix:
         python: ["3.12", "3.13", "3.14", "3.15"]
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       - name: Provision the venv
@@ -100,8 +100,8 @@ jobs:
     name: sphinx -W (the guides and the generated reference)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Provision the venv
@@ -115,8 +115,8 @@ jobs:
     name: build against an empty data directory
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Provision the venv
